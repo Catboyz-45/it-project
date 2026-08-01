@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  EDITOR
+  SUPER_ADMIN
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaKind {
+  IMAGE
+  PDF
+}
+
+enum MediaStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum MediaFormat {
+  WEBP
+  AVIF
+  ORIGINAL
+}
+
+enum AuditResult {
+  SUCCESS
+  FAILURE
+}
+
+model Company {
+  id               String   @id @default(cuid()) @db.VarChar(30)
+  singletonKey     String   @unique @default("PRIMARY") @db.VarChar(20)
+  legalName        String   @db.VarChar(200)
+  displayName      String   @db.VarChar(160)
+  shortDescription String?  @db.VarChar(500)
+  history          String?  @db.Text
+  vision           String?  @db.Text
+  mission          String?  @db.Text
+  address          String?  @db.Text
+  phoneDisplay     String?  @db.VarChar(50)
+  phoneHref        String?  @db.VarChar(30)
+  email            String?  @db.VarChar(254)
+  lineLabel        String?  @db.VarChar(100)
+  lineUrl          String?  @db.VarChar(500)
+  facebookUrl      String?  @db.VarChar(500)
+  mapsUrl          String?  @db.VarChar(1000)
+  mapsEmbedUrl     String?  @db.VarChar(2000)
+  businessHours    String?  @db.VarChar(200)
+  seoTitle         String?  @db.VarChar(60)
+  seoDescription   String?  @db.VarChar(160)
+  logoMediaId      String?  @db.VarChar(30)
+  logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([logoMediaId])
+}
+
+model Banner {
+  id          String        @id @default(cuid()) @db.VarChar(30)
+  title       String        @db.VarChar(180)
+  description String?       @db.VarChar(500)
+  buttonLabel String?       @db.VarChar(80)
+  buttonUrl   String?       @db.VarChar(500)
+  imageId     String?       @db.VarChar(30)
+  image       Media?        @relation("BannerImage", fields: [imageId], references: [id], onDelete: SetNull)
+  sortOrder   Int           @default(0)
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?     @db.Timestamptz(3)
+  deletedAt   DateTime?     @db.Timestamptz(3)
+  purgeAt     DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([status, sortOrder])
+  @@index([deletedAt, purgeAt])
+  @@index([imageId])
+}
+
+model Service {
+  id             String           @id @default(cuid()) @db.VarChar(30)
+  slug           String           @unique @db.VarChar(180)
+  title          String           @db.VarChar(180)
+  eyebrow        String?          @db.VarChar(80)
+  summary        String           @db.VarChar(500)
+  content        String?          @db.Text
+  sortOrder      Int              @default(0)
+  isFeatured     Boolean          @default(false)
+  isSearchable   Boolean          @default(true)
+  seoTitle       String?          @db.VarChar(60)
+  seoDescription String?          @db.VarChar(160)
+  coverMediaId   String?          @db.VarChar(30)
+  coverMedia     Media?           @relation("ServiceCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  status         ContentStatus    @default(DRAFT)
+  publishedAt    DateTime?        @db.Timestamptz(3)
+  deletedAt      DateTime?        @db.Timestamptz(3)
+  purgeAt        DateTime?        @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  projects       ProjectService[]
+
+  @@index([status, sortOrder])
+  @@index([isFeatured, status])
+  @@index([deletedAt, purgeAt])
+  @@index([coverMediaId])
+}
+
+model Brand {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  slug      String    @unique @db.VarChar(120)
+  name      String    @unique @db.VarChar(120)
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime? @db.Timestamptz(3)
+  purgeAt   DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  products  Product[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt, purgeAt])
+}
+
+model ProductType {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  slug      String    @unique @db.VarChar(120)
+  name      String    @unique @db.VarChar(120)
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime? @db.Timestamptz(3)
+  purgeAt   DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  products  Product[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt, purgeAt])
+}
+
+model Product {
+  id             String         @id @default(cuid()) @db.VarChar(30)
+  slug           String         @unique @db.VarChar(180)
+  name           String         @db.VarChar(180)
+  model          String         @db.VarChar(120)
+  summary        String         @db.VarChar(500)
+  content        String?        @db.Text
+  btuMin         Int?
+  btuMax         Int?
+  features       String?        @db.Text
+  specifications Json?
+  warranty       String?        @db.VarChar(200)
+  seer           Decimal?       @db.Decimal(6, 2)
+  refrigerant    String?        @db.VarChar(50)
+  priceLabel     String         @default("สอบถามราคา") @db.VarChar(80)
+  isFeatured     Boolean        @default(false)
+  isSearchable   Boolean        @default(true)
+  seoTitle       String?        @db.VarChar(60)
+  seoDescription String?        @db.VarChar(160)
+  brandId        String         @db.VarChar(30)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  productTypeId  String         @db.VarChar(30)
+  productType    ProductType    @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+  coverMediaId   String?        @db.VarChar(30)
+  coverMedia     Media?         @relation("ProductCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  catalogMediaId String?        @db.VarChar(30)
+  catalogMedia   Media?         @relation("ProductCatalog", fields: [catalogMediaId], references: [id], onDelete: SetNull)
+  status         ContentStatus  @default(DRAFT)
+  publishedAt    DateTime?      @db.Timestamptz(3)
+  deletedAt      DateTime?      @db.Timestamptz(3)
+  purgeAt        DateTime?      @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
+  gallery        ProductMedia[]
+
+  @@unique([brandId, model])
+  @@index([status, updatedAt])
+  @@index([brandId, productTypeId, status])
+  @@index([btuMin, btuMax])
+  @@index([isFeatured, status])
+  @@index([deletedAt, purgeAt])
+  @@index([coverMediaId])
+  @@index([catalogMediaId])
+}
+
+model ProductMedia {
+  productId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([productId, mediaId])
+  @@unique([productId, sortOrder])
+  @@index([mediaId])
+}
+
+model Project {
+  id               String           @id @default(cuid()) @db.VarChar(30)
+  slug             String           @unique @db.VarChar(180)
+  title            String           @db.VarChar(180)
+  projectType      String           @db.VarChar(120)
+  area             String           @db.VarChar(160)
+  customerName     String?          @db.VarChar(180)
+  showCustomerName Boolean          @default(false)
+  summary          String           @db.VarChar(500)
+  content          String?          @db.Text
+  completedAt      DateTime?        @db.Date
+  isFeatured       Boolean          @default(false)
+  isSearchable     Boolean          @default(true)
+  seoTitle         String?          @db.VarChar(60)
+  seoDescription   String?          @db.VarChar(160)
+  coverMediaId     String?          @db.VarChar(30)
+  coverMedia       Media?           @relation("ProjectCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  status           ContentStatus    @default(DRAFT)
+  publishedAt      DateTime?        @db.Timestamptz(3)
+  deletedAt        DateTime?        @db.Timestamptz(3)
+  purgeAt          DateTime?        @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+  gallery          ProjectMedia[]
+  services         ProjectService[]
+
+  @@index([status, completedAt])
+  @@index([projectType, status])
+  @@index([isFeatured, status])
+  @@index([deletedAt, purgeAt])
+  @@index([coverMediaId])
+}
+
+model ProjectMedia {
+  projectId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([projectId, mediaId])
+  @@unique([projectId, sortOrder])
+  @@index([mediaId])
+}
+
+model ProjectService {
+  projectId String  @db.VarChar(30)
+  serviceId String  @db.VarChar(30)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@id([projectId, serviceId])
+  @@index([serviceId])
+}
+
+model NewsCategory {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  slug      String    @unique @db.VarChar(120)
+  name      String    @unique @db.VarChar(120)
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime? @db.Timestamptz(3)
+  purgeAt   DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  news      News[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt, purgeAt])
+}
+
+model News {
+  id             String        @id @default(cuid()) @db.VarChar(30)
+  slug           String        @unique @db.VarChar(180)
+  title          String        @db.VarChar(180)
+  summary        String        @db.VarChar(500)
+  content        String?       @db.Text
+  isFeatured     Boolean       @default(false)
+  isSearchable   Boolean       @default(true)
+  seoTitle       String?       @db.VarChar(60)
+  seoDescription String?       @db.VarChar(160)
+  categoryId     String        @db.VarChar(30)
+  category       NewsCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  coverMediaId   String?       @db.VarChar(30)
+  coverMedia     Media?        @relation("NewsCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  status         ContentStatus @default(DRAFT)
+  publishedAt    DateTime?     @db.Timestamptz(3)
+  deletedAt      DateTime?     @db.Timestamptz(3)
+  purgeAt        DateTime?     @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([categoryId, status, publishedAt])
+  @@index([status, publishedAt])
+  @@index([isFeatured, status])
+  @@index([deletedAt, purgeAt])
+  @@index([coverMediaId])
+}
+
+model Media {
+  id              String         @id @default(cuid()) @db.VarChar(30)
+  kind            MediaKind
+  objectKey       String         @unique @db.VarChar(1000)
+  originalName    String?        @db.VarChar(255)
+  mimeType        String         @db.VarChar(120)
+  sizeBytes       BigInt
+  checksumSha256  String?        @db.Char(64)
+  width           Int?
+  height          Int?
+  altText         String?        @db.VarChar(500)
+  isPrivate       Boolean        @default(true)
+  status          MediaStatus    @default(UPLOADING)
+  uploadExpiresAt DateTime?      @db.Timestamptz(3)
+  failureReason   String?        @db.VarChar(200)
+  uploadedById    String?        @db.VarChar(30)
+  uploadedBy      Admin?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  deletedAt       DateTime?      @db.Timestamptz(3)
+  purgeAt         DateTime?      @db.Timestamptz(3)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
+  companyLogos    Company[]      @relation("CompanyLogo")
+  bannerImages    Banner[]       @relation("BannerImage")
+  serviceCovers   Service[]      @relation("ServiceCover")
+  productCovers   Product[]      @relation("ProductCover")
+  productCatalogs Product[]      @relation("ProductCatalog")
+  productGallery  ProductMedia[]
+  projectCovers   Project[]      @relation("ProjectCover")
+  projectGallery  ProjectMedia[]
+  newsCovers      News[]         @relation("NewsCover")
+  variants        MediaVariant[]
+
+  @@index([status, uploadExpiresAt])
+  @@index([kind, createdAt])
+  @@index([uploadedById])
+  @@index([deletedAt, purgeAt])
+}
+
+model MediaVariant {
+  id         String      @id @default(cuid()) @db.VarChar(30)
+  mediaId    String      @db.VarChar(30)
+  media      Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  format     MediaFormat
+  width      Int?
+  height     Int?
+  objectKey  String      @unique @db.VarChar(1000)
+  mimeType   String      @db.VarChar(120)
+  sizeBytes  BigInt
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@unique([mediaId, format, width])
+  @@index([mediaId])
+}
+
+model StorageCleanupJob {
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  mediaId     String?   @db.VarChar(30)
+  objectKeys  Json
+  attempts    Int       @default(0)
+  nextRunAt   DateTime  @default(now()) @db.Timestamptz(3)
+  lastError   String?   @db.VarChar(500)
+  completedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([completedAt, nextRunAt])
+}
+
+model Admin {
+  id                  String         @id @default(cuid()) @db.VarChar(30)
+  username            String         @unique @db.VarChar(80)
+  usernameNormalized  String         @unique @db.VarChar(80)
+  displayName         String         @db.VarChar(160)
+  role                AdminRole      @default(EDITOR)
+  passwordHash        String         @db.VarChar(255)
+  mustChangePassword  Boolean        @default(true)
+  totpSecretEncrypted String?        @db.Text
+  totpKeyVersion      Int?
+  twoFactorEnabled    Boolean        @default(false)
+  failedLoginAttempts Int            @default(0)
+  lockedUntil         DateTime?      @db.Timestamptz(3)
+  isActive            Boolean        @default(true)
+  lastLoginAt         DateTime?      @db.Timestamptz(3)
+  deletedAt           DateTime?      @db.Timestamptz(3)
+  purgeAt             DateTime?      @db.Timestamptz(3)
+  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime       @updatedAt @db.Timestamptz(3)
+  sessions            Session[]
+  recoveryCodes       RecoveryCode[]
+  auditLogs           AuditLog[]
+  uploadedMedia       Media[]
+
+  @@index([role, isActive])
+  @@index([deletedAt, purgeAt])
+  @@index([lockedUntil])
+}
+
+model Session {
+  id            String    @id @default(cuid()) @db.VarChar(30)
+  tokenHash     String    @unique @db.Char(64)
+  adminId       String    @db.VarChar(30)
+  admin         Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  twoFactorAt   DateTime? @db.Timestamptz(3)
+  expiresAt     DateTime  @db.Timestamptz(3)
+  lastSeenAt    DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt     DateTime? @db.Timestamptz(3)
+  revokeReason  String?   @db.VarChar(160)
+  ipAddressHash String?   @db.Char(64)
+  userAgentHash String?   @db.Char(64)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([adminId, revokedAt, expiresAt])
+  @@index([expiresAt])
+}
+
+model RecoveryCode {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  adminId   String    @db.VarChar(30)
+  admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  codeHash  String    @db.Char(64)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@unique([adminId, codeHash])
+  @@index([adminId, usedAt])
+}
+
+model AuditLog {
+  id         BigInt      @id @default(autoincrement())
+  actorId    String?     @db.VarChar(30)
+  actor      Admin?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String      @db.VarChar(120)
+  targetType String?     @db.VarChar(80)
+  targetId   String?     @db.VarChar(80)
+  result     AuditResult
+  requestId  String?     @db.VarChar(100)
+  ipAddress  String?     @db.Inet
+  userAgent  String?     @db.VarChar(500)
+  metadata   Json?
+  errorCode  String?     @db.VarChar(100)
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
+  @@index([requestId])
+}
+
+model Redirect {
+  id         String    @id @default(cuid()) @db.VarChar(30)
+  fromPath   String    @unique @db.VarChar(1000)
+  toPath     String    @db.VarChar(1000)
+  statusCode Int       @default(301)
+  isActive   Boolean   @default(true)
+  hitCount   BigInt    @default(0)
+  lastHitAt  DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([isActive, fromPath])
+}
+
+model AuthThrottle {
+  key         String    @id @db.Char(64)
+  failures    Int       @default(0)
+  lockedUntil DateTime? @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([lockedUntil])
+}

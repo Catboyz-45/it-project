@@ -1,0 +1,8 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/server/db";
+import { companyInputSchema } from "@/server/services/company.service";
+import { cmsError, cmsSession, validMutation } from "@/server/cms/http";
+import { requestContext } from "@/server/security/request";
+import { invalidatePublicContent } from "@/server/services/public-cache";
+export async function GET() { const session = await cmsSession(); if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 }); const company = await db.company.findUnique({ where: { singletonKey: "PRIMARY" } }); return NextResponse.json({ company }, { headers: { "Cache-Control": "no-store" } }); }
+export async function PATCH(request: NextRequest) { const session = await cmsSession(); if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 }); if (!validMutation(request)) return NextResponse.json({ error: "Invalid request" }, { status: 403 }); try { const data = companyInputSchema.parse(await request.json()); const context = requestContext(request); const company = await db.$transaction(async tx => { const record = await tx.company.upsert({ where: { singletonKey: "PRIMARY" }, create: { ...data, singletonKey: "PRIMARY" }, update: data }); await tx.auditLog.create({ data: { actorId: session.adminId, action: "COMPANY_UPDATED", targetType: "Company", targetId: record.id, result: "SUCCESS", requestId: context.requestId, userAgent: context.userAgent, metadata: context.ipHash ? { ipHash: context.ipHash } : undefined } }); return record; }); invalidatePublicContent(); return NextResponse.json({ company }); } catch (error) { return cmsError(error); } }

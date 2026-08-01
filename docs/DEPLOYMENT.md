@@ -1,0 +1,77 @@
+# คู่มือติดตั้งและปฏิบัติการ Production
+
+## ข้อกำหนดก่อนติดตั้ง
+
+- เครื่อง Linux ที่มี Docker Engine และ Docker Compose v2
+- PostgreSQL และ S3-compatible storage ที่มี backup แยกจาก application
+- HTTPS reverse proxy/load balancer และโดเมนที่บริษัทควบคุม
+- Secret manager สำหรับค่าจาก `.env.example` ห้ามเก็บ `.env` ใน Git
+
+## ขั้นตอนปล่อยระบบ
+
+1. สำรองฐานข้อมูลและทดสอบ restore ล่าสุด
+2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL และ S3 origin เป็น build-time configuration:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SITE_URL=https://www.example.co.th \
+  --build-arg S3_ENDPOINT=https://storage.example.co.th \
+  -t yuyen:<tag> .
+```
+3. ตรวจ migration: `docker compose run --rm ops db:migrate:status`
+4. Apply migration หนึ่งครั้งจาก release job: `docker compose run --rm ops db:migrate:deploy`
+5. เริ่ม application: `docker compose up -d app`
+6. ตรวจ `/api/health/live` และ `/api/health/ready` ต้องตอบ HTTP 200
+7. Smoke test หน้าแรก, login, CMS, รูปภาพ และ audit log ก่อนสลับ traffic
+
+ห้ามใช้ `prisma migrate dev`, `prisma db push` หรือ development seed ใน production
+
+## Bootstrap Super Admin
+
+กำหนด `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_PASSWORD` อย่างน้อย 12 ตัวอักษร และ `BOOTSTRAP_ADMIN_DISPLAY_NAME` ผ่าน secret ชั่วคราว แล้วรัน:
+
+```bash
+docker compose run --rm ops auth:bootstrap
+```
+
+คำสั่งเป็น idempotent และจะไม่แก้บัญชีที่มีอยู่ ลบ secret ชั่วคราวทันทีหลังสร้างบัญชี จากนั้นเจ้าของต้อง login เพื่อเปลี่ยนรหัสผ่านและตั้ง TOTP
+
+## Backup และ restore
+
+สำรองฐานข้อมูลแบบ encrypted อย่างน้อยรายวัน และเก็บหลายตำแหน่งตามนโยบายบริษัท:
+
+```bash
+pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > yuyen-$(date +%F).dump
+createdb yuyen_restore_test
+pg_restore --exit-on-error --no-owner --no-acl --dbname="$RESTORE_DATABASE_URL" yuyen-YYYY-MM-DD.dump
+```
+
+ทดสอบ restore ในฐานข้อมูลแยกทุกเดือน ตรวจจำนวนรายการ, foreign keys, บัญชีผู้ดูแล, media metadata และสุ่มเปิดไฟล์ใน object storage ต้องสำรอง bucket/versioning แยกต่างหากด้วย
+
+## Rollback
+
+1. หยุดการรับ write หรือเปิด maintenance mode
+2. เก็บ log และ snapshot ก่อนเปลี่ยนแปลง
+3. ถ้า schema ยังรองรับ ให้เปลี่ยน application กลับไป image tag ก่อนหน้า
+4. Prisma migration เป็น forward-only: แก้ schema ด้วย corrective migration ที่ review แล้ว
+5. ถ้าข้อมูลเสียหาย ให้ restore backup ไปฐานข้อมูลใหม่และตรวจสอบก่อนสลับ connection
+6. reconcile ข้อมูลที่เกิดหลัง backup จาก audit log แล้วทำ post-incident review
+
+ห้ามลบ/แก้ migration ที่ apply แล้ว และห้าม rollback ด้วยคำสั่ง destructive โดยไม่มี backup ที่ทดสอบ restore
+
+## Scheduled cleanup
+
+ตั้ง scheduler ภายนอก container เพื่อป้องกันงานซ้ำเมื่อ scale หลาย instance:
+
+```cron
+15 2 * * * cd /opt/yuyen && docker compose run --rm ops cms:purge-expired
+45 2 * * * cd /opt/yuyen && docker compose run --rm ops media:cleanup
+```
+
+งานทั้งสองควรรันวันละครั้งด้วย distributed/scheduler lock, timeout 30 นาที และ alert เมื่อ exit code ไม่เป็นศูนย์ ตรวจ audit `RETENTION_PURGE_COMPLETED` และ storage cleanup backlog ทุกสัปดาห์ เก็บ audit อย่างน้อย 180 วัน
+
+## Monitoring
+
+- Liveness ใช้ `/api/health/live`; readiness ใช้ `/api/health/ready`
+- Alert เมื่อ readiness ล้มเหลวต่อเนื่อง, HTTP 5xx สูง, login failure ผิดปกติ, disk/database ใกล้เต็ม หรือ cleanup ล้มเหลว
+- Health endpoint ไม่ทดแทน synthetic login และไม่ตรวจ object storage เพื่อไม่ให้ storage outage นำ app ออกจาก load balancer ทั้งหมด
