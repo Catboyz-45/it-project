@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: API /api/media/[id] รองรับ GET; ตรวจสอบคำขอ เรียกกฎฝั่งเซิร์ฟเวอร์ และส่งผลลัพธ์ JSON โดยไม่เปิดเผยข้อมูลภายใน
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { currentSession } from "@/server/auth/session";
@@ -16,6 +21,7 @@ async function publiclyReferenced(id: string) {
   return counts.reduce((sum, count) => sum + count, 0) > 0;
 }
 
+/** จุดเริ่มของคำขอ HTTP GET: อ่านข้อมูลโดยไม่แก้ไขข้อมูล และคืนสถานะที่เหมาะสมให้ผู้เรียก */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams)); if (!parsed.success) return NextResponse.json({ error: "Invalid query" }, { status: 400 });
   const media = await db.media.findFirst({ where: { id: (await params).id, status: "READY", deletedAt: null }, include: { variants: true } });

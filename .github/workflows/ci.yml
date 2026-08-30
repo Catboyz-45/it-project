@@ -1,3 +1,5 @@
+# หน้าที่ของไฟล์นี้: ขั้นตอน CI บน GitHub สำหรับตรวจรูปแบบ ชนิดข้อมูล การทดสอบ การ migrate และ production build
+# ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 name: CI
 
 on:
@@ -27,6 +29,23 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d yuyen_test"
           --health-interval 5s --health-timeout 5s --health-retries 20
+      minio:
+        # This image starts the MinIO server by default, which is required by
+        # GitHub Actions services (the service syntax cannot provide a command).
+        image: bitnamilegacy/minio@sha256:ba958aa5e12c8b1426dd95de61d8f1ed14741efa0ec730019ed57086930a4299
+        env:
+          MINIO_ROOT_USER: minio-ci
+          MINIO_ROOT_PASSWORD: minio-ci-secret
+        ports: ["9000:9000"]
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/minio/health/live"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      clamav:
+        image: clamav/clamav:1.5.3-debian13-slim
+        ports: ["3310:3310"]
+        options: >-
+          --health-cmd "/usr/local/bin/clamdcheck.sh"
+          --health-interval 10s --health-timeout 5s --health-retries 30
     env:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_test?schema=public
@@ -35,8 +54,17 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
+      TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
+      TOTP_ENCRYPTION_CURRENT_VERSION: "2"
+      S3_ENDPOINT: http://127.0.0.1:9000
       S3_REGION: auto
+      S3_BUCKET: yuyen-ci-media
+      S3_ACCESS_KEY_ID: minio-ci
+      S3_SECRET_ACCESS_KEY: minio-ci-secret
       S3_FORCE_PATH_STYLE: "true"
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: 127.0.0.1
+      CLAMAV_PORT: 3310
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,11 +73,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate
+      - name: Create isolated object-storage bucket
+        run: |
+          docker run --rm --network host minio/mc:RELEASE.2025-08-13T08-35-41Z \
+            sh -c "mc alias set ci '$S3_ENDPOINT' '$S3_ACCESS_KEY_ID' '$S3_SECRET_ACCESS_KEY' && mc mb --ignore-existing ci/$S3_BUCKET"
       - name: Validate schema and migration history
         run: |
           npm run db:validate
-          npm run db:migrate:deploy
-          npm run db:migrate:status
+          npm run db:test:migrate:deploy
+          npm run db:test:migrate:status
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:unit
@@ -73,15 +105,45 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d yuyen_e2e"
           --health-interval 5s --health-timeout 5s --health-retries 20
+      minio:
+        # This image starts the MinIO server by default, which is required by
+        # GitHub Actions services (the service syntax cannot provide a command).
+        image: bitnamilegacy/minio@sha256:ba958aa5e12c8b1426dd95de61d8f1ed14741efa0ec730019ed57086930a4299
+        env:
+          MINIO_ROOT_USER: minio-e2e
+          MINIO_ROOT_PASSWORD: minio-e2e-secret
+        ports: ["9000:9000"]
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/minio/health/live"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      clamav:
+        image: clamav/clamav:1.5.3-debian13-slim
+        ports: ["3310:3310"]
+        options: >-
+          --health-cmd "/usr/local/bin/clamdcheck.sh"
+          --health-interval 10s --health-timeout 5s --health-retries 30
     env:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
       APP_URL: http://127.0.0.1:3000
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
+      TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
+      TOTP_ENCRYPTION_CURRENT_VERSION: "2"
+      RUN_AUTH_HARDENING_E2E: "1"
+      RUN_ADMIN_E2E: "1"
+      RUN_MEDIA_E2E: "1"
+      S3_ENDPOINT: http://127.0.0.1:9000
       S3_REGION: auto
+      S3_BUCKET: yuyen-e2e-media
+      S3_ACCESS_KEY_ID: minio-e2e
+      S3_SECRET_ACCESS_KEY: minio-e2e-secret
       S3_FORCE_PATH_STYLE: "true"
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: 127.0.0.1
+      CLAMAV_PORT: 3310
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -89,7 +151,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run db:generate && npm run db:migrate:deploy
+      - run: npm run db:generate && npm run db:test:migrate:deploy
+      - name: Create isolated object-storage bucket
+        run: |
+          docker run --rm --network host minio/mc:RELEASE.2025-08-13T08-35-41Z \
+            sh -c "mc alias set ci '$S3_ENDPOINT' '$S3_ACCESS_KEY_ID' '$S3_SECRET_ACCESS_KEY' && mc mb --ignore-existing ci/$S3_BUCKET"
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

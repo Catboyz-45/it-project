@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชั้น repository security.repository เป็นจุดอ่านและเขียนฐานข้อมูลของโดเมนนี้ เพื่อไม่ให้ UI ติดต่อฐานข้อมูลโดยตรง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { AuditResult, type AdminRole, type Prisma } from "@prisma/client";
 import { db } from "@/server/db/client";
 

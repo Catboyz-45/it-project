@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: สร้างข้อมูลตัวอย่างสำหรับเครื่องพัฒนาเท่านั้น และตั้งใจไม่สร้างรหัสผ่านผู้ดูแล
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { PrismaClient } from "@prisma/client";
 
 if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_SEED !== "true") {
@@ -60,16 +64,24 @@ async function upsertTaxonomies() {
 }
 
 async function main() {
+  const verifiedCompanyData = {
+    legalName: "บริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด",
+    displayName: "อยู่เย็นเป็นสุข วิศวกรรม",
+    shortDescription: "ให้บริการจำหน่าย ติดตั้ง และซ่อมบำรุงระบบเครื่องปรับอากาศ ระบบอาคาร ระบบไฟฟ้า และระบบสุขาภิบาล",
+    history: "บริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด (YUYENPENSUK ENGINEERING CO., LTD.) จดทะเบียนจัดตั้งเมื่อวันที่ 6 กุมภาพันธ์ 2569 เพื่อให้บริการจำหน่าย ติดตั้ง และซ่อมบำรุงระบบเครื่องปรับอากาศ รวมถึงงานระบบอาคาร ระบบไฟฟ้า และระบบสุขาภิบาล",
+    address: "594/151 ถนนหทัยราษฎร์ แขวงบางชัน เขตคลองสามวา กรุงเทพมหานคร 10510",
+    seoTitle: "อยู่เย็นเป็นสุข วิศวกรรม | ระบบปรับอากาศและงานระบบอาคาร",
+    seoDescription: "บริการจำหน่าย ติดตั้ง และซ่อมบำรุงระบบปรับอากาศ ระบบอาคาร ไฟฟ้า และสุขาภิบาล ในกรุงเทพมหานคร",
+  };
+
   await prisma.company.upsert({
     where: { singletonKey: "PRIMARY" },
     create: {
       singletonKey: "PRIMARY",
-      legalName: "บริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด",
-      displayName: "อยู่เย็นเป็นสุข วิศวกรรม",
-      shortDescription: "บริการระบบปรับอากาศและงานระบบ M&E",
+      ...verifiedCompanyData,
       businessHours: "จันทร์–เสาร์ 08:00–17:00 น.",
     },
-    update: {},
+    update: verifiedCompanyData,
   });
 
   const { brandRecords, typeRecords, categoryRecords } = await upsertTaxonomies();

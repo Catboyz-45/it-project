@@ -37,6 +37,13 @@ See [docs/DATABASE.md](docs/DATABASE.md) before creating or migrating a database
 [คู่มือผู้ดูแลภาษาไทย](docs/ADMIN-MANUAL-TH.md) และ
 [แผนนำเข้าข้อมูล/UAT](docs/DATA-MIGRATION-AND-UAT.md)
 
+เอกสารสำหรับผู้ที่ไม่มีพื้นฐานโค้ด:
+
+- [ภาพรวมโปรเจกต์ภาษาไทย](docs/PROJECT-GUIDE-TH.md)
+- [รายการ API ทั้งหมด](docs/API-REFERENCE-TH.md)
+- [คำอธิบายฐานข้อมูล 21 ตาราง](docs/DATABASE-GUIDE-TH.md)
+- [วิธีอ่านโค้ดและคอมเมนต์](docs/CODE-READING-GUIDE-TH.md)
+
 ```bash
 npm run db:generate
 npm run db:validate
@@ -81,19 +88,39 @@ run `npm run auth:recover -- <username>` on a trusted server; the command revoke
 all sessions and requires fresh password and 2FA setup. Never run it as a routine
 password-reset path.
 
+## Isolated test configuration
+
+Tests that write data never use the development `DATABASE_URL` directly. Create
+an ignored `.env.test` and set `TEST_DATABASE_URL` to a separate database whose
+name contains `test`, `e2e`, or `sandbox`:
+
+```bash
+cp .env.test.example .env.test
+npm run db:test:migrate:deploy
+npm run test:integration
+```
+
+The test runner validates the database URL and then exposes it to Prisma as
+`DATABASE_URL`. It refuses to start when `TEST_DATABASE_URL` is missing or the
+database name does not clearly identify an isolated test database. Do not copy
+production credentials into `.env.test`.
+
 ## CMS retention job
 
 CMS records use soft deletion and remain restorable for 30 days. Schedule this
-idempotent command once per day from a trusted worker after configuring
+idempotent commands once per day from a trusted worker after configuring
 `DATABASE_URL`:
 
 ```bash
 npm run cms:purge-expired
+npm run auth:cleanup
 ```
 
-The command permanently removes only expired records whose required references
-can be deleted safely and writes a system audit event. Back up the production
-database and test restore procedures before enabling the schedule.
+The CMS command permanently removes only expired records whose required
+references can be deleted safely. The authentication command retains inactive
+sessions for 30 days and expired throttle records for 7 days by default; both
+values are configurable. Each command writes a system audit event. Back up the
+production database and test restore procedures before enabling the schedule.
 
 ## Media storage
 

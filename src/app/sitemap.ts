@@ -1,9 +1,15 @@
+/**
+ * หน้าที่ของไฟล์นี้: สร้างรายการ URL สาธารณะให้เครื่องมือค้นหา โดยรวมเฉพาะเนื้อหาที่เผยแพร่แล้ว
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import type { MetadataRoute } from "next";
 import { db } from "@/server/db";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yuyenengineering.co.th";
 export const dynamic = "force-dynamic";
 
+/** สร้างส่วนหน้าจอ sitemap; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const published = { status: "PUBLISHED" as const, deletedAt: null, publishedAt: { lte: new Date() }, isSearchable: true };
   const [services, products, projects, news] = await db.$transaction([

@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: คำสั่งดูแลระบบ purge-expired-content; รันจากเครื่องหรือเซิร์ฟเวอร์ที่เชื่อถือได้ตามคู่มือใน docs
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import "dotenv/config";
 import { db } from "../src/server/db";
 
@@ -17,6 +21,8 @@ async function main() {
     const types = await tx.productType.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now }, products: { none: {} } } });
     const categories = await tx.newsCategory.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now }, news: { none: {} } } });
     purged += brands.count + types.count + categories.count;
+    const admins = await tx.admin.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now } } });
+    purged += admins.count;
     await tx.auditLog.create({ data: { action: "RETENTION_PURGE_COMPLETED", targetType: "System", result: "SUCCESS", metadata: { purged } } });
   });
   process.stdout.write(`Purged ${purged} expired records.\n`);

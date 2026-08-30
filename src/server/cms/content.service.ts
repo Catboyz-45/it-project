@@ -1,9 +1,14 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชั้น service content.service รวมกฎธุรกิจและประสานฐานข้อมูล การตรวจสิทธิ์ และผลลัพธ์ที่ส่งให้หน้า/API
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import "server-only";
 import { ContentStatus, Prisma, type AdminRole } from "@prisma/client";
 import { db } from "@/server/db";
 import { CmsError } from "./errors";
 import { bannerSchema, listQuerySchema, newsSchema, productSchema, projectSchema, serviceSchema, type ContentKind } from "./schemas";
-import { canTransition, retentionDate } from "./rules";
+import { canTransition, newsPublicationDate, retentionDate } from "./rules";
 
 type Actor = { id: string; role: AdminRole };
 type AuditContext = { requestId?: string; ipHash?: string; userAgent?: string | null };
@@ -24,13 +29,15 @@ async function assertMedia(tx: Prisma.TransactionClient, images: Array<string | 
   const imageIds = [...new Set(images.filter((id): id is string => Boolean(id)))]; const pdfIds = [...new Set(pdfs.filter((id): id is string => Boolean(id)))];
   const [imageCount, pdfCount] = await Promise.all([tx.media.count({ where: { id: { in: imageIds }, kind: "IMAGE", status: "READY", deletedAt: null } }), tx.media.count({ where: { id: { in: pdfIds }, kind: "PDF", status: "READY", deletedAt: null } })]);
   if (imageCount !== imageIds.length || pdfCount !== pdfIds.length) throw new CmsError("INVALID_MEDIA", "ไฟล์สื่อไม่พร้อมใช้งานหรือชนิดไฟล์ไม่ถูกต้อง");
+  const mediaIds = [...imageIds, ...pdfIds];
+  if (mediaIds.length) await tx.media.updateMany({ where: { id: { in: mediaIds } }, data: { orphanExpiresAt: null } });
 }
 
 export class ContentService {
   async list(kind: ContentKind, rawQuery: unknown) {
     const query = listQuerySchema.parse(rawQuery); const skip = (query.page - 1) * query.pageSize;
     const base = { deletedAt: null, ...(query.status === "ALL" ? {} : { status: query.status as ContentStatus }) };
-    let items: Array<{ id: string; slug?: string; title: string; status: ContentStatus; updatedAt: Date }> = []; let total = 0;
+    let items: Array<{ id: string; slug?: string; title: string; status: ContentStatus; updatedAt: Date; publishedAt?: Date | null }> = []; let total = 0;
     if (kind === "banners") {
       const where: Prisma.BannerWhereInput = { ...base, ...(query.query ? { title: { contains: query.query, mode: "insensitive" } } : {}) };
       [items, total] = await db.$transaction([db.banner.findMany({ where, select: { id: true, title: true, status: true, updatedAt: true }, skip, take: query.pageSize, orderBy: orderBy(query.sort) }), db.banner.count({ where })]);
@@ -46,7 +53,7 @@ export class ContentService {
       [items, total] = await db.$transaction([db.project.findMany({ where, select: { id: true, slug: true, title: true, status: true, updatedAt: true }, skip, take: query.pageSize, orderBy: orderBy(query.sort) }), db.project.count({ where })]);
     } else {
       const where: Prisma.NewsWhereInput = { ...base, ...(query.query ? { OR: [{ title: { contains: query.query, mode: "insensitive" } }, { summary: { contains: query.query, mode: "insensitive" } }] } : {}) };
-      [items, total] = await db.$transaction([db.news.findMany({ where, select: { id: true, slug: true, title: true, status: true, updatedAt: true }, skip, take: query.pageSize, orderBy: orderBy(query.sort) }), db.news.count({ where })]);
+      [items, total] = await db.$transaction([db.news.findMany({ where, select: { id: true, slug: true, title: true, status: true, updatedAt: true, publishedAt: true }, skip, take: query.pageSize, orderBy: orderBy(query.sort) }), db.news.count({ where })]);
     }
     return { items, total, page: query.page, pageSize: query.pageSize, pageCount: Math.max(1, Math.ceil(total / query.pageSize)) };
   }
@@ -67,7 +74,7 @@ export class ContentService {
       else if (kind === "services") { const data = serviceSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); record = await tx.service.create({ data: { ...data, publishedAt: publishedAt(data.status) } }); }
       else if (kind === "products") { const data = productSchema.parse(input); await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds], [data.catalogMediaId]); const { galleryMediaIds, specifications, ...values } = data; record = await tx.product.create({ data: { ...values, specifications: specifications ?? Prisma.JsonNull, publishedAt: publishedAt(data.status), gallery: { create: galleryMediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) } } }); }
       else if (kind === "projects") { const data = projectSchema.parse(input); await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds]); const { galleryMediaIds, serviceIds, ...values } = data; record = await tx.project.create({ data: { ...values, publishedAt: publishedAt(data.status), gallery: { create: galleryMediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) }, services: { create: serviceIds.map(serviceId => ({ serviceId })) } } }); }
-      else { const data = newsSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); record = await tx.news.create({ data: { ...data, publishedAt: publishedAt(data.status, data.publishedAt) } }); }
+      else { const data = newsSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); record = await tx.news.create({ data: { ...data, publishedAt: newsPublicationDate(data.publishedAt, data.status) } }); }
       await tx.auditLog.create({ data: auditData(actor, "CONTENT_CREATED", kind, record.id, context) }); return record;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
@@ -81,7 +88,7 @@ export class ContentService {
       else if (kind === "services") { const data = serviceSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); desiredStatus = data.status; if (!canTransition(current.status, desiredStatus)) throw new CmsError("INVALID_TRANSITION", "ต้องกู้รายการเก็บถาวรเป็นฉบับร่างก่อนเผยแพร่"); nextSlug = data.slug; record = await tx.service.update({ where: { id }, data: { ...data, publishedAt: publishedAt(data.status, current.publishedAt) } }); }
       else if (kind === "products") { const data = productSchema.parse(input); await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds], [data.catalogMediaId]); desiredStatus = data.status; if (!canTransition(current.status, desiredStatus)) throw new CmsError("INVALID_TRANSITION", "ต้องกู้รายการเก็บถาวรเป็นฉบับร่างก่อนเผยแพร่"); nextSlug = data.slug; const { galleryMediaIds, specifications, ...values } = data; await tx.productMedia.deleteMany({ where: { productId: id } }); record = await tx.product.update({ where: { id }, data: { ...values, specifications: specifications ?? Prisma.JsonNull, publishedAt: publishedAt(data.status, current.publishedAt), gallery: { create: galleryMediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) } } }); }
       else if (kind === "projects") { const data = projectSchema.parse(input); await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds]); desiredStatus = data.status; if (!canTransition(current.status, desiredStatus)) throw new CmsError("INVALID_TRANSITION", "ต้องกู้รายการเก็บถาวรเป็นฉบับร่างก่อนเผยแพร่"); nextSlug = data.slug; const { galleryMediaIds, serviceIds, ...values } = data; await tx.projectMedia.deleteMany({ where: { projectId: id } }); await tx.projectService.deleteMany({ where: { projectId: id } }); record = await tx.project.update({ where: { id }, data: { ...values, publishedAt: publishedAt(data.status, current.publishedAt), gallery: { create: galleryMediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) }, services: { create: serviceIds.map(serviceId => ({ serviceId })) } } }); }
-      else { const data = newsSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); desiredStatus = data.status; if (!canTransition(current.status, desiredStatus)) throw new CmsError("INVALID_TRANSITION", "ต้องกู้รายการเก็บถาวรเป็นฉบับร่างก่อนเผยแพร่"); nextSlug = data.slug; record = await tx.news.update({ where: { id }, data: { ...data, publishedAt: publishedAt(data.status, data.publishedAt ?? current.publishedAt) } }); }
+      else { const data = newsSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); desiredStatus = data.status; if (!canTransition(current.status, desiredStatus)) throw new CmsError("INVALID_TRANSITION", "ต้องกู้รายการเก็บถาวรเป็นฉบับร่างก่อนเผยแพร่"); nextSlug = data.slug; record = await tx.news.update({ where: { id }, data: { ...data, publishedAt: newsPublicationDate(data.publishedAt, data.status, current.publishedAt) } }); }
       if (current.slug && nextSlug && current.slug !== nextSlug && current.status === ContentStatus.PUBLISHED) {
         const prefix = paths[kind]; if (prefix) await tx.redirect.upsert({ where: { fromPath: `${prefix}/${current.slug}` }, create: { fromPath: `${prefix}/${current.slug}`, toPath: `${prefix}/${nextSlug}`, statusCode: 301 }, update: { toPath: `${prefix}/${nextSlug}`, statusCode: 301, isActive: true } });
       }

@@ -1,3 +1,5 @@
+# หน้าที่ของไฟล์นี้: สูตรสร้าง container สำหรับ production แบบหลายขั้นตอนและรันแอปด้วยผู้ใช้ที่ไม่ใช่ root
+# ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 # syntax=docker/dockerfile:1.7
 FROM node:22-bookworm-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
@@ -17,6 +19,8 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     APP_URL=http://127.0.0.1:3000 \
     SESSION_SECRET=build-only-session-secret-never-used-at-runtime \
     TOTP_ENCRYPTION_KEY=YnVpbGQtb25seS0zMi1ieXRlLWtleS1uZXZlci11c2VkISE= \
+    MALWARE_SCAN_MODE=required \
+    CLAMAV_HOST=127.0.0.1 \
     NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
     S3_ENDPOINT=${S3_ENDPOINT}
 COPY --from=deps /app/node_modules ./node_modules

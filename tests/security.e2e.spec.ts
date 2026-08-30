@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ security.e2e.spec ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { expect, test } from "@playwright/test";
 
 test("security headers and correlation ID are present", async ({ request }) => {

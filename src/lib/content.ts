@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: ฟังก์ชันช่วยเหลือ content ที่รวมตรรกะใช้ซ้ำและไม่มีหน้าจอเป็นของตัวเอง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 export type ContentStatus = "เผยแพร่แล้ว" | "ฉบับร่าง";
 
 export const services = [
@@ -36,6 +41,7 @@ export const news = [
   { slug: "maintenance-promotion", title: "แพ็กเกจดูแลระบบปรับอากาศสำหรับสำนักงาน", category: "โปรโมชัน", date: "1 มิถุนายน 2569", summary: "วางแผนตรวจเช็กและบำรุงรักษาให้เหมาะกับรอบการใช้งานของสำนักงาน", tone: "office" },
 ];
 
+/** รายการข้อมูลตัวอย่างสำหรับตาราง CMS ใช้แสดงหน้าจอระหว่างที่ข้อมูลจริงยังไม่พร้อม */
 export const cmsRows = {
   products: products.map((item, index) => ({ title: item.name, meta: `${item.brand} · ${item.btu}`, status: index === 3 ? "ฉบับร่าง" : "เผยแพร่แล้ว", updated: `${index + 1} ส.ค. 2569` })),
   services: services.map((item, index) => ({ title: item.title, meta: item.eyebrow, status: "เผยแพร่แล้ว", updated: `${index + 1} ส.ค. 2569` })),

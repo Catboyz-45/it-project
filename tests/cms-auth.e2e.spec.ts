@@ -1,9 +1,14 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ cms-auth.e2e.spec ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { expect, test } from "@playwright/test";
 import * as OTPAuth from "otpauth";
+import { randomUUID } from "node:crypto";
 
 test("login rejects invalid credentials without account enumeration", async ({ request }) => {
   const headers = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
-  const unknown = await request.post("/api/auth/login", { headers, data: { username: "missing-user", password: "Wrong-Password1!" } });
+  const unknown = await request.post("/api/auth/login", { headers, data: { username: `missing-${randomUUID().slice(0, 8)}`, password: "Wrong-Password1!" } });
   const malformed = await request.post("/api/auth/login", { headers, data: { username: "x", password: "short" } });
   expect(unknown.status()).toBe(401);
   expect((await unknown.json()).error).toBe("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");

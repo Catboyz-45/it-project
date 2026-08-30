@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: ฟังก์ชันช่วยเหลือ public-config ที่รวมตรรกะใช้ซ้ำและไม่มีหน้าจอเป็นของตัวเอง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 function publicValue(value: string | undefined, fallback: string): string {
   const normalized = value?.trim();
   return normalized ? normalized : fallback;

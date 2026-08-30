@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React auth-forms ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import { useRef, useState } from "react";
@@ -5,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { useUI } from "./ui-feedback";
 
+/** สร้างส่วนหน้าจอ LoginForm; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -25,6 +31,7 @@ export function LoginForm() {
   return <form className="form-stack" onSubmit={submit} noValidate>{error && <div className="form-notice" role="alert">{error}</div>}<div className="form-group"><label htmlFor="username">ชื่อผู้ใช้</label><input className="field" id="username" name="username" autoComplete="username" placeholder="กรอกชื่อผู้ใช้" aria-invalid={Boolean(error)} /></div><div className="form-group"><div className="cluster" style={{ justifyContent: "space-between" }}><label htmlFor="password">รหัสผ่าน</label><span className="muted" style={{ fontSize: ".75rem" }}>ติดต่อ Super Admin หากลืมรหัสผ่าน</span></div><input className="field" id="password" name="password" type="password" autoComplete="current-password" placeholder="กรอกรหัสผ่าน" aria-invalid={Boolean(error)} /></div><button className="btn btn-dark" disabled={isSubmitting}>{isSubmitting ? "กำลังตรวจสอบ…" : <>เข้าสู่ระบบ <ArrowRight size={17} /></>}</button></form>;
 }
 
+/** สร้างส่วนหน้าจอ OTPForm; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function OTPForm() {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [isSubmitting, setIsSubmitting] = useState(false);

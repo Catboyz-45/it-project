@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: หน้าเว็บเส้นทาง /contact; เตรียมข้อมูลที่จำเป็นแล้วประกอบส่วนติดต่อผู้ใช้ที่ผู้เยี่ยมชมหรือผู้ดูแลเห็น
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { Clock3, Facebook, Mail, MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
 
@@ -5,6 +10,7 @@ export const metadata = createMetadata({ title: "ติดต่อเรา", d
 import { companyPublicConfig as fallback } from "@/lib/public-config";
 import { PublicContentService } from "@/server/services/public-content.service";
 
+/** สร้างส่วนหน้าจอ ContactPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function ContactPage() {
   const record = await new PublicContentService().getCompany(); const company = { name: record?.displayName ?? fallback.name, phoneDisplay: record?.phoneDisplay ?? fallback.phoneDisplay, phoneHref: record?.phoneHref ?? fallback.phoneHref, lineLabel: record?.lineLabel ?? fallback.lineLabel, lineUrl: record?.lineUrl ?? fallback.lineUrl, email: record?.email ?? fallback.email, facebookUrl: record?.facebookUrl ?? fallback.facebookUrl, mapsUrl: record?.mapsUrl ?? fallback.mapsUrl, mapsEmbedUrl: record?.mapsEmbedUrl ?? fallback.mapsEmbedUrl, address: record?.address ?? fallback.address, businessHours: record?.businessHours ?? fallback.businessHours, isPlaceholder: !record };
   const contacts = [{ icon: Phone, title: "โทรศัพท์", text: company.phoneDisplay, note: "แตะเพื่อโทรหาเรา" }, { icon: MessageCircle, title: "LINE Official", text: company.lineLabel, note: "เพิ่มเพื่อนและเริ่มแชท" }, { icon: Mail, title: "อีเมล", text: company.email, note: "สำหรับติดต่อเรื่องทั่วไป" }, { icon: Clock3, title: "เวลาทำการ", text: company.businessHours, note: "กรุณาติดต่อล่วงหน้า" }];

@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React login-form ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -6,6 +11,7 @@ import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Shield
 
 type LoginState = "idle" | "error" | "locked" | "submitting";
 
+/** สร้างส่วนหน้าจอ LoginForm; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function LoginForm() {
   const router = useRouter();
   const [state, setState] = useState<LoginState>("idle");

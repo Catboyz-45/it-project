@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React site-shell ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import Link from "next/link";
@@ -14,6 +19,7 @@ const links = [
   ["/products", "สินค้า"], ["/projects", "ผลงาน"], ["/news", "ข่าวสาร"], ["/contact", "ติดต่อเรา"],
 ] as const;
 
+/** สร้างส่วนหน้าจอ SiteHeader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SiteHeader() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +57,7 @@ export function SiteHeader() {
   );
 }
 
+/** สร้างส่วนหน้าจอ SiteFooter; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SiteFooter({ company }: { company?: ShellCompany | null }) {
   const value = { phoneDisplay: company?.phoneDisplay ?? fallbackCompany.phoneDisplay, phoneHref: company?.phoneHref ?? fallbackCompany.phoneHref, lineLabel: company?.lineLabel ?? fallbackCompany.lineLabel, lineUrl: company?.lineUrl ?? fallbackCompany.lineUrl, businessHours: company?.businessHours ?? fallbackCompany.businessHours };
   return (
@@ -68,11 +75,13 @@ export function SiteFooter({ company }: { company?: ShellCompany | null }) {
   );
 }
 
+/** สร้างส่วนหน้าจอ PublicShell; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function PublicShell({ children, company }: { children: React.ReactNode; company?: ShellCompany | null }) {
   const pathname = usePathname();
   return <><a className="skip-link" href="#main-content">ข้ามไปยังเนื้อหาหลัก</a><span className="sr-only" role="status" aria-live="polite">เปิดหน้า {pathname}</span><SiteHeader /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter company={company} /></>;
 }
 
+/** สร้างส่วนหน้าจอ SectionLink; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SectionLink({ href, children }: { href: string; children: React.ReactNode }) {
   return <Link className="btn btn-outline" href={href}>{children}<ArrowRight size={17} /></Link>;
 }

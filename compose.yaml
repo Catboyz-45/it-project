@@ -1,3 +1,5 @@
+# หน้าที่ของไฟล์นี้: เปิดแอปและ PostgreSQL สำหรับพัฒนาในเครื่อง โดยรับค่าลับจาก environment
+# ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 name: yuyen-engineering
 services:
   postgres:
@@ -35,6 +37,20 @@ services:
       retries: 20
     restart: unless-stopped
 
+  clamav:
+    image: clamav/clamav:1.5.3-debian13-slim
+    ports:
+      - "127.0.0.1:3310:3310"
+    volumes:
+      - clamav_signatures:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+    restart: unless-stopped
+
   app:
     build:
       context: .
@@ -48,12 +64,20 @@ services:
       DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
       S3_FORCE_PATH_STYLE: "true"
+      S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
+      S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
     ports:
       - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
@@ -75,12 +99,21 @@ services:
       DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
       S3_FORCE_PATH_STYLE: "true"
+      S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
+      S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   minio_data:
+  clamav_signatures:

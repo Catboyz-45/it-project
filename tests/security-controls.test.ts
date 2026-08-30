@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ security-controls.test ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { AdminRole } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { can, type Permission } from "@/server/auth/permissions";
@@ -20,9 +24,10 @@ describe("request security", () => {
     expect(isSameOrigin(null, "https://cms.example.com")).toBe(false);
     expect(isSameOrigin("not a url", "https://cms.example.com")).toBe(false);
   });
-  it("locks at the configured threshold", () => {
+  it("delays progressively and locks fully at the configured threshold", () => {
     const now = Date.parse("2026-09-01T00:00:00Z");
-    expect(calculateLockout(4, 5, 15, now)).toBeNull();
+    expect(calculateLockout(1, 5, 15, now)).toBeNull();
+    expect(calculateLockout(4, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:00:04.000Z");
     expect(calculateLockout(5, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
     expect(calculateLockout(8, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
   });

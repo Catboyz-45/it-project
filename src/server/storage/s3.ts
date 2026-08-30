@@ -1,5 +1,11 @@
-import { DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+/**
+ * หน้าที่ของไฟล์นี้: ตัวเชื่อม object storage s3 ซ่อนรายละเอียด S3 และจำกัดการเข้าถึงไฟล์ด้วย URL ชั่วคราว
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
+import { DeleteObjectsCommand, GetObjectCommand, HeadBucketCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { getServerEnv } from "@/server/config/env";
 import type { ObjectStorage } from "./types";
 
@@ -23,9 +29,14 @@ export class S3ObjectStorage implements ObjectStorage {
       forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
       credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY },
       maxAttempts: 3,
+      requestHandler: new NodeHttpHandler({
+        connectionTimeout: env.S3_CONNECTION_TIMEOUT_MS,
+        requestTimeout: env.S3_REQUEST_TIMEOUT_MS,
+      }),
     });
   }
 
+  async checkHealth() { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }
   signPut(key: string, contentType: string, contentLength: number, expiresIn: number) { return getSignedUrl(this.client, new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType, ContentLength: contentLength }), { expiresIn }); }
   signGet(key: string, expiresIn: number, downloadName?: string) { return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key, ...(downloadName ? { ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}` } : {}) }), { expiresIn }); }
   async head(key: string) { const value = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key })); return { size: value.ContentLength ?? 0, contentType: value.ContentType }; }
@@ -35,4 +46,5 @@ export class S3ObjectStorage implements ObjectStorage {
 }
 
 let instance: ObjectStorage | undefined;
+/** ฟังก์ชันสาธารณะ storage เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export function storage(): ObjectStorage { return instance ??= new S3ObjectStorage(); }

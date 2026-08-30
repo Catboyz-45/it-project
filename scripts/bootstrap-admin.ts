@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: คำสั่งดูแลระบบ bootstrap-admin; รันจากเครื่องหรือเซิร์ฟเวอร์ที่เชื่อถือได้ตามคู่มือใน docs
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
 

@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: ไฟล์ตั้งค่า playwright.config.ts อธิบายให้เครื่องมือ build, test หรือ lint ทำงานสอดคล้องกัน
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { existsSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 

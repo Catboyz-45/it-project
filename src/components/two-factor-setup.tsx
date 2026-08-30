@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React two-factor-setup ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import Image from "next/image";
@@ -5,6 +10,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertCircle, ArrowRight, Check, Copy, LoaderCircle, QrCode } from "lucide-react";
 
+/** สร้างส่วนหน้าจอ TwoFactorSetup; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function TwoFactorSetup() {
   const [data, setData] = useState<{ secret: string; qrDataUrl: string } | null>(null);
   const [failed, setFailed] = useState(false); const [copied, setCopied] = useState(false);

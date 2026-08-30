@@ -1,6 +1,12 @@
+/**
+ * หน้าที่ของไฟล์นี้: ระบบสื่อ images ดูแลการตรวจไฟล์ ประมวลผล อ้างอิง หรือวงจรชีวิตของรูปภาพและ PDF
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import sharp from "sharp";
 
 export type GeneratedImage = { format: "WEBP" | "AVIF"; width: number; height: number; mimeType: string; data: Uint8Array };
+/** ฟังก์ชันสาธารณะ optimizeImage เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export async function optimizeImage(input: Uint8Array): Promise<{ width: number; height: number; variants: GeneratedImage[] }> {
   const source = sharp(input, { failOn: "warning", limitInputPixels: 40_000_000 }).rotate();
   const metadata = await source.metadata();

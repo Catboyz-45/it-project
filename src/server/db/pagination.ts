@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: เครื่องมือฐานข้อมูล pagination สำหรับสร้างการเชื่อมต่อหรือจัดรูปแบบคำสั่งค้นหาอย่างสม่ำเสมอ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { z } from "zod";
 
 export const paginationSchema = z.object({
@@ -16,10 +21,12 @@ export type Page<T> = {
   pageCount: number;
 };
 
+/** สร้างส่วนหน้าจอ parsePagination; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function parsePagination(input: PaginationInput): Pagination {
   return paginationSchema.parse(input);
 }
 
+/** สร้างส่วนหน้าจอ toPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function toPage<T>(items: T[], total: number, pagination: Pagination): Page<T> {
   return {
     items,
@@ -30,6 +37,7 @@ export function toPage<T>(items: T[], total: number, pagination: Pagination): Pa
   };
 }
 
+/** แปลงหรือจัดรูปข้อมูลด้วย toOffset ให้ส่วนอื่นใช้รูปแบบเดียวกันอย่างคาดเดาได้ */
 export function toOffset(pagination: Pagination): number {
   return (pagination.page - 1) * pagination.pageSize;
 }

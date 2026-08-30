@@ -1,8 +1,14 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React media-gallery ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+/** สร้างส่วนหน้าจอ MediaGallery; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function MediaGallery({ title, tones }: { title: string; tones: string[] }) {
   const [active, setActive] = useState(0);
   const select = (index: number) => setActive((index + tones.length) % tones.length);

@@ -1,4 +1,10 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React responsive-media ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 type MediaRef = { id: string; altText?: string | null; width?: number | null; height?: number | null };
+/** สร้างส่วนหน้าจอ ResponsiveMedia; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function ResponsiveMedia({ media, fallbackClass = "mint", className = "", priority = false }: { media?: MediaRef | null; fallbackClass?: string; className?: string; priority?: boolean }) {
   if (!media) return <div className={`media ${fallbackClass} ${className}`} role="img" aria-label="ยังไม่มีรูปภาพ" />;
   const alt = media.altText?.trim() ?? "";

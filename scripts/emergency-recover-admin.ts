@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: คำสั่งดูแลระบบ emergency-recover-admin; รันจากเครื่องหรือเซิร์ฟเวอร์ที่เชื่อถือได้ตามคู่มือใน docs
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
 
@@ -11,7 +15,7 @@ async function main() {
     if (!user || user.role !== "SUPER_ADMIN") throw new Error("Super Admin account not found");
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 });
     await db.$transaction([
-      db.admin.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: true, twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, isActive: true, deletedAt: null, purgeAt: null } }),
+      db.admin.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: true, twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null, isActive: true, deletedAt: null, purgeAt: null } }),
       db.session.updateMany({ where: { adminId: user.id, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "EMERGENCY_RECOVERY" } }),
       db.recoveryCode.deleteMany({ where: { adminId: user.id } }),
       db.auditLog.create({ data: { actorId: user.id, action: "EMERGENCY_ADMIN_RECOVERY", targetType: "Admin", targetId: user.id, result: "SUCCESS", metadata: { source: "server-cli" } } }),

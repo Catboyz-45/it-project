@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React public-collections ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
 import { useMemo, useState } from "react";
@@ -16,6 +21,7 @@ function EmptyResults({ onReset }: { onReset: () => void }) {
   return <div className="empty-state"><span className="icon-box"><SearchX size={24} /></span><h2 className="subheading">ไม่พบข้อมูลที่ตรงกับการค้นหา</h2><p className="muted">ลองเปลี่ยนคำค้นหาหรือล้างตัวกรองเพื่อดูรายการทั้งหมด</p><button className="btn btn-outline" onClick={onReset}>ล้างตัวกรอง</button></div>;
 }
 
+/** สร้างส่วนหน้าจอ ProductExplorer; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function ProductExplorer({ items }: { items: Product[] }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("all");
@@ -38,6 +44,7 @@ export function ProductExplorer({ items }: { items: Product[] }) {
   return <><div className="filters"><label className="search-field"><span className="sr-only">ค้นหาสินค้า</span><Search size={18} /><input className="field" value={query} onChange={event => update(setQuery)(event.target.value)} placeholder="ค้นหาชื่อ รุ่น หรือคุณสมบัติ" /></label><select className="select filter-select" value={brand} onChange={event => update(setBrand)(event.target.value)} aria-label="กรองตามยี่ห้อ"><option value="all">ทุกยี่ห้อ</option>{brands.map(value => <option key={value}>{value}</option>)}</select><select className="select filter-select" value={type} onChange={event => update(setType)(event.target.value)} aria-label="กรองตามประเภท"><option value="all">ทุกประเภท</option>{types.map(value => <option key={value}>{value}</option>)}</select><select className="select filter-select" value={btu} onChange={event => update(setBtu)(event.target.value)} aria-label="กรองตามบีทียู"><option value="all">ทุกขนาด BTU</option><option value="small">ไม่เกิน 12,000</option><option value="medium">12,001–18,000</option><option value="large">มากกว่า 18,000</option></select></div><p className="muted" aria-live="polite">พบสินค้า {result.length} รายการ</p>{visible.length ? <div className="grid-4">{visible.map(item => <ProductCard key={item.slug} item={item} />)}</div> : <EmptyResults onReset={reset} />}<Pagination current={page} pages={pages} onChange={setPage} /></>;
 }
 
+/** สร้างส่วนหน้าจอ StoryExplorer; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function StoryExplorer({ items, type }: { items: Story[]; type: "projects" | "news" }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");

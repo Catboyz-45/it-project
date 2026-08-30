@@ -1,4 +1,11 @@
-import { ShieldCheck } from "lucide-react";
-import { AuthShell } from "@/components/auth-shell";
-import { RecoveryCodes } from "@/components/recovery-codes";
-export default function RecoveryCodesPage() { return <AuthShell compact badge={<><ShieldCheck size={16} /> สำรองการเข้าถึงบัญชี</>} title={<>เก็บกุญแจสำรอง<br />ให้ปลอดภัย</>} description="Recovery Codes ช่วยให้เข้าสู่ระบบได้เมื่อโทรศัพท์สูญหายหรือใช้งาน Authenticator ไม่ได้"><RecoveryCodes /></AuthShell>; }
+/**
+ * หน้าที่ของไฟล์นี้: หน้าเว็บเส้นทาง /recovery-codes; เตรียมข้อมูลที่จำเป็นแล้วประกอบส่วนติดต่อผู้ใช้ที่ผู้เยี่ยมชมหรือผู้ดูแลเห็น
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
+import { redirect } from "next/navigation";
+
+/** สร้างส่วนหน้าจอ RecoveryCodesPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
+export default function RecoveryCodesPage() {
+  redirect("/admin");
+}

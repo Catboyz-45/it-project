@@ -29,6 +29,24 @@ The seed intentionally does not create an administrator. After migrations, use
 `BOOTSTRAP_ADMIN_PASSWORD`. The command hashes the password and never writes it
 to source control. The user must replace it and enroll TOTP on first login.
 
+## Isolated test database
+
+Copy `.env.test.example` to the ignored `.env.test` file and configure a
+dedicated PostgreSQL database. The database name must contain `test`, `e2e`, or
+`sandbox`; otherwise the test runner fails closed.
+
+```bash
+cp .env.test.example .env.test
+npm run db:test:migrate:deploy
+npm run db:test:migrate:status
+npm run test:integration
+```
+
+`TEST_DATABASE_URL` is authoritative for data-writing tests. The wrapper sets
+`DATABASE_URL` only for the child process, so Prisma, Vitest, Playwright, and the
+temporary Next.js test server all use the same isolated database. Keep `.env`
+for local development and never point `.env.test` at staging or production.
+
 ## Schema changes
 
 For each schema change:

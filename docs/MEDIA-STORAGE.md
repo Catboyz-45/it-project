@@ -28,7 +28,9 @@ After direct upload, the completion endpoint checks size, MIME and magic bytes,
 then computes SHA-256. Images are orientation-normalized, metadata-stripped, and
 emitted as WebP and AVIF at 320, 640, 1280, and up to 1920 pixels without
 enlargement. Metadata and variants become READY together; temporary objects enter
-a durable cleanup queue.
+a durable cleanup queue. A completed upload has a 24-hour attachment lease.
+Saving it as company or content data clears that lease; an abandoned,
+unreferenced upload becomes eligible for cleanup after the lease expires.
 
 PDFs and draft-only images remain private. Published references are delivered
 through `/api/media/<id>` using short-lived signed redirects. Public access also
@@ -46,14 +48,27 @@ npm run media:cleanup
 Deletion first verifies relational references, then soft-deletes metadata for 30
 days. Cleanup transactionally creates a durable deletion task before removing
 metadata. Object deletion retries with exponential backoff. Expired and failed
-uploads use the same path. Monitor unfinished `StorageCleanupJob` rows.
+uploads use the same path. Removing a new file from the editor aborts its active
+browser transfer and marks any server-side upload already created for immediate
+cleanup. Monitor unfinished `StorageCleanupJob` rows.
 
 Dashboard usage is the sum of known PDFs and image derivatives. Provider metrics
 remain authoritative because they can include multipart remnants or foreign
 objects.
 
-## Operational limitation
+## Malware scanning
 
-Signature and decoder validation are implemented, but malware scanning is not
-included because no scanner is configured. Enable provider-side scanning or an
-asynchronous quarantine scanner before production where supported.
+Every uploaded image and PDF is sent to ClamAV using the in-memory `INSTREAM`
+protocol after signature validation and before derivatives or final objects are
+created. An infected file, timeout, unavailable scanner, or invalid scanner
+response fails closed: the media remains unavailable with status `FAILED`.
+
+Docker Compose runs the official ClamAV image and persists its signature
+database. Production configuration must set `MALWARE_SCAN_MODE=required`; the
+environment validator rejects `disabled` in production. Configure
+`CLAMAV_HOST`, `CLAMAV_PORT`, and `CLAMAV_TIMEOUT_MS` for the private ClamAV
+endpoint. Never expose port 3310 publicly because clamd has no authentication.
+
+Local development outside Docker may use `MALWARE_SCAN_MODE=disabled`. This is
+not accepted when `NODE_ENV=production`. Keep virus definitions updated and
+monitor ClamAV health and failed media records before accepting uploads.

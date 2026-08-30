@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: หน้าเว็บเส้นทาง /(public); เตรียมข้อมูลที่จำเป็นแล้วประกอบส่วนติดต่อผู้ใช้ที่ผู้เยี่ยมชมหรือผู้ดูแลเห็น
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Clock3, Headphones, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { ProductCard, ServiceCard, StoryCard } from "@/components/content-cards";
@@ -5,11 +10,13 @@ import { SectionLink } from "@/components/site-shell";
 import { createMetadata } from "@/lib/seo";
 import { PublicContentService } from "@/server/services/public-content.service";
 import { ResponsiveMedia } from "@/components/responsive-media";
+import { formatThaiDate } from "@/lib/date";
 
 export const metadata = createMetadata({ title: "หน้าแรก", description: "บริการจำหน่าย ติดตั้ง ล้าง และซ่อมบำรุงระบบปรับอากาศ พร้อมงานระบบ M&E", path: "/" });
 export const dynamic = "force-dynamic";
 import { companyPublicConfig as fallbackCompany } from "@/lib/public-config";
 
+/** สร้างส่วนหน้าจอ HomePage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function HomePage() {
   const content = new PublicContentService();
   const [serviceRecords, productResult, projectRecords, newsResult, banner, companyRecord] = await Promise.all([content.listServices(), content.listProducts({ pageSize: 4 }), content.listProjects({ pageSize: 3 }), content.listNews({ pageSize: 3 }), content.getHomeBanner(), content.getCompany()]);
@@ -17,7 +24,7 @@ export default async function HomePage() {
   const services = serviceRecords.slice(0, 4).map(item => ({ slug: item.slug, title: item.title, eyebrow: item.eyebrow ?? "SERVICE", description: item.summary, icon: "snowflake" }));
   const products = productResult.items.map(item => ({ slug: item.slug, name: item.name, brand: item.brand.name, type: item.productType.name, btu: item.btuMin && item.btuMax ? `${item.btuMin.toLocaleString()}–${item.btuMax.toLocaleString()} BTU` : "สอบถามขนาด", feature: item.summary, tone: "silver", media: item.coverMedia }));
   const projects = projectRecords.items.map(item => ({ slug: item.slug, title: item.title, category: item.projectType, area: item.area, summary: item.summary, tone: "office", media: item.coverMedia }));
-  const news = newsResult.items.map(item => ({ slug: item.slug, title: item.title, category: item.category.name, date: item.publishedAt ? new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(item.publishedAt) : undefined, summary: item.summary, tone: "mint", media: item.coverMedia }));
+  const news = newsResult.items.map(item => ({ slug: item.slug, title: item.title, category: item.category.name, date: formatThaiDate(item.publishedAt), summary: item.summary, tone: "mint", media: item.coverMedia }));
   return (
     <>
       <section className="hero">

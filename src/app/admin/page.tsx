@@ -1,9 +1,15 @@
+/**
+ * หน้าที่ของไฟล์นี้: หน้าเว็บเส้นทาง /admin; เตรียมข้อมูลที่จำเป็นแล้วประกอบส่วนติดต่อผู้ใช้ที่ผู้เยี่ยมชมหรือผู้ดูแลเห็น
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { Boxes, BriefcaseBusiness, HardDrive, Newspaper, Package, TrendingUp } from "lucide-react";
 import { AdminPageHeader, SecurityNote } from "@/components/admin-shell";
 import { db } from "@/server/db";
 import { requireAdmin } from "@/server/auth/session";
 
 const size = (bytes: bigint) => bytes < 1024 * 1024 ? `${(Number(bytes) / 1024).toFixed(1)} KB` : `${(Number(bytes) / 1024 / 1024).toFixed(1)} MB`;
+/** สร้างส่วนหน้าจอ DashboardPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function DashboardPage() {
   const session = await requireAdmin();
   const [totals, publishedCounts, draftCounts, trashCounts, activities, mediaOriginals, mediaDerivatives] = await Promise.all([
