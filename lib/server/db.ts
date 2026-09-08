@@ -5,6 +5,7 @@
  */
 
 import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
 import { getServerEnv } from "@/lib/server/env";
 
@@ -18,7 +19,15 @@ const globalDatabase = globalThis as unknown as { prisma?: PrismaClient };
  */
 export function getDatabase() {
   if (!globalDatabase.prisma) {
-    globalDatabase.prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: getServerEnv().DATABASE_URL }) });
+    // Force every connection to UTC at the protocol level, independent of
+    // whatever timezone the Postgres server/session would otherwise default
+    // to. DateTime values round-trip correctly through Prisma either way,
+    // but raw SQL (e.g. scripts/bootstrap-super-admin.mjs) and any direct
+    // reading of timestamptz columns depend on the session timezone; pinning
+    // it here removes that dependency instead of requiring it be configured
+    // correctly on whatever database this connects to.
+    const pool = new pg.Pool({ connectionString: getServerEnv().DATABASE_URL, options: "-c TimeZone=UTC" });
+    globalDatabase.prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
   }
   return globalDatabase.prisma;
 }
