@@ -20,6 +20,11 @@ async function login(page: Page, email: string) {
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
+  // networkidle alone can settle mid-redirect on a loaded runner, letting a
+  // caller's immediate page.goto() collide with the still-in-flight
+  // post-login navigation (net::ERR_ABORTED). Confirm the browser has
+  // actually left /login first.
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
   await page.waitForLoadState("networkidle");
 }
 
