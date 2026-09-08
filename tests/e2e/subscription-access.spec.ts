@@ -254,10 +254,9 @@ test.describe.serial("subscription access UX", () => {
 
     await page.goto("/tenant/invoices");
     await page.getByRole("button", { name: /E2E-202607-E101/ }).click();
-    const invoice = page.getByRole("dialog");
+    const invoice = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
     await expect(invoice.getByText("ไม่สามารถชำระหรือส่งสลิปใหม่ได้", { exact: false })).toBeVisible();
     await expect(invoice.getByRole("button", { name: "ส่งหลักฐาน" })).toHaveCount(0);
-    await invoice.getByRole("button", { name: "ปิด", exact: true }).click();
 
     await page.goto("/tenant/tickets");
     await expect(page.locator("section").getByRole("button", { name: "แจ้งเรื่อง", exact: true })).toHaveCount(0);

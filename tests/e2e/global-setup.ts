@@ -92,11 +92,26 @@ export default async function globalSetup() {
     );
     await client.query(
       `INSERT INTO "PolicyAction" ("id","userId","policyType","action","documentVersion","source","occurredAt")
-       SELECT md5("id" || '-terms'), "id", 'TERMS_OF_SERVICE', 'ACCEPTED', '2026-09-06', 'REQUIRED_GATE', NOW() FROM "User" WHERE "id" = ANY($1::text[])
+       SELECT md5("id" || '-terms'), "id", 'TERMS_OF_SERVICE'::"PolicyType", 'ACCEPTED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])
        UNION ALL
-       SELECT md5("id" || '-privacy'), "id", 'PRIVACY_NOTICE', 'ACKNOWLEDGED', '2026-09-06', 'REQUIRED_GATE', NOW() FROM "User" WHERE "id" = ANY($1::text[])`,
+       SELECT md5("id" || '-privacy'), "id", 'PRIVACY_NOTICE'::"PolicyType", 'ACKNOWLEDGED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])`,
       [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.superAdminId]],
     );
+    // The bootstrap super admin is created outside this fixture by
+    // `npm run admin:bootstrap` (CI does this) and is never deleted here, so it
+    // needs the same acceptance or every suite that signs in with it stops at
+    // the /legal/accept gate. ON CONFLICT keeps repeat runs idempotent.
+    const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+    if (bootstrapEmail) {
+      await client.query(
+        `INSERT INTO "PolicyAction" ("id","userId","policyType","action","documentVersion","source","occurredAt")
+         SELECT md5("id" || '-terms'), "id", 'TERMS_OF_SERVICE'::"PolicyType", 'ACCEPTED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "email" = $1
+         UNION ALL
+         SELECT md5("id" || '-privacy'), "id", 'PRIVACY_NOTICE'::"PolicyType", 'ACKNOWLEDGED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "email" = $1
+         ON CONFLICT ("id") DO NOTHING`,
+        [bootstrapEmail],
+      );
+    }
     await client.query(
       `INSERT INTO "SaasPlan" ("id","code","name","monthlyPrice","yearlyPrice","maxProperties","maxRooms","allowPromptPay","allowFileUploads","allowPrioritySupport","isActive","sortOrder","createdAt","updatedAt")
        VALUES ($1,'E2E_STANDARD','E2E Standard',990,9900,2,100,true,true,true,true,999,NOW(),NOW())

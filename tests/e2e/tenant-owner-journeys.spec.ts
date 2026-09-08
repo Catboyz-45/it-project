@@ -167,16 +167,17 @@ test.describe("tenant journey", () => {
     await page.reload();
     await expect(page).toHaveURL(/\/tenant\/invoices$/);
     await expect(page.getByRole("heading", { name: "บิลและชำระเงิน" })).toBeVisible();
+    // Invoice details expand inline (accordion), not in a dialog.
     await page.getByRole("button", { name: /E2E-202607-E101/ }).click();
-    const invoiceDialog = page.getByRole("dialog");
-    await expect(invoiceDialog.getByRole("heading", { name: "E2E-202607-E101" })).toBeVisible();
-    await expect(invoiceDialog.getByText("สแกน PromptPay")).toBeVisible();
-    await expect(invoiceDialog.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
-    await invoiceDialog.getByRole("button", { name: "ปิด" }).click();
+    const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
+    await expect(invoiceDetails.getByText("สแกน PromptPay")).toBeVisible();
+    await expect(invoiceDetails.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
+    await page.getByRole("button", { name: /E2E-202607-E101/ }).click();
+    await expect(invoiceDetails).toBeHidden();
 
     await page.getByRole("link", { name: "สัญญา", exact: true }).click();
     await expect(page).toHaveURL(/\/tenant\/lease$/);
-    await expect(page.getByRole("heading", { name: "สัญญาเช่า" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "สัญญาปัจจุบัน" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "CTR-E2E-E101" })).toBeVisible();
     await expect(page.getByText("v1", { exact: true })).toBeVisible();
 
@@ -198,17 +199,20 @@ test.describe("tenant journey", () => {
     const ticketDialog = page.getByRole("dialog");
     await ticketDialog.getByLabel("หัวข้อ").fill("ก๊อกน้ำ E2E รั่ว");
     await ticketDialog.getByLabel("รายละเอียด").fill("น้ำหยดต่อเนื่องใต้ก๊อกล้างหน้า");
-    await ticketDialog.getByLabel("ความเร่งด่วน").selectOption("URGENT");
+    await ticketDialog.getByLabel("ความเร่งด่วน").click();
+    await page.getByRole("option", { name: "ด่วน", exact: true }).click();
     await ticketDialog.getByRole("button", { name: "ส่งเรื่อง" }).click();
     await expect(ticketDialog).toBeHidden();
     await expect(page.getByRole("heading", { name: "ก๊อกน้ำ E2E รั่ว" }).first()).toBeVisible();
     await expect(page.getByText("ด่วน", { exact: true }).first()).toBeVisible();
 
-    await page.getByRole("link", { name: "ติดต่อหอ", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "ติดต่อเจ้าของหอ" })).toBeVisible();
+    // Contacting the property is a floating chat widget, not a nav page.
+    await page.getByRole("button", { name: /เปิดแชทกับหอพัก/ }).click();
+    const chatWidget = page.getByRole("dialog", { name: "แชทกับหอพัก" });
+    await expect(chatWidget).toBeVisible();
     const message = `ข้อความ E2E ${Date.now()}`;
-    await page.getByPlaceholder("พิมพ์ข้อความ...").fill(message);
-    await page.getByRole("button", { name: "ส่ง", exact: true }).click();
-    await expect(page.getByText(message, { exact: true })).toBeVisible();
+    await chatWidget.getByPlaceholder("พิมพ์ข้อความ...").fill(message);
+    await chatWidget.getByRole("button", { name: "ส่งข้อความ" }).click();
+    await expect(chatWidget.getByText(message, { exact: true })).toBeVisible();
   });
 });
