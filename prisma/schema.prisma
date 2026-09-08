@@ -288,7 +288,7 @@ model User {
   role                          UserRole
   isActive                      Boolean               @default(true)
   approvalStatus                AccountApprovalStatus @default(PENDING)
-  approvalReviewedAt            DateTime?
+  approvalReviewedAt            DateTime?             @db.Timestamptz(3)
   approvalReviewedById          String?
   approvalReviewedBy            User?                 @relation("AccountApprovalReviewer", fields: [approvalReviewedById], references: [id], onDelete: SetNull)
   reviewedAccounts              User[]                @relation("AccountApprovalReviewer")
@@ -315,8 +315,8 @@ model User {
   reviewedSubscriptionPayments  SubscriptionPayment[] @relation("SubscriptionPaymentReviewer")
   completedOccupancyTransitions OccupancyTransition[] @relation("OccupancyTransitionCompleter")
   policyActions                 PolicyAction[]
-  createdAt                     DateTime              @default(now())
-  updatedAt                     DateTime              @updatedAt
+  createdAt                     DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                     DateTime              @updatedAt @db.Timestamptz(3)
 
   @@index([role, isActive])
   @@index([role, approvalStatus, createdAt(sort: Desc)])
@@ -333,7 +333,7 @@ model PolicyAction {
   documentVersion String             @db.VarChar(40)
   source          PolicyActionSource
   requestId       String?            @db.VarChar(80)
-  occurredAt      DateTime           @default(now())
+  occurredAt      DateTime           @default(now()) @db.Timestamptz(3)
 
   @@index([userId, policyType, occurredAt(sort: Desc)])
   @@index([policyType, documentVersion, occurredAt(sort: Desc)])
@@ -370,8 +370,8 @@ model Property {
   furnitureOptions     FurnitureOption[]
   subscriptionOrders   SubscriptionOrder[]
   occupancyTransitions OccupancyTransition[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  createdAt            DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @db.Timestamptz(3)
 
   @@index([isActive])
 }
@@ -389,11 +389,11 @@ model PropertySubscription {
   status          SubscriptionStatus @default(TRIAL)
   maxProperties   Int                @default(1)
   maxRooms        Int
-  startsAt        DateTime
-  expiresAt       DateTime
-  suspendedAt     DateTime?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  startsAt        DateTime           @db.Timestamptz(3)
+  expiresAt       DateTime           @db.Timestamptz(3)
+  suspendedAt     DateTime?          @db.Timestamptz(3)
+  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @db.Timestamptz(3)
 
   @@index([status, expiresAt])
   @@index([planId, status])
@@ -417,8 +417,8 @@ model SaasPlan {
   sortOrder            Int                    @default(0)
   subscriptions        PropertySubscription[]
   orders               SubscriptionOrder[]
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  createdAt            DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime               @updatedAt @db.Timestamptz(3)
 
   @@index([isActive, sortOrder])
 }
@@ -445,13 +445,13 @@ model SubscriptionOrder {
   allowPrioritySupport Boolean
   createdByUserId      String
   createdBy            User                    @relation("SubscriptionOrderCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  expiresAt            DateTime
-  paidAt               DateTime?
-  activatedAt          DateTime?
-  cancelledAt          DateTime?
+  expiresAt            DateTime                @db.Timestamptz(3)
+  paidAt               DateTime?               @db.Timestamptz(3)
+  activatedAt          DateTime?               @db.Timestamptz(3)
+  cancelledAt          DateTime?               @db.Timestamptz(3)
   payments             SubscriptionPayment[]
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  createdAt            DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, createdAt(sort: Desc)])
   @@index([status, expiresAt])
@@ -471,13 +471,13 @@ model SubscriptionPayment {
   status            SubscriptionPaymentStatus @default(PENDING_REVIEW)
   submittedByUserId String
   submittedBy       User                      @relation("SubscriptionPaymentSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
-  submittedAt       DateTime                  @default(now())
-  reviewedAt        DateTime?
+  submittedAt       DateTime                  @default(now()) @db.Timestamptz(3)
+  reviewedAt        DateTime?                 @db.Timestamptz(3)
   reviewedByUserId  String?
   reviewedBy        User?                     @relation("SubscriptionPaymentReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   rejectionNote     String?                   @db.VarChar(500)
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
+  createdAt         DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                  @updatedAt @db.Timestamptz(3)
 
   @@index([orderId, submittedAt(sort: Desc)])
   @@index([status, submittedAt])
@@ -507,8 +507,8 @@ model PropertySettings {
   invoiceFooter       String?  @db.VarChar(2000)
   houseRules          String?
   emergencyContact    String?  @db.VarChar(500)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
 }
 
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
@@ -521,8 +521,8 @@ model RoomTypeConfig {
   monthlyRent   Decimal  @db.Decimal(12, 2)
   depositAmount Decimal  @default(0) @db.Decimal(12, 2)
   capacity      Int      @default(1)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, name])
   @@index([propertyId])
@@ -538,8 +538,8 @@ model ServiceChargeConfig {
   amount      Decimal  @db.Decimal(12, 2)
   frequency   String   @db.VarChar(20)
   calculation String   @db.VarChar(20)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, name])
   @@index([propertyId])
@@ -553,8 +553,8 @@ model FurnitureOption {
   property   Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   name       String          @db.VarChar(80)
   isDefault  Boolean         @default(false)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @db.Timestamptz(3)
   rooms      RoomFurniture[]
 
   @@unique([propertyId, name])
@@ -573,8 +573,8 @@ model Building {
   floors        Floor[]
   rooms         Room[]
   announcements Announcement[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, code])
   @@index([propertyId, isActive])
@@ -591,8 +591,8 @@ model Floor {
   label         String?        @db.VarChar(80)
   rooms         Room[]
   announcements Announcement[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
 
   @@unique([buildingId, number])
   @@index([propertyId])
@@ -625,8 +625,8 @@ model Room {
   announcementRooms   AnnouncementRoom[]
   outgoingTransitions OccupancyTransition[] @relation("TransitionSourceRoom")
   incomingTransitions OccupancyTransition[] @relation("TransitionDestinationRoom")
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime              @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, number])
   @@index([propertyId, status])
@@ -641,7 +641,7 @@ model RoomFurniture {
   room              Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
   furnitureOption   FurnitureOption @relation(fields: [furnitureOptionId], references: [id], onDelete: Cascade)
   quantity          Int             @default(1)
-  createdAt         DateTime        @default(now())
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
 
   @@id([roomId, furnitureOptionId])
   @@index([furnitureOptionId])
@@ -663,8 +663,8 @@ model TenantProfile {
   tickets           ServiceTicket[]
   chatConversations ChatConversation[]
   vehicle           TenantVehicle?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
   receivedParcels   Parcel[]            @relation("ParcelReceiver")
   recipientParcels  Parcel[]            @relation("ParcelRecipient")
 }
@@ -681,8 +681,8 @@ model TenantVehicle {
   brandModel      String?       @db.VarChar(120)
   color           String?       @db.VarChar(80)
   detail          String?       @db.VarChar(500)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   @@index([licensePlate])
 }
@@ -698,14 +698,14 @@ model TenantInvitation {
   tokenHash       String           @unique @db.Char(64)
   status          InvitationStatus @default(PENDING)
   intendedRole    OccupancyRole    @default(CO_OCCUPANT)
-  expiresAt       DateTime
-  acceptedAt      DateTime?
+  expiresAt       DateTime         @db.Timestamptz(3)
+  acceptedAt      DateTime?        @db.Timestamptz(3)
   acceptedById    String?
   acceptedBy      TenantProfile?   @relation("AcceptedInvitation", fields: [acceptedById], references: [id], onDelete: SetNull)
   createdByUserId String
   createdBy       User             @relation("InvitationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, roomId, status])
   @@index([expiresAt, status])
@@ -724,16 +724,16 @@ model RoomOccupancy {
   tenantProfile    TenantProfile         @relation(fields: [tenantProfileId], references: [id], onDelete: Restrict)
   role             OccupancyRole
   status           OccupancyStatus       @default(PENDING)
-  startedAt        DateTime?
-  endedAt          DateTime?
+  startedAt        DateTime?             @db.Timestamptz(3)
+  endedAt          DateTime?             @db.Timestamptz(3)
   endReason        String?               @db.VarChar(500)
-  approvedAt       DateTime?
+  approvedAt       DateTime?             @db.Timestamptz(3)
   approvedByUserId String?
   approvedBy       User?                 @relation("OccupancyReviewer", fields: [approvedByUserId], references: [id], onDelete: SetNull)
   leases           LeaseTenant[]
   transitions      OccupancyTransition[]
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  createdAt        DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @db.Timestamptz(3)
 
   @@index([roomId, tenantProfileId, status])
   @@index([propertyId, status])
@@ -765,7 +765,7 @@ model OccupancyTransition {
   settlementNote     String?                 @db.VarChar(1000)
   completedByUserId  String
   completedBy        User                    @relation("OccupancyTransitionCompleter", fields: [completedByUserId], references: [id], onDelete: Restrict)
-  createdAt          DateTime                @default(now())
+  createdAt          DateTime                @default(now()) @db.Timestamptz(3)
 
   @@index([propertyId, createdAt(sort: Desc)])
   @@index([primaryOccupancyId])
@@ -790,14 +790,14 @@ model Lease {
   depositAmount          Decimal        @default(0) @db.Decimal(12, 2)
   currentVersion         Int            @default(1)
   signedStorageKey       String?        @db.VarChar(500)
-  signedDocumentPurgedAt DateTime?
-  activatedAt            DateTime?
-  endedAt                DateTime?
+  signedDocumentPurgedAt DateTime?      @db.Timestamptz(3)
+  activatedAt            DateTime?      @db.Timestamptz(3)
+  endedAt                DateTime?      @db.Timestamptz(3)
   versions               LeaseVersion[]
   tenants                LeaseTenant[]
   invoices               Invoice[]
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  createdAt              DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime       @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, leaseNumber])
   @@index([propertyId, status, endDate])
@@ -820,7 +820,7 @@ model LeaseVersion {
   signedStorageKey String?            @db.VarChar(500)
   createdByUserId  String
   createdBy        User               @relation("LeaseVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt        DateTime           @default(now())
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
 
   @@unique([leaseId, version])
   @@index([documentId])
@@ -836,7 +836,7 @@ model LeaseTenant {
   isPrimary   Boolean       @default(false)
   lease       Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
   occupancy   RoomOccupancy @relation(fields: [occupancyId], references: [id], onDelete: Restrict)
-  createdAt   DateTime      @default(now())
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
 
   @@id([leaseId, occupancyId])
   @@index([occupancyId])
@@ -856,10 +856,10 @@ model MeterReading {
   currentReading  Decimal       @db.Decimal(14, 3)
   unitRate        Decimal       @db.Decimal(12, 2)
   recordedById    String
-  recordedAt      DateTime      @default(now())
+  recordedAt      DateTime      @default(now()) @db.Timestamptz(3)
   invoiceItems    InvoiceItem[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   @@unique([roomId, type, billingMonth])
   @@index([propertyId, billingMonth])
@@ -879,19 +879,19 @@ model Invoice {
   invoiceNumber      String              @db.VarChar(50)
   billingMonth       DateTime            @db.Date
   status             InvoiceStatus       @default(DRAFT)
-  issuedAt           DateTime?
+  issuedAt           DateTime?           @db.Timestamptz(3)
   dueDate            DateTime            @db.Date
   subtotal           Decimal             @default(0) @db.Decimal(12, 2)
   lateFee            Decimal             @default(0) @db.Decimal(12, 2)
   total              Decimal             @default(0) @db.Decimal(12, 2)
-  paidAt             DateTime?
-  cancelledAt        DateTime?
+  paidAt             DateTime?           @db.Timestamptz(3)
+  cancelledAt        DateTime?           @db.Timestamptz(3)
   cancellationNote   String?             @db.VarChar(500)
   version            Int                 @default(1)
   items              InvoiceItem[]
   paymentSubmissions PaymentSubmission[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, invoiceNumber])
   @@unique([roomId, billingMonth])
@@ -913,7 +913,7 @@ model InvoiceItem {
   meterReadingId String?
   meterReading   MeterReading?   @relation(fields: [meterReadingId], references: [id], onDelete: Restrict)
   sortOrder      Int             @default(0)
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
 
   @@index([invoiceId, sortOrder])
   @@index([meterReadingId])
@@ -934,14 +934,14 @@ model PaymentSubmission {
   slipStorageKey  String?                 @db.VarChar(500)
   slipMime        String?                 @db.VarChar(100)
   slipSize        Int?
-  slipPurgedAt    DateTime?
-  submittedAt     DateTime                @default(now())
-  reviewedAt      DateTime?
+  slipPurgedAt    DateTime?               @db.Timestamptz(3)
+  submittedAt     DateTime                @default(now()) @db.Timestamptz(3)
+  reviewedAt      DateTime?               @db.Timestamptz(3)
   reviewedById    String?
   reviewedBy      User?                   @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   rejectionNote   String?                 @db.VarChar(500)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  createdAt       DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime                @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, status, submittedAt])
   @@index([invoiceId, status])
@@ -969,14 +969,14 @@ model ServiceTicket {
   createdBy        User?              @relation("TicketCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   assignedToUserId String?
   assignedTo       User?              @relation("TicketAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  resolvedAt       DateTime?
-  cancelledAt      DateTime?
+  resolvedAt       DateTime?          @db.Timestamptz(3)
+  cancelledAt      DateTime?          @db.Timestamptz(3)
   attachments      TicketAttachment[]
   events           TicketEvent[]
   replies          TicketReply[]
   readStates       TicketReadState[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, type, status, createdAt(sort: Desc)])
   @@index([tenantProfileId, status])
@@ -998,7 +998,7 @@ model TicketEvent {
   attachment   TicketAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
   replyId      String?
   reply        TicketReply?      @relation(fields: [replyId], references: [id], onDelete: SetNull)
-  createdAt    DateTime          @default(now())
+  createdAt    DateTime          @default(now()) @db.Timestamptz(3)
 
   @@index([ticketId, createdAt])
   @@index([actorUserId, createdAt])
@@ -1015,7 +1015,7 @@ model TicketReply {
   authorUserId String?
   authorUser   User?         @relation("TicketReplyAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
   body         String        @db.VarChar(4000)
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
   events       TicketEvent[]
 
   @@index([ticketId, createdAt, id])
@@ -1029,9 +1029,9 @@ model TicketReadState {
   userId          String
   ticket          ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastReadAt      DateTime
+  lastReadAt      DateTime      @db.Timestamptz(3)
   lastReadReplyId String?
-  updatedAt       DateTime      @updatedAt
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   @@id([ticketId, userId])
   @@index([userId, lastReadAt])
@@ -1047,7 +1047,7 @@ model TicketAttachment {
   fileName   String        @db.VarChar(255)
   mimeType   String        @db.VarChar(100)
   sizeBytes  Int
-  createdAt  DateTime      @default(now())
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
   events     TicketEvent[]
 
   @@index([ticketId])
@@ -1066,14 +1066,14 @@ model Parcel {
   imageStorageKey    String?        @db.VarChar(500)
   registeredById     String
   registeredBy       User           @relation("ParcelRegistrar", fields: [registeredById], references: [id], onDelete: Restrict)
-  registeredAt       DateTime       @default(now())
-  receivedAt         DateTime?
+  registeredAt       DateTime       @default(now()) @db.Timestamptz(3)
+  receivedAt         DateTime?      @db.Timestamptz(3)
   receivedByTenantId String?
   receivedByTenant   TenantProfile? @relation("ParcelReceiver", fields: [receivedByTenantId], references: [id], onDelete: SetNull)
   recipientTenantId  String?
   recipientTenant    TenantProfile? @relation("ParcelRecipient", fields: [recipientTenantId], references: [id], onDelete: SetNull)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, status, registeredAt(sort: Desc)])
   @@index([roomId, status])
@@ -1095,13 +1095,13 @@ model Announcement {
   building    Building?            @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   floorId     String?
   floor       Floor?               @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  publishAt   DateTime?
-  publishedAt DateTime?
+  publishAt   DateTime?            @db.Timestamptz(3)
+  publishedAt DateTime?            @db.Timestamptz(3)
   createdById String
   createdBy   User                 @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Restrict)
   rooms       AnnouncementRoom[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt   DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @db.Timestamptz(3)
 
   @@index([propertyId, status, publishAt])
   @@index([buildingId])
@@ -1135,12 +1135,12 @@ model ChatConversation {
   tenantName           String?              @db.VarChar(160)
   roomNumber           String?              @db.VarChar(30)
   messages             ChatMessage[]
-  lastMessageAt        DateTime?
-  lastTenantReadAt     DateTime?
-  lastAdminReadAt      DateTime?
-  lastSuperAdminReadAt DateTime?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  lastMessageAt        DateTime?            @db.Timestamptz(3)
+  lastTenantReadAt     DateTime?            @db.Timestamptz(3)
+  lastAdminReadAt      DateTime?            @db.Timestamptz(3)
+  lastSuperAdminReadAt DateTime?            @db.Timestamptz(3)
+  createdAt            DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime             @updatedAt @db.Timestamptz(3)
 
   @@unique([propertyId, conversationKey])
   @@index([propertyId, lastMessageAt(sort: Desc)])
@@ -1164,9 +1164,9 @@ model ChatMessage {
   attachmentMime     String?          @db.VarChar(100)
   attachmentSize     Int?
   attachmentKey      String?          @db.VarChar(500)
-  attachmentPurgedAt DateTime?
+  attachmentPurgedAt DateTime?        @db.Timestamptz(3)
   clientId           String           @db.VarChar(80)
-  createdAt          DateTime         @default(now())
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
 
   @@unique([conversationId, clientId])
   @@index([conversationId, createdAt])
@@ -1181,7 +1181,7 @@ model PropertyMembership {
   propertyId String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
 
   @@id([userId, propertyId])
   @@index([propertyId])
@@ -1194,9 +1194,9 @@ model Session {
   tokenHash  String   @unique @db.Char(64)
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([userId])
   @@index([expiresAt])
@@ -1209,9 +1209,9 @@ model PasswordResetToken {
   tokenHash String    @unique @db.Char(64)
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([expiresAt])
@@ -1222,9 +1222,9 @@ model PasswordResetToken {
 model LoginThrottle {
   key          String    @id @db.Char(64)
   failedCount  Int       @default(0)
-  windowStart  DateTime
-  blockedUntil DateTime?
-  updatedAt    DateTime  @updatedAt
+  windowStart  DateTime  @db.Timestamptz(3)
+  blockedUntil DateTime? @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
 
   @@index([blockedUntil])
 }
@@ -1234,9 +1234,9 @@ model LoginThrottle {
 model ApiRateLimit {
   key         String   @id @db.Char(64)
   count       Int      @default(0)
-  windowStart DateTime
-  expiresAt   DateTime
-  updatedAt   DateTime @updatedAt
+  windowStart DateTime @db.Timestamptz(3)
+  expiresAt   DateTime @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([expiresAt])
 }
@@ -1256,7 +1256,7 @@ model AuditLog {
   requestId  String      @db.VarChar(80)
   ipAddress  String?     @db.VarChar(64)
   userAgent  String?     @db.VarChar(500)
-  createdAt  DateTime    @default(now())
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
 
   @@index([createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
@@ -1273,8 +1273,8 @@ model DocumentTemplate {
   name          String              @db.VarChar(120)
   html          String
   version       Int                 @default(1)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt     DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime            @updatedAt @db.Timestamptz(3)
   documents     GeneratedDocument[]
   leaseVersions LeaseVersion[]
 
@@ -1291,11 +1291,11 @@ model GeneratedDocument {
   kind          DocumentKind
   referenceId   String           @db.VarChar(80)
   storageKey    String?          @unique @db.VarChar(500)
-  filePurgedAt  DateTime?
+  filePurgedAt  DateTime?        @db.Timestamptz(3)
   checksum      String           @db.Char(64)
   sizeBytes     Int
   metadata      Json
-  createdAt     DateTime         @default(now())
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
   templateId    String
   template      DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
   leaseVersions LeaseVersion[]
