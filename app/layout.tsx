@@ -5,10 +5,20 @@
  */
 
 import type { Metadata } from "next";
+import { Anuphan } from "next/font/google";
 import "@/app/globals.css";
 import { ClickSpark } from "@/components/ui/ClickSpark";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { platformProfile } from "@/lib/platform-profile";
+
+// ฟอนต์หลักของทั้งแอป: Anuphan อ่านภาษาไทยได้จริง (Arial/Tahoma เดิมไม่มีตัวไทย
+// จึงตกไปที่ฟอนต์ระบบ Tahoma แบบเดิมเสมอ) ผูกเป็น CSS variable แล้วอ้างจาก
+// --font-sans / --font-display ใน globals.css เพื่อให้สลับฟอนต์จากจุดเดียว
+const anuphan = Anuphan({
+  display: "swap",
+  subsets: ["thai", "latin"],
+  variable: "--font-anuphan",
+});
 
 export const metadata: Metadata = {
   title: `${platformProfile.name} | แพลตฟอร์มบริหารหอพัก`,
@@ -35,7 +45,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th">
+    <html className={anuphan.variable} lang="th">
       <body>
         <ClickSpark sparkColor="#ec48bd" sparkCount={8} sparkRadius={18} sparkSize={10}>
           <ToastProvider>{children}</ToastProvider>

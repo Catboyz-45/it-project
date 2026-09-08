@@ -17,8 +17,8 @@
   --color-onyx: #ffffff;
   --color-white: #ffffff;
   --color-black: #0b0d45;
-  --font-sans: "Arial", "Tahoma", sans-serif;
-  --font-display: "Arial Black", "Arial", sans-serif;
+  --font-sans: var(--font-anuphan), "Segoe UI", "Tahoma", sans-serif;
+  --font-display: var(--font-anuphan), "Segoe UI", "Tahoma", sans-serif;
 }
 
 /* เอกสาร ข้อตกลง และตัวเลือกความเป็นส่วนตัวใช้รูปแบบเดียวกันทุก role */
@@ -34,7 +34,7 @@
   .legal-checkbox a { @apply font-bold text-[#4651c7] underline; }
 
   .legal-gate-shell { @apply grid min-h-dvh place-items-center bg-[#f5f6ff] p-4 sm:p-8; }
-  .legal-gate-card { @apply grid w-full max-w-2xl gap-7 rounded-[2rem] border border-[#dedfe4] bg-white p-6 shadow-[0_18px_55px_rgba(35,37,54,.10)] sm:p-10; }
+  .legal-gate-card { @apply grid w-full max-w-2xl gap-7 rounded-4xl border border-[#dedfe4] bg-white p-6 shadow-[0_18px_55px_rgba(35,37,54,.10)] sm:p-10; }
   .legal-gate-card h1 { @apply mt-2 text-3xl font-black text-[#292a30] sm:text-4xl; }
   .legal-gate-card > div > p:last-child { @apply mt-3 leading-7 text-[#62646c]; }
   .legal-eyebrow { @apply text-sm font-bold uppercase tracking-[.16em] text-[#4651c7]; }
@@ -43,7 +43,7 @@
   .legal-notice-callout svg { @apply mt-0.5 shrink-0 text-[#4651c7]; }
 
   .legal-document-shell { @apply min-h-dvh bg-[#f5f6ff] px-4 py-8 sm:px-8 sm:py-12; }
-  .legal-document-card { @apply mx-auto max-w-4xl overflow-hidden rounded-[2rem] border border-[#dedfe4] bg-white shadow-[0_18px_55px_rgba(35,37,54,.08)]; }
+  .legal-document-card { @apply mx-auto max-w-4xl overflow-hidden rounded-4xl border border-[#dedfe4] bg-white shadow-[0_18px_55px_rgba(35,37,54,.08)]; }
   .legal-document-header { @apply border-b border-[#dedfe4] px-6 py-8 sm:px-12 sm:py-10; }
   .legal-brand-link { @apply mb-8 inline-flex no-underline; }
   .legal-document-header h1 { @apply mt-2 text-3xl font-black text-[#292a30] sm:text-4xl; }
@@ -263,7 +263,7 @@
   .badge-paid { @apply bg-emerald-100 text-[#065f46]; }
   .badge-pending { @apply bg-amber-100 text-[#92400e]; }
   .panel {
-    @apply rounded-3xl border border-[#e3e4e8] bg-[#fff] p-5 shadow-[0_12px_40px_rgba(38,43,95,0.08)];
+    @apply rounded-3xl border border-[#e3e4e8] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_10px_24px_rgba(38,43,95,.06)];
   }
   .panel-title { @apply mb-5 flex flex-wrap items-center justify-between gap-3; }
   .panel-title > div { @apply flex items-center gap-3; }
@@ -298,7 +298,7 @@
   .tenant-content .tenant-page-title { @apply hidden; }
   .tenant-workspace > .subscription-access-banner { @apply mx-6; }
   .tenant-home {
-    @apply isolate overflow-hidden rounded-[32px] border border-[#e3e4e8] bg-[#fff] shadow-[0_18px_55px_rgba(38,43,95,0.08)];
+    @apply isolate overflow-hidden rounded-4xl border border-[#e3e4e8] bg-[#fff] shadow-[0_18px_55px_rgba(38,43,95,0.08)];
   }
   .tenant-home-hero {
     @apply relative flex min-h-[clamp(340px,42vh,480px)] items-center overflow-hidden bg-gradient-to-br from-brand via-[#6d5df6] to-[#9b5cf6] px-[clamp(2rem,5vw,5rem)] py-14 text-[#fff];
@@ -357,7 +357,10 @@
   .account-menu > span { @apply block h-px bg-[#e3e4e8]; }
   .sidebar-account-footer > button { @apply justify-start!; }
 
-  .workspace { @apply min-w-0 bg-[radial-gradient(circle_at_85%_0%,rgba(88,101,242,.10),transparent_30%),#ffffff] pb-10; }
+  /* bg-color แยกจาก bg-image เพราะ background-image ไม่รับสีธรรมดาเป็น layer
+     ท้าย (ต้องเป็น <image> ทุก layer) ผสมสองค่านี้ไว้ใน bg-[...] เดียวจะถูก
+     browser ทิ้งทั้งเส้นเงียบ ๆ (คำนวณค่าออกมาเป็น none) */
+  .workspace { @apply min-w-0 bg-surface bg-[radial-gradient(circle_at_85%_0%,rgba(88,101,242,.10),transparent_30%)] pb-10; }
   .settings-workspace { @apply flex h-screen min-h-0 flex-col overflow-hidden pb-0; }
   .settings-workspace > .view-transition { @apply min-h-0 flex-1 overflow-hidden; }
   .subscription-access-banner {
@@ -1190,9 +1193,12 @@
   .template-page-actions button,
   .document-zoom-controls button { @apply min-h-11 min-w-11; }
 
-  .login-shell { @apply relative isolate grid min-h-screen grid-cols-[1fr_480px] items-center gap-12 overflow-hidden bg-[radial-gradient(circle_at_10%_15%,rgba(88,101,242,.10),transparent_34%),#ffffff] p-8; }
+  /* bg-color แยกจาก bg-image เหมือน .workspace ด้านบน: background-image รับ
+     สีธรรมดาเป็น layer ท้ายไม่ได้ ผสมไว้ใน bg-[...] เดียวจะถูก browser ทิ้ง
+     ทั้งเส้นเงียบ ๆ (gradient นี้ไม่เคยแสดงผลจริงมาก่อน) */
+  .login-shell { @apply relative isolate grid min-h-screen grid-cols-[1fr_480px] items-center gap-12 overflow-hidden bg-white bg-[radial-gradient(circle_at_10%_15%,rgba(88,101,242,.10),transparent_34%)] p-8; }
   .login-shell > section { @apply relative z-10; }
-  .login-card { @apply rounded-[40px] border border-[#dfe3eb] bg-[#fff]/90 p-8 shadow-[0_24px_80px_rgba(38,43,95,.12)] backdrop-blur-xl; }
+  .login-card { @apply rounded-4xl border border-[#dfe3eb] bg-[#fff]/90 p-8 shadow-[0_24px_80px_rgba(38,43,95,.12)] backdrop-blur-xl; }
   .login-aurora { @apply pointer-events-none absolute inset-0 -z-10 overflow-hidden; }
   .login-aurora span { @apply absolute block rounded-full opacity-45 blur-3xl; animation: login-orb-drift 14s ease-in-out infinite alternate; }
   .login-aurora span:nth-child(1) { @apply -left-24 -top-28 size-[28rem] bg-brand/25; }
@@ -1205,7 +1211,7 @@
   }
   .login-page-shell > section { @apply relative z-10; }
   .login-story {
-    @apply m-3 flex min-h-0 flex-col overflow-hidden rounded-[32px] border border-brand/10 bg-[#f7f7ff] p-[clamp(1.5rem,3vw,3rem)] text-[#17194b];
+    @apply m-3 flex min-h-0 flex-col overflow-hidden rounded-4xl border border-brand/10 bg-[#f7f7ff] p-[clamp(1.5rem,3vw,3rem)] text-[#17194b];
   }
   .login-story::before {
     content: "";
