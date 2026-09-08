@@ -1,0 +1,20 @@
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าสภาพแวดล้อม “docker compose.e2e” สำหรับ container หรือระบบอัตโนมัติ
+# การทำงาน: ระบุบริการ ขั้นตอน build และค่าที่เชื่อมกัน โดยรับความลับจาก environment แทนการเขียนไว้ในไฟล์
+
+services:
+  postgres-e2e:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: nestly_test
+      POSTGRES_USER: nestly_test
+      POSTGRES_PASSWORD: nestly_test_local
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestly_test -d nestly_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data

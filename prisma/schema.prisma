@@ -1,508 +1,1307 @@
-// หน้าที่ของไฟล์นี้: แผนผังฐานข้อมูลหลัก ระบุตาราง ช่องข้อมูล ความสัมพันธ์ กฎห้ามซ้ำ และดัชนีค้นหา
-// ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+// คำอธิบายสำหรับผู้เริ่มต้น
+// ภาพรวมไฟล์: เป็นพิมพ์เขียวฐานข้อมูลหลักของ Nestly ซึ่งกำหนดตาราง ฟิลด์ ความสัมพันธ์ ดัชนี และชนิดสถานะทั้งหมด
+// การทำงาน: Prisma อ่านไฟล์นี้เพื่อสร้างตัวช่วย TypeScript และ migration; เมื่อเปลี่ยนโครงสร้างต้องสร้าง migration ใหม่ ห้ามแก้ migration เก่าที่ใช้งานแล้ว
+
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-/// บทบาทผู้ดูแล: Editor จัดการเนื้อหา ส่วน Super Admin จัดการบัญชีและดู audit ได้
-enum AdminRole {
-  EDITOR
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ DocumentKind: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum DocumentKind {
+  CONTRACT
+  INVOICE
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ UserRole: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum UserRole {
   SUPER_ADMIN
+  PROPERTY_ADMIN
+  TENANT
 }
 
-/// วงจรชีวิตเนื้อหา: ฉบับร่าง เผยแพร่ หรือเก็บถาวร
-enum ContentStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ AccountApprovalStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum AccountApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-/// ประเภทไฟล์ที่รับในรุ่นแรก: รูปภาพหรือ PDF
-enum MediaKind {
-  IMAGE
-  PDF
-}
-
-/// ขั้นตอนของไฟล์ตั้งแต่กำลังอัปโหลดจนพร้อมใช้หรือไม่สำเร็จ
-enum MediaStatus {
-  UPLOADING
-  PROCESSING
-  READY
-  FAILED
-}
-
-/// รูปแบบไฟล์ต้นฉบับและรูปที่ระบบแปลงเพื่อแสดงผล
-enum MediaFormat {
-  WEBP
-  AVIF
-  ORIGINAL
-}
-
-/// ผลของเหตุการณ์ที่บันทึกเพื่อตรวจสอบย้อนหลัง
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ AuditResult: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
 enum AuditResult {
   SUCCESS
   FAILURE
 }
 
-/// ข้อมูลบริษัทชุดหลัก เช่น ชื่อ ประวัติ ที่อยู่ ช่องทางติดต่อ SEO และโลโก้
-model Company {
-  id               String   @id @default(cuid()) @db.VarChar(30)
-  singletonKey     String   @unique @default("PRIMARY") @db.VarChar(20)
-  legalName        String   @db.VarChar(200)
-  displayName      String   @db.VarChar(160)
-  shortDescription String?  @db.VarChar(500)
-  history          String?  @db.Text
-  vision           String?  @db.Text
-  mission          String?  @db.Text
-  address          String?  @db.Text
-  phoneDisplay     String?  @db.VarChar(50)
-  phoneHref        String?  @db.VarChar(30)
-  email            String?  @db.VarChar(254)
-  lineLabel        String?  @db.VarChar(100)
-  lineUrl          String?  @db.VarChar(500)
-  facebookUrl      String?  @db.VarChar(500)
-  mapsUrl          String?  @db.VarChar(1000)
-  mapsEmbedUrl     String?  @db.VarChar(2000)
-  businessHours    String?  @db.VarChar(200)
-  seoTitle         String?  @db.VarChar(60)
-  seoDescription   String?  @db.VarChar(160)
-  logoMediaId      String?  @db.VarChar(30)
-  logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  createdAt        DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
-
-  @@index([logoMediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ ChatSenderRole: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum ChatSenderRole {
+  ADMIN
+  TENANT
+  SUPER_ADMIN
 }
 
-/// แบนเนอร์หน้าแรก พร้อมรูป ปุ่ม ลำดับ และสถานะเผยแพร่
-model Banner {
-  id          String        @id @default(cuid()) @db.VarChar(30)
-  title       String        @db.VarChar(180)
-  description String?       @db.VarChar(500)
-  buttonLabel String?       @db.VarChar(80)
-  buttonUrl   String?       @db.VarChar(500)
-  imageId     String?       @db.VarChar(30)
-  image       Media?        @relation("BannerImage", fields: [imageId], references: [id], onDelete: SetNull)
-  sortOrder   Int           @default(0)
-  status      ContentStatus @default(DRAFT)
-  publishedAt DateTime?     @db.Timestamptz(3)
-  deletedAt   DateTime?     @db.Timestamptz(3)
-  purgeAt     DateTime?     @db.Timestamptz(3)
-  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
-
-  @@index([status, sortOrder])
-  @@index([deletedAt, purgeAt])
-  @@index([imageId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ ChatConversationType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum ChatConversationType {
+  TENANT_PROPERTY
+  PROPERTY_SUPPORT
 }
 
-/// บริการของบริษัท ใช้แสดงหน้ารวม/รายละเอียดและเชื่อมกับผลงาน
-model Service {
-  id             String           @id @default(cuid()) @db.VarChar(30)
-  slug           String           @unique @db.VarChar(180)
-  title          String           @db.VarChar(180)
-  eyebrow        String?          @db.VarChar(80)
-  summary        String           @db.VarChar(500)
-  content        String?          @db.Text
-  sortOrder      Int              @default(0)
-  isFeatured     Boolean          @default(false)
-  isSearchable   Boolean          @default(true)
-  seoTitle       String?          @db.VarChar(60)
-  seoDescription String?          @db.VarChar(160)
-  coverMediaId   String?          @db.VarChar(30)
-  coverMedia     Media?           @relation("ServiceCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
-  status         ContentStatus    @default(DRAFT)
-  publishedAt    DateTime?        @db.Timestamptz(3)
-  deletedAt      DateTime?        @db.Timestamptz(3)
-  purgeAt        DateTime?        @db.Timestamptz(3)
-  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
-  projects       ProjectService[]
-
-  @@index([status, sortOrder])
-  @@index([isFeatured, status])
-  @@index([deletedAt, purgeAt])
-  @@index([coverMediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ SubscriptionStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  SUSPENDED
 }
 
-/// ยี่ห้อสินค้า ใช้กรองสินค้าและป้องกันการพิมพ์ชื่อยี่ห้อหลายแบบ
-model Brand {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  slug      String    @unique @db.VarChar(120)
-  name      String    @unique @db.VarChar(120)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  deletedAt DateTime? @db.Timestamptz(3)
-  purgeAt   DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  products  Product[]
-
-  @@index([isActive, sortOrder])
-  @@index([deletedAt, purgeAt])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ BillingInterval: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum BillingInterval {
+  MONTHLY
+  YEARLY
 }
 
-/// ประเภทสินค้า ใช้จัดกลุ่มและกรองรายการสินค้า
-model ProductType {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  slug      String    @unique @db.VarChar(120)
-  name      String    @unique @db.VarChar(120)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  deletedAt DateTime? @db.Timestamptz(3)
-  purgeAt   DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  products  Product[]
-
-  @@index([isActive, sortOrder])
-  @@index([deletedAt, purgeAt])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ SubscriptionOrderType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum SubscriptionOrderType {
+  NEW
+  RENEWAL
 }
 
-/// ข้อมูลสินค้า รุ่น BTU สเปก รูป แคตตาล็อก SEO และสถานะเผยแพร่
-model Product {
-  id             String         @id @default(cuid()) @db.VarChar(30)
-  slug           String         @unique @db.VarChar(180)
-  name           String         @db.VarChar(180)
-  model          String         @db.VarChar(120)
-  summary        String         @db.VarChar(500)
-  content        String?        @db.Text
-  btuMin         Int?
-  btuMax         Int?
-  features       String?        @db.Text
-  specifications Json?
-  warranty       String?        @db.VarChar(200)
-  seer           Decimal?       @db.Decimal(6, 2)
-  refrigerant    String?        @db.VarChar(50)
-  priceLabel     String         @default("สอบถามราคา") @db.VarChar(80)
-  isFeatured     Boolean        @default(false)
-  isSearchable   Boolean        @default(true)
-  seoTitle       String?        @db.VarChar(60)
-  seoDescription String?        @db.VarChar(160)
-  brandId        String         @db.VarChar(30)
-  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Restrict)
-  productTypeId  String         @db.VarChar(30)
-  productType    ProductType    @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
-  coverMediaId   String?        @db.VarChar(30)
-  coverMedia     Media?         @relation("ProductCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
-  catalogMediaId String?        @db.VarChar(30)
-  catalogMedia   Media?         @relation("ProductCatalog", fields: [catalogMediaId], references: [id], onDelete: SetNull)
-  status         ContentStatus  @default(DRAFT)
-  publishedAt    DateTime?      @db.Timestamptz(3)
-  deletedAt      DateTime?      @db.Timestamptz(3)
-  purgeAt        DateTime?      @db.Timestamptz(3)
-  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
-  gallery        ProductMedia[]
-
-  @@unique([brandId, model])
-  @@index([status, updatedAt])
-  @@index([brandId, productTypeId, status])
-  @@index([btuMin, btuMax])
-  @@index([isFeatured, status])
-  @@index([deletedAt, purgeAt])
-  @@index([coverMediaId])
-  @@index([catalogMediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ SubscriptionOrderStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum SubscriptionOrderStatus {
+  PENDING_PAYMENT
+  PENDING_REVIEW
+  PAID
+  REJECTED
+  CANCELLED
+  EXPIRED
 }
 
-/// ตารางเชื่อมสินค้ากับรูป gallery หลายรูป พร้อมลำดับ
-model ProductMedia {
-  productId String  @db.VarChar(30)
-  mediaId   String  @db.VarChar(30)
-  sortOrder Int     @default(0)
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
-
-  @@id([productId, mediaId])
-  @@unique([productId, sortOrder])
-  @@index([mediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ SubscriptionPaymentStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum SubscriptionPaymentStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
 }
 
-/// ข้อมูลผลงาน พื้นที่ วันที่ บริการที่เกี่ยวข้อง และรูป gallery
-model Project {
-  id               String           @id @default(cuid()) @db.VarChar(30)
-  slug             String           @unique @db.VarChar(180)
-  title            String           @db.VarChar(180)
-  projectType      String           @db.VarChar(120)
-  area             String           @db.VarChar(160)
-  customerName     String?          @db.VarChar(180)
-  showCustomerName Boolean          @default(false)
-  summary          String           @db.VarChar(500)
-  content          String?          @db.Text
-  completedAt      DateTime?        @db.Date
-  isFeatured       Boolean          @default(false)
-  isSearchable     Boolean          @default(true)
-  seoTitle         String?          @db.VarChar(60)
-  seoDescription   String?          @db.VarChar(160)
-  coverMediaId     String?          @db.VarChar(30)
-  coverMedia       Media?           @relation("ProjectCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
-  status           ContentStatus    @default(DRAFT)
-  publishedAt      DateTime?        @db.Timestamptz(3)
-  deletedAt        DateTime?        @db.Timestamptz(3)
-  purgeAt          DateTime?        @db.Timestamptz(3)
-  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
-  gallery          ProjectMedia[]
-  services         ProjectService[]
-
-  @@index([status, completedAt])
-  @@index([projectType, status])
-  @@index([isFeatured, status])
-  @@index([deletedAt, purgeAt])
-  @@index([coverMediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ RoomStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  INACTIVE
 }
 
-/// ตารางเชื่อมผลงานกับรูป gallery หลายรูป พร้อมลำดับ
-model ProjectMedia {
-  projectId String  @db.VarChar(30)
-  mediaId   String  @db.VarChar(30)
-  sortOrder Int     @default(0)
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
-
-  @@id([projectId, mediaId])
-  @@unique([projectId, sortOrder])
-  @@index([mediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ OccupancyRole: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum OccupancyRole {
+  PRIMARY
+  CO_OCCUPANT
 }
 
-/// ตารางเชื่อมผลงานหนึ่งงานกับบริการได้หลายประเภท
-model ProjectService {
-  projectId String  @db.VarChar(30)
-  serviceId String  @db.VarChar(30)
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-
-  @@id([projectId, serviceId])
-  @@index([serviceId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ OccupancyStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum OccupancyStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  REJECTED
 }
 
-/// หมวดข่าว เช่น ข่าวบริษัท บทความ หรือโปรโมชัน
-model NewsCategory {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  slug      String    @unique @db.VarChar(120)
-  name      String    @unique @db.VarChar(120)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  deletedAt DateTime? @db.Timestamptz(3)
-  purgeAt   DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  news      News[]
-
-  @@index([isActive, sortOrder])
-  @@index([deletedAt, purgeAt])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ OccupancyTransitionType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum OccupancyTransitionType {
+  MOVE_OUT
+  MOVE_ROOM
 }
 
-/// ข่าวและบทความ พร้อมหมวด รูป SEO และกำหนดเวลาเผยแพร่
-model News {
-  id             String        @id @default(cuid()) @db.VarChar(30)
-  slug           String        @unique @db.VarChar(180)
-  title          String        @db.VarChar(180)
-  summary        String        @db.VarChar(500)
-  content        String?       @db.Text
-  isFeatured     Boolean       @default(false)
-  isSearchable   Boolean       @default(true)
-  seoTitle       String?       @db.VarChar(60)
-  seoDescription String?       @db.VarChar(160)
-  categoryId     String        @db.VarChar(30)
-  category       NewsCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  coverMediaId   String?       @db.VarChar(30)
-  coverMedia     Media?        @relation("NewsCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
-  status         ContentStatus @default(DRAFT)
-  publishedAt    DateTime?     @db.Timestamptz(3)
-  deletedAt      DateTime?     @db.Timestamptz(3)
-  purgeAt        DateTime?     @db.Timestamptz(3)
-  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
-
-  @@index([categoryId, status, publishedAt])
-  @@index([status, publishedAt])
-  @@index([isFeatured, status])
-  @@index([deletedAt, purgeAt])
-  @@index([coverMediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ VehicleType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum VehicleType {
+  MOTORCYCLE
+  CAR
+  BICYCLE
+  OTHER
 }
 
-/// metadata ของไฟล์ใน S3; ตัวไฟล์จริงไม่ได้เก็บใน PostgreSQL
-model Media {
-  id              String         @id @default(cuid()) @db.VarChar(30)
-  kind            MediaKind
-  objectKey       String         @unique @db.VarChar(1000)
-  originalName    String?        @db.VarChar(255)
-  mimeType        String         @db.VarChar(120)
-  sizeBytes       BigInt
-  checksumSha256  String?        @db.Char(64)
-  width           Int?
-  height          Int?
-  altText         String?        @db.VarChar(500)
-  isPrivate       Boolean        @default(true)
-  status          MediaStatus    @default(UPLOADING)
-  uploadExpiresAt DateTime?      @db.Timestamptz(3)
-  orphanExpiresAt DateTime?      @db.Timestamptz(3)
-  failureReason   String?        @db.VarChar(200)
-  uploadedById    String?        @db.VarChar(30)
-  uploadedBy      Admin?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  deletedAt       DateTime?      @db.Timestamptz(3)
-  purgeAt         DateTime?      @db.Timestamptz(3)
-  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
-  companyLogos    Company[]      @relation("CompanyLogo")
-  bannerImages    Banner[]       @relation("BannerImage")
-  serviceCovers   Service[]      @relation("ServiceCover")
-  productCovers   Product[]      @relation("ProductCover")
-  productCatalogs Product[]      @relation("ProductCatalog")
-  productGallery  ProductMedia[]
-  projectCovers   Project[]      @relation("ProjectCover")
-  projectGallery  ProjectMedia[]
-  newsCovers      News[]         @relation("NewsCover")
-  variants        MediaVariant[]
-
-  @@index([status, uploadExpiresAt])
-  @@index([status, orphanExpiresAt])
-  @@index([kind, createdAt])
-  @@index([uploadedById])
-  @@index([deletedAt, purgeAt])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ InvitationStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
 }
 
-/// รูปย่อหรือรูปแปลง WebP/AVIF ที่สร้างจาก Media ต้นฉบับ
-model MediaVariant {
-  id         String      @id @default(cuid()) @db.VarChar(30)
-  mediaId    String      @db.VarChar(30)
-  media      Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  format     MediaFormat
-  width      Int?
-  height     Int?
-  objectKey  String      @unique @db.VarChar(1000)
-  mimeType   String      @db.VarChar(120)
-  sizeBytes  BigInt
-  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
-
-  @@unique([mediaId, format, width])
-  @@index([mediaId])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ LeaseStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum LeaseStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  CANCELLED
 }
 
-/// คิวลบไฟล์จาก S3 แบบลองซ้ำได้ เพื่อไม่ทิ้งไฟล์กำพร้า
-model StorageCleanupJob {
-  id          String    @id @default(cuid()) @db.VarChar(30)
-  mediaId     String?   @db.VarChar(30)
-  objectKeys  Json
-  attempts    Int       @default(0)
-  nextRunAt   DateTime  @default(now()) @db.Timestamptz(3)
-  lastError   String?   @db.VarChar(500)
-  completedAt DateTime? @db.Timestamptz(3)
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
-
-  @@index([completedAt, nextRunAt])
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ MeterType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum MeterType {
+  WATER
+  ELECTRICITY
 }
 
-/// บัญชีผู้ดูแล เก็บ password hash และ TOTP ที่เข้ารหัส ไม่เก็บความลับแบบ plaintext
-model Admin {
-  id                  String         @id @default(cuid()) @db.VarChar(30)
-  username            String         @unique @db.VarChar(80)
-  usernameNormalized  String         @unique @db.VarChar(80)
-  displayName         String         @db.VarChar(160)
-  role                AdminRole      @default(EDITOR)
-  passwordHash        String         @db.VarChar(255)
-  mustChangePassword  Boolean        @default(true)
-  totpSecretEncrypted String?        @db.Text
-  totpKeyVersion      Int?
-  lastTotpTimeStep    Int?
-  twoFactorEnabled    Boolean        @default(false)
-  isActive            Boolean        @default(true)
-  lastLoginAt         DateTime?      @db.Timestamptz(3)
-  deletedAt           DateTime?      @db.Timestamptz(3)
-  purgeAt             DateTime?      @db.Timestamptz(3)
-  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime       @updatedAt @db.Timestamptz(3)
-  sessions            Session[]
-  recoveryCodes       RecoveryCode[]
-  auditLogs           AuditLog[]
-  uploadedMedia       Media[]
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ InvoiceStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ InvoiceItemType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum InvoiceItemType {
+  RENT
+  WATER
+  ELECTRICITY
+  SERVICE
+  LATE_FEE
+  OTHER
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ PaymentSubmissionStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum PaymentSubmissionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ TicketType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum TicketType {
+  REPAIR
+  COMPLAINT
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ TicketStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum TicketStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ TicketPriority: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum TicketPriority {
+  NORMAL
+  URGENT
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ TicketEventType: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum TicketEventType {
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  ATTACHMENT_ADDED
+  REPLY_ADDED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ ParcelStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum ParcelStatus {
+  WAITING
+  RECEIVED
+  CANCELLED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ AnnouncementStatus: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// กลุ่มสถานะ AnnouncementAudience: จำกัดค่าที่ฐานข้อมูลยอมรับ เพื่อไม่ให้บันทึกข้อความสถานะที่สะกดหรือมีความหมายไม่ตรงกัน
+enum AnnouncementAudience {
+  ALL_TENANTS
+  BUILDING
+  FLOOR
+  ROOM
+}
+
+/// ประเภทเอกสารหรือตัวเลือกด้านข้อมูลที่ระบบต้องเก็บหลักฐานการตัดสินใจของผู้ใช้
+enum PolicyType {
+  TERMS_OF_SERVICE
+  PRIVACY_NOTICE
+  MARKETING_COMMUNICATIONS
+}
+
+/// การกระทำต่อเอกสารแต่ละประเภท แยก “รับทราบ” ออกจาก “ให้ความยินยอม” ให้ตรงความหมาย
+enum PolicyActionType {
+  ACCEPTED
+  ACKNOWLEDGED
+  GRANTED
+  WITHDRAWN
+}
+
+/// จุดที่ผู้ใช้ทำรายการ ช่วยตรวจสอบย้อนหลังโดยไม่ต้องเก็บข้อมูลส่วนบุคคลเกินจำเป็น
+enum PolicyActionSource {
+  REGISTRATION
+  REQUIRED_GATE
+  ACCOUNT_SETTINGS
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง User: เก็บข้อมูลและความสัมพันธ์ของ “User”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model User {
+  id                            String                @id @default(cuid())
+  email                         String                @unique @db.VarChar(254)
+  passwordHash                  String                @db.VarChar(255)
+  mustChangePassword            Boolean               @default(false)
+  displayName                   String                @db.VarChar(120)
+  role                          UserRole
+  isActive                      Boolean               @default(true)
+  approvalStatus                AccountApprovalStatus @default(PENDING)
+  approvalReviewedAt            DateTime?
+  approvalReviewedById          String?
+  approvalReviewedBy            User?                 @relation("AccountApprovalReviewer", fields: [approvalReviewedById], references: [id], onDelete: SetNull)
+  reviewedAccounts              User[]                @relation("AccountApprovalReviewer")
+  approvalRejectionReason       String?               @db.VarChar(500)
+  memberships                   PropertyMembership[]
+  tenantProfile                 TenantProfile?
+  reviewedOccupancies           RoomOccupancy[]       @relation("OccupancyReviewer")
+  reviewedPayments              PaymentSubmission[]   @relation("PaymentReviewer")
+  createdTickets                ServiceTicket[]       @relation("TicketCreator")
+  ticketEvents                  TicketEvent[]         @relation("TicketEventActor")
+  ticketReplies                 TicketReply[]         @relation("TicketReplyAuthor")
+  ticketReadStates              TicketReadState[]
+  assignedTickets               ServiceTicket[]       @relation("TicketAssignee")
+  createdInvitations            TenantInvitation[]    @relation("InvitationCreator")
+  createdLeaseVersions          LeaseVersion[]        @relation("LeaseVersionCreator")
+  registeredParcels             Parcel[]              @relation("ParcelRegistrar")
+  createdAnnouncements          Announcement[]        @relation("AnnouncementCreator")
+  sessions                      Session[]
+  passwordResetTokens           PasswordResetToken[]
+  auditLogs                     AuditLog[]
+  chatMessages                  ChatMessage[]
+  subscriptionOrders            SubscriptionOrder[]   @relation("SubscriptionOrderCreator")
+  submittedSubscriptionPayments SubscriptionPayment[] @relation("SubscriptionPaymentSubmitter")
+  reviewedSubscriptionPayments  SubscriptionPayment[] @relation("SubscriptionPaymentReviewer")
+  completedOccupancyTransitions OccupancyTransition[] @relation("OccupancyTransitionCompleter")
+  policyActions                 PolicyAction[]
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
 
   @@index([role, isActive])
-  @@index([deletedAt, purgeAt])
+  @@index([role, approvalStatus, createdAt(sort: Desc)])
+  @@index([approvalReviewedById])
 }
 
-/// บัตรผ่านหลังล็อกอิน เก็บเฉพาะ hash ของ token และสามารถ revoke ได้
-model Session {
-  id            String    @id @default(cuid()) @db.VarChar(30)
-  tokenHash     String    @unique @db.Char(64)
-  adminId       String    @db.VarChar(30)
-  admin         Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  twoFactorAt   DateTime? @db.Timestamptz(3)
-  expiresAt     DateTime  @db.Timestamptz(3)
-  lastSeenAt    DateTime  @default(now()) @db.Timestamptz(3)
-  revokedAt     DateTime? @db.Timestamptz(3)
-  revokeReason  String?   @db.VarChar(160)
-  ipAddressHash String?   @db.Char(64)
-  userAgentHash String?   @db.Char(64)
-  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+/// บันทึกเหตุการณ์แบบต่อเติมอย่างเดียว (append-only) เพื่อคงประวัติว่าใครตกลงเอกสารเวอร์ชันใดเมื่อใด
+model PolicyAction {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policyType      PolicyType
+  action          PolicyActionType
+  documentVersion String             @db.VarChar(40)
+  source          PolicyActionSource
+  requestId       String?            @db.VarChar(80)
+  occurredAt      DateTime           @default(now())
 
-  @@index([adminId, revokedAt, expiresAt])
+  @@index([userId, policyType, occurredAt(sort: Desc)])
+  @@index([policyType, documentVersion, occurredAt(sort: Desc)])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Property: เก็บข้อมูลและความสัมพันธ์ของ “Property”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Property {
+  id                   String                @id @default(cuid())
+  name                 String                @db.VarChar(160)
+  shortName            String                @db.VarChar(80)
+  isActive             Boolean               @default(true)
+  memberships          PropertyMembership[]
+  subscription         PropertySubscription?
+  settings             PropertySettings?
+  buildings            Building[]
+  rooms                Room[]
+  tenantInvitations    TenantInvitation[]
+  occupancies          RoomOccupancy[]
+  leases               Lease[]
+  meterReadings        MeterReading[]
+  invoices             Invoice[]
+  paymentSubmissions   PaymentSubmission[]
+  serviceTickets       ServiceTicket[]
+  parcels              Parcel[]
+  announcements        Announcement[]
+  documentTemplates    DocumentTemplate[]
+  documents            GeneratedDocument[]
+  auditLogs            AuditLog[]
+  chatConversations    ChatConversation[]
+  chatMessages         ChatMessage[]
+  roomTypeConfigs      RoomTypeConfig[]
+  serviceCharges       ServiceChargeConfig[]
+  furnitureOptions     FurnitureOption[]
+  subscriptionOrders   SubscriptionOrder[]
+  occupancyTransitions OccupancyTransition[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([isActive])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PropertySubscription: เก็บข้อมูลและความสัมพันธ์ของ “Property Subscription”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model PropertySubscription {
+  propertyId      String             @id
+  property        Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  planId          String?
+  plan            SaasPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName        String             @db.VarChar(80)
+  billingInterval BillingInterval    @default(MONTHLY)
+  priceAmount     Decimal            @default(0) @db.Decimal(12, 2)
+  status          SubscriptionStatus @default(TRIAL)
+  maxProperties   Int                @default(1)
+  maxRooms        Int
+  startsAt        DateTime
+  expiresAt       DateTime
+  suspendedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([planId, status])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง SaasPlan: เก็บข้อมูลและความสัมพันธ์ของ “Saas Plan”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model SaasPlan {
+  id                   String                 @id @default(cuid())
+  code                 String                 @unique @db.VarChar(40)
+  name                 String                 @db.VarChar(80)
+  description          String?                @db.VarChar(500)
+  monthlyPrice         Decimal                @db.Decimal(12, 2)
+  yearlyPrice          Decimal?               @db.Decimal(12, 2)
+  maxProperties        Int                    @default(1)
+  maxRooms             Int
+  allowPromptPay       Boolean                @default(true)
+  allowFileUploads     Boolean                @default(true)
+  allowPrioritySupport Boolean                @default(false)
+  isActive             Boolean                @default(true)
+  sortOrder            Int                    @default(0)
+  subscriptions        PropertySubscription[]
+  orders               SubscriptionOrder[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง SubscriptionOrder: เก็บข้อมูลและความสัมพันธ์ของ “Subscription Order”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model SubscriptionOrder {
+  id                   String                  @id @default(cuid())
+  orderNumber          String                  @unique @db.VarChar(40)
+  propertyId           String
+  property             Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  planId               String?
+  plan                 SaasPlan?               @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planCode             String                  @db.VarChar(40)
+  planName             String                  @db.VarChar(80)
+  type                 SubscriptionOrderType
+  status               SubscriptionOrderStatus @default(PENDING_PAYMENT)
+  billingInterval      BillingInterval
+  amount               Decimal                 @db.Decimal(12, 2)
+  maxProperties        Int
+  maxRooms             Int
+  allowPromptPay       Boolean
+  allowFileUploads     Boolean
+  allowPrioritySupport Boolean
+  createdByUserId      String
+  createdBy            User                    @relation("SubscriptionOrderCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  expiresAt            DateTime
+  paidAt               DateTime?
+  activatedAt          DateTime?
+  cancelledAt          DateTime?
+  payments             SubscriptionPayment[]
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([propertyId, createdAt(sort: Desc)])
+  @@index([status, expiresAt])
+  @@index([createdByUserId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง SubscriptionPayment: เก็บข้อมูลและความสัมพันธ์ของ “Subscription Payment”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model SubscriptionPayment {
+  id                String                    @id @default(cuid())
+  orderId           String
+  order             SubscriptionOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount            Decimal                   @db.Decimal(12, 2)
+  storageKey        String                    @db.VarChar(500)
+  mimeType          String                    @db.VarChar(100)
+  sizeBytes         Int
+  status            SubscriptionPaymentStatus @default(PENDING_REVIEW)
+  submittedByUserId String
+  submittedBy       User                      @relation("SubscriptionPaymentSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  submittedAt       DateTime                  @default(now())
+  reviewedAt        DateTime?
+  reviewedByUserId  String?
+  reviewedBy        User?                     @relation("SubscriptionPaymentReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  rejectionNote     String?                   @db.VarChar(500)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([orderId, submittedAt(sort: Desc)])
+  @@index([status, submittedAt])
+  @@index([submittedByUserId])
+  @@index([reviewedByUserId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PropertySettings: เก็บข้อมูลและความสัมพันธ์ของ “Property Settings”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model PropertySettings {
+  propertyId          String   @id
+  property            Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  legalName           String?  @db.VarChar(160)
+  lessorName          String?  @db.VarChar(160)
+  address             String   @db.VarChar(1000)
+  contactPhone        String   @db.VarChar(30)
+  contactEmail        String?  @db.VarChar(254)
+  logoStorageKey      String?  @db.VarChar(500)
+  promptPayId         String?  @db.VarChar(20)
+  waterUnitRate       Decimal  @default(0) @db.Decimal(12, 2)
+  electricityUnitRate Decimal  @default(0) @db.Decimal(12, 2)
+  billingDay          Int      @default(1)
+  dueDay              Int      @default(5)
+  lateFeePerDay       Decimal  @default(0) @db.Decimal(12, 2)
+  lateFeeCap          Decimal? @db.Decimal(12, 2)
+  invoicePrefix       String   @default("INV") @db.VarChar(20)
+  invoiceFooter       String?  @db.VarChar(2000)
+  houseRules          String?
+  emergencyContact    String?  @db.VarChar(500)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง RoomTypeConfig: เก็บข้อมูลและความสัมพันธ์ของ “Room Type Config”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model RoomTypeConfig {
+  id            String   @id @default(cuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name          String   @db.VarChar(80)
+  monthlyRent   Decimal  @db.Decimal(12, 2)
+  depositAmount Decimal  @default(0) @db.Decimal(12, 2)
+  capacity      Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง ServiceChargeConfig: เก็บข้อมูลและความสัมพันธ์ของ “Service Charge Config”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model ServiceChargeConfig {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name        String   @db.VarChar(120)
+  amount      Decimal  @db.Decimal(12, 2)
+  frequency   String   @db.VarChar(20)
+  calculation String   @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง FurnitureOption: เก็บข้อมูลและความสัมพันธ์ของ “Furniture Option”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model FurnitureOption {
+  id         String          @id @default(cuid())
+  propertyId String
+  property   Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String          @db.VarChar(80)
+  isDefault  Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  rooms      RoomFurniture[]
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Building: เก็บข้อมูลและความสัมพันธ์ของ “Building”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Building {
+  id            String         @id @default(cuid())
+  propertyId    String
+  property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name          String         @db.VarChar(120)
+  code          String         @db.VarChar(30)
+  isActive      Boolean        @default(true)
+  floors        Floor[]
+  rooms         Room[]
+  announcements Announcement[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([propertyId, code])
+  @@index([propertyId, isActive])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Floor: เก็บข้อมูลและความสัมพันธ์ของ “Floor”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Floor {
+  id            String         @id @default(cuid())
+  propertyId    String
+  buildingId    String
+  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  number        Int
+  label         String?        @db.VarChar(80)
+  rooms         Room[]
+  announcements Announcement[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([buildingId, number])
+  @@index([propertyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Room: เก็บข้อมูลและความสัมพันธ์ของ “Room”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Room {
+  id                  String                @id @default(cuid())
+  propertyId          String
+  property            Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buildingId          String
+  building            Building              @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  floorId             String
+  floor               Floor                 @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  number              String                @db.VarChar(30)
+  roomType            String                @db.VarChar(80)
+  monthlyRent         Decimal               @db.Decimal(12, 2)
+  depositAmount       Decimal               @default(0) @db.Decimal(12, 2)
+  capacity            Int                   @default(1)
+  status              RoomStatus            @default(AVAILABLE)
+  furnitureItems      RoomFurniture[]
+  occupancies         RoomOccupancy[]
+  invitations         TenantInvitation[]
+  leases              Lease[]
+  meterReadings       MeterReading[]
+  invoices            Invoice[]
+  tickets             ServiceTicket[]
+  parcels             Parcel[]
+  announcementRooms   AnnouncementRoom[]
+  outgoingTransitions OccupancyTransition[] @relation("TransitionSourceRoom")
+  incomingTransitions OccupancyTransition[] @relation("TransitionDestinationRoom")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@unique([propertyId, number])
+  @@index([propertyId, status])
+  @@index([buildingId, floorId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง RoomFurniture: เก็บข้อมูลและความสัมพันธ์ของ “Room Furniture”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model RoomFurniture {
+  roomId            String
+  furnitureOptionId String
+  room              Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  furnitureOption   FurnitureOption @relation(fields: [furnitureOptionId], references: [id], onDelete: Cascade)
+  quantity          Int             @default(1)
+  createdAt         DateTime        @default(now())
+
+  @@id([roomId, furnitureOptionId])
+  @@index([furnitureOptionId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TenantProfile: เก็บข้อมูลและความสัมพันธ์ของ “Tenant Profile”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TenantProfile {
+  id                String              @id @default(cuid())
+  userId            String              @unique
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone             String              @db.VarChar(30)
+  address           String?             @db.VarChar(1000)
+  emergencyName     String?             @db.VarChar(160)
+  emergencyPhone    String?             @db.VarChar(30)
+  occupancies       RoomOccupancy[]
+  invitations       TenantInvitation[]  @relation("AcceptedInvitation")
+  payments          PaymentSubmission[]
+  tickets           ServiceTicket[]
+  chatConversations ChatConversation[]
+  vehicle           TenantVehicle?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  receivedParcels   Parcel[]            @relation("ParcelReceiver")
+  recipientParcels  Parcel[]            @relation("ParcelRecipient")
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TenantVehicle: เก็บข้อมูลและความสัมพันธ์ของ “Tenant Vehicle”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TenantVehicle {
+  id              String        @id @default(cuid())
+  tenantProfileId String        @unique
+  tenantProfile   TenantProfile @relation(fields: [tenantProfileId], references: [id], onDelete: Cascade)
+  type            VehicleType
+  licensePlate    String        @db.VarChar(30)
+  province        String?       @db.VarChar(80)
+  brandModel      String?       @db.VarChar(120)
+  color           String?       @db.VarChar(80)
+  detail          String?       @db.VarChar(500)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([licensePlate])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TenantInvitation: เก็บข้อมูลและความสัมพันธ์ของ “Tenant Invitation”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TenantInvitation {
+  id              String           @id @default(cuid())
+  propertyId      String
+  property        Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId          String
+  room            Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tokenHash       String           @unique @db.Char(64)
+  status          InvitationStatus @default(PENDING)
+  intendedRole    OccupancyRole    @default(CO_OCCUPANT)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  acceptedById    String?
+  acceptedBy      TenantProfile?   @relation("AcceptedInvitation", fields: [acceptedById], references: [id], onDelete: SetNull)
+  createdByUserId String
+  createdBy       User             @relation("InvitationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([propertyId, roomId, status])
+  @@index([expiresAt, status])
+  @@index([createdByUserId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง RoomOccupancy: เก็บข้อมูลและความสัมพันธ์ของ “Room Occupancy”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model RoomOccupancy {
+  id               String                @id @default(cuid())
+  propertyId       String
+  property         Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId           String
+  room             Room                  @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  tenantProfileId  String
+  tenantProfile    TenantProfile         @relation(fields: [tenantProfileId], references: [id], onDelete: Restrict)
+  role             OccupancyRole
+  status           OccupancyStatus       @default(PENDING)
+  startedAt        DateTime?
+  endedAt          DateTime?
+  endReason        String?               @db.VarChar(500)
+  approvedAt       DateTime?
+  approvedByUserId String?
+  approvedBy       User?                 @relation("OccupancyReviewer", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  leases           LeaseTenant[]
+  transitions      OccupancyTransition[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([roomId, tenantProfileId, status])
+  @@index([propertyId, status])
+  @@index([tenantProfileId, status])
+  @@index([roomId, role, status])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง OccupancyTransition: เก็บข้อมูลและความสัมพันธ์ของ “Occupancy Transition”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model OccupancyTransition {
+  id                 String                  @id @default(cuid())
+  propertyId         String
+  property           Property                @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  type               OccupancyTransitionType
+  primaryOccupancyId String
+  primaryOccupancy   RoomOccupancy           @relation(fields: [primaryOccupancyId], references: [id], onDelete: Restrict)
+  sourceRoomId       String
+  sourceRoom         Room                    @relation("TransitionSourceRoom", fields: [sourceRoomId], references: [id], onDelete: Restrict)
+  destinationRoomId  String?
+  destinationRoom    Room?                   @relation("TransitionDestinationRoom", fields: [destinationRoomId], references: [id], onDelete: Restrict)
+  effectiveDate      DateTime                @db.Date
+  reason             String                  @db.VarChar(500)
+  depositAmount      Decimal                 @default(0) @db.Decimal(12, 2)
+  deductions         Json
+  outstandingAmount  Decimal                 @default(0) @db.Decimal(12, 2)
+  refundAmount       Decimal                 @default(0) @db.Decimal(12, 2)
+  amountDue          Decimal                 @default(0) @db.Decimal(12, 2)
+  transferredAmount  Decimal                 @default(0) @db.Decimal(12, 2)
+  settlementNote     String?                 @db.VarChar(1000)
+  completedByUserId  String
+  completedBy        User                    @relation("OccupancyTransitionCompleter", fields: [completedByUserId], references: [id], onDelete: Restrict)
+  createdAt          DateTime                @default(now())
+
+  @@index([propertyId, createdAt(sort: Desc)])
+  @@index([primaryOccupancyId])
+  @@index([sourceRoomId])
+  @@index([destinationRoomId])
+  @@index([completedByUserId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Lease: เก็บข้อมูลและความสัมพันธ์ของ “Lease”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Lease {
+  id                     String         @id @default(cuid())
+  propertyId             String
+  property               Property       @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  roomId                 String
+  room                   Room           @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  leaseNumber            String         @db.VarChar(50)
+  status                 LeaseStatus    @default(DRAFT)
+  startDate              DateTime       @db.Date
+  endDate                DateTime       @db.Date
+  monthlyRent            Decimal        @db.Decimal(12, 2)
+  depositAmount          Decimal        @default(0) @db.Decimal(12, 2)
+  currentVersion         Int            @default(1)
+  signedStorageKey       String?        @db.VarChar(500)
+  signedDocumentPurgedAt DateTime?
+  activatedAt            DateTime?
+  endedAt                DateTime?
+  versions               LeaseVersion[]
+  tenants                LeaseTenant[]
+  invoices               Invoice[]
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@unique([propertyId, leaseNumber])
+  @@index([propertyId, status, endDate])
+  @@index([roomId, status])
+  @@index([signedDocumentPurgedAt, endedAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง LeaseVersion: เก็บข้อมูลและความสัมพันธ์ของ “Lease Version”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model LeaseVersion {
+  id               String             @id @default(cuid())
+  leaseId          String
+  lease            Lease              @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  version          Int
+  templateId       String?
+  template         DocumentTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  snapshot         Json
+  documentId       String?
+  document         GeneratedDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  signedStorageKey String?            @db.VarChar(500)
+  createdByUserId  String
+  createdBy        User               @relation("LeaseVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime           @default(now())
+
+  @@unique([leaseId, version])
+  @@index([documentId])
+  @@index([templateId])
+  @@index([createdByUserId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง LeaseTenant: เก็บข้อมูลและความสัมพันธ์ของ “Lease Tenant”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model LeaseTenant {
+  leaseId     String
+  occupancyId String
+  isPrimary   Boolean       @default(false)
+  lease       Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  occupancy   RoomOccupancy @relation(fields: [occupancyId], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now())
+
+  @@id([leaseId, occupancyId])
+  @@index([occupancyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง MeterReading: เก็บข้อมูลและความสัมพันธ์ของ “Meter Reading”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model MeterReading {
+  id              String        @id @default(cuid())
+  propertyId      String
+  property        Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId          String
+  room            Room          @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  type            MeterType
+  billingMonth    DateTime      @db.Date
+  previousReading Decimal       @db.Decimal(14, 3)
+  currentReading  Decimal       @db.Decimal(14, 3)
+  unitRate        Decimal       @db.Decimal(12, 2)
+  recordedById    String
+  recordedAt      DateTime      @default(now())
+  invoiceItems    InvoiceItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([roomId, type, billingMonth])
+  @@index([propertyId, billingMonth])
+  @@index([roomId, type, billingMonth(sort: Desc)])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Invoice: เก็บข้อมูลและความสัมพันธ์ของ “Invoice”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Invoice {
+  id                 String              @id @default(cuid())
+  propertyId         String
+  property           Property            @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  roomId             String
+  room               Room                @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  leaseId            String?
+  lease              Lease?              @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+  invoiceNumber      String              @db.VarChar(50)
+  billingMonth       DateTime            @db.Date
+  status             InvoiceStatus       @default(DRAFT)
+  issuedAt           DateTime?
+  dueDate            DateTime            @db.Date
+  subtotal           Decimal             @default(0) @db.Decimal(12, 2)
+  lateFee            Decimal             @default(0) @db.Decimal(12, 2)
+  total              Decimal             @default(0) @db.Decimal(12, 2)
+  paidAt             DateTime?
+  cancelledAt        DateTime?
+  cancellationNote   String?             @db.VarChar(500)
+  version            Int                 @default(1)
+  items              InvoiceItem[]
+  paymentSubmissions PaymentSubmission[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([propertyId, invoiceNumber])
+  @@unique([roomId, billingMonth])
+  @@index([propertyId, status, dueDate])
+  @@index([propertyId, billingMonth])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง InvoiceItem: เก็บข้อมูลและความสัมพันธ์ของ “Invoice Item”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model InvoiceItem {
+  id             String          @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  type           InvoiceItemType
+  description    String          @db.VarChar(255)
+  quantity       Decimal         @default(1) @db.Decimal(14, 3)
+  unitPrice      Decimal         @db.Decimal(12, 2)
+  amount         Decimal         @db.Decimal(12, 2)
+  meterReadingId String?
+  meterReading   MeterReading?   @relation(fields: [meterReadingId], references: [id], onDelete: Restrict)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+
+  @@index([invoiceId, sortOrder])
+  @@index([meterReadingId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PaymentSubmission: เก็บข้อมูลและความสัมพันธ์ของ “Payment Submission”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model PaymentSubmission {
+  id              String                  @id @default(cuid())
+  propertyId      String
+  property        Property                @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  invoiceId       String
+  invoice         Invoice                 @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  tenantProfileId String
+  tenantProfile   TenantProfile           @relation(fields: [tenantProfileId], references: [id], onDelete: Restrict)
+  amount          Decimal                 @db.Decimal(12, 2)
+  status          PaymentSubmissionStatus @default(PENDING_REVIEW)
+  slipStorageKey  String?                 @db.VarChar(500)
+  slipMime        String?                 @db.VarChar(100)
+  slipSize        Int?
+  slipPurgedAt    DateTime?
+  submittedAt     DateTime                @default(now())
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewedBy      User?                   @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  rejectionNote   String?                 @db.VarChar(500)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([propertyId, status, submittedAt])
+  @@index([invoiceId, status])
+  @@index([tenantProfileId, submittedAt(sort: Desc)])
+  @@index([slipPurgedAt, reviewedAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง ServiceTicket: เก็บข้อมูลและความสัมพันธ์ของ “Service Ticket”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model ServiceTicket {
+  id               String             @id @default(cuid())
+  propertyId       String
+  property         Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId           String?
+  room             Room?              @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  tenantProfileId  String?
+  tenantProfile    TenantProfile?     @relation(fields: [tenantProfileId], references: [id], onDelete: SetNull)
+  type             TicketType
+  status           TicketStatus       @default(OPEN)
+  priority         TicketPriority     @default(NORMAL)
+  title            String             @db.VarChar(200)
+  detail           String             @db.VarChar(4000)
+  isAnonymous      Boolean            @default(false)
+  createdByUserId  String?
+  createdBy        User?              @relation("TicketCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedToUserId String?
+  assignedTo       User?              @relation("TicketAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  resolvedAt       DateTime?
+  cancelledAt      DateTime?
+  attachments      TicketAttachment[]
+  events           TicketEvent[]
+  replies          TicketReply[]
+  readStates       TicketReadState[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([propertyId, type, status, createdAt(sort: Desc)])
+  @@index([tenantProfileId, status])
+  @@index([assignedToUserId, status])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TicketEvent: เก็บข้อมูลและความสัมพันธ์ของ “Ticket Event”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TicketEvent {
+  id           String            @id @default(cuid())
+  ticketId     String
+  ticket       ServiceTicket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  type         TicketEventType
+  actorUserId  String?
+  actorUser    User?             @relation("TicketEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  fromValue    String?           @db.VarChar(80)
+  toValue      String?           @db.VarChar(80)
+  attachmentId String?
+  attachment   TicketAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  replyId      String?
+  reply        TicketReply?      @relation(fields: [replyId], references: [id], onDelete: SetNull)
+  createdAt    DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([attachmentId])
+  @@index([replyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TicketReply: เก็บข้อมูลและความสัมพันธ์ของ “Ticket Reply”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TicketReply {
+  id           String        @id @default(cuid())
+  ticketId     String
+  ticket       ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUserId String?
+  authorUser   User?         @relation("TicketReplyAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  body         String        @db.VarChar(4000)
+  createdAt    DateTime      @default(now())
+  events       TicketEvent[]
+
+  @@index([ticketId, createdAt, id])
+  @@index([authorUserId, createdAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TicketReadState: เก็บข้อมูลและความสัมพันธ์ของ “Ticket Read State”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TicketReadState {
+  ticketId        String
+  userId          String
+  ticket          ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt      DateTime
+  lastReadReplyId String?
+  updatedAt       DateTime      @updatedAt
+
+  @@id([ticketId, userId])
+  @@index([userId, lastReadAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง TicketAttachment: เก็บข้อมูลและความสัมพันธ์ของ “Ticket Attachment”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model TicketAttachment {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  storageKey String        @unique @db.VarChar(500)
+  fileName   String        @db.VarChar(255)
+  mimeType   String        @db.VarChar(100)
+  sizeBytes  Int
+  createdAt  DateTime      @default(now())
+  events     TicketEvent[]
+
+  @@index([ticketId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Parcel: เก็บข้อมูลและความสัมพันธ์ของ “Parcel”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Parcel {
+  id                 String         @id @default(cuid())
+  propertyId         String
+  property           Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomId             String
+  room               Room           @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  status             ParcelStatus   @default(WAITING)
+  note               String?        @db.VarChar(1000)
+  imageStorageKey    String?        @db.VarChar(500)
+  registeredById     String
+  registeredBy       User           @relation("ParcelRegistrar", fields: [registeredById], references: [id], onDelete: Restrict)
+  registeredAt       DateTime       @default(now())
+  receivedAt         DateTime?
+  receivedByTenantId String?
+  receivedByTenant   TenantProfile? @relation("ParcelReceiver", fields: [receivedByTenantId], references: [id], onDelete: SetNull)
+  recipientTenantId  String?
+  recipientTenant    TenantProfile? @relation("ParcelRecipient", fields: [recipientTenantId], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([propertyId, status, registeredAt(sort: Desc)])
+  @@index([roomId, status])
+  @@index([registeredById])
+  @@index([recipientTenantId, status])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Announcement: เก็บข้อมูลและความสัมพันธ์ของ “Announcement”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Announcement {
+  id          String               @id @default(cuid())
+  propertyId  String
+  property    Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  title       String               @db.VarChar(200)
+  content     String               @db.VarChar(10000)
+  status      AnnouncementStatus   @default(DRAFT)
+  audience    AnnouncementAudience @default(ALL_TENANTS)
+  buildingId  String?
+  building    Building?            @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floorId     String?
+  floor       Floor?               @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  publishAt   DateTime?
+  publishedAt DateTime?
+  createdById String
+  createdBy   User                 @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  rooms       AnnouncementRoom[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([propertyId, status, publishAt])
+  @@index([buildingId])
+  @@index([floorId])
+  @@index([createdById])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง AnnouncementRoom: เก็บข้อมูลและความสัมพันธ์ของ “Announcement Room”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model AnnouncementRoom {
+  announcementId String
+  roomId         String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, roomId])
+  @@index([roomId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง ChatConversation: เก็บข้อมูลและความสัมพันธ์ของ “Chat Conversation”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model ChatConversation {
+  id                   String               @id @default(cuid())
+  propertyId           String
+  property             Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  type                 ChatConversationType @default(TENANT_PROPERTY)
+  conversationKey      String               @db.VarChar(140)
+  tenantProfileId      String?
+  tenantProfile        TenantProfile?       @relation(fields: [tenantProfileId], references: [id], onDelete: SetNull)
+  tenantExternalId     String?              @db.VarChar(80)
+  tenantName           String?              @db.VarChar(160)
+  roomNumber           String?              @db.VarChar(30)
+  messages             ChatMessage[]
+  lastMessageAt        DateTime?
+  lastTenantReadAt     DateTime?
+  lastAdminReadAt      DateTime?
+  lastSuperAdminReadAt DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@unique([propertyId, conversationKey])
+  @@index([propertyId, lastMessageAt(sort: Desc)])
+  @@index([tenantProfileId, lastMessageAt(sort: Desc)])
+  @@index([type, lastMessageAt(sort: Desc)])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง ChatMessage: เก็บข้อมูลและความสัมพันธ์ของ “Chat Message”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model ChatMessage {
+  id                 String           @id @default(cuid())
+  propertyId         String
+  property           Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  conversationId     String
+  conversation       ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderRole         ChatSenderRole
+  senderUserId       String?
+  senderUser         User?            @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+  body               String           @db.VarChar(4000)
+  attachmentName     String?          @db.VarChar(255)
+  attachmentMime     String?          @db.VarChar(100)
+  attachmentSize     Int?
+  attachmentKey      String?          @db.VarChar(500)
+  attachmentPurgedAt DateTime?
+  clientId           String           @db.VarChar(80)
+  createdAt          DateTime         @default(now())
+
+  @@unique([conversationId, clientId])
+  @@index([conversationId, createdAt])
+  @@index([propertyId, createdAt])
+  @@index([attachmentPurgedAt, createdAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PropertyMembership: เก็บข้อมูลและความสัมพันธ์ของ “Property Membership”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model PropertyMembership {
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, propertyId])
+  @@index([propertyId])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง Session: เก็บข้อมูลและความสัมพันธ์ของ “Session”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique @db.Char(64)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
   @@index([expiresAt])
 }
 
-/// รหัสสำรอง 2FA แบบใช้ครั้งเดียว โดยเก็บเฉพาะ hash
-model RecoveryCode {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  adminId   String    @db.VarChar(30)
-  admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  codeHash  String    @db.Char(64)
-  usedAt    DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PasswordResetToken: เก็บข้อมูลและความสัมพันธ์ของ “Password Reset Token”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique @db.Char(64)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
-  @@unique([adminId, codeHash])
-  @@index([adminId, usedAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
 }
 
-/// ประวัติเหตุการณ์สำคัญสำหรับตรวจสอบย้อนหลังโดยไม่เก็บ secret
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง LoginThrottle: เก็บข้อมูลและความสัมพันธ์ของ “Login Throttle”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model LoginThrottle {
+  key          String    @id @db.Char(64)
+  failedCount  Int       @default(0)
+  windowStart  DateTime
+  blockedUntil DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@index([blockedUntil])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง ApiRateLimit: เก็บข้อมูลและความสัมพันธ์ของ “Api Rate Limit”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model ApiRateLimit {
+  key         String   @id @db.Char(64)
+  count       Int      @default(0)
+  windowStart DateTime
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง AuditLog: เก็บข้อมูลและความสัมพันธ์ของ “Audit Log”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
 model AuditLog {
-  id         BigInt      @id @default(autoincrement())
-  actorId    String?     @db.VarChar(30)
-  actor      Admin?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  action     String      @db.VarChar(120)
+  id         String      @id @default(cuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  propertyId String?
+  property   Property?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  action     String      @db.VarChar(100)
   targetType String?     @db.VarChar(80)
-  targetId   String?     @db.VarChar(80)
+  targetId   String?     @db.VarChar(120)
   result     AuditResult
-  requestId  String?     @db.VarChar(100)
-  ipAddress  String?     @db.Inet
+  requestId  String      @db.VarChar(80)
+  ipAddress  String?     @db.VarChar(64)
   userAgent  String?     @db.VarChar(500)
-  metadata   Json?
-  errorCode  String?     @db.VarChar(100)
-  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime    @default(now())
 
-  @@index([actorId, createdAt])
-  @@index([action, createdAt])
-  @@index([targetType, targetId, createdAt])
-  @@index([createdAt])
-  @@index([requestId])
+  @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([propertyId, createdAt(sort: Desc)])
 }
 
-/// ส่ง URL เก่าไป URL ใหม่เมื่อ slug ที่เผยแพร่เปลี่ยน
-model Redirect {
-  id         String    @id @default(cuid()) @db.VarChar(30)
-  fromPath   String    @unique @db.VarChar(1000)
-  toPath     String    @db.VarChar(1000)
-  statusCode Int       @default(301)
-  isActive   Boolean   @default(true)
-  hitCount   BigInt    @default(0)
-  lastHitAt  DateTime? @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง DocumentTemplate: เก็บข้อมูลและความสัมพันธ์ของ “Document Template”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model DocumentTemplate {
+  id            String              @id @default(cuid())
+  propertyId    String
+  property      Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  kind          DocumentKind
+  name          String              @db.VarChar(120)
+  html          String
+  version       Int                 @default(1)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  documents     GeneratedDocument[]
+  leaseVersions LeaseVersion[]
 
-  @@index([isActive, fromPath])
+  @@unique([propertyId, kind])
+  @@index([propertyId])
 }
 
-/// จำนวนครั้งที่ยืนยันตัวตนผิดและเวลาล็อกชั่วคราวเพื่อชะลอ brute force
-model AuthThrottle {
-  key         String    @id @db.Char(64)
-  failures    Int       @default(0)
-  lockedUntil DateTime? @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง GeneratedDocument: เก็บข้อมูลและความสัมพันธ์ของ “Generated Document”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
+model GeneratedDocument {
+  id            String           @id @default(cuid())
+  propertyId    String
+  property      Property         @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  kind          DocumentKind
+  referenceId   String           @db.VarChar(80)
+  storageKey    String?          @unique @db.VarChar(500)
+  filePurgedAt  DateTime?
+  checksum      String           @db.Char(64)
+  sizeBytes     Int
+  metadata      Json
+  createdAt     DateTime         @default(now())
+  templateId    String
+  template      DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  leaseVersions LeaseVersion[]
 
-  @@index([lockedUntil])
+  @@index([kind, referenceId, createdAt(sort: Desc)])
+  @@index([templateId])
+  @@index([propertyId, createdAt(sort: Desc)])
+  @@index([filePurgedAt, createdAt])
 }

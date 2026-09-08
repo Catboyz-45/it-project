@@ -1,17 +1,14 @@
 /**
- * หน้าที่ของไฟล์นี้: ไฟล์ตั้งค่า prisma.config.ts อธิบายให้เครื่องมือ build, test หรือ lint ทำงานสอดคล้องกัน
- * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ * คำอธิบายสำหรับผู้เริ่มต้น
+ * ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าหรือจุดเชื่อมระบบ “prisma.config” ของโปรเจกต์ Nestly
+ * การทำงาน: กำหนดวิธีที่เครื่องมือ build, test หรือ runtime ทำงานร่วมกับโค้ดหลัก โดยไม่เก็บข้อมูลผู้ใช้งานจริง
  */
+
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-    seed: "node prisma/seed.mjs",
-  },
-  datasource: {
-    url: env("DATABASE_URL"),
-  },
+  migrations: { path: "prisma/migrations" },
+  datasource: { url: process.env.DATABASE_URL ?? "postgresql://unused:unused@localhost:5432/unused" },
 });

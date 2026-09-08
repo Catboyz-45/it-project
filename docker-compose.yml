@@ -1,0 +1,74 @@
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าสภาพแวดล้อม “docker compose” สำหรับ container หรือระบบอัตโนมัติ
+# การทำงาน: ระบุบริการ ขั้นตอน build และค่าที่เชื่อมกัน โดยรับความลับจาก environment แทนการเขียนไว้ในไฟล์
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dorm
+      POSTGRES_USER: dorm_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dorm_app -d dorm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://dorm_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dorm?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://dorm_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dorm?schema=public
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: /app/storage/documents
+      JOB_SECRET: ${JOB_SECRET:?Set JOB_SECRET to at least 32 random characters}
+      SHOW_DEMO_CREDENTIALS: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - app_storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  maintenance:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    command: ["node", "scripts/maintenance-worker.mjs"]
+    environment:
+      JOB_ENDPOINT: http://app:3000/api/internal/jobs/maintenance
+      JOB_SECRET: ${JOB_SECRET:?Set JOB_SECRET to at least 32 random characters}
+      JOB_INTERVAL_SECONDS: ${JOB_INTERVAL_SECONDS:-300}
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  app_storage:

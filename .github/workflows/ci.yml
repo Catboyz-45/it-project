@@ -1,11 +1,16 @@
-# หน้าที่ของไฟล์นี้: ขั้นตอน CI บน GitHub สำหรับตรวจรูปแบบ ชนิดข้อมูล การทดสอบ การ migrate และ production build
-# ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าสภาพแวดล้อม “ci” สำหรับ container หรือระบบอัตโนมัติ
+# การทำงาน: ระบุบริการ ขั้นตอน build และค่าที่เชื่อมกัน โดยรับความลับจาก environment แทนการเขียนไว้ในไฟล์
+
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,56 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  dependency-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: yuyen_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres -d yuyen_test"
-          --health-interval 5s --health-timeout 5s --health-retries 20
-      minio:
-        # This image starts the MinIO server by default, which is required by
-        # GitHub Actions services (the service syntax cannot provide a command).
-        image: bitnamilegacy/minio@sha256:ba958aa5e12c8b1426dd95de61d8f1ed14741efa0ec730019ed57086930a4299
-        env:
-          MINIO_ROOT_USER: minio-ci
-          MINIO_ROOT_PASSWORD: minio-ci-secret
-        ports: ["9000:9000"]
-        options: >-
-          --health-cmd "curl --fail http://localhost:9000/minio/health/live"
-          --health-interval 5s --health-timeout 5s --health-retries 20
-      clamav:
-        image: clamav/clamav:1.5.3-debian13-slim
-        ports: ["3310:3310"]
-        options: >-
-          --health-cmd "/usr/local/bin/clamdcheck.sh"
-          --health-interval 10s --health-timeout 5s --health-retries 30
-    env:
-      CI: true
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_test?schema=public
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_test?schema=public
-      APP_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
-      SESSION_SECRET: ci-only-session-secret-at-least-32-characters
-      TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
-      TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
-      TOTP_ENCRYPTION_CURRENT_VERSION: "2"
-      S3_ENDPOINT: http://127.0.0.1:9000
-      S3_REGION: auto
-      S3_BUCKET: yuyen-ci-media
-      S3_ACCESS_KEY_ID: minio-ci
-      S3_SECRET_ACCESS_KEY: minio-ci-secret
-      S3_FORCE_PATH_STYLE: "true"
-      MALWARE_SCAN_MODE: required
-      CLAMAV_HOST: 127.0.0.1
-      CLAMAV_PORT: 3310
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -72,78 +30,87 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run db:generate
-      - name: Create isolated object-storage bucket
-        run: |
-          docker run --rm --network host minio/mc:RELEASE.2025-08-13T08-35-41Z \
-            sh -c "mc alias set ci '$S3_ENDPOINT' '$S3_ACCESS_KEY_ID' '$S3_SECRET_ACCESS_KEY' && mc mb --ignore-existing ci/$S3_BUCKET"
-      - name: Validate schema and migration history
-        run: |
-          npm run db:validate
-          npm run db:test:migrate:deploy
-          npm run db:test:migrate:status
-      - run: npm run lint
+      - name: Audit production dependencies (block high and critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit all dependencies (block high and critical)
+        run: npm audit --audit-level=high
+
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npm run openapi:check
       - run: npm run typecheck
-      - run: npm run test:unit
-      - run: npm run test:integration
+      - run: npm run lint
+      - run: npm test
       - run: npm run build
-      - run: npm audit --audit-level=high
-      - name: Build production image
-        run: docker build --tag yuyen-engineering:ci .
+        env:
+          DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/unused
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: dorm_test
+          POSTGRES_USER: dorm_test
+          POSTGRES_PASSWORD: integration-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dorm_test -d dorm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://dorm_test:integration-only@127.0.0.1:5432/dorm_test?schema=public
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: ./storage/test-documents
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:deploy
+      - run: npm run test:integration
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_DB: yuyen_e2e
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
+          POSTGRES_DB: dorm_e2e_test
+          POSTGRES_USER: dorm_test
+          POSTGRES_PASSWORD: e2e-only
+        ports:
+          - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d yuyen_e2e"
-          --health-interval 5s --health-timeout 5s --health-retries 20
-      minio:
-        # This image starts the MinIO server by default, which is required by
-        # GitHub Actions services (the service syntax cannot provide a command).
-        image: bitnamilegacy/minio@sha256:ba958aa5e12c8b1426dd95de61d8f1ed14741efa0ec730019ed57086930a4299
-        env:
-          MINIO_ROOT_USER: minio-e2e
-          MINIO_ROOT_PASSWORD: minio-e2e-secret
-        ports: ["9000:9000"]
-        options: >-
-          --health-cmd "curl --fail http://localhost:9000/minio/health/live"
-          --health-interval 5s --health-timeout 5s --health-retries 20
-      clamav:
-        image: clamav/clamav:1.5.3-debian13-slim
-        ports: ["3310:3310"]
-        options: >-
-          --health-cmd "/usr/local/bin/clamdcheck.sh"
-          --health-interval 10s --health-timeout 5s --health-retries 30
+          --health-cmd "pg_isready -U dorm_test -d dorm_e2e_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
-      CI: true
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
-      APP_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
-      SESSION_SECRET: ci-only-session-secret-at-least-32-characters
-      TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
-      TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
-      TOTP_ENCRYPTION_CURRENT_VERSION: "2"
-      RUN_AUTH_HARDENING_E2E: "1"
-      RUN_ADMIN_E2E: "1"
-      RUN_MEDIA_E2E: "1"
-      S3_ENDPOINT: http://127.0.0.1:9000
-      S3_REGION: auto
-      S3_BUCKET: yuyen-e2e-media
-      S3_ACCESS_KEY_ID: minio-e2e
-      S3_SECRET_ACCESS_KEY: minio-e2e-secret
-      S3_FORCE_PATH_STYLE: "true"
-      MALWARE_SCAN_MODE: required
-      CLAMAV_HOST: 127.0.0.1
-      CLAMAV_PORT: 3310
+      CI: "true"
+      DATABASE_URL: postgresql://dorm_test:e2e-only@127.0.0.1:5432/dorm_e2e_test?schema=public
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: ./storage/e2e-documents
+      BOOTSTRAP_ADMIN_EMAIL: e2e-super-admin@example.com
+      BOOTSTRAP_ADMIN_PASSWORD: e2e-password-strong-123
+      BOOTSTRAP_ADMIN_NAME: E2E Super Admin
+      SHOW_DEMO_CREDENTIALS: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -151,16 +118,60 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run db:generate && npm run db:test:migrate:deploy
-      - name: Create isolated object-storage bucket
-        run: |
-          docker run --rm --network host minio/mc:RELEASE.2025-08-13T08-35-41Z \
-            sh -c "mc alias set ci '$S3_ENDPOINT' '$S3_ACCESS_KEY_ID' '$S3_SECRET_ACCESS_KEY' && mc mb --ignore-existing ci/$S3_BUCKET"
+      - run: npm run db:deploy
+      - run: npm run admin:bootstrap
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 7
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: false
+          load: true
+          tags: nestly:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify runtime image uses a non-root user
+        run: test "$(docker image inspect nestly:ci --format '{{.Config.User}}')" = "nextjs"
+      - name: Validate Docker Compose configuration
+        env:
+          JOB_SECRET: ci-maintenance-secret-at-least-32-characters
+          POSTGRES_PASSWORD: ci-database-password
+        run: docker compose config --quiet
+      - name: Smoke test migrations and application health
+        env:
+          JOB_SECRET: ci-maintenance-secret-at-least-32-characters
+          POSTGRES_PASSWORD: ci-database-password
+        run: |
+          docker compose up -d postgres
+          docker compose run --rm migrate
+          docker compose up -d app
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs app
+          exit 1
+      - name: Stop Docker Compose services
+        if: always()
+        env:
+          JOB_SECRET: ci-maintenance-secret-at-least-32-characters
+          POSTGRES_PASSWORD: ci-database-password
+        run: docker compose down --volumes --remove-orphans

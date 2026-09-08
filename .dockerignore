@@ -2,11 +2,11 @@
 .github
 .next
 node_modules
+coverage
 playwright-report
 test-results
+storage
 .env
 .env.*
 !.env.example
-*.log
-coverage
-docs
+*.tsbuildinfo
