@@ -61,6 +61,7 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
+          TZ: UTC
           POSTGRES_DB: dorm_test
           POSTGRES_USER: dorm_test
           POSTGRES_PASSWORD: integration-only
@@ -92,6 +93,7 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
+          TZ: UTC
           POSTGRES_DB: dorm_e2e_test
           POSTGRES_USER: dorm_test
           POSTGRES_PASSWORD: e2e-only

@@ -5,7 +5,13 @@
 services:
   postgres-e2e:
     image: postgres:17-alpine
+    # Force UTC regardless of the host's timezone. Session.expiresAt and other
+    # DateTime columns are stored as "timestamp without time zone"; if the
+    # server's session timezone isn't UTC, Prisma reads those values back
+    # shifted by the server's offset relative to the app's UTC-based Date math.
+    command: ["postgres", "-c", "timezone=UTC"]
     environment:
+      TZ: UTC
       POSTGRES_DB: nestly_test
       POSTGRES_USER: nestly_test
       POSTGRES_PASSWORD: nestly_test_local
