@@ -196,12 +196,15 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     await activate(invoiceLink);
     await expect(page).toHaveURL(/\/tenant\/invoices$/);
 
+    // Invoice details expand inline (accordion) and stay keyboard-operable
+    // through the same trigger button rather than a dialog with Escape.
     const invoice = page.getByRole("button", { name: /E2E-202607-E101/ });
     await activate(invoice);
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
+    await expect(invoiceDetails).toBeVisible();
+    await expect(invoice).toBeFocused();
+    await activate(invoice);
+    await expect(invoiceDetails).toBeHidden();
     await expect(invoice).toBeFocused();
   });
 

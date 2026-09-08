@@ -186,8 +186,11 @@
   .disabled-action .disabled-reason { @apply max-w-sm text-right; }
   .dropdown-field { @apply relative grid min-w-40 gap-2 text-sm; }
   .dropdown-label { @apply text-sm font-bold text-[#2e3035]; }
+  /* min-w-0 lets the trigger shrink to its grid column instead of being held at
+     its min-content width, which otherwise pushes the page wider than narrow
+     viewports. The value inside truncates. */
   .dropdown-trigger {
-    @apply flex min-h-12 w-full items-center justify-between gap-4 rounded-xl border-2 border-[#cfd0d6] bg-[#fff] px-4 text-left text-base font-medium text-[#2e3035] transition hover:border-[#aeb1ba] focus-visible:ring-0;
+    @apply flex min-h-12 w-full min-w-0 items-center justify-between gap-4 rounded-xl border-2 border-[#cfd0d6] bg-[#fff] px-4 text-left text-base font-medium text-[#2e3035] transition hover:border-[#aeb1ba] focus-visible:ring-0;
   }
   .dropdown-trigger:focus-visible {
     outline: 3px solid #4651c7 !important;

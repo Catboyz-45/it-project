@@ -161,6 +161,19 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByRole("button", { name: "ตั้งรหัสผ่านใหม่", exact: true }).click();
   await expect(page).toHaveURL(/\/login\?passwordChanged=1$/);
   await loginThroughUi(page, ownerEmail, ownerPassword);
+  // A brand-new account has no recorded policy acceptance yet and is gated
+  // to /legal/accept before reaching its workspace. The post-login redirect
+  // chain can still be in flight when this runs (loginThroughUi only waits
+  // for networkidle, which can settle mid-chain on a loaded runner), so wait
+  // for the URL to actually reach one of the two possible destinations
+  // instead of reading page.url() synchronously right away.
+  await page.waitForURL(/\/(admin(?:\/properties\/[^/]+)?|legal\/accept)$/, { timeout: 15_000 });
+  if (page.url().includes("/legal/accept")) {
+    await page.getByLabel(/ฉันอ่านและยอมรับ/).check();
+    await page.getByLabel(/ฉันรับทราบ/).check();
+    await page.getByRole("button", { name: /ยืนยันและใช้งานต่อ/ }).click();
+    await page.waitForLoadState("networkidle");
+  }
   await expect(page).toHaveURL(/\/admin(?:\/properties\/[^/]+)?$/);
 
   await expectJson(await page.request.put(`/api/v1/admin/properties/${property.id}/settings`, {
@@ -231,7 +244,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByLabel("ชื่อผู้เช่า").fill(`Journey Tenant ${suffix}`);
   await page.getByLabel("อีเมล").fill(tenantEmail);
   await page.getByLabel("เบอร์โทรศัพท์").fill("0891234567");
-  await page.getByLabel("รหัสผ่าน", { exact: true }).fill(tenantPassword);
+  // The label wraps a helper hint ("อย่างน้อย 12 ตัว...") so its accessible
+  // name is longer than "รหัสผ่าน" alone; match by prefix instead of exact text.
+  await page.getByLabel(/^รหัสผ่าน/).fill(tenantPassword);
   await page.getByLabel(/ฉันอ่านและยอมรับ/).check();
   await page.getByLabel(/ฉันรับทราบ/).check();
   /**
@@ -250,6 +265,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await expect(page.getByRole("status")).toContainText("สมัครสำเร็จ");
 
   await loginThroughUi(page, ownerEmail, ownerPassword);
+  // The post-login redirect can still be in flight here; wait for it to
+  // settle into the admin area before checking which property it landed on.
+  await page.waitForURL(/\/admin(?:\/properties\/[^/]+)?$/, { timeout: 15_000 });
   if (!page.url().includes(`/admin/properties/${property.id}`)) {
     await page.locator(".sidebar-property > button").first().click();
     await page.getByRole("menuitem", { name: new RegExp(`JD-${suffix}`) }).click();
@@ -271,7 +289,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByRole("link", { name: "สัญญาเช่า", exact: true }).click();
   await page.getByRole("button", { name: "สร้างสัญญา", exact: true }).click();
   const leaseDialog = page.getByRole("dialog", { name: "สร้างสัญญาใหม่" });
-  await leaseDialog.getByLabel("ห้อง").selectOption({ label: `ห้อง ${room.data.number}` });
+  // "ห้อง" is a custom dropdown component, not a native <select>.
+  await leaseDialog.getByLabel("ห้อง").click();
+  await page.getByRole("option", { name: `ห้อง ${room.data.number}`, exact: true }).click();
   await leaseDialog.getByLabel("วันเริ่มสัญญา").fill(leaseStart);
   await leaseDialog.getByLabel("วันสิ้นสุดสัญญา").fill(leaseEnd);
   await leaseDialog.getByLabel("เงินประกัน").fill("7000");
@@ -329,9 +349,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByRole("button", { name: "สร้างร่างรายห้อง", exact: true }).click();
   const invoiceDialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
   await invoiceDialog.getByLabel("เดือนที่ออกบิล").fill(billingMonth);
-  await invoiceDialog.getByLabel("ห้อง").selectOption({
-    label: `ห้อง ${room.data.number} · มีผู้เช่า`,
-  });
+  // "ห้อง" is a custom dropdown component, not a native <select>.
+  await invoiceDialog.getByLabel("ห้อง").click();
+  await page.getByRole("option", { name: `ห้อง ${room.data.number} · มีผู้เช่า`, exact: true }).click();
   await invoiceDialog.getByRole("button", { name: /ถัดไป/ }).click();
   await expect(invoiceDialog.getByText("พร้อมสร้าง")).toBeVisible();
   await invoiceDialog.getByRole("button", { name: /ถัดไป/ }).click();
@@ -379,7 +399,8 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await expect(page).toHaveURL(/\/tenant/);
   await page.getByRole("link", { name: /^บิลและชำระเงิน(?:\s|$)/ }).click();
   await page.getByRole("button", { name: new RegExp(invoice.data.invoiceNumber) }).click();
-  const tenantInvoiceDialog = page.getByRole("dialog");
+  // Invoice details expand inline (accordion), not in a dialog.
+  const tenantInvoiceDialog = page.getByLabel(`รายละเอียดบิล ${invoice.data.invoiceNumber}`, { exact: true });
   await expect(tenantInvoiceDialog.getByAltText(`PromptPay QR ${invoice.data.invoiceNumber}`)).toBeVisible();
   const pngHeader = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
   await tenantInvoiceDialog.locator('input[type="file"]').setInputFiles({
@@ -411,6 +432,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
     data: {},
   }), 200);
   await loginThroughUi(page, ownerEmail, ownerPassword);
+  // The post-login redirect can still be in flight here; wait for it to
+  // settle into the admin area before checking which property it landed on.
+  await page.waitForURL(/\/admin(?:\/properties\/[^/]+)?$/, { timeout: 15_000 });
   if (!page.url().includes(`/admin/properties/${property.id}`)) {
     await page.locator(".sidebar-property > button").first().click();
     await page.getByRole("menuitem", { name: new RegExp(`JD-${suffix}`) }).click();
