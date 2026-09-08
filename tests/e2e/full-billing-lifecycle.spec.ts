@@ -162,7 +162,12 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await expect(page).toHaveURL(/\/login\?passwordChanged=1$/);
   await loginThroughUi(page, ownerEmail, ownerPassword);
   // A brand-new account has no recorded policy acceptance yet and is gated
-  // to /legal/accept before reaching its workspace.
+  // to /legal/accept before reaching its workspace. The post-login redirect
+  // chain can still be in flight when this runs (loginThroughUi only waits
+  // for networkidle, which can settle mid-chain on a loaded runner), so wait
+  // for the URL to actually reach one of the two possible destinations
+  // instead of reading page.url() synchronously right away.
+  await page.waitForURL(/\/(admin(?:\/properties\/[^/]+)?|legal\/accept)$/, { timeout: 15_000 });
   if (page.url().includes("/legal/accept")) {
     await page.getByLabel(/ฉันอ่านและยอมรับ/).check();
     await page.getByLabel(/ฉันรับทราบ/).check();
@@ -260,6 +265,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await expect(page.getByRole("status")).toContainText("สมัครสำเร็จ");
 
   await loginThroughUi(page, ownerEmail, ownerPassword);
+  // The post-login redirect can still be in flight here; wait for it to
+  // settle into the admin area before checking which property it landed on.
+  await page.waitForURL(/\/admin(?:\/properties\/[^/]+)?$/, { timeout: 15_000 });
   if (!page.url().includes(`/admin/properties/${property.id}`)) {
     await page.locator(".sidebar-property > button").first().click();
     await page.getByRole("menuitem", { name: new RegExp(`JD-${suffix}`) }).click();
@@ -424,6 +432,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
     data: {},
   }), 200);
   await loginThroughUi(page, ownerEmail, ownerPassword);
+  // The post-login redirect can still be in flight here; wait for it to
+  // settle into the admin area before checking which property it landed on.
+  await page.waitForURL(/\/admin(?:\/properties\/[^/]+)?$/, { timeout: 15_000 });
   if (!page.url().includes(`/admin/properties/${property.id}`)) {
     await page.locator(".sidebar-property > button").first().click();
     await page.getByRole("menuitem", { name: new RegExp(`JD-${suffix}`) }).click();
