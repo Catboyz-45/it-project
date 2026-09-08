@@ -282,11 +282,40 @@
   .brand-switch-icon { @apply shrink-0 text-[#73757d]; }
   .sidebar nav { @apply grid gap-1 overflow-y-auto; }
   .sidebar nav button, .sidebar nav a, .sidebar-footer > button {
-    @apply flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#62636b] transition hover:bg-brand/[.08] hover:text-[#4651c7];
+    @apply relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#62636b] transition hover:bg-brand/[.08] hover:text-[#4651c7];
   }
   .sidebar nav button.active, .sidebar nav a.active, .sidebar-footer > button.active {
     @apply bg-brand text-[#fff] shadow-lg shadow-brand/20;
   }
+  /* แท่ง indicator ด้านในซ้ายของแต่ละเมนู: ซ่อนอยู่ (height 0) ตอนไม่ active
+     แล้วยืดขึ้นตอนเปลี่ยนหน้า เพราะ Link แต่ละอันคงอยู่ใน DOM เดิม (key ต่อ
+     item) React แค่สลับ className "active" ไปมา CSS transition เลยเห็นการ
+     ยืด-หดจริงตอนสลับเมนูโดยไม่ต้องพึ่ง JS หรือ view-transition */
+  .sidebar nav button::before, .sidebar nav a::before, .sidebar-footer > button::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 3px;
+    height: 0;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: height 200ms cubic-bezier(.2,.8,.2,1), opacity 200ms ease-out;
+  }
+  .sidebar nav button.active::before, .sidebar nav a.active::before, .sidebar-footer > button.active::before {
+    height: 60%;
+    opacity: 1;
+  }
+  /* สีประจำหมวดของไอคอน: ค่าน้ำ/ไฟ + บิลและการเงิน = เขียว (เรื่องค่าใช้จ่าย),
+     ร้องเรียน = magenta, พัสดุ = cyan ส่วนห้อง/ผู้เช่า/สัญญา/แดชบอร์ดเป็นหมวด
+     หลักจึงใช้สี brand เดิม (ไม่ตั้ง data-accent) ข้อความยังเป็นสีเดิมเสมอ
+     เปลี่ยนเฉพาะไอคอนเพื่อช่วยกวาดสายตาแยกหมวดโดยไม่ทำให้ตารอกมั่ว */
+  .sidebar nav [data-accent="green"] svg { color: var(--color-brand-green); }
+  .sidebar nav [data-accent="magenta"] svg { color: var(--color-brand-magenta); }
+  .sidebar nav [data-accent="cyan"] svg { color: var(--color-brand-cyan); }
+  .sidebar nav a.active svg, .sidebar nav button.active svg { color: #fff; }
   .notification-badge {
     @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black leading-4 text-white;
   }

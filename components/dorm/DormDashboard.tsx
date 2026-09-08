@@ -70,17 +70,19 @@ import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
  * หน้าที่: type “Menu Page Key” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
  */
 type MenuPageKey = Exclude<PageKey, "repairHistory" | "waterMeter" | "electricMeter">;
-const menuItems: Array<{ key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
+/** สีประจำหมวดของไอคอนเมนู (ดู .sidebar nav [data-accent] ใน globals.css) */
+type MenuAccent = "green" | "magenta" | "cyan";
+const menuItems: Array<{ accent?: MenuAccent; key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
   { key: "overview", label: "แดชบอร์ด", icon: Home },
   { key: "rooms", label: "ผังห้องพัก", icon: Building2 },
   { key: "tenants", label: "ผู้เช่า", icon: UserRound },
   { key: "contracts", label: "สัญญาเช่า", icon: FileText },
 ];
 
-const secondaryMenuItems: Array<{ key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
-  { key: "invoices", label: "บิลและการเงิน", icon: QrCode },
-  { key: "complaints", label: "ร้องเรียน", icon: Wrench },
-  { key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
+const secondaryMenuItems: Array<{ accent?: MenuAccent; key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
+  { accent: "green", key: "invoices", label: "บิลและการเงิน", icon: QrCode },
+  { accent: "magenta", key: "complaints", label: "ร้องเรียน", icon: Wrench },
+  { accent: "cyan", key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
 ];
 
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
@@ -542,8 +544,8 @@ export function DormDashboard({
           ) : null}
         </div>
         <nav>
-          {menuItems.map(({ key, label, icon: Icon }) => (
-            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} href={ownerPagePath(propertyId, key)} key={key}>
+          {menuItems.map(({ accent, key, label, icon: Icon }) => (
+            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} data-accent={accent} href={ownerPagePath(propertyId, key)} key={key}>
               <Icon size={18} />
               <span>{label}</span>
               {menuBadge(key)}
@@ -552,6 +554,7 @@ export function DormDashboard({
           <div className="sidebar-group">
             <button
               aria-expanded={isMetersMenuOpen}
+              data-accent="green"
               onClick={() => setIsMetersMenuOpen((current) => !current)}
               type="button"
             >
@@ -561,19 +564,19 @@ export function DormDashboard({
             </button>
             {isMetersMenuOpen ? (
               <div className="sidebar-subnav">
-                <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")}>
+                <Link className={activePage === "waterMeter" ? "active" : ""} data-accent="green" href={ownerPagePath(propertyId, "waterMeter")}>
                   <Droplets size={17} />
                   <span>มิเตอร์น้ำ</span>
                 </Link>
-                <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")}>
+                <Link className={activePage === "electricMeter" ? "active" : ""} data-accent="green" href={ownerPagePath(propertyId, "electricMeter")}>
                   <Zap size={17} />
                   <span>มิเตอร์ไฟ</span>
                 </Link>
               </div>
             ) : null}
           </div>
-          {secondaryMenuItems.map(({ key, label, icon: Icon }) => (
-            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} href={ownerPagePath(propertyId, key)} key={key}>
+          {secondaryMenuItems.map(({ accent, key, label, icon: Icon }) => (
+            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} data-accent={accent} href={ownerPagePath(propertyId, key)} key={key}>
               <Icon size={18} />
               <span>{label}</span>
               {menuBadge(key)}
