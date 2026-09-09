@@ -229,6 +229,12 @@ async function verifyRoutes(page: Page, routes: readonly string[], pathFor: (rou
 }
 
 test.describe("mobile touch target contract", () => {
+  // แต่ละเคสล็อกอิน 3 บัญชีและเดิน 30 หน้าเต็ม (owner+tenant+super-admin routes รวมกัน)
+  // ต่อ viewport โดยทุกหน้าต้องผ่าน 3 การตรวจ (overflow, touch-target, overlap) กับ `next dev`
+  // ที่ยัง compile route แบบ on-demand — ใช้เวลาต่อรันมากกว่าเทสต์อื่นในชุดหลายเท่า จน
+  // 30 วินาที (default ของ Playwright) ริมขอบเกินไปบน CI runner ที่ทรัพยากรจำกัดกว่าเครื่อง dev
+  test.describe.configure({ timeout: 90_000 });
+
   for (const viewport of viewports) {
     test(`${viewport.width}x${viewport.height} owner, tenant and super admin actions remain touch-safe`, async ({ page }) => {
       await page.setViewportSize(viewport);
