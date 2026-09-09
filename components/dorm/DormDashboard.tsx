@@ -533,6 +533,9 @@ export function DormDashboard({
               {availableProperties.map((property) => (
                 <button key={property.id} onClick={() => {
                   setIsPropertyMenuOpen(false);
+                  // สลับหอพักต้องโหลดใหม่ทั้งหน้าโดยตั้งใจ เพื่อทิ้ง state และแคชข้อมูลของหอเดิมให้หมด
+                  // ไม่ใช้ router.push() ที่จะพาข้อมูลข้ามหอพักติดไปด้วย
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                   if (property.id !== propertyId) window.location.assign(`/admin/properties/${property.id}`);
                 }} role="menuitem" type="button">
                   <span className="property-avatar">{property.shortName.slice(0, 1)}</span>
@@ -611,6 +614,8 @@ export function DormDashboard({
               <span />
               <button className="danger" onClick={() => {
                 void fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+                  // ออกจากระบบต้องโหลดใหม่ทั้งหน้า เพื่อทิ้ง state และแคช RSC ของผู้ใช้เดิมทั้งหมด
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                   .finally(() => window.location.assign("/login"));
               }} type="button"><LogOut size={18} /> ออกจากระบบ</button>
             </div>
