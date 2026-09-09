@@ -151,10 +151,26 @@ async function expectControlsDoNotOverlap(controls: Locator) {
      * - element: ค่า “element” ที่จำเป็นต่อการทำงานของก้อนนี้
      * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
      */
+    /**
+     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+     * หน้าที่: หา “ชั้น” ที่ปุ่มนี้อยู่ คือ ancestor ที่ใกล้ที่สุดซึ่งเป็น position: fixed
+     *   (นับตัวเองด้วย) ปุ่มในแถบเมนูล่างเป็น position: static แต่พ่ออยู่ใน .tenant-mobile-navigation
+     *   ที่เป็น fixed จึงต้องไล่ขึ้นไป ไม่ใช่ดูแค่ค่าของตัวเอง
+     * รับค่า:
+     * - element: ปุ่มที่ต้องการหาชั้นของมัน
+     * ผลลัพธ์: element ของชั้น fixed ที่ครอบอยู่ หรือ null ถ้าปุ่มไหลไปกับเอกสารตามปกติ
+     */
+    const fixedLayerOf = (element: Element) => {
+      for (let node: Element | null = element; node; node = node.parentElement) {
+        if (getComputedStyle(node).position === "fixed") return node;
+      }
+      return null;
+    };
+
     const rendered = elements.map((element) => ({
       element,
-      fixed: getComputedStyle(element).position === "fixed",
       label: element.getAttribute("aria-label") ?? element.textContent?.replace(/\s+/g, " ").trim() ?? element.tagName,
+      layer: fixedLayerOf(element),
       rect: element.getBoundingClientRect(),
     }));
     const failures: string[] = [];
@@ -164,10 +180,11 @@ async function expectControlsDoNotOverlap(controls: Locator) {
         const left = rendered[leftIndex];
         const right = rendered[rightIndex];
         if (left.element.contains(right.element) || right.element.contains(left.element)) continue;
-        // Floating launchers intentionally sit above the scrolling document.
-        // Their own size is still checked, but comparing them with every control
-        // behind the fixed layer produces false overlap failures while scrolling.
-        if (left.fixed || right.fixed) continue;
+        // Floating launchers and the mobile tab bar intentionally sit above the
+        // scrolling document. Only controls sharing a layer can truly collide, so
+        // compare within a layer (two tabs in the same bar must not overlap) but
+        // never across layers, where content merely scrolls underneath.
+        if (left.layer !== right.layer) continue;
         const overlapWidth = Math.min(left.rect.right, right.rect.right) - Math.max(left.rect.left, right.rect.left);
         const overlapHeight = Math.min(left.rect.bottom, right.rect.bottom) - Math.max(left.rect.top, right.rect.top);
         if (overlapWidth > 1 && overlapHeight > 1) failures.push(`${left.label} overlaps ${right.label}`);
