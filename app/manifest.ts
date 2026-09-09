@@ -24,13 +24,13 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#5865f2",
     icons: [
       {
-        src: "/brand/nestly-icon-192.png",
+        src: "/brand/nestly-favicon-v3-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/brand/nestly-icon-512.png",
+        src: "/brand/nestly-favicon-v3-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
