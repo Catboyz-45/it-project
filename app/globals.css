@@ -936,25 +936,21 @@
   .modal-header h2 { @apply m-0 text-xl leading-tight font-semibold tracking-[-.01em] text-[#26272d]; }
   .modal-header h3 { @apply m-0 text-base font-semibold text-[#26272d]; }
   .modal-header p:not(.eyebrow), .modal-header small { @apply mt-1 block text-sm leading-6 text-[#60616b]; }
-  .modal-header > button { @apply grid size-11 shrink-0 place-items-center rounded-xl bg-transparent text-3xl font-light text-[#60616b] hover:bg-[#f4f4f5]; }
+  .modal-header > button { @apply grid size-11 shrink-0 place-items-center rounded-md bg-transparent text-xl font-normal leading-none text-[#60616b] transition-colors hover:bg-[#f4f4f5] hover:text-[#292a30] lg:size-9; }
   .modal-form, .repair-owner-form, .parcel-form { @apply grid gap-5; }
-  .modal label, .repair-owner-form label, .parcel-form label { @apply gap-2 text-base font-bold text-[#292a30]; }
-  .modal input, .modal select, .modal textarea {
-    @apply w-full rounded-2xl border-[#d4d4d8] bg-[#fafafa] px-4 text-base text-[#292a30] shadow-none focus:border-brand focus:bg-[#fff];
-  }
-  .modal input, .modal select { @apply min-h-14; }
-  .modal textarea { @apply min-h-32; }
-  .modal fieldset { @apply rounded-2xl border border-[#d4d4d8] p-4; }
-  .modal fieldset legend { @apply px-2 font-bold text-[#292a30]; }
+  .modal label, .repair-owner-form label, .parcel-form label { @apply gap-2 text-sm font-medium text-[#292a30]; }
+  .modal textarea { @apply min-h-32 w-full rounded-md border-[#8b8d96] bg-[#fff] px-3 text-sm text-[#292a30] shadow-none focus:border-brand; }
+  .modal fieldset { @apply rounded-xl border border-[#e4e4e7] p-4; }
+  .modal fieldset legend { @apply px-2 text-sm font-semibold text-[#292a30]; }
   .modal fieldset label { @apply flex grid-cols-none items-center gap-3 py-2 font-medium; }
   .modal fieldset input[type="radio"], .modal fieldset input[type="checkbox"] { @apply min-h-0 size-5 w-5 accent-brand; }
   .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid { @apply grid grid-cols-2 gap-5; }
   .full-width { @apply col-span-full; }
-  .modal-actions { @apply mt-8 grid grid-cols-2 gap-4 border-0 p-0; }
-  .modal-actions button:not(.app-button) { @apply min-h-14 w-full rounded-2xl border border-[#d4d4d8] bg-[#f3f3f5] px-6 text-lg font-bold text-[#292a30] transition duration-150 ease-out hover:bg-[#e9e9ed] hover:shadow-sm active:scale-[.98] active:shadow-none disabled:shadow-none; }
+  .modal-actions { @apply mt-6 flex flex-wrap items-center justify-end gap-2 border-0 p-0; }
+  .modal-actions button:not(.app-button) { @apply min-h-11 rounded-md border border-[#8b8d96] bg-[#fff] px-4 text-sm font-semibold text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5] lg:min-h-9; }
   .modal-actions button:not(.app-button):last-child, .modal-actions .primary-button { @apply border-brand bg-brand text-[#fff] hover:bg-[#4651c7]; }
-  .modal-actions .app-button { @apply min-h-14 w-full rounded-2xl px-6 text-lg; }
-  .modal-summary { @apply rounded-2xl bg-brand/[.07] p-4; }
+  .modal-actions .app-button { @apply min-h-11 lg:min-h-9; }
+  .modal-summary { @apply rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-4; }
   .modal-summary span { @apply block text-sm text-[#62646c]; }
   .modal-summary strong { @apply mt-1 block text-xl; }
   .confirmation-modal { @apply max-w-2xl; }
@@ -1219,7 +1215,7 @@
   .rooms-data-table tr.selected { @apply bg-brand/[.04]; }
   .rooms-data-table .secondary-button { @apply min-h-9 px-3 py-1.5 text-sm; }
 
-  .chat-launcher, .chat-minimize-button { @apply fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-[#fff] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)] shadow-brand/30; }
+  .chat-launcher, .chat-minimize-button { @apply fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-[#fff] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; }
   .chat-notification-badge { @apply absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold leading-5 text-white; }
   .chat-widget { @apply fixed bottom-5 right-5 z-50 flex h-[560px] w-[360px] flex-col overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; }
   .chat-widget.expanded { @apply h-[min(760px,calc(100vh-40px))] w-[min(680px,calc(100vw-40px))]; }
@@ -1241,7 +1237,7 @@
   .chat-conversation-prompt { @apply m-auto max-w-64 text-center text-sm text-[#62646c]; }
   .chat-message { @apply max-w-[82%] rounded-2xl px-3 py-2; }
   .chat-message.from-admin { @apply ml-auto rounded-br-md bg-brand text-[#fff]; }
-  .chat-message.from-tenant { @apply mr-auto rounded-bl-md bg-brand/[.08]; }
+  .chat-message.from-tenant { @apply mr-auto rounded-bl-md bg-[#f4f4f5]; }
   .chat-message strong { @apply block text-xs opacity-70; }
   .chat-message p { @apply my-1 break-words text-sm; }
   .chat-message time { @apply block text-right text-[10px] opacity-60; }
@@ -1259,7 +1255,7 @@
   .tenant-chat-composer .chat-file-input { @apply hidden; }
   .chat-composer .chat-attach-button { @apply shrink-0 border border-[#d9dae0] bg-[#f1f2f4] text-[#555761] hover:bg-[#e7e8eb]; }
   .tenant-chat-composer .chat-attach-button { @apply grid size-11 shrink-0 place-items-center rounded-xl border border-[#d9dae0] bg-[#f1f2f4] text-[#555761] hover:bg-[#e7e8eb]; }
-  .chat-attachment-preview { @apply flex! items-center! rounded-xl bg-brand/[.07] px-3 py-2 text-sm text-[#292a30]; }
+  .chat-attachment-preview { @apply flex! items-center! rounded-md border border-[#e4e4e7] bg-[#fafafa] px-3 py-2 text-sm text-[#292a30]; }
   .chat-attachment-preview span { @apply min-w-0 flex-1 truncate; }
   .chat-attachment-preview button { @apply size-11 shrink-0 bg-transparent text-[#5e6069] hover:bg-[#dedfe3]; }
   .chat-image-attachment { @apply mt-2 block overflow-hidden rounded-xl no-underline; }
@@ -1473,7 +1469,7 @@
     .room-plan-grid { @apply grid-cols-2; }
     .modal-backdrop { @apply items-end p-0 sm:items-center sm:p-4; }
     .modal, .room-edit-modal, .tenant-config-modal, .repair-flow-modal, .repair-schedule-modal {
-      @apply max-h-[96dvh] rounded-b-none rounded-t-3xl p-5 sm:max-h-[92vh] sm:rounded-xl;
+      @apply max-h-[96dvh] rounded-b-none rounded-t-2xl p-5 sm:max-h-[92vh] sm:rounded-xl;
     }
     .room-edit-modal,
     .tenant-config-modal {
@@ -1484,9 +1480,10 @@
       @apply grid min-h-0;
     }
     .modal-header { @apply mb-5; }
-    .modal-header h2 { @apply text-2xl; }
     .modal-actions { @apply gap-2; }
-    .modal-actions button { @apply min-h-12 px-3 text-base; }
+    .modal-actions { @apply flex-col items-stretch; }
+    .modal-actions > * { @apply w-full; }
+    .modal-actions button { @apply min-h-12 px-4 text-sm; }
     .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid, .furniture-grid { @apply grid-cols-1; }
     .room-editor-layout { @apply flex flex-col gap-5; }
     .room-edit-modal .room-editor-layout,
