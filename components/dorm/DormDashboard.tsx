@@ -740,7 +740,7 @@ export function DormDashboard({
             setSelectedRoomId={setSelectedRoomId}
           />
         )}
-        {activePage === "contracts" && <ContractsPage propertyId={propertyId} readOnly={isReadOnly} rooms={rooms} />}
+        {activePage === "contracts" && <ContractsPage propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />}
         {(activePage === "waterMeter" || activePage === "electricMeter") && (
           <MetersPage
             mode={activePage === "waterMeter" ? "water" : "electric"}
@@ -749,7 +749,7 @@ export function DormDashboard({
             onSaveMeters={saveMeters}
           />
         )}
-        {activePage === "invoices" && <InvoicesPage initialView={initialInvoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} readOnly={isReadOnly} rooms={rooms} />}
+        {activePage === "invoices" && <InvoicesPage initialView={initialInvoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />}
         {activePage === "repairHistory" && (
           <RepairHistoryPage
             propertyId={propertyId}

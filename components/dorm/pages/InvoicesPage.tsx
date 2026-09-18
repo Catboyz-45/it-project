@@ -7,9 +7,11 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
+import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, Eye, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
+import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
+import type { InvoiceDocumentData } from "@/lib/documents/placeholders";
 import type { Invoice, Room } from "@/types/dorm";
 import { ServerTablePagination, type ServerPageInfo } from "@/components/dorm/TablePagination";
 import { formatClientError, readApiPayload } from "@/lib/client/api-error";
@@ -35,6 +37,7 @@ export function InvoicesPage({
   invoices,
   onChanged,
   propertyId,
+  propertyName,
   readOnly = false,
   rooms,
 }: {
@@ -42,6 +45,7 @@ export function InvoicesPage({
   invoices: Invoice[];
   onChanged: () => Promise<void>;
   propertyId: string;
+  propertyName: string;
   readOnly?: boolean;
   rooms: Room[];
 }) {
@@ -92,7 +96,7 @@ export function InvoicesPage({
       });
       const payload = await readApiPayload<{
         data?: Array<{
-          id: string; invoiceNumber: string; status: string; version: number;
+          id: string; invoiceNumber: string; status: string; version: number; billingMonth: string;
           room: { number: string; occupancies: Array<{ tenantProfile: { user: { displayName: string } } }> };
           items: Array<{ type: string; amount: string }>;
         }>;
@@ -124,7 +128,7 @@ export function InvoicesPage({
           version: item.version,
           roomId: item.room.number,
           tenantName: item.room.occupancies[0]?.tenantProfile.user.displayName ?? "-",
-          month: "",
+          month: item.billingMonth.slice(0, 7),
           rent: amount("RENT"),
           water: amount("WATER"),
           electricity: amount("ELECTRICITY"),
@@ -203,6 +207,43 @@ export function InvoicesPage({
     }
   };
 
+  /**
+   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+   * หน้าที่: รวมขั้นตอนย่อยของ “request Invoice Pdf” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
+   * รับค่า:
+   * - invoice: บิลที่จะสร้างเอกสาร PDF ให้
+   * - action: ดูตัวอย่าง หรือสร้างและดาวน์โหลดไฟล์จริง
+   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
+   */
+  const requestInvoicePdf = async (invoice: Invoice, action: "preview" | "generate") => {
+    if (actionFeedback.isPending) return;
+    const data: InvoiceDocumentData = {
+      property_name: propertyName,
+      room_number: invoice.roomId,
+      tenant_name: invoice.tenantName,
+      reference_id: invoice.id,
+      billing_month: invoice.month,
+      rent_amount: invoice.rent,
+      water_amount: invoice.water,
+      electricity_amount: invoice.electricity,
+      service_amount: invoice.service,
+      total_amount: totalInvoice(invoice),
+    };
+    try {
+      await actionFeedback.runAction(
+        async () => {
+          if (action === "preview") await previewDocumentPdf(propertyId, "invoice", data);
+          else await generateDocumentPdf(propertyId, "invoice", data);
+        },
+        action === "preview"
+          ? { pending: "กำลังสร้างตัวอย่าง...", success: "เปิดตัวอย่างบิลแล้ว", error: "ดูตัวอย่างบิลไม่สำเร็จ" }
+          : { pending: "กำลังสร้าง PDF...", success: "ดาวน์โหลด PDF บิลแล้ว", error: "สร้าง PDF บิลไม่สำเร็จ" },
+      );
+    } catch {
+      // actionFeedback already surfaced the error via toast/announcement.
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     /**
@@ -254,16 +295,22 @@ export function InvoicesPage({
               <span>{currency.format(invoice.rent)}</span><span>{currency.format(invoice.water)}</span><span>{currency.format(invoice.electricity)}</span>
               <span><strong>{currency.format(totalInvoice(invoice))}</strong></span>
               <span><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></span>
-              <span>{!readOnly && invoice.status !== "paid" && invoice.status !== "cancelled" ? <ActionMenu
-                items={invoice.status === "draft" ? [
-                  { disabled: actionFeedback.isPending, icon: <ReceiptText aria-hidden="true" size={16} />, id: "issue", label: actionFeedback.isPending ? "กำลังออกบิล..." : "ออกบิล", onSelect: () => void issueDraft(invoice) },
-                  { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกบิล", onSelect: () => { setCancellationReason(""); setInvoiceToCancel(invoice); }, variant: "danger" },
-                ] : [
-                  { icon: <CheckCircle2 aria-hidden="true" size={16} />, id: "review-payment", label: "ตรวจสอบหลักฐานการชำระ", onSelect: () => changeView("payments") },
-                  { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกบิล", onSelect: () => { setCancellationReason(""); setInvoiceToCancel(invoice); }, variant: "danger" },
+              <span><ActionMenu
+                items={[
+                  { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างบิล (PDF)", onSelect: () => void requestInvoicePdf(invoice, "preview") },
+                  ...(invoice.status !== "draft" ? [
+                    { disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF บิล", onSelect: () => void requestInvoicePdf(invoice, "generate") },
+                  ] : []),
+                  ...(!readOnly && invoice.status !== "paid" && invoice.status !== "cancelled" ? (invoice.status === "draft" ? [
+                    { disabled: actionFeedback.isPending, icon: <ReceiptText aria-hidden="true" size={16} />, id: "issue", label: actionFeedback.isPending ? "กำลังออกบิล..." : "ออกบิล", onSelect: () => void issueDraft(invoice) },
+                    { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกบิล", onSelect: () => { setCancellationReason(""); setInvoiceToCancel(invoice); }, variant: "danger" as const },
+                  ] : [
+                    { icon: <CheckCircle2 aria-hidden="true" size={16} />, id: "review-payment", label: "ตรวจสอบหลักฐานการชำระ", onSelect: () => changeView("payments") },
+                    { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกบิล", onSelect: () => { setCancellationReason(""); setInvoiceToCancel(invoice); }, variant: "danger" as const },
+                  ]) : []),
                 ]}
                 label={`จัดการบิล ${invoice.id}`}
-              /> : null}</span>
+              /></span>
             </div>
           ))}
         </div>
