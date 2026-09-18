@@ -477,7 +477,7 @@ export function DatePickerField({
                         aria-current={sameCalendarDay(day, new Date()) ? "date" : undefined}
                         aria-label={day.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}
                         aria-selected={isSelected}
-                        className={`${isCurrentMonth ? "" : "muted"} ${isSelected ? "selected" : ""}`}
+                        className={`${isCurrentMonth ? "" : "muted"} ${isSelected ? "selected" : ""} ${sameCalendarDay(day, new Date()) ? "today" : ""}`}
                         data-date={formatIsoDate(day)}
                         disabled={isDisabled}
                         key={day.toISOString()}

@@ -205,10 +205,10 @@ export function PendingTenantApprovals({
               <span className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</span>
               <span><em className="figma-status warning">รอตรวจสอบ</em></span>
               <span className="contract-actions">
-                {!readOnly ? <>
+                {!readOnly ? <span className="icon-button-group">
                   <IconButton disabled={reviewingId !== null} label={`อนุมัติ ${request.tenantProfile.user.displayName}`} onClick={() => void review(request, "ACTIVE")} tooltip="อนุมัติ"><UserCheck size={17} /></IconButton>
                   <IconButton disabled={reviewingId !== null} label={`ปฏิเสธ ${request.tenantProfile.user.displayName}`} onClick={() => void review(request, "REJECTED")} tooltip="ปฏิเสธ" variant="danger"><UserX size={17} /></IconButton>
-                </> : null}
+                </span> : null}
                 {reviewingId === request.id ? <Check className="animate-pulse" size={16} /> : null}
               </span>
             </div>

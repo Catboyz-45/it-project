@@ -40,8 +40,8 @@ export function SuperAdminNavigation() {
       const active = exact ? pathname === href : pathname.startsWith(href);
       return <Link
         aria-current={active ? "page" : undefined}
-        className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-          active ? "bg-brand text-[#fff] shadow-lg shadow-brand/20" : "text-[#62636b] hover:bg-brand/10 hover:text-[#4651c7]"
+        className={`flex min-h-11 items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150 lg:min-h-9 ${
+          active ? "bg-brand/[.10] font-semibold text-[#4651c7]" : "font-medium text-[#62636b] hover:bg-[#ededee] hover:text-[#292a30]"
         }`}
         href={href}
         key={href}
