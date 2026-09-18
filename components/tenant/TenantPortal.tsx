@@ -117,13 +117,17 @@ type TenantNotificationSummary = {
   };
 };
 
-const tabs: Array<{ id: TenantTab; label: string; icon: typeof Home }> = [
+/** สีประจำหมวดของไอคอนเมนู (ดู .sidebar nav [data-accent] ใน globals.css) ให้
+ * ตรงชุดเดียวกับฝั่งแอดมิน: บิล/ชำระเงิน = เขียว, แจ้งเรื่อง/ซ่อม = magenta,
+ * พัสดุ = cyan ใช้เฉพาะเมนูเดสก์ท็อป (.sidebar) ส่วน bottom nav บนมือถือคง
+ * ไอคอนสีเดียวไว้ตามเดิมเพื่อความเรียบร้อยของแถบเล็ก ๆ */
+const tabs: Array<{ accent?: "green" | "magenta" | "cyan"; id: TenantTab; label: string; icon: typeof Home }> = [
   { id: "home", label: "หน้าหลัก", icon: Home },
-  { id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
+  { accent: "green", id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
   { id: "lease", label: "สัญญา", icon: FileText },
   { id: "announcements", label: "ประกาศ", icon: Bell },
-  { id: "parcels", label: "พัสดุ", icon: Package },
-  { id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
+  { accent: "cyan", id: "parcels", label: "พัสดุ", icon: Package },
+  { accent: "magenta", id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
   { id: "chat", label: "ติดต่อหอ", icon: MessageSquare },
   { id: "account", label: "บัญชีของฉัน", icon: UserRound },
 ];
@@ -202,10 +206,13 @@ function useApiResource<T>(url: string, enabled = true) {
       const response = await fetch(url, { cache: "no-store", credentials: "same-origin", signal });
       setData(await apiData<T>(response));
     } catch (loadError) {
-      if (loadError instanceof DOMException && loadError.name === "AbortError") return;
+      // เบราว์เซอร์อาจยกเลิกคำขอแล้วโยน TypeError แทน AbortError จึงต้องเช็ค signal ด้วย
+      if (signal?.aborted || (loadError instanceof DOMException && loadError.name === "AbortError")) return;
       setError(formatClientError(loadError, "โหลดข้อมูลไม่สำเร็จ"));
     } finally {
-      setIsLoading(false);
+      // คำขอที่ถูกยกเลิกจะมีคำขอรอบใหม่ตามมาเสมอ ถ้าปิด loading ตรงนี้ UI จะเห็นเป็น
+      // "ไม่ได้โหลดอยู่ แต่ไม่มีข้อมูล" แล้วสรุปว่าโหลดล้มเหลว/ตรวจสิทธิ์ไม่ได้ชั่วขณะ
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [enabled, url]);
   useEffect(() => {
@@ -254,9 +261,10 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
    * รับค่า:
    * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
    * - replace: ค่า “replace” ที่จำเป็นต่อการทำงานของก้อนนี้
+   * - signal: สัญญาณยกเลิก ใช้ตอน component ถูก unmount หรือ url เปลี่ยน
    * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
    */
-  const requestPage = useCallback(async (targetPage: number, replace: boolean) => {
+  const requestPage = useCallback(async (targetPage: number, replace: boolean, signal?: AbortSignal) => {
     if (replace) setIsLoading(true);
     else setIsLoadingMore(true);
     setError("");
@@ -265,6 +273,7 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
       const response = await fetch(`${url}${separator}page=${targetPage}&pageSize=${pageSize}`, {
         cache: "no-store",
         credentials: "same-origin",
+        signal,
       });
       const payload = await response.json() as {
         data?: T[];
@@ -277,10 +286,15 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
       setHasNextPage(payload.pageInfo.hasNextPage);
       setTotal(payload.pageInfo.total ?? null);
     } catch (loadError) {
+      // คำขอที่ถูกยกเลิกเพราะเปลี่ยนหน้า/unmount ไม่ใช่ความล้มเหลวของการโหลด
+      // ถ้าตั้งเป็น error จะขึ้นแบนเนอร์ "โหลดไม่สำเร็จ" ทั้งที่คำขอรอบใหม่กำลังมาแทน
+      if (signal?.aborted || (loadError instanceof DOMException && loadError.name === "AbortError")) return;
       setError(loadError instanceof Error ? loadError.message : "โหลดข้อมูลไม่สำเร็จ");
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   }, [pageSize, url]);
 
@@ -298,7 +312,11 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
    * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
    */
   const loadMore = useCallback(() => requestPage(page + 1, false), [page, requestPage]);
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void requestPage(1, true, controller.signal);
+    return () => controller.abort();
+  }, [requestPage]);
   return { data, error, hasNextPage, isLoading, isLoadingMore, loadMore, reload, total };
 }
 
@@ -419,8 +437,8 @@ export function TenantPortal({
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
-        {navigationTabs.map(({ id, icon: Icon, label }) => (
-          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
+        {navigationTabs.map(({ accent, id, icon: Icon, label }) => (
+          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} data-accent={accent} href={tenantPagePath(id)} key={id}>
             <Icon size={19} />{label}
             {notificationCount(id) > 0 ? (
               <span className="notification-badge" aria-label={`${notificationCount(id)} รายการที่ต้องตรวจสอบ`}>

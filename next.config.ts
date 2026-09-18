@@ -11,7 +11,13 @@ const scriptSources = process.env.NODE_ENV === "development"
   : "script-src 'self' 'unsafe-inline'";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // The self-hosted Dockerfile copies .next/standalone directly, but Vercel
+  // has its own serverless bundling that this mode conflicts with (it fails
+  // the build looking for a .next/next-server.js.nft.json that standalone
+  // output doesn't produce in the shape Vercel expects). VERCEL is set
+  // automatically on every Vercel build, so only opt into standalone when
+  // building elsewhere (Docker, or a plain local `npm run build`).
+  ...(process.env.VERCEL ? {} : { output: "standalone" }),
   poweredByHeader: false,
   async headers() {
     return [{

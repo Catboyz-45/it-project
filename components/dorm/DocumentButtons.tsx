@@ -8,16 +8,19 @@
 
 import { Eye, FileDown, Printer } from "lucide-react";
 import { useState } from "react";
+import { formatClientError } from "@/lib/client/api-error";
+import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
+import type { DocumentData } from "@/lib/documents/placeholders";
 import type { DocumentKind } from "@/lib/documents/types";
 
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
  * หน้าที่: คอมโพเนนต์ React “Document Buttons” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
  * รับค่า:
- * - { data, kind }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
+ * - { data, kind, propertyId }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-export function DocumentButtons({ data, kind }: { data: Record<string, string | number>; kind: DocumentKind }) {
+export function DocumentButtons({ data, kind, propertyId }: { data: DocumentData; kind: DocumentKind; propertyId: string }) {
   const [pendingAction, setPendingAction] = useState<"preview" | "generate" | null>(null);
   const [error, setError] = useState("");
 
@@ -29,26 +32,16 @@ export function DocumentButtons({ data, kind }: { data: Record<string, string | 
    * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
    */
   const requestDocument = async (action: "preview" | "generate") => {
-    const previewWindow = window.open("", "_blank");
     setPendingAction(action);
     setError("");
     try {
-      const response = await fetch(action === "preview" ? "/api/documents/preview" : "/api/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, data }) });
-      if (!response.ok) {
-        const result = await response.json() as { error?: string };
-        throw new Error(result.error || "สร้างเอกสารไม่สำเร็จ");
-      }
       if (action === "preview") {
-        const url = URL.createObjectURL(await response.blob());
-        if (previewWindow) previewWindow.location.href = url;
-        window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+        await previewDocumentPdf(propertyId, kind, data);
       } else {
-        const result = await response.json() as { downloadUrl: string };
-        if (previewWindow) previewWindow.location.href = result.downloadUrl;
+        await generateDocumentPdf(propertyId, kind, data);
       }
     } catch (requestError) {
-      previewWindow?.close();
-      setError(requestError instanceof Error ? requestError.message : "สร้างเอกสารไม่สำเร็จ");
+      setError(formatClientError(requestError, "สร้างเอกสารไม่สำเร็จ"));
     } finally {
       setPendingAction(null);
     }

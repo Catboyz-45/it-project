@@ -818,7 +818,11 @@ export function PropertiesPage({
   return (
     <section className="additional-page">
       <div className="property-page-head"><div><h2>หอพักทั้งหมด</h2><p>เลือกหอพักที่ต้องการบริหารจัดการ</p></div></div>
-      <div className="property-page-grid">{properties.map((property) => <article key={property.id}><span><Building2 size={24} /></span><div><small>{property.id === activePropertyId ? "กำลังใช้งาน" : "พร้อมใช้งาน"}</small><h3>{property.shortName}</h3><p>{property.rooms === undefined ? "กำลังโหลดจำนวนห้อง" : `${property.rooms} ห้องพัก`}</p></div><button className="secondary-button" onClick={() => window.location.assign(`/admin/properties/${property.id}`)} type="button">จัดการหอพัก</button></article>)}</div>
+      <div className="property-page-grid">{properties.map((property) => <article key={property.id}><span><Building2 size={24} /></span><div><small>{property.id === activePropertyId ? "กำลังใช้งาน" : "พร้อมใช้งาน"}</small><h3>{property.shortName}</h3><p>{property.rooms === undefined ? "กำลังโหลดจำนวนห้อง" : `${property.rooms} ห้องพัก`}</p></div><button className="secondary-button" onClick={() => {
+                        // สลับหอพักต้องโหลดใหม่ทั้งหน้าโดยตั้งใจ เพื่อทิ้ง state และแคชของหอเดิม
+                        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+                        window.location.assign(`/admin/properties/${property.id}`);
+                      }} type="button">จัดการหอพัก</button></article>)}</div>
     </section>
   );
 }

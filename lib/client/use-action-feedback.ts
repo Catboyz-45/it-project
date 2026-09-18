@@ -54,7 +54,16 @@ export function useActionFeedback() {
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    // The cleanup here runs (and must be undone by the setup here running
+    // again) under React 18 Strict Mode's dev-only mount+unmount+remount
+    // simulation, not just on a real unmount - without resetting to true on
+    // setup, mountedRef stays permanently false after that simulation, and
+    // every runAction call for the rest of this component's life silently
+    // stops updating isPending/announcement/toasts.
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   /**
    * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น

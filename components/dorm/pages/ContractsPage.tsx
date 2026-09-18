@@ -12,6 +12,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Download,
+  Eye,
   FilePlus2,
   FileText,
   Pencil,
@@ -25,6 +26,8 @@ import type { LeaseStatus } from "@/lib/domain/enums";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { leaseStatusTransitions } from "@/lib/domain/enums";
 import { currency } from "@/lib/dorm-utils";
+import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
+import type { ContractDocumentData } from "@/lib/documents/placeholders";
 import type { Room } from "@/types/dorm";
 import { ServerTablePagination, type ServerPageInfo } from "@/components/dorm/TablePagination";
 import { createApiError, formatClientError, readApiData } from "@/lib/client/api-error";
@@ -167,7 +170,7 @@ async function responseData<T>(response: Response): Promise<T> {
  * - { propertyId, readOnly = false, rooms }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-export function ContractsPage({ propertyId, readOnly = false, rooms }: { propertyId: string; readOnly?: boolean; rooms: Room[] }) {
+export function ContractsPage({ propertyId, propertyName, readOnly = false, rooms }: { propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }) {
   const searchParams = useSearchParams();
   const moveRoomDraftHandled = useRef(false);
   const signedDocumentInputs = useRef(new Map<string, HTMLInputElement>());
@@ -483,6 +486,44 @@ export function ContractsPage({ propertyId, readOnly = false, rooms }: { propert
     }
   };
 
+  /**
+   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+   * หน้าที่: รวมขั้นตอนย่อยของ “request Contract Pdf” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
+   * รับค่า:
+   * - lease: สัญญาที่จะสร้างเอกสาร PDF ให้
+   * - tenantName: ชื่อผู้เช่าหลักของสัญญานี้
+   * - action: ดูตัวอย่าง หรือสร้างและดาวน์โหลดไฟล์จริง
+   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
+   */
+  const requestContractPdf = async (lease: Lease, tenantName: string, action: "preview" | "generate") => {
+    if (actionFeedback.isPending) return;
+    const data: ContractDocumentData = {
+      property_name: propertyName,
+      room_number: lease.room.number,
+      tenant_name: tenantName,
+      tenant_phone: "",
+      tenant_address: "",
+      reference_id: lease.leaseNumber,
+      start_date: dateInput(lease.startDate),
+      end_date: dateInput(lease.endDate),
+      rent_amount: Number(lease.monthlyRent),
+      deposit_amount: Number(lease.depositAmount),
+    };
+    try {
+      await actionFeedback.runAction(
+        async () => {
+          if (action === "preview") await previewDocumentPdf(propertyId, "contract", data);
+          else await generateDocumentPdf(propertyId, "contract", data);
+        },
+        action === "preview"
+          ? { pending: "กำลังสร้างตัวอย่าง...", success: "เปิดตัวอย่างสัญญาแล้ว", error: "ดูตัวอย่างสัญญาไม่สำเร็จ" }
+          : { pending: "กำลังสร้าง PDF...", success: "ดาวน์โหลด PDF สัญญาแล้ว", error: "สร้าง PDF สัญญาไม่สำเร็จ" },
+      );
+    } catch {
+      // actionFeedback already surfaced the error via toast/announcement.
+    }
+  };
+
   return (
     <section className="figma-list-page contracts-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
@@ -550,8 +591,14 @@ export function ContractsPage({ propertyId, readOnly = false, rooms }: { propert
                   {!readOnly && ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) ? (
                     <input accept="application/pdf,.pdf" className="sr-only" disabled={isSaving} onChange={(event) => { void uploadSignedDocument(lease, event.target.files?.[0]); event.target.value = ""; }} ref={(node) => { if (node) signedDocumentInputs.current.set(lease.id, node); else signedDocumentInputs.current.delete(lease.id); }} type="file" />
                   ) : null}
-                  {lease.signedStorageKey || (!readOnly && (canRenew || ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) || leaseStatusTransitions[lease.status].length > 0)) ? <ActionMenu
+                  {tenant || lease.signedStorageKey || (!readOnly && (canRenew || ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) || leaseStatusTransitions[lease.status].length > 0)) ? <ActionMenu
                     items={[
+                      ...(tenant ? [
+                        { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างสัญญา (PDF)", onSelect: () => void requestContractPdf(lease, tenant.displayName, "preview") },
+                        ...(!readOnly ? [
+                          { disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF สัญญา", onSelect: () => void requestContractPdf(lease, tenant.displayName, "generate") },
+                        ] : []),
+                      ] : []),
                       ...(!readOnly && canRenew && displayStatus !== "EXPIRING" ? [
                         { disabled: isSaving, icon: <FilePlus2 aria-hidden="true" size={16} />, id: "renew", label: "ต่อสัญญา", onSelect: () => openRenew(lease) },
                       ] : []),
