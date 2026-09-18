@@ -37,6 +37,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
@@ -292,14 +293,13 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
         <Summary label="ผู้รับทั้งหมด" value={`${recipientRoomCount} ห้อง`} icon={<UsersRound size={20} />} tone="blue" />
       </div>
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>ประกาศและข่าวสาร</h2><p>สื่อสารข่าวสารสำคัญถึงผู้เช่าในหอพัก</p></div>
+        <PageHeaderActions>
           {!readOnly ? (
             <button className="primary-button" onClick={openCreateForm} type="button">
               <Plus aria-hidden="true" size={18} /> สร้างประกาศ
             </button>
           ) : null}
-        </div>
+        </PageHeaderActions>
         <div className="figma-table-wrap">
           <table className="figma-table">
             <thead><tr><th>หัวข้อ</th><th>กลุ่มผู้รับ</th><th>วันที่เผยแพร่</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
@@ -619,7 +619,6 @@ export function ComplaintsPage({
         <Link href={ownerPagePath(propertyId, "repairHistory")}>ประวัติที่เสร็จแล้ว</Link>
       </nav>
       <article className="figma-table-card">
-        <div className="additional-card-head"><div><h2>รายการร้องเรียน</h2><p>{readOnly ? "ตรวจสอบสถานะและประวัติเรื่องร้องเรียนจากผู้เช่า" : "ติดตามและจัดการเรื่องร้องเรียนจากผู้เช่า"}</p></div></div>
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th>เลขที่</th><th>เรื่อง</th><th>ผู้แจ้ง/พื้นที่</th><th>วันที่แจ้ง</th><th>สถานะ</th><th>จัดการ</th></tr></thead>

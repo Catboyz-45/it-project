@@ -57,6 +57,7 @@ import { tenantPagePath, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
+import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
@@ -429,7 +430,8 @@ export function TenantPortal({
 
   const activeTabItem = tabs.find(({ id }) => id === activeTab) ?? tabs[0];
 
-  return <main className="tenant-portal tenant-shell shell text-[#292a30]">
+  return <PageHeaderSlotProvider>
+    <main className="tenant-portal tenant-shell shell text-[#292a30]">
     <LiveAnnouncement message={`เปิดหน้า ${tabs.find(({ id }) => id === activeTab)?.label ?? "พื้นที่ผู้เช่า"}`} />
     <aside className="sidebar tenant-sidebar">
       <div className="brand tenant-brand">
@@ -462,6 +464,7 @@ export function TenantPortal({
           <p className="page-subtitle">{tabDescriptions[activeTab]}</p>
         </div>
         <div className="tenant-header-actions flex items-center gap-3">
+          <PageHeaderTarget />
           {active ? <NotificationCenter isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
           {account.occupancies.filter(({ status }) => status === "ACTIVE").length > 0 ? <DropdownField
             disabled={isSwitching}
@@ -569,7 +572,8 @@ export function TenantPortal({
         variant="widget"
       />
     ) : null}
-  </main>;
+  </main>
+  </PageHeaderSlotProvider>;
 }
 
 /**
@@ -1457,7 +1461,7 @@ function TicketsPanel({ onUnreadChanged, readOnly }: { onUnreadChanged: () => Pr
     setOpenReplyTicketId(null);
     setView(nextView);
   };
-  return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button> : null}</div>
+  return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}</div>
     {readOnly ? <ReadOnlyNotice>ดูสถานะ ประวัติ และไฟล์แนบเดิมได้ แต่ไม่สามารถสร้างหรือตอบกลับรายการได้</ReadOnlyNotice> : null}
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
     {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>

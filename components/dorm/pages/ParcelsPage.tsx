@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
 /**
@@ -346,11 +347,13 @@ export function ParcelsPage({
                 : `${receivedParcels.length} รายการรับแล้ว`}
             </p>
           </div>
-          {!readOnly ? (
-            <button className="primary-button" onClick={() => setIsRegisterOpen(true)} type="button">
-              <Plus aria-hidden="true" size={18} /> รับพัสดุใหม่
-            </button>
-          ) : <span className="badge badge-paid">{waitingParcels.length} รอรับ</span>}
+          <PageHeaderActions>
+            {!readOnly ? (
+              <button className="primary-button" onClick={() => setIsRegisterOpen(true)} type="button">
+                <Plus aria-hidden="true" size={18} /> รับพัสดุใหม่
+              </button>
+            ) : <span className="badge badge-paid">{waitingParcels.length} รอรับ</span>}
+          </PageHeaderActions>
         </div>
 
         {!isLoading && pageItems.length > 0 ? (

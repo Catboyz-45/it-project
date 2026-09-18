@@ -23,6 +23,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
 /**
@@ -272,10 +273,9 @@ export function InvoicesPage({
       </div>
       {view === "payments" ? <PaymentReviewPanel onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <>
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>รายการบิลห้องพัก</h2><p>ตรวจสอบยอด ค่าใช้จ่าย สถานะ และจัดการบิลรายห้อง</p></div>
+        <PageHeaderActions>
           {!readOnly ? <button className="primary-button" onClick={() => setGenerationMode("bulk")} type="button"><Files size={16} /> สร้างร่างทั้งหอ</button> : <ReadOnlyNotice compact />}
-        </div>
+        </PageHeaderActions>
         {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาบิล" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเลขที่บิล ห้อง หรือผู้เช่า..." value={query} /></div>

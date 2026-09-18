@@ -62,7 +62,7 @@ test.describe("computed WCAG contrast", () => {
   test("text and interactive states meet WCAG AA", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
 
-    const heading = page.getByRole("heading", { name: "ประกาศและข่าวสาร" });
+    const heading = page.getByRole("heading", { name: "ประกาศ/ข่าวสาร" });
     await expectContrast(heading, { minimum: 4.5, name: "page heading", state: "default" });
 
     const primary = page.getByRole("button", { name: "สร้างประกาศ" });

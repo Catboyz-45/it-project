@@ -15,6 +15,7 @@ import { ServerTablePagination, TablePagination, type ServerPageInfo, useTablePa
 import { createApiError, formatClientError } from "@/lib/client/api-error";
 import { PendingTenantApprovals } from "@/components/dorm/PendingTenantApprovals";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
 
 /**
@@ -136,11 +137,8 @@ export function TenantsPage({
         <button className={view === "transitions" ? "active" : ""} onClick={() => selectView("transitions")} type="button">ประวัติย้ายออก/ย้ายห้อง</button>
       </div>
       {view === "pending" ? <PendingTenantApprovals onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : view === "transitions" ? <TransitionHistory propertyId={propertyId} /> : <>
+      <PageHeaderActions><a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a></PageHeaderActions>
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>รายชื่อผู้เช่าปัจจุบัน</h2><p>ข้อมูลผู้เช่า ห้องพัก สัญญา และสถานะการเข้าพัก</p></div>
-          <a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a>
-        </div>
         {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาผู้เช่า" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อ ห้อง หรือเบอร์โทร..." value={query} /></div>

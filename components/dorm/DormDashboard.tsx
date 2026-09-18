@@ -63,6 +63,7 @@ import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@
 import { platformProfile } from "@/lib/platform-profile";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
 
 /**
@@ -514,7 +515,8 @@ export function DormDashboard({
   };
 
   return (
-    <main className="shell">
+    <PageHeaderSlotProvider>
+    <main className={activePage === "settings" ? "shell shell-settings" : "shell"}>
       <aside className="sidebar" aria-label="เมนูหลัก">
         <div className="sidebar-property">
           <button aria-expanded={isPropertyMenuOpen} className="brand" onClick={() => setIsPropertyMenuOpen((current) => !current)} type="button">
@@ -690,6 +692,7 @@ export function DormDashboard({
             <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
           </div>
           <div className="top-actions repair-top-actions">
+            <PageHeaderTarget />
             <OwnerGlobalSearch propertyId={propertyId} />
             <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadTicketReplies()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
           </div>
@@ -871,5 +874,6 @@ export function DormDashboard({
         openSignal={openChatSignal}
       />
     </main>
+    </PageHeaderSlotProvider>
   );
 }

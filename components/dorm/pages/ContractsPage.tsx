@@ -40,6 +40,7 @@ import { DropdownField } from "@/components/dorm/DropdownField";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LEASE_EXPIRY_NOTICE_DAYS, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
 /**
@@ -536,15 +537,14 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
       {error ? <div className="form-alert error" role="alert">{error}</div> : null}
 
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>รายการสัญญาเช่า</h2><p>ตรวจสอบสถานะ ระยะเวลา เอกสาร และการต่อสัญญารายห้อง</p></div>
+        <PageHeaderActions>
           {!readOnly ? <div className="disabled-action">
             <button aria-describedby={!isSaving && occupiedRooms.length === 0 ? "contract-create-disabled-reason" : undefined} className="primary-button" disabled={isSaving || occupiedRooms.length === 0} onClick={openCreate} type="button">
               <Plus size={17} /> สร้างสัญญา
             </button>
             {!isSaving && occupiedRooms.length === 0 ? <p className="disabled-reason" id="contract-create-disabled-reason">ต้องมีห้องที่มีผู้เช่าหลักได้รับอนุมัติก่อน</p> : null}
           </div> : <ReadOnlyNotice compact />}
-        </div>
+        </PageHeaderActions>
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาสัญญา" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเลขสัญญา ห้อง ชื่อ หรืออีเมลผู้เช่า..." value={query} /></div>
         </div>

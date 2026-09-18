@@ -15,6 +15,7 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useToast } from "@/components/ui/ToastProvider";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 
 /**
@@ -349,6 +350,7 @@ export function MetersPage({
       <article className="meter-table-card">
         <div className="additional-card-head">
           <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>ระบบเก็บฉบับร่างในเครื่องอัตโนมัติ · กด Enter เพื่อไปห้องถัดไป</p></div>
+          <PageHeaderActions>
           {!readOnly ? (
           <div className="disabled-action">
             <button aria-describedby={!isLoading && !isSaving && touchedRows.length === 0 ? "meter-save-disabled-reason" : undefined} className="primary-button" disabled={isLoading || isSaving || touchedRows.length === 0} onClick={requestConfirmation} type="button">
@@ -358,6 +360,7 @@ export function MetersPage({
             {!isLoading && !isSaving && touchedRows.length === 0 ? <p className="disabled-reason" id="meter-save-disabled-reason">กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อนบันทึก</p> : null}
           </div>
           ) : <ReadOnlyNotice compact />}
+          </PageHeaderActions>
         </div>
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
         {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
