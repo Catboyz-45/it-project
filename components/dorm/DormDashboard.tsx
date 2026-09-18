@@ -514,9 +514,13 @@ export function DormDashboard({
     }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกผู้เช่าไม่สำเร็จ"));
   };
 
+  /* สามหน้านี้ใช้ SettingsPage ร่วมกัน จึงถือเป็นพื้นที่ตั้งค่าเดียวกันทั้งหมด
+     ไม่ว่าจะเข้าจากเมนูตั้งค่าหรือเปิด URL ตรง */
+  const isSettingsArea = ["settings", "invitations", "subscription"].includes(activePage);
+
   return (
     <PageHeaderSlotProvider>
-    <main className={activePage === "settings" ? "shell shell-settings" : "shell"}>
+    <main className={isSettingsArea ? "shell shell-settings" : "shell"}>
       <aside className="sidebar" aria-label="เมนูหลัก">
         <div className="sidebar-property">
           <button aria-expanded={isPropertyMenuOpen} className="brand" onClick={() => setIsPropertyMenuOpen((current) => !current)} type="button">
@@ -635,7 +639,7 @@ export function DormDashboard({
         </div>
       </aside>
 
-      <section className={`${activePage === "settings" ? "workspace settings-workspace" : "workspace"}${isReadOnly ? " workspace-read-only" : ""}`}>
+      <section className={`${isSettingsArea ? "workspace settings-workspace" : "workspace"}${isReadOnly ? " workspace-read-only" : ""}`}>
         <LiveAnnouncement message={`เปิดหน้า ${pageTitles[activePage].title}`} />
         {accessState === "loading" ? (
           <div className="subscription-access-banner grace" role="status">
@@ -686,17 +690,19 @@ export function DormDashboard({
         ) : null}
         {dataError ? <div className="form-alert error" role="alert"><span>{dataError}</span><RetryButton onClick={() => void refreshDashboard()} /></div> : null}
         {isRefreshing ? <div aria-atomic="true" className="document-editor-state" role="status">กำลังอัปเดตข้อมูล...</div> : null}
-        <header className="topbar">
-          <div>
-            <h1>{pageTitles[activePage].title}</h1>
-            <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
-          </div>
-          <div className="top-actions repair-top-actions">
-            <PageHeaderTarget />
-            <OwnerGlobalSearch propertyId={propertyId} />
-            <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadTicketReplies()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
-          </div>
-        </header>
+        {!isSettingsArea ? (
+          <header className="topbar">
+            <div>
+              <h1>{pageTitles[activePage].title}</h1>
+              <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
+            </div>
+            <div className="top-actions repair-top-actions">
+              <PageHeaderTarget />
+              <OwnerGlobalSearch propertyId={propertyId} />
+              <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadTicketReplies()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
+            </div>
+          </header>
+        ) : null}
         <div className="view-transition" key={activePage}>
         {activePage === "overview" && summary && aggregation && (
           <OverviewPage
