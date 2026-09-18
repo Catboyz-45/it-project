@@ -442,10 +442,11 @@
   }
   .work-item-grid { @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3; }
   .work-item-grid > button, .work-item-grid > div {
-    @apply flex min-h-24 items-center gap-3 rounded-2xl border border-brand/10 bg-brand/[.04] p-4 text-left transition;
+    @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
-  .work-item-grid > button { @apply shadow-sm hover:bg-brand/[.08]; }
-  .work-item-icon { @apply grid size-11 shrink-0 place-items-center rounded-2xl bg-brand/10 text-brand; }
+  .work-item-grid > button { @apply hover:bg-[#fafafa]; }
+  .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-md bg-brand/[.08] text-[#4651c7]; }
+  .work-item-icon > svg { @apply size-4; }
   .work-item-copy { @apply min-w-0 flex-1; }
   .work-item-copy strong { @apply block; }
   .work-item-copy small { @apply mt-1 block text-xs text-slate-500; }
@@ -647,8 +648,8 @@
   .status-scan-table tbody tr[data-status="waiting"] > td { @apply bg-[#fffdf5]; }
   .status-scan-table tbody tr:hover > td { @apply bg-[#fafafa]; }
   .repair-board { @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
-  .repair-board-head { @apply flex items-start justify-between gap-4 border-b border-[#e5e6eb] bg-[linear-gradient(135deg,#f4f5ff,#ffffff)] px-6 py-5; }
-  .repair-board-head h2 { @apply text-xl font-bold text-[#292a30]; }
+  .repair-board-head { @apply flex items-start justify-between gap-4 border-b border-[#e4e4e7] bg-[#fff] px-6 py-4; }
+  .repair-board-head h2 { @apply text-base font-semibold text-[#292a30]; }
   .repair-board-head p { @apply mt-1 text-sm text-[#62646c]; }
   .history-page-toolbar { @apply grid grid-cols-[minmax(260px,1fr)_minmax(360px,2fr)] items-end gap-4 border-b border-[#e5e6eb] bg-[#fafafa] px-6 py-5; }
   .history-search-field { @apply flex min-h-12 items-center gap-3 rounded-xl border border-[#b7bac4] bg-[#fff] px-4 text-[#62646c] transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20; }
@@ -763,20 +764,20 @@
 
   .workspace .dashboard-panel-stagger > .revenue-summary-panel { @apply flex flex-col self-stretch; }
   .revenue-summary { @apply mt-4 grid flex-1 content-center grid-cols-[minmax(190px,.72fr)_minmax(0,2fr)] gap-4; }
-  .revenue-summary-total { @apply flex min-h-28 flex-col justify-center rounded-2xl bg-brand px-5 py-4 text-[#fff]; }
-  .revenue-summary-total span { @apply text-sm font-semibold text-[#fff]/80; }
-  .revenue-summary-total strong { @apply mt-1 text-3xl font-bold; }
+  .revenue-summary-total { @apply flex min-h-24 flex-col justify-center rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
+  .revenue-summary-total span { @apply text-sm font-medium text-[#62646c]; }
+  .revenue-summary-total strong { @apply mt-1 text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
   .revenue-breakdown { @apply grid grid-cols-2 gap-3; }
-  .revenue-breakdown > div { @apply relative rounded-2xl border border-[#e4e4e7] bg-[#fafafa] px-4 py-3 before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r-full; }
+  .revenue-breakdown > div { @apply relative rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-r-full; }
   .revenue-breakdown dt { @apply text-xs font-semibold text-[#62646c]; }
-  .revenue-breakdown dd { @apply mt-1 text-lg font-bold text-[#292a30]; }
+  .revenue-breakdown dd { @apply mt-1 text-lg font-semibold text-[#292a30]; }
   .revenue-breakdown .rent::before { @apply bg-brand; }
   .revenue-breakdown .water::before { @apply bg-brand-cyan; }
   .revenue-breakdown .electric::before { @apply bg-brand-magenta; }
   .revenue-breakdown .other::before { @apply bg-brand-green; }
-  .room-status-donut { @apply mx-auto my-4 size-28 rounded-full bg-[conic-gradient(#35ed7e_0_29%,#fbbf24_29%_93%,#ec48bd_93%)] ring-10 ring-black/20; }
+  .room-status-donut { @apply mx-auto my-4 size-28 rounded-full bg-[conic-gradient(#35ed7e_0_29%,#fbbf24_29%_93%,#ec48bd_93%)] ring-4 ring-[#f4f4f5]; }
   .room-status-overview { @apply grid gap-2; }
-  .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-xl bg-brand/[.06] p-3; }
+  .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border border-[#e4e4e7] bg-[#fff] p-3; }
   .room-status-overview small { @apply text-[#62646c]; }
   .dashboard-empty-state { @apply grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#8b8d96] p-6 text-center text-sm text-[#62646c]; }
   .priority-list { @apply grid gap-2; }
@@ -831,16 +832,16 @@
   .figma-floor-card { @apply p-5; }
   .figma-room-grid, .room-grid { @apply grid grid-cols-4 gap-3; }
   .figma-room-summary { @apply mb-4 flex items-center justify-between; }
-  .figma-room-grid button, .room-grid button { @apply rounded-2xl border border-[#e4e4e7] bg-brand/[.05] p-4 text-left hover:border-brand hover:bg-brand/10; }
+  .figma-room-grid button, .room-grid button { @apply rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150 hover:bg-[#fafafa]; }
   .rooms-view-toolbar { @apply flex flex-wrap items-center justify-between gap-3; }
-  .rooms-view-toggle { @apply flex rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-sm; }
-  .rooms-view-toggle button { @apply inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#62646c] transition hover:text-[#292a30]; }
-  .rooms-view-toggle button.active { @apply bg-brand text-[#fff] shadow-sm; }
+  .rooms-view-toggle { @apply flex gap-0.5 rounded-lg bg-[#f1f1f3] p-1; }
+  .rooms-view-toggle button { @apply inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-[#62646c] transition-colors duration-150 hover:text-[#292a30] lg:min-h-8; }
+  .rooms-view-toggle button.active { @apply bg-[#fff] font-semibold text-[#292a30] shadow-[0_1px_2px_rgba(0,0,0,.08)]; }
   .room-building-stack { @apply grid gap-6; }
   .room-building-card { @apply overflow-hidden rounded-xl border border-[#e0e1e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
-  .room-building-head { @apply border-b border-[#e6e7ec] bg-[linear-gradient(135deg,rgba(88,101,242,.10),rgba(88,101,242,.03))] px-5 py-4; }
+  .room-building-head { @apply border-b border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
   .room-building-head > div { @apply block; }
-  .room-building-head h2 { @apply m-0 text-lg font-bold text-[#292a30]; }
+  .room-building-head h2 { @apply m-0 text-base font-semibold text-[#292a30]; }
   .room-building-head p { @apply mt-0.5 text-sm text-[#62646c]; }
   .room-floor-stack { @apply grid gap-6 p-5; }
   .room-floor-group { @apply grid gap-3; }
@@ -850,12 +851,12 @@
   .room-floor-group > header small { @apply text-xs text-[#62646c]; }
   .room-floor-group > header > span { @apply h-px flex-1 bg-[#e5e6eb]; }
   .room-plan-grid { @apply grid grid-cols-4 gap-3; }
-  .room-plan-card { @apply grid min-h-32 gap-3 rounded-2xl border border-[#dedfe5] bg-[#fafafa] p-4 text-left text-[#292a30] hover:border-brand hover:bg-brand/[.04]; }
-  .room-plan-card.selected { @apply border-brand bg-brand/[.07] ring-2 ring-brand/15; }
+  .room-plan-card { @apply grid min-h-28 gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left text-[#292a30] transition-colors duration-150 hover:bg-[#fafafa]; }
+  .room-plan-card.selected { @apply border-brand/40 bg-brand/[.08]; }
   .room-plan-card-head { @apply flex items-start justify-between gap-2; }
-  .room-plan-card-head > strong { @apply text-lg font-bold; }
+  .room-plan-card-head > strong { @apply text-base font-semibold; }
   .room-plan-card-detail { @apply text-sm text-[#686a73]; }
-  .room-plan-card-foot { @apply mt-auto flex items-center justify-between gap-2 border-t border-[#8b8d96] pt-3 text-xs text-[#62646c]; }
+  .room-plan-card-foot { @apply mt-auto flex items-center justify-between gap-2 border-t border-[#e4e4e7] pt-3 text-xs text-[#62646c]; }
   .room-plan-card-foot > strong { @apply rounded-lg bg-red-50 px-2 py-1 text-red-700; }
   .interactive-card-action { @apply inline-flex items-center gap-1 font-bold text-brand; }
 
@@ -1915,19 +1916,6 @@ select:disabled {
 
 .empty-state::before,
 .dashboard-empty-state:not([role="alert"])::before,
-.repair-empty::before,
-.document-editor-state::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  width: 8rem;
-  height: 8rem;
-  border-radius: 9999px;
-  background: rgb(88 101 242 / 0.09);
-  filter: blur(18px);
-  animation: empty-state-glow 3.8s ease-in-out infinite;
-}
-
 .empty-state > svg:first-child,
 .dashboard-empty-state > svg:first-child,
 .repair-empty > svg:first-child,
