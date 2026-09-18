@@ -195,13 +195,21 @@ export function SubscriptionPage({ propertyId, subscription }: {
     <section className="panel settings-section">
       <div className="settings-section-head"><div><h2>แพ็กเกจปัจจุบัน</h2><p>สถานะการใช้งานของหอพักนี้</p></div></div>
       {subscription ? <>
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-brand/[.06] p-4"><small className="text-[#73757d]">แพ็กเกจ</small><strong className="mt-1 block text-lg">{subscription.planName}</strong><span className="badge mt-2">{subscription.accessMode === "FULL" ? "ใช้งานได้" : subscription.accessMode === "GRACE" ? "ช่วงผ่อนผัน" : "อ่านอย่างเดียว"}</span></div>
-          <div className="rounded-2xl border border-[#e3e4e8] p-4"><small className="text-[#73757d]">วันหมดอายุ</small><strong className="mt-1 block text-lg">{new Date(subscription.expiresAt).toLocaleDateString("th-TH")}</strong><p className="mt-1 text-sm text-[#73757d]">{subscription.accessMode === "GRACE" && subscription.graceEndsAt ? `แก้ไขข้อมูลได้ถึง ${new Date(subscription.graceEndsAt).toLocaleDateString("th-TH")}` : `${subscription.usedRooms}/${subscription.maxRooms} ห้องที่ใช้งาน`}</p></div>
-          <div className="rounded-2xl border border-[#e3e4e8] p-4"><small className="text-[#73757d]">การต่ออายุ</small><strong className="mt-1 block">ระยะเวลาใหม่ต่อจากสิทธิ์เดิม</strong><p className="mt-1 text-sm text-[#73757d]">หากสิทธิ์เดิมหมดแล้ว ระยะเวลาใหม่จะเริ่มเมื่อการชำระได้รับอนุมัติ</p></div>
+        <div className="plan-current">
+          <small>แพ็กเกจ</small>
+          <strong>{subscription.planName}</strong>
+          <span className="badge">{subscription.accessMode === "FULL" ? "ใช้งานได้" : subscription.accessMode === "GRACE" ? "ช่วงผ่อนผัน" : "อ่านอย่างเดียว"}</span>
+          <dl className="plan-current-facts">
+            <div><dt>หมดอายุ</dt><dd>{new Date(subscription.expiresAt).toLocaleDateString("th-TH")}</dd></div>
+            <div><dt>ห้องที่ใช้งาน</dt><dd>{subscription.usedRooms}/{subscription.maxRooms} ห้อง</dd></div>
+            {subscription.accessMode === "GRACE" && subscription.graceEndsAt
+              ? <div><dt>แก้ไขข้อมูลได้ถึง</dt><dd>{new Date(subscription.graceEndsAt).toLocaleDateString("th-TH")}</dd></div>
+              : null}
+          </dl>
         </div>
+        <p className="plan-current-note">ต่ออายุแล้วระยะเวลาใหม่จะต่อจากสิทธิ์เดิม หากสิทธิ์เดิมหมดไปแล้ว ระยะเวลาใหม่จะเริ่มนับเมื่อการชำระได้รับอนุมัติ</p>
         <div className="mt-5" aria-label="ลำดับเวลาสถานะแพ็กเกจ">
-          <h3 className="font-black">ลำดับเวลาการใช้งาน</h3>
+          <h3 className="text-sm font-semibold text-[#292a30]">ลำดับเวลาการใช้งาน</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <TimelineStep active icon={<CheckCircle2 size={18} />} label="เริ่มใช้งาน" value={new Date(subscription.startsAt).toLocaleDateString("th-TH")} />
             <TimelineStep active={new Date(subscription.expiresAt) <= new Date()} icon={<CalendarDays size={18} />} label="แพ็กเกจหมดอายุ" value={new Date(subscription.expiresAt).toLocaleDateString("th-TH")} />

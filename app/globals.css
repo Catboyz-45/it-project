@@ -725,6 +725,17 @@
   .plan-features > li { @apply flex items-start gap-2 text-sm leading-6 text-[#292a30]; }
   .plan-features > li > svg { @apply mt-1 shrink-0 text-emerald-600; }
 
+  /* แพ็กเกจปัจจุบัน: กล่องเดียวที่นำด้วยชื่อแพ็กเกจ ข้อมูลประกอบเป็นบรรทัดรอง
+     เดิมเป็นสามกล่องน้ำหนักเท่ากันจนไม่รู้ว่าควรอ่านอะไรก่อน */
+  .plan-current { @apply grid justify-items-start gap-1 rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-5; }
+  .plan-current > small { @apply text-sm text-[#62646c]; }
+  .plan-current > strong { @apply text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
+  .plan-current > .badge { @apply mt-1; }
+  .plan-current-facts { @apply mt-4 grid w-full gap-x-8 gap-y-2 border-t border-[#e4e4e7] pt-4 sm:grid-cols-3; }
+  .plan-current-facts dt { @apply text-xs text-[#62646c]; }
+  .plan-current-facts dd { @apply mt-0.5 text-sm font-semibold text-[#292a30]; }
+  .plan-current-note { @apply mt-3 text-sm leading-6 text-[#62646c]; }
+
   .payment-review-shell { @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-surface; }
   .payment-review-loading { @apply grid min-h-96 place-content-center justify-items-center gap-3 p-8 text-center text-[#62646c]; }
   .payment-review-workspace { @apply grid min-h-[680px] grid-cols-[minmax(290px,0.78fr)_minmax(0,1.65fr)]; }
