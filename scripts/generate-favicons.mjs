@@ -5,12 +5,15 @@ import sharp from "sharp";
 
 const root = new URL("../", import.meta.url);
 const source = await readFile(new URL("public/brand/nestly-logo.png", root));
-const flattened = await sharp(source).flatten({ background: "#FFFFFF" }).png().toBuffer();
+// flatten() drops the alpha channel entirely (it composites onto an opaque
+// background), but Next.js's favicon.ico decoder requires RGBA PNG payloads
+// inside the ICO container - ensureAlpha() adds a fully-opaque channel back.
+const flattened = await sharp(source).flatten({ background: "#FFFFFF" }).ensureAlpha().png().toBuffer();
 
 const sizes = [16, 32, 48, 64, 180, 192, 512];
 const images = new Map();
 for (const size of sizes) {
-  images.set(size, await sharp(flattened).resize(size, size).png().toBuffer());
+  images.set(size, await sharp(flattened).resize(size, size).ensureAlpha().png().toBuffer());
 }
 
 for (const size of [16, 32, 64, 180, 192, 512]) {
