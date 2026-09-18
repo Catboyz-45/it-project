@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
   // building elsewhere (Docker, or a plain local `npm run build`).
   ...(process.env.VERCEL ? {} : { output: "standalone" }),
   poweredByHeader: false,
+  // เซิร์ฟเวอร์ dev ของ Next ยอมรับเฉพาะ origin "localhost" เป็นค่าเริ่มต้น เปิดหน้าเว็บ
+  // ผ่าน 127.0.0.1 แล้ว WebSocket ของ HMR จะถูกปฏิเสธเงียบ ๆ (ตอบกลับเป็น response
+  // ว่าง) พอ HMR ต่อไม่ติด หน้าเว็บก็ hydrate ไม่สำเร็จ ปุ่มทุกปุ่มเลยกดไม่ได้โดยไม่มี
+  // error บอก ประกาศ origin ทั้งสองชื่อไว้เพื่อให้เข้าทางไหนก็ใช้งานได้เหมือนกัน
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   async headers() {
     return [{
       source: "/(.*)",
