@@ -6,10 +6,9 @@
  * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
  */
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CalendarDays, CheckCircle2, Clock3, CreditCard, LockKeyhole, RefreshCw, Upload } from "lucide-react";
 import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
-import { DropdownField } from "@/components/dorm/DropdownField";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 
@@ -68,7 +67,6 @@ export function SubscriptionPage({ propertyId, subscription }: {
 }) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [planId, setPlanId] = useState("");
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [actionError, setActionError] = useState("");
   const [plansError, setPlansError] = useState("");
@@ -91,7 +89,6 @@ export function SubscriptionPage({ propertyId, subscription }: {
     try {
       const availablePlans = await json<Plan[]>(await fetch("/api/v1/plans", { cache: "no-store" }));
       setPlans(availablePlans);
-      setPlanId((current) => availablePlans.some((plan) => plan.id === current) ? current : availablePlans[0]?.id ?? "");
     } catch (cause) {
       setPlansError(formatClientError(cause, "โหลดแพ็กเกจไม่สำเร็จ"));
     } finally { setPlansLoading(false); }
@@ -128,14 +125,13 @@ export function SubscriptionPage({ propertyId, subscription }: {
    * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
    * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
    */
-  async function createOrder(event: FormEvent) {
-    event.preventDefault();
+  async function submitOrder(targetPlanId: string) {
     setSubmitting(true); setActionError(""); setMessage("");
     try {
       await json(await fetch(`/api/v1/admin/properties/${propertyId}/subscription-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, billingInterval }),
+        body: JSON.stringify({ planId: targetPlanId, billingInterval }),
       }));
       setMessage("สร้างคำสั่งซื้อแล้ว ขั้นตอนถัดไปคืออัปโหลดหลักฐานการชำระในรายการด้านล่างภายใน 48 ชั่วโมง");
       await loadOrders();
@@ -180,7 +176,6 @@ export function SubscriptionPage({ propertyId, subscription }: {
    * - plan: ค่า “plan” ที่จำเป็นต่อการทำงานของก้อนนี้
    * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
    */
-  const selected = plans.find((plan) => plan.id === planId);
   /**
    * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
    * หน้าที่: รวมขั้นตอนย่อยของ “open Order” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
@@ -217,14 +212,43 @@ export function SubscriptionPage({ propertyId, subscription }: {
       </> : <div className="rounded-2xl bg-amber-50 p-4 text-amber-800"><strong>ยังไม่มีแพ็กเกจที่ใช้งานอยู่</strong><p className="mt-1 text-sm">เลือกแพ็กเกจด้านล่างเพื่อเริ่มเปิดใช้งานหอพัก</p></div>}
     </section>
     <section className="panel settings-section">
-      <div className="settings-section-head"><div><h2>ซื้อหรือต่ออายุแพ็กเกจ</h2><p>ราคาและสิทธิ์จะถูกบันทึกไว้ในคำสั่งซื้อ</p></div></div>
+      <div className="settings-section-head">
+        <div><h2>ซื้อหรือต่ออายุแพ็กเกจ</h2><p>ราคาและสิทธิ์จะถูกบันทึกไว้ในคำสั่งซื้อ</p></div>
+        <div aria-label="รอบบิล" className="figma-inline-tabs" role="group">
+          <button className={billingInterval === "MONTHLY" ? "active" : ""} onClick={() => setBillingInterval("MONTHLY")} type="button">รายเดือน</button>
+          <button className={billingInterval === "YEARLY" ? "active" : ""} onClick={() => setBillingInterval("YEARLY")} type="button">รายปี</button>
+        </div>
+      </div>
       {plansError ? <div className="form-alert error" role="alert"><span>{plansError}</span><RetryButton label="ลองโหลดแพ็กเกจใหม่" onClick={() => void loadPlans()} /></div> : null}
-      {plansLoading ? <p aria-atomic="true" className="py-6 text-center" role="status">กำลังโหลดแพ็กเกจ...</p> : plans.length === 0 && !plansError ? <div className="rounded-2xl bg-amber-50 p-4 text-amber-800"><strong>ยังไม่มีแพ็กเกจเปิดขายในขณะนี้</strong><p className="mt-1 text-sm">กรุณาติดต่อแอดมินใหญ่หรือกลับมาลองใหม่ภายหลัง</p></div> : <form className="grid gap-4 lg:grid-cols-[1fr_220px_auto]" onSubmit={createOrder}>
-        <DropdownField label="แพ็กเกจ" onChange={setPlanId} options={plans.map((plan) => ({ label: `${plan.name} · สูงสุด ${plan.maxRooms} ห้อง`, value: plan.id }))} value={planId} />
-        <DropdownField label="รอบบิล" onChange={(value) => setBillingInterval(value as "MONTHLY" | "YEARLY")} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} />
-        <button aria-describedby={createDisabledReason ? "subscription-order-disabled-reason" : undefined} className="primary-button self-end" disabled={submitting || !planId || Boolean(openOrder)} type="submit">{subscription || orders.some((order) => order.status === "PAID") ? <RefreshCw size={18} /> : <CreditCard size={18} />}{submitting ? "กำลังดำเนินการ..." : subscription || orders.some((order) => order.status === "PAID") ? "ต่ออายุ" : "สร้างคำสั่งซื้อ"}</button>
-      </form>}
-      {selected ? <div className="mt-4 rounded-2xl bg-brand/[.06] p-4"><strong className="text-xl">{billingInterval === "YEARLY" ? Number(selected.yearlyPrice ?? Number(selected.monthlyPrice) * 12).toLocaleString("th-TH") : Number(selected.monthlyPrice).toLocaleString("th-TH")} บาท/{billingInterval === "YEARLY" ? "ปี" : "เดือน"}</strong><p className="mt-1 text-sm text-[#73757d]">{selected.description || `รองรับ ${selected.maxProperties} หอ และ ${selected.maxRooms} ห้อง`}</p></div> : null}
+      {plansLoading ? <p aria-atomic="true" className="py-6 text-center" role="status">กำลังโหลดแพ็กเกจ...</p> : plans.length === 0 && !plansError ? <div className="rounded-2xl bg-amber-50 p-4 text-amber-800"><strong>ยังไม่มีแพ็กเกจเปิดขายในขณะนี้</strong><p className="mt-1 text-sm">กรุณาติดต่อแอดมินใหญ่หรือกลับมาลองใหม่ภายหลัง</p></div> : <div className="plan-grid">
+        {plans.map((plan) => {
+          const yearly = billingInterval === "YEARLY";
+          const price = yearly ? Number(plan.yearlyPrice ?? Number(plan.monthlyPrice) * 12) : Number(plan.monthlyPrice);
+          const isCurrent = subscription?.planName === plan.name;
+          return <article className={isCurrent ? "plan-column current" : "plan-column"} key={plan.id}>
+            <strong className="plan-name">{plan.name}{isCurrent ? <em className="plan-tag">ใช้อยู่</em> : null}</strong>
+            <span className="plan-price">{price.toLocaleString("th-TH")}<small> บาท</small></span>
+            <small className="plan-period">ต่อ{yearly ? "ปี" : "เดือน"} · เรียกเก็บ{yearly ? "รายปี" : "รายเดือน"}</small>
+            <button
+              aria-describedby={createDisabledReason ? "subscription-order-disabled-reason" : undefined}
+              className={isCurrent ? "secondary-button plan-action" : "primary-button plan-action"}
+              disabled={submitting || Boolean(openOrder)}
+              onClick={() => void submitOrder(plan.id)}
+              type="button"
+            >
+              {isCurrent ? <RefreshCw size={16} /> : <CreditCard size={16} />}
+              {submitting ? "กำลังดำเนินการ..." : isCurrent ? "ต่ออายุแพ็กเกจนี้" : "เลือกแพ็กเกจนี้"}
+            </button>
+            <p className="plan-caption">{plan.description || `เหมาะกับหอขนาด ${plan.maxRooms} ห้อง`}</p>
+            <ul className="plan-features">
+              <li><CheckCircle2 aria-hidden={true} size={16} /> สูงสุด {plan.maxRooms.toLocaleString("th-TH")} ห้อง</li>
+              <li><CheckCircle2 aria-hidden={true} size={16} /> จัดการได้ {plan.maxProperties.toLocaleString("th-TH")} หอพัก</li>
+              {plan.allowPromptPay ? <li><CheckCircle2 aria-hidden={true} size={16} /> รับชำระผ่าน PromptPay</li> : null}
+              {plan.allowFileUploads ? <li><CheckCircle2 aria-hidden={true} size={16} /> แนบไฟล์เอกสารและหลักฐาน</li> : null}
+            </ul>
+          </article>;
+        })}
+      </div>}
       {createDisabledReason ? <p className="mt-4 text-sm font-bold text-amber-700" id="subscription-order-disabled-reason">{createDisabledReason}</p> : null}
     </section>
 
