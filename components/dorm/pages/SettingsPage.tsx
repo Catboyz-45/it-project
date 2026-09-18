@@ -8,7 +8,9 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { Banknote, Building2, CalendarDays, CheckCircle2, ChevronRight, CreditCard, FileText, Home, LockKeyhole, MailPlus, Package, UserRound, X } from "lucide-react";
+import { ArrowLeft, Banknote, Building2, CalendarDays, CheckCircle2, ChevronRight, CreditCard, FileText, Home, LockKeyhole, MailPlus, Package, UserRound, X } from "lucide-react";
+import Link from "next/link";
+import { ownerPagePath } from "@/lib/navigation-routes";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { DocumentTemplatePanel } from "@/components/dorm/DocumentTemplatePanel";
 import { InvitationsPage } from "@/components/dorm/InvitationsPage";
@@ -96,6 +98,9 @@ export function SettingsPage({
   subscription: OwnerDashboardAggregation["subscription"];
 }) {
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
+  /* จอแคบวางสองคอลัมน์ไม่ไหว จึงสลับทีละอย่างแทนการวางเมนูกองทับเนื้อหา
+     เข้ามาแบบ deep link (เช่น /subscription) ให้ไปที่เนื้อหาเลย ไม่ต้องผ่านรายการ */
+  const [mobileView, setMobileView] = useState<"list" | "section">(initialSection === "general" ? "list" : "section");
   const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, setActiveSection);
   const [settings, setSettings] = useState({
     businessName: initialSettings.legalName ?? "",
@@ -530,16 +535,20 @@ export function SettingsPage({
 
   useEffect(() => {
     setActiveSection(initialSection);
+    setMobileView(initialSection === "general" ? "list" : "section");
   }, [initialSection]);
 
   return (
-    <section className={activeSection === "account" ? "account-page" : "settings-page"}>
+    <section className={activeSection === "account" ? "account-page" : "settings-page"} data-mobile-view={mobileView}>
       <LiveAnnouncement message={`เปิดแท็บ ${settingSections.find(({ key }) => key === activeSection)?.label ?? "ตั้งค่า"}`} />
       {activeSection !== "account" ? <aside className="settings-nav">
+        <Link className="settings-back" href={ownerPagePath(propertyId, "overview")}>
+          <ArrowLeft aria-hidden={true} size={16} /> กลับหน้าหลัก
+        </Link>
         <div aria-label="เมนูตั้งค่า" aria-orientation="vertical" className="settings-nav-group" onKeyDown={handleSettingsKeyDown} role="tablist">
           <p>ระบบหอพัก</p>
           {systemSettingSections.map(({ key, label, icon: Icon }) => (
-            <button aria-controls="settings-active-panel" aria-selected={activeSection === key} className={activeSection === key ? "active" : ""} id={`settings-tab-${key}`} key={key} onClick={() => setActiveSection(key)} role="tab" tabIndex={activeSection === key ? 0 : -1} type="button">
+            <button aria-controls="settings-active-panel" aria-selected={activeSection === key} className={activeSection === key ? "active" : ""} id={`settings-tab-${key}`} key={key} onClick={() => { setActiveSection(key); setMobileView("section"); }} role="tab" tabIndex={activeSection === key ? 0 : -1} type="button">
               <Icon aria-hidden={true} size={18} />
               {label}
             </button>
@@ -547,6 +556,9 @@ export function SettingsPage({
         </div>
       </aside> : null}
 
+      {activeSection !== "account" ? <button className="settings-back-to-list" onClick={() => setMobileView("list")} type="button">
+        <ArrowLeft aria-hidden={true} size={16} /> รายการตั้งค่าทั้งหมด
+      </button> : null}
       <fieldset aria-labelledby={activeSection === "account" ? undefined : `settings-tab-${activeSection}`} className="settings-content view-transition min-w-0 border-0 p-0" disabled={readOnly && !["account", "documents", "invitations", "subscription"].includes(activeSection)} id={activeSection === "account" ? undefined : "settings-active-panel"} key={activeSection} role={activeSection === "account" ? undefined : "tabpanel"} tabIndex={activeSection === "account" ? undefined : 0}>
         {readOnly && !["account", "invitations", "subscription"].includes(activeSection) ? <ReadOnlyNotice>ตรวจสอบค่าปัจจุบันและดูตัวอย่างเอกสารได้ แต่ไม่สามารถแก้ไขหรือบันทึกการตั้งค่าหอได้</ReadOnlyNotice> : null}
         {activeSection !== "account" ? <div className="settings-heading">
