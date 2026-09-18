@@ -946,7 +946,9 @@
   .modal fieldset input[type="radio"], .modal fieldset input[type="checkbox"] { @apply min-h-0 size-5 w-5 accent-brand; }
   .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid { @apply grid grid-cols-2 gap-5; }
   .full-width { @apply col-span-full; }
-  .modal-actions { @apply mt-6 flex flex-wrap items-center justify-end gap-2 border-0 p-0; }
+  .modal-actions {
+    @apply mt-8 -mx-7 -mb-7 flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-0 border-t border-[#e4e4e7] bg-[#fafafa] px-7 py-4 sm:-mx-10 sm:-mb-10 sm:px-10;
+  }
   .modal-actions button:not(.app-button) { @apply min-h-11 rounded-md border border-[#8b8d96] bg-[#fff] px-4 text-sm font-semibold text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5] lg:min-h-9; }
   .modal-actions button:not(.app-button):last-child, .modal-actions .primary-button { @apply border-brand bg-brand text-[#fff] hover:bg-[#4651c7]; }
   .modal-actions .app-button { @apply min-h-11 lg:min-h-9; }
@@ -1481,7 +1483,7 @@
     }
     .modal-header { @apply mb-5; }
     .modal-actions { @apply gap-2; }
-    .modal-actions { @apply flex-col items-stretch; }
+    .modal-actions { @apply -mx-5 -mb-5 flex-col items-stretch rounded-b-none px-5 sm:rounded-b-xl; }
     .modal-actions > * { @apply w-full; }
     .modal-actions button { @apply min-h-12 px-4 text-sm; }
     .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid, .furniture-grid { @apply grid-cols-1; }
