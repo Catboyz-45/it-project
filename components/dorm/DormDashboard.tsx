@@ -279,8 +279,14 @@ export function DormDashboard({
     setIsRefreshing(false);
   }, [propertyId]);
 
+  // layout ดึง read model กับตัวเลขสรุปมาให้ตั้งแต่ฝั่งเซิร์ฟเวอร์แล้ว เปิดหน้ามาครั้งแรกจึงไม่ต้องยิงซ้ำ
+  const skipInitialRefreshRef = useRef(true);
   // โหลดใหม่เมื่อสลับไปหออื่น เพราะ refreshDashboard ผูกกับ propertyId อยู่แล้ว
   useEffect(() => {
+    if (skipInitialRefreshRef.current) {
+      skipInitialRefreshRef.current = false;
+      return;
+    }
     void refreshDashboard();
   }, [refreshDashboard]);
 
