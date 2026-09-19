@@ -3,6 +3,7 @@ import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
+import { listPropertyTenants } from "@/lib/server/property-management";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
@@ -25,15 +26,19 @@ export default async function PropertyWorkspaceSectionPage({
   // ดึงเฉพาะหน้าที่ต้องใช้ หน้าอื่นได้ข้อมูลจาก read model ใน layout อยู่แล้ว
   // ประวัติซ่อมต้องรู้ว่าใครเปิดดู เพราะจำนวนที่ยังไม่อ่านนับแยกตามคน
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
-  const auth = activePage === "repairHistory" ? await requirePageAuth() : null;
+  const auth = ["repairHistory", "complaints"].includes(activePage) ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases, initialRepairHistory] = await Promise.all([
+  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
     auth ? loadRepairHistory(propertyId, auth.userId) : null,
+    activePage === "tenants" ? listPropertyTenants(propertyId, { page: 1, pageSize: 20 }) : null,
+    auth && activePage === "complaints" ? loadComplaints(propertyId, auth.userId) : null,
   ]);
   return <OwnerSectionPanel
+    initialComplaints={initialComplaints}
+    initialTenants={initialTenants ? JSON.parse(JSON.stringify(initialTenants)) : null}
     initialRepairHistory={initialRepairHistory}
     initialLeases={initialLeases ? JSON.parse(JSON.stringify(initialLeases)) : null}
     initialParcels={initialParcels}
@@ -79,4 +84,21 @@ async function loadRepairHistory(propertyId: string, userId: string) {
       completedAt: item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("th-TH") : undefined,
     })),
   };
+}
+
+// เรื่องร้องเรียนคือ ticket ชนิด COMPLAINT แปลงให้เป็นรูปที่หน้าจอใช้
+async function loadComplaints(propertyId: string, userId: string) {
+  const result = await listAdminTickets(propertyId, userId, { page: 1, pageSize: 50 }, "COMPLAINT");
+  return result.data.map((item) => ({
+    id: item.id,
+    title: item.title,
+    room: item.room?.number ?? "-",
+    owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
+    date: new Date(item.createdAt).toLocaleString("th-TH"),
+    hasUnreadReply: item.hasUnreadReply,
+    status: item.status === "RESOLVED" ? "แก้ไขแล้ว" as const
+      : item.status === "CANCELLED" ? "ยกเลิกแล้ว" as const
+      : item.status === "ACKNOWLEDGED" || item.status === "IN_PROGRESS" ? "กำลังตรวจสอบ" as const
+      : "รับเรื่องแล้ว" as const,
+  }));
 }

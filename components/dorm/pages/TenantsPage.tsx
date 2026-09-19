@@ -1,7 +1,7 @@
 "use client";
 // เก็บคำค้นกับแท็บที่เลือก และโหลดข้อมูลทีละหน้าจากเบราว์เซอร์
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Building2, CalendarClock, Download, FileText, Search, UsersRound } from "lucide-react";
 import { currency } from "@/lib/dorm-utils";
@@ -16,6 +16,7 @@ import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } fr
 // หน้าผู้เช่า มีสามแท็บ ผู้เช่าปัจจุบัน คำขอเข้าพัก และประวัติการย้าย
 export function TenantsPage({
   filteredTenants,
+  initialPageInfo = null,
   onChanged,
   onOpenTenantDetail,
   propertyId,
@@ -23,6 +24,8 @@ export function TenantsPage({
   setSelectedRoomId,
 }: {
   filteredTenants: Tenant[];
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialPageInfo?: ServerPageInfo | null;
   onChanged: () => Promise<void>;
   onOpenTenantDetail: (tenant: Tenant) => void;
   propertyId: string;
@@ -39,7 +42,8 @@ export function TenantsPage({
   const [view, setView] = useState<"active" | "pending" | "transitions">(initialView);
   const [query, setQuery] = useState("");
   const [tenants, setTenants] = useState(filteredTenants);
-  const [pageInfo, setPageInfo] = useState<ServerPageInfo>({ page: 1, pageSize: 20, hasNextPage: false });
+  const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
+  const skipInitialLoadRef = useRef(initialPageInfo !== null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
@@ -71,6 +75,11 @@ export function TenantsPage({
   }, [propertyId, query]);
 
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     // หน่วง 250 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
     // ส่วน abort ยกเลิกคำขอเก่า กันผลเก่ามาถึงทีหลังแล้วทับผลใหม่

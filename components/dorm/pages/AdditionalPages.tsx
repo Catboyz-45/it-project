@@ -2,7 +2,7 @@
 // เก็บฟอร์มและสถานะของกล่องโต้ตอบไว้ฝั่งเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Building2,
@@ -67,8 +67,10 @@ function todayInputValue() {
 }
 
 // หน้าประกาศ ส่งถึงทั้งหอหรือเจาะจงอาคาร ชั้น หรือห้อง และตั้งเวลาเผยแพร่ได้
-export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: {
+export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: {
   initialAnnouncements: Announcement[];
+  // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialLoaded?: boolean;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
@@ -170,7 +172,14 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
     setIsCreateOpen(true);
   };
 
-  useEffect(() => { void loadAnnouncements(); }, [loadAnnouncements]);
+  const skipInitialLoadRef = useRef(initialLoaded);
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
 
   // ใช้ตัวเดียวกันทั้งสร้างและแก้ไข ต่างกันที่ URL กับเมท็อด
   const saveAnnouncement = async () => {
@@ -394,6 +403,7 @@ export type Complaint = {
 // หน้าเรื่องร้องเรียน ไล่สถานะจากรับเรื่อง ไปตรวจสอบ แล้วปิดงาน
 export function ComplaintsPage({
   complaints: initialComplaints,
+  initialLoaded = false,
   onChanged,
   onAddRequestHandled,
   openAddOnMount,
@@ -401,6 +411,8 @@ export function ComplaintsPage({
   propertyId,
   readOnly = false,
 }: {
+  // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialLoaded?: boolean;
   complaints: Complaint[];
   onChanged: () => Promise<void>;
   onAddRequestHandled: () => void;
@@ -457,7 +469,12 @@ export function ComplaintsPage({
     }
   }, [propertyId]);
 
+  const skipInitialComplaintsRef = useRef(initialLoaded);
   useEffect(() => {
+    if (skipInitialComplaintsRef.current) {
+      skipInitialComplaintsRef.current = false;
+      return;
+    }
     void loadComplaints();
     if (openAddOnMount) onAddRequestHandled();
   }, [loadComplaints, onAddRequestHandled, openAddOnMount]);

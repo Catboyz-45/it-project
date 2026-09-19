@@ -35,6 +35,7 @@ import { ContractsPage } from "@/components/dorm/pages/ContractsPage";
 import {
   AnnouncementsPage,
   ComplaintsPage,
+  type Complaint,
   HelpPage,
   PropertiesPage,
 } from "@/components/dorm/pages/AdditionalPages";
@@ -763,12 +764,16 @@ export function OwnerSectionPanel({
   initialLeases = null,
   initialParcels = null,
   initialRepairHistory = null,
+  initialTenants = null,
+  initialComplaints = null,
   invoiceView = "invoices",
   page,
 }: {
   initialLeases?: { data: unknown[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
   initialParcels?: OwnerInitialParcels | null;
   initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
+  initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
+  initialComplaints?: Complaint[] | null;
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 }) {
@@ -812,7 +817,8 @@ export function OwnerSectionPanel({
   }
   if (page === "tenants") {
     return <TenantsPage
-      filteredTenants={tenants}
+      filteredTenants={initialTenants?.data ?? tenants}
+      initialPageInfo={initialTenants?.pageInfo ?? null}
       onChanged={refreshDashboard}
       onOpenTenantDetail={onOpenTenantDetail}
       propertyId={propertyId}
@@ -848,7 +854,8 @@ export function OwnerSectionPanel({
   }
   if (page === "complaints") {
     return <ComplaintsPage
-      complaints={dashboardData.complaints}
+      complaints={initialComplaints ?? dashboardData.complaints}
+      initialLoaded={initialComplaints !== null}
       onAddRequestHandled={onAddComplaintHandled}
       onChanged={refreshDashboard}
       onUnreadChanged={onUnreadChanged}
@@ -870,6 +877,8 @@ export function OwnerSectionPanel({
     />;
   }
   if (page === "announcements") {
+    // ประกาศไม่ได้ดึงจากเซิร์ฟเวอร์ เพราะการแปลงต้องจับคู่เลขห้องกับรหัสห้องจาก rooms ฝั่งนี้
+    // ซึ่ง Server Component ของหน้าไม่มีให้ ต้องยิงถามเพิ่มจนได้ไม่คุ้มเสีย
     return <AnnouncementsPage
       initialAnnouncements={dashboardData.announcements}
       onChanged={refreshDashboard}
