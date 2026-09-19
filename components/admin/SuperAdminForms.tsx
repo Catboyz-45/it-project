@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Super Admin Forms” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มและส่งคำขอจากเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Plus, UserPlus, X } from "lucide-react";
@@ -13,44 +8,20 @@ import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { DropdownField } from "@/components/dorm/DropdownField";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Property Option” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PropertyOption = { id: string; name: string };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Plan Option” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PlanOption = { id: string; name: string; maxRooms: number };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “post Json” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - url: ค่า “url” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - body: ค่า “body” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ตัวช่วยยิง POST แบบ JSON ให้ทุกฟอร์มในไฟล์นี้จัดการข้อผิดพลาดเหมือนกัน
 async function postJson(url: string, body: unknown) {
   const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const result = await response.json() as { error?: string };
   if (!response.ok) throw new Error(result.error || "บันทึกไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Super Admin Form Section” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// แต่ละหน้าเรียกใช้เฉพาะส่วนที่ต้องการ หน้าหอพักเอาแค่ property หน้าบัญชีเอาแค่ account
 type SuperAdminFormSection = "property" | "account" | "subscription";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Super Admin Forms” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { sections = ["property", "account", "subscription"], }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ฟอร์มสร้างของผู้ดูแลระบบ สร้างหอ สร้างบัญชีเจ้าของหอ และกำหนดแพ็กเกจให้หอ
 export function SuperAdminForms({
   sections = ["property", "account", "subscription"],
 }: {
@@ -75,26 +46,14 @@ export function SuperAdminForms({
   const [billingInterval, setBillingInterval] = useState("MONTHLY");
   const [openDialog, setOpenDialog] = useState<"property" | "account" | null>(null);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close Dialog” ตามกฎของระบบ
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   function closeDialog() {
+    // ห้ามปิดตอนกำลังบันทึก จะได้ไม่ค้างว่าบันทึกไปแล้วหรือยัง
     if (pending) return;
     setMessage("");
     setOpenDialog(null);
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Properties” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ช่องเลือกหอกับแพ็กเกจโหลดทีละหน้าและค้นได้ เพราะระบบมีหอเยอะเกินจะโหลดมาทั้งหมด
   const loadProperties = useCallback(async (page: number, append: boolean) => {
     const search = new URLSearchParams({
       page: String(page), pageSize: "20", activeOnly: "true", query: propertyQuery,
@@ -109,14 +68,6 @@ export function SuperAdminForms({
     setHasMoreProperties(result.pageInfo.hasNextPage);
   }, [propertyQuery]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Plans” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadPlans = useCallback(async (page: number, append: boolean) => {
     const search = new URLSearchParams({
       page: String(page), pageSize: "20", activeOnly: "true", query: planQuery,
@@ -133,12 +84,6 @@ export function SuperAdminForms({
 
   useEffect(() => {
     if (!showAccount && !showSubscription) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timeout” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const timeout = window.setTimeout(() => {
       void loadProperties(1, false).catch((error: unknown) => setMessage(error instanceof Error ? error.message : "โหลดหอพักไม่สำเร็จ"));
     }, 250);
@@ -147,12 +92,6 @@ export function SuperAdminForms({
 
   useEffect(() => {
     if (!showSubscription) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timeout” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const timeout = window.setTimeout(() => {
       void loadPlans(1, false).catch((error: unknown) => setMessage(error instanceof Error ? error.message : "โหลดแพ็กเกจไม่สำเร็จ"));
     }, 250);
@@ -167,30 +106,19 @@ export function SuperAdminForms({
     setSubscriptionPlanId((current) => plans.some(({ id }) => id === current) ? current : plans[0]?.id ?? "");
   }, [plans]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Property” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submitProperty(event: FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true); setMessage("");
     const form = new FormData(event.currentTarget);
     try {
       await postJson("/api/super-admin/properties", { name: form.get("name"), shortName: form.get("shortName") });
+      // โหลดหน้าใหม่ทั้งหมด เพราะตารางถูกวาดมาจากฝั่งเซิร์ฟเวอร์
       window.location.reload();
     } catch (error) { setMessage(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ"); setPending(false); }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Admin” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // สร้างบัญชีเจ้าของหอ พร้อมกำหนดตั้งแต่แรกว่าดูแลหอไหนได้บ้าง
   async function submitAdmin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true); setMessage("");
@@ -206,17 +134,11 @@ export function SuperAdminForms({
     } catch (error) { setMessage(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ"); setPending(false); }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Subscription” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submitSubscription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true); setMessage("");
     const form = new FormData(event.currentTarget);
+    // ทั้งสองช่องเป็นตัวเลือกที่ค้นได้ ไม่ใช่ input ปกติ จึงต้องเช็คเองก่อนส่ง
     const propertyId = subscriptionPropertyId;
     if (!propertyId || !subscriptionPlanId) {
       setMessage("กรุณาเลือกหอพักและแพ็กเกจ");
@@ -227,6 +149,7 @@ export function SuperAdminForms({
       const startsAt = new Date(String(form.get("startsAt")));
       const expiresAt = new Date(String(form.get("expiresAt")));
       const response = await fetch(`/api/v1/super-admin/properties/${propertyId}/subscription`, {
+        // PUT เพราะหอหนึ่งมีแพ็กเกจที่ใช้งานอยู่ได้ใบเดียว ส่งไปคือแทนที่ของเดิม
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId: subscriptionPlanId, status: "ACTIVE",

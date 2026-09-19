@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Account Approval Actions” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะของกล่องโต้ตอบและส่งคำขอจากเบราว์เซอร์
 
 import { useState } from "react";
 import { Building2, Check, KeyRound, X } from "lucide-react";
@@ -13,13 +8,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Account Approval Actions” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { displayName, memberships, status, userId, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ปุ่มจัดการบัญชีเจ้าของหอ อนุมัติ ปฏิเสธ ออกรหัสชั่วคราว และแก้สิทธิ์เข้าถึงหอ
 export function AccountApprovalActions({
   displayName,
   memberships,
@@ -38,23 +27,11 @@ export function AccountApprovalActions({
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [editingMemberships, setEditingMemberships] = useState(false);
   const [properties, setProperties] = useState<Array<{ id: string; name: string; isActive: boolean }>>([]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “[selected Property Ids, set Selected Property Ids]” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เริ่มจากสิทธิ์ที่มีอยู่เดิม แก้บนสำเนา ของจริงเปลี่ยนเมื่อกดบันทึกเท่านั้น
   const [selectedPropertyIds, setSelectedPropertyIds] = useState(() => memberships.map(({ id }) => id));
   const [loadingProperties, setLoadingProperties] = useState(false);
   const { confirm, confirmationDialog } = useConfirmation();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “review” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - nextStatus: ค่า “next Status” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function review(nextStatus: "APPROVED" | "REJECTED") {
     setPending(true);
     setError("");
@@ -69,6 +46,7 @@ export function AccountApprovalActions({
       });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "ตรวจสอบบัญชีไม่สำเร็จ");
+      // โหลดหน้าใหม่ทั้งหมด เพราะสถานะบัญชีถูกวาดมาจากฝั่งเซิร์ฟเวอร์
       window.location.reload();
     } catch (reviewError) {
       setError(reviewError instanceof Error ? reviewError.message : "ตรวจสอบบัญชีไม่สำเร็จ");
@@ -76,13 +54,9 @@ export function AccountApprovalActions({
     }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “issue Password” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ออกรหัสผ่านชั่วคราวให้เจ้าของหอที่เข้าระบบไม่ได้ รหัสแสดงครั้งเดียว ไม่มีทางดูย้อนหลัง
   async function issuePassword() {
+    // ถามยืนยันก่อน เพราะทำแล้วรหัสเดิมใช้ไม่ได้และ session ที่เปิดอยู่ถูกตัดทั้งหมด
     if (!await confirm({ title: "ออกรหัสผ่านชั่วคราวใหม่?", description: `รหัสเดิมและเซสชันทั้งหมดของ ${displayName} จะถูกยกเลิก`, confirmLabel: "ออกรหัสใหม่" })) return;
     setPending(true); setError(""); setTemporaryPassword("");
     try {
@@ -94,20 +68,16 @@ export function AccountApprovalActions({
     finally { setPending(false); }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Membership Editor” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function openMembershipEditor() {
     setEditingMemberships(true);
     setSelectedPropertyIds(memberships.map(({ id }) => id));
     setError("");
+    // โหลดรายการหอครั้งเดียวแล้วเก็บไว้ เปิดกล่องซ้ำไม่ต้องยิงใหม่
     if (properties.length) return;
     setLoadingProperties(true);
     try {
       const allProperties: Array<{ id: string; name: string; isActive: boolean }> = [];
+      // วนขอทีละ 100 หอจนหมด เพราะต้องแสดงให้เลือกครบทุกหอในกล่องเดียว
       let page = 1;
       let hasNextPage = true;
       while (hasNextPage) {
@@ -126,12 +96,6 @@ export function AccountApprovalActions({
     }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Memberships” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function saveMemberships() {
     setPending(true);
     setError("");
