@@ -161,7 +161,7 @@ export function PendingTenantApprovals({
 
       {isLoading ? (
         <LoadingSkeleton count={4} label="กำลังโหลดคำขอเข้าพัก" variant="table" />
-      /* ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ */
+      // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ
       ) : pageItems.length === 0 && query.trim() ? (
         <SearchEmptyState description="ลองใช้ชื่อ อีเมล เบอร์โทร หรือเลขห้องอื่น" title="ไม่พบคำขอที่ค้นหา" />
       ) : pageItems.length === 0 ? (
