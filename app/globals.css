@@ -154,10 +154,6 @@
   .loading-skeleton-table-row > .loading-skeleton-pill { @apply h-7 w-20 rounded-full; }
   .loading-skeleton [aria-hidden="true"] > span,
   .loading-skeleton [aria-hidden="true"] > div > span { animation: skeleton-pulse 1.35s ease-in-out infinite; }
-  .view-transition {
-    animation: view-enter 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-
   .app-button {
     @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#4651c7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] lg:min-h-9;
   }
@@ -231,7 +227,6 @@
     @apply pointer-events-none absolute right-1 bottom-1 left-1 flex justify-center rounded-b-xl pb-1 pt-5 text-[#5c5e66];
     background: linear-gradient(to top, #ffffff 35%, rgba(255, 255, 255, 0.94) 65%, rgba(255, 255, 255, 0));
   }
-  .dropdown-scroll-indicator > svg { animation: dropdown-scroll-hint 1.4s ease-in-out infinite; }
   .schedule-date-picker { @apply relative; }
   .schedule-date-trigger {
     @apply flex min-h-12 w-full items-center justify-between rounded-md border border-[#8b8d96] bg-[#fff] px-3 text-left text-sm font-medium text-[#292a30] transition-colors hover:bg-[#fafafa] focus-visible:ring-brand;
@@ -913,7 +908,6 @@
   }
   .toast-region { @apply pointer-events-none fixed right-4 top-4 z-[100] grid w-[min(24rem,calc(100vw-2rem))] gap-2; }
   .toast { @apply pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-2xl border bg-white px-4 py-3 text-sm font-semibold text-[#202124] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; animation: toast-enter 220ms cubic-bezier(.2,.8,.2,1) both; }
-  .toast::after { content: ""; @apply absolute right-0 bottom-0 left-0 h-0.5 origin-left bg-current opacity-25; animation: toast-lifetime 5s linear both; }
   .toast span { @apply min-w-0 flex-1; }
   .toast button { @apply rounded-lg p-0.5 text-[#62646c] hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2; }
   .toast-success { @apply border-[#047857]; }
@@ -922,13 +916,8 @@
   .toast-error > svg { @apply shrink-0 text-[#b91c1c]; }
   .notification-trigger > svg { @apply transition-transform duration-200; }
   .notification-trigger-open > svg { @apply rotate-[-12deg]; }
-  .notification-count-badge { animation: notification-badge-enter 280ms cubic-bezier(.2,.9,.2,1.25) both, notification-badge-pulse 2.6s ease-in-out 500ms infinite; }
+  .notification-count-badge { animation: notification-badge-enter 280ms cubic-bezier(.2,.9,.2,1.25) both; }
   .notification-panel { transform-origin: top right; animation: notification-panel-enter 180ms cubic-bezier(.2,.8,.2,1) both; }
-  .notification-item { animation: notification-item-enter 180ms ease-out both; }
-  .notification-item:nth-child(2) { animation-delay: 25ms; }
-  .notification-item:nth-child(3) { animation-delay: 50ms; }
-  .notification-item:nth-child(4) { animation-delay: 75ms; }
-  .notification-item:nth-child(n+5) { animation-delay: 100ms; }
   .form-alert { @apply rounded-xl border border-[#047857] bg-emerald-50 px-4 py-3 text-sm font-semibold text-[#065f46]; }
   .form-alert.error { @apply border-[#b91c1c] bg-red-50 text-[#991b1b]; }
   .form-alert.warning { @apply border-[#b45309] bg-amber-50 text-[#92400e]; }
@@ -1599,19 +1588,7 @@
 }
 
 /* การเคลื่อนไหวตอนเปลี่ยนหน้า: ค่อย ๆ แสดงเนื้อหาโดยไม่รบกวนการอ่าน */
-@keyframes view-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .view-transition,
   .dropdown-popover,
   .action-menu-popover {
     animation: none;
@@ -1823,11 +1800,6 @@ select:disabled {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes dropdown-scroll-hint {
-  0%, 100% { transform: translateY(-1px); }
-  50% { transform: translateY(2px); }
-}
-
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
@@ -1843,34 +1815,14 @@ select:disabled {
   to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
-@keyframes toast-lifetime {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
-}
-
 @keyframes notification-panel-enter {
   from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes notification-item-enter {
-  from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes notification-badge-enter {
   from { opacity: 0; transform: scale(0.55); }
   to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes notification-badge-pulse {
-  0%, 72%, 100% { box-shadow: 0 0 0 0 rgb(239 68 68 / 0); }
-  82% { box-shadow: 0 0 0 5px rgb(239 68 68 / 0.18); }
-}
-
-@keyframes revenue-segment-grow {
-  from { opacity: 0.35; transform: scaleY(0); }
-  to { opacity: 1; transform: scaleY(1); }
 }
 
 @keyframes login-orb-drift {
@@ -1884,42 +1836,6 @@ select:disabled {
   to { background-position: 56px 28px; }
 }
 
-@keyframes dashboard-card-enter {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.dashboard-metric-stagger > *,
-.dashboard-panel-stagger > .panel {
-  animation: dashboard-card-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.dashboard-metric-stagger > :nth-child(2),
-.dashboard-panel-stagger > .panel:nth-child(2) { animation-delay: 55ms; }
-.dashboard-metric-stagger > :nth-child(3),
-.dashboard-panel-stagger > .panel:nth-child(3) { animation-delay: 110ms; }
-.dashboard-metric-stagger > :nth-child(4),
-.dashboard-panel-stagger > .panel:nth-child(4) { animation-delay: 165ms; }
-.dashboard-panel-stagger > .panel:nth-child(5) { animation-delay: 220ms; }
-.dashboard-panel-stagger > .panel:nth-child(6) { animation-delay: 275ms; }
-.dashboard-panel-stagger > .panel:nth-child(n+7) { animation-delay: 330ms; }
-
-@keyframes empty-state-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes empty-state-icon-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-@keyframes empty-state-glow {
-  0%, 100% { opacity: 0.34; transform: scale(0.92); }
-  50% { opacity: 0.62; transform: scale(1.08); }
-}
-
-/* Empty views should feel alive without delaying the next user action. */
 .empty-state,
 .dashboard-empty-state:not([role="alert"]),
 .repair-empty,
@@ -1928,23 +1844,13 @@ select:disabled {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  animation: empty-state-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.empty-state::before,
-.dashboard-empty-state:not([role="alert"])::before,
 .empty-state > svg:first-child,
 .dashboard-empty-state > svg:first-child,
 .repair-empty > svg:first-child,
 .document-editor-state > svg:first-child {
   color: #5865f2;
-  animation: empty-state-icon-float 2.8s ease-in-out infinite;
-}
-
-.empty-state > :not(:first-child),
-.repair-empty > :not(:first-child),
-.document-editor-state > :not(:first-child) {
-  animation: empty-state-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
 }
 
 /* หน้าจอมือถือ: เปลี่ยนตารางและแถบเครื่องมือเป็นแนวตั้งเพื่อไม่ให้ข้อมูลล้นจอ */
@@ -2011,34 +1917,16 @@ select:disabled {
   .modal-backdrop > .repair-schedule-modal,
   .dropdown-popover,
   .dropdown-menu button,
-  .dropdown-scroll-indicator > svg,
   .action-menu-popover,
   .action-menu-popover button,
   .toast,
-  .toast::after,
   .notification-trigger > svg,
   .notification-count-badge,
   .notification-panel,
-  .notification-item,
-  .revenue-segment,
   .login-aurora span,
   .login-dot-field,
-  .dashboard-metric-stagger > *,
-  .dashboard-panel-stagger > .panel,
   .loading-skeleton [aria-hidden="true"] > span,
-  .loading-skeleton [aria-hidden="true"] > div > span,
-  .empty-state,
-  .empty-state::before,
-  .empty-state > *,
-  .dashboard-empty-state::before,
-  .dashboard-empty-state > *,
-  .repair-empty,
-  .repair-empty::before,
-  .repair-empty > *,
-  .settings-empty-list,
-  .document-editor-state,
-  .document-editor-state::before,
-  .document-editor-state > * {
+  .loading-skeleton [aria-hidden="true"] > div > span {
     animation-duration: 1ms;
     animation-iteration-count: 1;
     animation-delay: 0ms;
