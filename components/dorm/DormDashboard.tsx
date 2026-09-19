@@ -767,6 +767,7 @@ export function OwnerSectionPanel({
   initialTenants = null,
   initialComplaints = null,
   initialInvitations = null,
+  initialSubscriptionData = null,
   invoiceView = "invoices",
   page,
 }: {
@@ -776,6 +777,7 @@ export function OwnerSectionPanel({
   initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
   initialComplaints?: Complaint[] | null;
   initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
+  initialSubscriptionData?: Parameters<typeof SettingsPage>[0]["initialSubscriptionData"];
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 }) {
@@ -899,6 +901,7 @@ export function OwnerSectionPanel({
       accountEmail={accountEmail}
       accountName={accountName}
       initialInvitations={initialInvitations}
+      initialSubscriptionData={initialSubscriptionData}
       initialSection={page === "account" ? "account" : page === "invitations" ? "invitations" : page === "subscription" ? "subscription" : "general"}
       initialSettings={dashboardData.settings}
       onAccountNameChange={onAccountNameChange}

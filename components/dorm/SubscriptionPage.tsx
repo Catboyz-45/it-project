@@ -1,7 +1,7 @@
 "use client";
 // โหลดข้อมูลและอัปโหลดไฟล์จากเบราว์เซอร์
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CalendarDays, CheckCircle2, Clock3, CreditCard, LockKeyhole, RefreshCw, Upload } from "lucide-react";
 import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
@@ -37,21 +37,24 @@ const maxSlipSize = 5 * 1024 * 1024;
 const allowedSlipTypes = new Set(["image/png", "image/jpeg", "application/pdf"]);
 
 // หน้าแพ็กเกจฝั่งเจ้าของหอ ดูสิทธิ์ปัจจุบัน ซื้อหรือต่ออายุ และส่งหลักฐานการโอน
-export function SubscriptionPage({ propertyId, subscription }: {
+// initialData ส่งมาจาก Server Component ของหน้านี้ แพ็กเกจกับคำสั่งซื้อจึงมาพร้อม HTML
+export function SubscriptionPage({ initialData = null, propertyId, subscription }: {
+  initialData?: { orders: Order[]; ordersHasNextPage: boolean; plans: Plan[] } | null;
   propertyId: string;
   subscription: OwnerDashboardAggregation["subscription"];
 }) {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [plans, setPlans] = useState<Plan[]>(initialData?.plans ?? []);
+  const [orders, setOrders] = useState<Order[]>(initialData?.orders ?? []);
+  const skipInitialLoadRef = useRef(initialData !== null);
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [actionError, setActionError] = useState("");
   const [plansError, setPlansError] = useState("");
   const [ordersError, setOrdersError] = useState("");
   const [message, setMessage] = useState("");
-  const [plansLoading, setPlansLoading] = useState(true);
-  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [plansLoading, setPlansLoading] = useState(initialData === null);
+  const [ordersLoading, setOrdersLoading] = useState(initialData === null);
   const [submitting, setSubmitting] = useState(false);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialData?.ordersHasNextPage ?? false);
   const [page, setPage] = useState(1);
 
   // แยกสถานะโหลดกับข้อผิดพลาดของแพ็กเกจและประวัติออกจากกัน ฝั่งหนึ่งพังอีกฝั่งจะได้ยังใช้ได้
@@ -81,7 +84,15 @@ export function SubscriptionPage({ propertyId, subscription }: {
   }, [propertyId]);
 
   // ยิงสองคำขอพร้อมกันตอนเปิดหน้า ไม่ต้องรอผลของกันและกัน
-  useEffect(() => { void loadPlans(); void loadOrders(); }, [loadOrders, loadPlans]);
+  useEffect(() => {
+    // เซิร์ฟเวอร์ส่งมาให้แล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadPlans();
+    void loadOrders();
+  }, [loadOrders, loadPlans]);
 
   // สร้างคำสั่งซื้อ แล้วผู้ใช้ค่อยไปอัปโหลดสลิปในรายการข้างล่าง
   async function submitOrder(targetPlanId: string) {

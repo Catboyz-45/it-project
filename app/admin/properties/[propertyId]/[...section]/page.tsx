@@ -4,6 +4,8 @@ import { ownerPageFromSegments } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
 import { listRooms } from "@/lib/server/property-structure";
+import { listSaasPlans } from "@/lib/server/saas";
+import { listPropertySubscriptionOrders } from "@/lib/server/subscription-orders";
 import { listPropertyTenants } from "@/lib/server/property-management";
 import { listInvitations } from "@/lib/server/tenant-onboarding";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
@@ -30,7 +32,7 @@ export default async function PropertyWorkspaceSectionPage({
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
   const auth = ["repairHistory", "complaints"].includes(activePage) ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints, initialInvitations] = await Promise.all([
+  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints, initialInvitations, initialSubscriptionData] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
@@ -38,8 +40,10 @@ export default async function PropertyWorkspaceSectionPage({
     activePage === "tenants" ? listPropertyTenants(propertyId, { page: 1, pageSize: 20 }) : null,
     auth && activePage === "complaints" ? loadComplaints(propertyId, auth.userId) : null,
     activePage === "invitations" ? loadInvitations(propertyId) : null,
+    activePage === "subscription" ? loadSubscription(propertyId) : null,
   ]);
   return <OwnerSectionPanel
+    initialSubscriptionData={initialSubscriptionData}
     initialInvitations={initialInvitations}
     initialComplaints={initialComplaints}
     initialTenants={initialTenants ? JSON.parse(JSON.stringify(initialTenants)) : null}
@@ -118,5 +122,18 @@ async function loadInvitations(propertyId: string) {
     invitations: invitations.data,
     pageInfo: invitations.pageInfo,
     rooms,
+  }));
+}
+
+// หน้าแพ็กเกจต้องใช้ทั้งรายการแพ็กเกจที่เปิดขายและประวัติคำสั่งซื้อของหอ
+async function loadSubscription(propertyId: string) {
+  const [plans, orders] = await Promise.all([
+    listSaasPlans(),
+    listPropertySubscriptionOrders(propertyId, { page: 1, pageSize: 20 }),
+  ]);
+  return JSON.parse(JSON.stringify({
+    orders: orders.data,
+    ordersHasNextPage: orders.pageInfo.hasNextPage,
+    plans,
   }));
 }

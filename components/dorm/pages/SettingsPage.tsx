@@ -53,6 +53,7 @@ export function SettingsPage({
   accountEmail,
   accountName,
   initialInvitations = null,
+  initialSubscriptionData = null,
   initialSection,
   initialSettings,
   onAccountNameChange,
@@ -66,6 +67,8 @@ export function SettingsPage({
   accountName: string;
   // ส่งต่อให้หัวข้อคำเชิญ ซึ่ง Server Component ของหน้าดึงมาให้แล้ว
   initialInvitations?: Parameters<typeof InvitationsPage>[0]["initialData"];
+  // ส่งต่อให้หัวข้อแพ็กเกจ
+  initialSubscriptionData?: Parameters<typeof SubscriptionPage>[0]["initialData"];
   initialSection: "account" | "general" | "invitations" | "subscription";
   initialSettings: PropertySettingsReadModel;
   onAccountNameChange: (name: string) => void;
@@ -583,7 +586,7 @@ export function SettingsPage({
 
         {activeSection === "invitations" ? <InvitationsPage initialData={initialInvitations} propertyId={propertyId} readOnly={readOnly} /> : null}
 
-        {activeSection === "subscription" ? <SubscriptionPage propertyId={propertyId} subscription={subscription} /> : null}
+        {activeSection === "subscription" ? <SubscriptionPage initialData={initialSubscriptionData} propertyId={propertyId} subscription={subscription} /> : null}
 
         {activeSection === "account" ? (
           <div className="account-content">

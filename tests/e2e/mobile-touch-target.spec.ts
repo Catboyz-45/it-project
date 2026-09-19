@@ -104,7 +104,9 @@ async function expectMinimumTouchTargets(controls: Locator, minimum = 44) {
       label: element.getAttribute("aria-label") ?? element.textContent?.replace(/\s+/g, " ").trim() ?? element.tagName,
       width: Math.round(rect.width * 100) / 100,
     };
-  }).filter(({ height, width }) => height < min || width < min), minimum);
+  // ขนาด 0 แปลว่ายังไม่ถูกจัดวาง ไม่ใช่ปุ่มเล็กเกินไป ตัวกรอง visible ตั้งใจไม่เอาของพวกนี้อยู่แล้ว
+  // แต่จับได้ไม่ทันตอนหน้าเพิ่งเปลี่ยน จึงกันซ้ำอีกชั้นตรงนี้
+  }).filter(({ height, width }) => height > 0 && width > 0 && (height < min || width < min)), minimum);
 
   // เทียบกับอาร์เรย์ว่าง พังแล้วรายงานจะพ่นรายชื่อปุ่มที่ไม่ผ่านออกมาให้เห็นทั้งหมด
   expect(failures, "visible important controls must be at least 44 by 44 CSS pixels").toEqual([]);
