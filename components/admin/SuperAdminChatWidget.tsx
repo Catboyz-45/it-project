@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Super Admin Chat Widget” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะการสนทนา จัดการการเลื่อน และอัปโหลดไฟล์จากเบราว์เซอร์
 
 import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -24,10 +19,7 @@ import {
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Support Conversation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หนึ่งห้องสนทนา ผู้ดูแลระบบคุยกับเจ้าของหอแต่ละหอคนละห้อง
 type SupportConversation = {
   id: string;
   propertyId: string;
@@ -36,10 +28,7 @@ type SupportConversation = {
   unreadCount: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Support Message” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ข้อความหนึ่งข้อความ ส่งเป็นข้อความอย่างเดียว ไฟล์อย่างเดียว หรือทั้งสองอย่างก็ได้
 type SupportMessage = {
   id: string;
   body: string;
@@ -49,12 +38,8 @@ type SupportMessage = {
   attachment: { name: string; mimeType: string; size: number; url: string } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Super Admin Chat Widget” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าต่างแชทมุมจอของผู้ดูแลระบบ รับเรื่องช่วยเหลือจากเจ้าของหอทุกหอ
+// ทำงานคล้าย ChatWidget ฝั่งเจ้าของหอ ต่างที่ไม่มีสตรีมเรียลไทม์ เพราะไม่ต้องเร่งเท่า
 export function SuperAdminChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -77,16 +62,9 @@ export function SuperAdminChatWidget() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  // ปกติข้อความใหม่เข้ามาแล้วเลื่อนลงล่างสุด ยกเว้นตอนโหลดข้อความเก่ามาต่อข้างบน
   const shouldScrollToEndRef = useRef(true);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Conversations” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadConversations = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
     else setIsLoadingList(true);
@@ -99,6 +77,7 @@ export function SuperAdminChatWidget() {
         error?: string;
       };
       if (!response.ok || !result.conversations || !result.pageInfo) throw new Error(result.error || "โหลดรายการสนทนาไม่สำเร็จ");
+      // กรอง id ซ้ำก่อนต่อท้าย เผื่อมีห้องใหม่แทรกเข้ามาแล้วทำให้หน้าที่แบ่งไว้เลื่อน
       setConversations((current) => append
         ? [...current, ...result.conversations!.filter((item) => !current.some((existing) => existing.id === item.id))]
         : result.conversations!);
@@ -158,26 +137,25 @@ export function SuperAdminChatWidget() {
     shouldScrollToEndRef.current = true;
   }, [messages]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Older Messages” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // โหลดข้อความเก่ากว่ามาต่อข้างบน พร้อมชดเชยการเลื่อนไม่ให้หน้ากระโดด
   const loadOlderMessages = async () => {
     const oldest = messages[0];
     if (!selected || !oldest || isLoadingOlder) return;
     setIsLoadingOlder(true); setError("");
+    // จำความสูงเดิมไว้ก่อน เดี๋ยวใช้คำนวณชดเชยการเลื่อนหลังข้อความเก่าถูกแทรกเข้ามา
     const container = scrollRef.current;
     const previousHeight = container?.scrollHeight ?? 0;
     try {
+      // อ้างอิงจาก id ของข้อความเก่าสุดที่มีอยู่ ไม่ใช้เลขหน้า เพราะข้อความใหม่เข้ามาแล้วเลขหน้าจะเลื่อน
       const search = new URLSearchParams({ beforeMessageId: oldest.id, limit: "50" });
       const response = await fetch(`/api/v1/super-admin/properties/${selected.propertyId}/support-chat?${search}`, { cache: "no-store" });
       const result = await response.json() as { error?: string; hasMore?: boolean; messages?: SupportMessage[] };
       if (!response.ok || !result.messages) throw new Error(result.error || "โหลดข้อความก่อนหน้าไม่สำเร็จ");
+      // ครั้งนี้อย่าเลื่อนลงล่าง ผู้ใช้กำลังอ่านข้อความเก่าอยู่
       shouldScrollToEndRef.current = false;
       setMessages((current) => [...result.messages!.filter((item) => !current.some((existing) => existing.id === item.id)), ...current]);
       setHasOlderMessages(result.hasMore ?? false);
+      // ดันตำแหน่งลงเท่ากับความสูงที่เพิ่มมา ข้อความที่อ่านอยู่จะได้ค้างที่เดิมไม่กระโดด
       requestAnimationFrame(() => {
         if (container) container.scrollTop += container.scrollHeight - previousHeight;
       });
@@ -186,20 +164,17 @@ export function SuperAdminChatWidget() {
     } finally { setIsLoadingOlder(false); }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send Message” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     const body = message.trim();
+    // ส่งได้ถ้ามีข้อความหรือมีไฟล์อย่างใดอย่างหนึ่ง และต้องไม่กำลังส่งอยู่
     if ((!body && !attachment) || !selected || !conversationId || isSending) return;
     setIsSending(true); setError("");
     try {
+      // id ที่ฝั่งเราสร้าง ให้เซิร์ฟเวอร์ใช้กันบันทึกซ้ำถ้าคำขอถูกส่งซ้ำ
       const clientId = crypto.randomUUID();
+      // มีไฟล์ต้องส่งเป็น FormData ไปที่ปลายทางของไฟล์ ไม่มีไฟล์ก็ส่ง JSON ตามปกติ
       const response = attachment
         ? await fetch(`/api/v1/chat/conversations/${conversationId}/attachments`, {
           method: "POST",
@@ -220,25 +195,22 @@ export function SuperAdminChatWidget() {
         });
       const result = await response.json() as { error?: string; message?: SupportMessage };
       if (!response.ok || !result.message) throw new Error(result.error || "ส่งข้อความไม่สำเร็จ");
+      // เช็ค id ซ้ำก่อนต่อท้าย และใช้ข้อความที่เซิร์ฟเวอร์ตอบกลับมา จะได้ได้ id กับเวลาที่ถูกต้อง
       setMessages((current) => current.some((item) => item.id === result.message!.id) ? current : [...current, result.message!]);
+      // ล้างช่องพิมพ์เมื่อส่งสำเร็จเท่านั้น ส่งไม่ผ่านข้อความจะได้ยังอยู่ให้กดส่งใหม่
       setMessage("");
       setAttachment(null);
+      // ล้างค่า input ด้วย ไม่งั้นเลือกไฟล์ชื่อเดิมซ้ำจะไม่เกิด onChange
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "ส่งข้อความไม่สำเร็จ");
     } finally { setIsSending(false); }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “unread Count” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - sum: ค่า “sum” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // รวมยอดที่ยังไม่ได้อ่านจากทุกหอ ไว้แสดงเป็นป้ายบนปุ่มลอยมุมจอ
   const unreadCount = conversations.reduce((sum, item) => sum + item.unreadCount, 0);
 
+  // ปิดอยู่ก็เหลือแค่ปุ่มลอยมุมจอ พร้อมป้ายจำนวนข้อความที่ยังไม่ได้อ่าน
   if (!isOpen) return <IconButton className="chat-launcher" label="เปิดข้อความจากหอพัก" onClick={() => setIsOpen(true)} size="lg" variant="primary">
     <MessageSquare aria-hidden="true" size={24} />
     {unreadCount > 0 ? <span className="chat-notification-badge" aria-label={`${unreadCount} ข้อความที่ยังไม่ได้อ่าน`}>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}

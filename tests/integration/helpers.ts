@@ -1,14 +1,9 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นการทดสอบอัตโนมัติของ “helpers” เพื่อป้องกันพฤติกรรมสำคัญย้อนกลับไปเสีย
- * การทำงาน: เตรียมสถานการณ์ เรียกโค้ดเหมือนผู้ใช้หรือระบบจริง แล้วตรวจผลลัพธ์ทั้งกรณีสำเร็จและกรณีที่ต้องปฏิเสธ
- */
-
 import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/password";
 import { currentPolicyVersions } from "@/lib/legal/policies";
 
+// บัญชีทดสอบต้องผ่านด่านยอมรับนโยบายมาแล้ว ไม่งั้นจะถูกเด้งไปหน้ายอมรับก่อนทำอย่างอื่น
 const acceptedPolicies = {
   createMany: {
     data: [
@@ -18,12 +13,8 @@ const acceptedPolicies = {
   },
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Test Database” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ด่านกันพลาดที่สำคัญที่สุดในไฟล์นี้ ทุกฟังก์ชันที่ลบข้อมูลต้องผ่านตรงนี้ก่อน
+// บังคับว่าชื่อฐานข้อมูลต้องมีคำว่า test เผลอชี้ไปฐานจริงจะหยุดทันที
 export function assertTestDatabase() {
   const value = process.env.DATABASE_URL;
   if (!value) throw new Error("DATABASE_URL is required for integration tests");
@@ -33,16 +24,15 @@ export function assertTestDatabase() {
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Integration Fixture” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างชุดข้อมูลตั้งต้นให้เทสต์ หอหนึ่งหอพร้อมตึก ชั้น ห้อง และหออีกหอของคนอื่น
+// มีหอที่สองไว้ทดสอบเรื่องสิทธิ์ ว่าเจ้าของหอหนึ่งเข้าถึงข้อมูลของอีกหอไม่ได้
 export async function createIntegrationFixture() {
   assertTestDatabase();
+  // เติมตัวอักษรสุ่มท้ายทุกชื่อ รันหลายไฟล์พร้อมกันจะได้ไม่ชนกันที่ช่องที่ห้ามซ้ำ
   const suffix = randomUUID().slice(0, 8);
+  // แฮชครั้งเดียวแล้วใช้กับทุกบัญชี เพราะการแฮชรหัสผ่านตั้งใจให้ช้าเพื่อความปลอดภัย
   const passwordHash = await hashPassword("Integration-Password-123");
+  // สร้างสามบัญชีพร้อมกัน ไม่มีอันไหนต้องรอผลของอีกอัน
   const [owner, otherOwner, superAdmin] = await Promise.all([
     getDatabase().user.create({
       data: { email: `owner-${suffix}@example.test`, passwordHash, displayName: "Owner", role: "PROPERTY_ADMIN", approvalStatus: "APPROVED", policyActions: acceptedPolicies },
@@ -75,6 +65,7 @@ export async function createIntegrationFixture() {
       },
     }),
   ]);
+  // ตึก ชั้น ห้อง ต้องสร้างตามลำดับ เพราะอันหลังต้องใช้รหัสของอันก่อนหน้า
   const building = await getDatabase().building.create({
     data: {
       propertyId: property.id, name: "Building A", code: `A-${suffix}`,
@@ -91,18 +82,14 @@ export async function createIntegrationFixture() {
   return { suffix, owner, otherOwner, superAdmin, property, otherProperty, building, floor: building.floors[0], room };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “cleanup Integration Fixture” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ลบข้อมูลที่เทสต์สร้างทิ้งให้หมด ฐานทดสอบจะได้ไม่บวมและไม่มีของค้างไปกวนรอบหน้า
 export async function cleanupIntegrationFixture(input: {
   propertyIds: string[];
   userIds: string[];
 }) {
   const propertyId = { in: input.propertyIds };
+  // ลบทั้งหมดใน transaction เดียว พลาดกลางทางจะย้อนคืนหมด ไม่เหลือข้อมูลลบไปครึ่งเดียว
+  // ลำดับสำคัญมาก ต้องลบจากตารางลูกขึ้นไปหาตารางแม่ ไม่งั้นติด foreign key
   await getDatabase().$transaction(async (database) => {
     await database.paymentSubmission.deleteMany({ where: { propertyId } });
     await database.invoiceItem.deleteMany({ where: { invoice: { propertyId } } });
@@ -128,6 +115,7 @@ export async function cleanupIntegrationFixture(input: {
     await database.propertySettings.deleteMany({ where: { propertyId } });
     await database.propertyMembership.deleteMany({ where: { propertyId } });
     await database.property.deleteMany({ where: { id: propertyId } });
+    // ลบผู้ใช้เป็นอันสุดท้าย เพราะแทบทุกตารางอ้างถึงผู้ใช้
     await database.tenantProfile.deleteMany({ where: { userId: { in: input.userIds } } });
     await database.user.deleteMany({ where: { id: { in: input.userIds } } });
   });

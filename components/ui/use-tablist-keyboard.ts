@@ -1,40 +1,30 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “use tablist keyboard” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// แตะ document และ focus ของเบราว์เซอร์
 
 import type { KeyboardEvent } from "react";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Tab Value” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type TabValue = string | number;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Tablist Keyboard” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า:
- * - values: ค่า “values” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - onSelect: ค่า “on Select” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ทำให้แถบแท็บเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA
+// คืนค่าเป็น onKeyDown เอาไปใส่ที่กล่องครอบ (role="tablist") ไม่ใช่ทีละปุ่ม
 export function useTablistKeyboard<T extends TabValue>(
   values: readonly T[],
   onSelect: (value: T) => void,
 ) {
   return (event: KeyboardEvent<HTMLElement>) => {
+    // ปุ่มอื่นปล่อยผ่าน เช่น Tab ต้องออกจากแถบแท็บได้ตามปกติ
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
 
+    // อ่านจาก DOM ไม่ใช่จาก values เพราะต้องข้ามแท็บที่ถูก disabled
     const tabs = Array.from(
       event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled])'),
     );
     if (tabs.length === 0) return;
 
+    // โฟกัสไม่ได้อยู่ในแถบจะได้ -1 จึงดันเป็น 0 ให้เริ่มนับจากแท็บแรก
     const currentIndex = Math.max(0, tabs.indexOf(document.activeElement as HTMLElement));
+
+    // ลูกศรขยับทีละหนึ่งแล้ววนกลับด้วย % ฝั่งซ้ายต้อง + length ก่อน ไม่งั้นติดลบ
     const nextIndex = event.key === "Home"
       ? 0
       : event.key === "End"
@@ -45,8 +35,10 @@ export function useTablistKeyboard<T extends TabValue>(
 
     const nextValue = values[nextIndex];
     const nextTab = tabs[nextIndex];
+    // กันกรณีจำนวนแท็บใน DOM ไม่ตรงกับ values ที่ส่งมา
     if (nextValue === undefined || !nextTab) return;
 
+    // กันเบราว์เซอร์เลื่อนหน้าตามลูกศร เพราะเราจัดการโฟกัสเอง
     event.preventDefault();
     onSelect(nextValue);
     nextTab.focus();

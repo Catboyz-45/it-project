@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “property operations” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type {
   CreateAnnouncementInput,
   CreateParcelInput,
@@ -23,14 +17,6 @@ import {
   type TenantRecordView,
 } from "@/lib/tenant-record-view";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Announcements” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listAnnouncements(propertyId: string, pagination: PaginationInput) {
   const where = { propertyId, status: { not: "ARCHIVED" as const } };
   const [rows, total, published, scheduled, draft] = await getDatabase().$transaction([
@@ -55,23 +41,13 @@ export async function listAnnouncements(propertyId: string, pagination: Paginati
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Announcement Targets” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type AnnouncementTargets = Pick<
   UpdateAnnouncementInput,
   "audience" | "buildingId" | "floorId" | "roomIds"
 >;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “validate Targets” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ตรวจว่าอาคาร ชั้น หรือห้องที่เลือกอยู่ในหอนี้จริง
+// กันส่ง id ของหออื่นมาเพื่อยิงประกาศข้ามหอ
 async function validateTargets(propertyId: string, input: AnnouncementTargets) {
   if (input.audience === "BUILDING" && !input.buildingId) throw new ApiError(400, "กรุณาเลือกอาคาร");
   if (input.audience === "FLOOR" && !input.floorId) throw new ApiError(400, "กรุณาเลือกชั้น");
@@ -80,19 +56,11 @@ async function validateTargets(propertyId: string, input: AnnouncementTargets) {
   if (input.floorId && !await getDatabase().floor.count({ where: { id: input.floorId, propertyId } })) throw new ApiError(400, "ชั้นไม่ถูกต้อง");
   if (input.roomIds?.length) {
     const ids = [...new Set(input.roomIds)];
+    // นับแล้วเทียบจำนวน ไม่ครบแปลว่ามีห้องของหออื่นปนมา
     if (await getDatabase().room.count({ where: { id: { in: ids }, propertyId } }) !== ids.length) throw new ApiError(400, "มีห้องที่ไม่อยู่ในหอนี้");
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Announcement” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createAnnouncement(propertyId: string, userId: string, input: CreateAnnouncementInput) {
   await validateTargets(propertyId, input);
   return getDatabase().announcement.create({
@@ -109,20 +77,12 @@ export async function createAnnouncement(propertyId: string, userId: string, inp
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Announcement” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - announcementId: รหัสภายในของ announcement
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateAnnouncement(propertyId: string, announcementId: string, input: UpdateAnnouncementInput) {
   await validateTargets(propertyId, input);
   return getDatabase().$transaction(async (database) => {
     const current = await database.announcement.findFirst({ where: { id: announcementId, propertyId }, select: { id: true, updatedAt: true, audience: true } });
     if (!current) throw new ApiError(404, "ไม่พบประกาศ");
+    // เทียบเวลาที่แก้ล่าสุด ไม่ตรงแปลว่ามีคนอื่นแก้ไปก่อนแล้ว
     if (current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new ApiError(409, "ประกาศถูกแก้ไข กรุณาโหลดใหม่");
     const { expectedUpdatedAt: _, roomIds, ...data } = input;
     void _;
@@ -141,17 +101,7 @@ export async function updateAnnouncement(propertyId: string, announcementId: str
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Announcements” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - buildingId: รหัสภายในของ building
- * - floorId: รหัสภายในของ floor
- * - roomId: รหัสภายในของห้องพัก
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ประกาศที่ผู้เช่าห้องนี้ควรเห็น
 export async function listTenantAnnouncements(
   propertyId: string,
   buildingId: string,
@@ -163,7 +113,11 @@ export async function listTenantAnnouncements(
   return getDatabase().announcement.findMany({
     where: {
       propertyId,
+      // รวมประกาศที่ตั้งเวลาไว้และถึงเวลาแล้วด้วย เผื่องานเบื้องหลังยังไม่ได้รันเปลี่ยนสถานะ
+      // ผู้เช่าจะได้เห็นตรงเวลาโดยไม่ต้องรอรอบของงานนั้น
       OR: [{ status: "PUBLISHED" }, { status: "SCHEDULED", publishAt: { lte: now } }],
+      // AND ครอบ OR ไว้อีกชั้น เพราะต้องผ่านทั้งเงื่อนไขสถานะและเงื่อนไขขอบเขตผู้รับ
+      // เขียนรวมเป็น OR เดียวจะกลายเป็นผ่านข้อใดข้อหนึ่งก็พอ ซึ่งทำให้เห็นประกาศของห้องอื่น
       AND: [{
         OR: [
           { audience: "ALL_TENANTS" },
@@ -179,16 +133,6 @@ export async function listTenantAnnouncements(
   }).then((rows) => toPaginatedResult(rows, pagination));
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Parcel” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * - imageStorageKey: ค่า “image Storage Key” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createParcel(propertyId: string, userId: string, input: CreateParcelInput, imageStorageKey?: string) {
   if (!await getDatabase().room.count({ where: { id: input.roomId, propertyId } })) throw new ApiError(404, "ไม่พบห้อง");
   if (input.recipientTenantId && !await getDatabase().roomOccupancy.count({
@@ -196,6 +140,7 @@ export async function createParcel(propertyId: string, userId: string, input: Cr
       propertyId, roomId: input.roomId, tenantProfileId: input.recipientTenantId,
       status: "ACTIVE",
     },
+  // ผู้รับที่ระบุต้องอยู่ห้องนั้นจริง กันลงทะเบียนพัสดุให้คนที่ไม่เกี่ยวข้อง
   })) throw new ApiError(400, "ผู้รับไม่ได้พักอยู่ในห้องนี้");
   return getDatabase().parcel.create({
     data: {
@@ -206,14 +151,6 @@ export async function createParcel(propertyId: string, userId: string, input: Cr
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Parcels” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listParcels(propertyId: string, pagination: PaginationInput) {
   const database = getDatabase();
   const now = new Date();
@@ -256,40 +193,23 @@ export async function listParcels(propertyId: string, pagination: PaginationInpu
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Parcel” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - parcelId: รหัสภายในของ parcel
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateParcel(propertyId: string, parcelId: string, input: UpdateParcelInput) {
   const parcel = await getDatabase().parcel.findFirst({ where: { id: parcelId, propertyId, status: "WAITING" }, select: { id: true, roomId: true, updatedAt: true } });
   if (!parcel) throw new ApiError(404, "ไม่พบพัสดุที่ดำเนินการได้");
   if (input.expectedUpdatedAt && parcel.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new ApiError(409, "รายการพัสดุถูกแก้ไขแล้ว กรุณาโหลดข้อมูลใหม่");
   if (input.receivedByTenantId && !await getDatabase().roomOccupancy.count({
     where: { roomId: parcel.roomId, tenantProfileId: input.receivedByTenantId, status: "ACTIVE" },
+  // ผู้รับที่ระบุต้องอยู่ห้องนั้นจริง กันลงทะเบียนพัสดุให้คนที่ไม่เกี่ยวข้อง
   })) throw new ApiError(400, "ผู้รับไม่ได้พักอยู่ในห้องนี้");
   const result = await getDatabase().parcel.updateMany({
     where: { id: parcel.id, status: "WAITING", ...(input.expectedUpdatedAt ? { updatedAt: input.expectedUpdatedAt } : {}) },
     data: { ...(input.status ? { status: input.status, receivedAt: input.status === "RECEIVED" ? new Date() : null, receivedByTenantId: input.receivedByTenantId } : {}), ...(input.note !== undefined ? { note: input.note } : {}) },
   });
+  // ใส่เงื่อนไขไว้ใน where แล้วนับจำนวนแถวที่แก้ได้ สองคนกดรับพร้อมกันจะสำเร็จแค่คนเดียว
   if (result.count !== 1) throw new ApiError(409, "รายการพัสดุถูกแก้ไขแล้ว กรุณาโหลดข้อมูลใหม่");
   return getDatabase().parcel.findUniqueOrThrow({ where: { id: parcel.id }, select: { id: true, status: true, receivedAt: true, updatedAt: true } });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Parcels” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - roomId: รหัสภายในของห้องพัก
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - view: ค่า “view” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listTenantParcels(
   tenantProfileId: string,
   roomId: string,
@@ -317,13 +237,6 @@ export async function listTenantParcels(
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Tenant Ticket” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createTenantTicket(input: {
   propertyId: string; roomId: string; tenantProfileId: string; userId: string; data: CreateTicketInput;
 }) {
@@ -342,17 +255,6 @@ export async function createTenantTicket(input: {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Admin Tickets” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - viewerUserId: รหัสภายในของ viewer User
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - status: ค่า “status” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listAdminTickets(
   propertyId: string,
   viewerUserId: string,
@@ -402,16 +304,6 @@ export async function listAdminTickets(
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Tickets” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - viewerUserId: รหัสภายในของ viewer User
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - view: ค่า “view” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listTenantTickets(tenantProfileId: string, viewerUserId: string, pagination: PaginationInput, view: TenantRecordView = "current") {
   const where = { tenantProfileId, status: { in: [...TENANT_TICKET_VIEW_STATUSES[view]] } };
   const [rows, total] = await getDatabase().$transaction([
@@ -448,16 +340,6 @@ export async function listTenantTickets(tenantProfileId: string, viewerUserId: s
   })), pagination, total);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Ticket” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - ticketId: รหัสภายในของงานแจ้งเรื่อง
- * - actorUserId: รหัสภายในของ actor User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateTicket(
   propertyId: string,
   ticketId: string,
@@ -502,18 +384,6 @@ export async function updateTicket(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “attach Ticket File” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - ticketId: รหัสภายในของงานแจ้งเรื่อง
- * - actorUserId: รหัสภายในของ actor User
- * - storageKey: ค่า “storage Key” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - fileName: ค่า “file Name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - mimeType: ค่า “mime Type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - sizeBytes: ค่า “size Bytes” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function attachTicketFile(
   ticketId: string,
   actorUserId: string,
@@ -537,27 +407,13 @@ export async function attachTicketFile(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Tenant Ticket” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - ticketId: รหัสภายในของงานแจ้งเรื่อง
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ดึงเรื่องแจ้งพร้อมตรวจว่าเป็นของผู้เช่าคนนี้ ในคำสั่งเดียว
 export async function requireTenantTicket(tenantProfileId: string, ticketId: string) {
   const ticket = await getDatabase().serviceTicket.findFirst({ where: { id: ticketId, tenantProfileId }, select: { id: true, propertyId: true } });
   if (!ticket) throw new ApiError(404, "ไม่พบรายการแจ้งเรื่อง");
   return ticket;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Ticket Replies” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listTicketReplies(input: {
   ticketId: string;
   viewerUserId: string;
@@ -606,13 +462,6 @@ export async function listTicketReplies(input: {
   return { ...page, data: [...page.data].reverse() };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Ticket Reply” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createTicketReply(input: {
   ticketId: string;
   actorUserId: string;
@@ -663,13 +512,7 @@ export async function createTicketReply(input: {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “count Unread Ticket Replies” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// นับคำตอบที่ยังไม่ได้อ่านในเรื่องแจ้ง แยกจากข้อความแชทซึ่งนับคนละที่
 export async function countUnreadTicketReplies(input: {
   viewerUserId: string;
   propertyId?: string;
@@ -699,13 +542,7 @@ export async function countUnreadTicketReplies(input: {
   ), 0);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Ticket Attachment” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตรวจสิทธิ์ก่อนคืนที่อยู่ไฟล์แนบ ผู้เรียกจึงจะเอาไปอ่านไฟล์ได้
 export async function getTicketAttachment(input: {
   attachmentId: string;
   ticketId: string;
@@ -727,13 +564,7 @@ export async function getTicketAttachment(input: {
   return attachment;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Parcel Image” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รูปพัสดุก็เช่นกัน ต้องเป็นคนในห้องนั้นหรือเจ้าของหอถึงจะเปิดดูได้
 export async function getParcelImage(input: {
   parcelId: string;
   propertyId?: string;

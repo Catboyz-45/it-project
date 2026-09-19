@@ -1,12 +1,9 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโมดูลกลาง “navigation routes” ที่รวม type ค่าคงที่ หรือฟังก์ชันซึ่งหลายส่วนของระบบใช้ร่วมกัน
- * การทำงาน: ช่วยให้กฎและรูปแบบข้อมูลมีแหล่งอ้างอิงเดียว ลดความซ้ำ และทำให้เปลี่ยนพฤติกรรมได้โดยแก้จุดเดียว
- */
-
 import type { PageKey } from "@/types/navigation";
 
+// เส้นทางของทุกหน้าอยู่ที่นี่ที่เดียว ไม่มีที่ไหนเขียน URL เป็นสตริงตรง ๆ
+// Record บังคับให้ทุกหน้ามีเส้นทาง เพิ่มหน้าใหม่แล้วลืมจะคอมไพล์ไม่ผ่าน
 const ownerRouteByPage: Record<PageKey, string> = {
+  // หน้าแรกไม่มีส่วนต่อท้าย URL จึงเป็นของหอพักเลย
   overview: "",
   rooms: "rooms",
   tenants: "tenants",
@@ -26,34 +23,22 @@ const ownerRouteByPage: Record<PageKey, string> = {
   settings: "settings",
 };
 
+// สร้างตารางย้อนกลับจากตารางเดิม จะได้ไม่ต้องดูแลสองที่ให้ตรงกัน
 const ownerPageByRoute = new Map(
   Object.entries(ownerRouteByPage).map(([page, route]) => [route, page as PageKey]),
 );
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “owner Page Path” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function ownerPagePath(propertyId: string, page: PageKey) {
   const suffix = ownerRouteByPage[page];
   return `/admin/properties/${propertyId}${suffix ? `/${suffix}` : ""}`;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “owner Page From Segments” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - segments: ค่า “segments” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด PageKey | null ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// แปลง URL กลับเป็นชื่อหน้า ไม่รู้จักก็คืน null เพราะค่ามาจาก URL ที่ผู้ใช้พิมพ์เองได้
 export function ownerPageFromSegments(segments: string[] | undefined): PageKey | null {
   return ownerPageByRoute.get(segments?.join("/") ?? "") ?? null;
 }
 
+// as const ทำให้ TypeScript รู้ว่ามีแค่แปดค่านี้ ไม่ใช่ string อะไรก็ได้
 export const tenantTabs = [
   "home",
   "invoices",
@@ -65,30 +50,13 @@ export const tenantTabs = [
   "account",
 ] as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Tenant Tab” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type TenantTab = (typeof tenantTabs)[number];
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “tenant Page Path” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - tab: ค่า “tab” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function tenantPagePath(tab: TenantTab) {
   return tab === "home" ? "/tenant" : `/tenant/${tab}`;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “tenant Tab From Segments” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - segments: ค่า “segments” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด TenantTab | null ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ไม่มีส่วนต่อท้ายเลยคือหน้าแรก ส่วนค่าที่ไม่รู้จักคืน null ให้ผู้เรียกตอบว่าไม่พบหน้า
 export function tenantTabFromSegments(segments: string[] | undefined): TenantTab | null {
   const route = segments?.join("/") ?? "";
   if (!route) return "home";

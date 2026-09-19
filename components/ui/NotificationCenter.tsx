@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Notification Center” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะเปิดปิด และจำรายการที่อ่านแล้วไว้ใน localStorage
 
 import Link from "next/link";
 import { Bell, CheckCheck, CheckCircle2, LockKeyhole, RefreshCw, X } from "lucide-react";
@@ -13,13 +8,11 @@ import { IconButton } from "@/components/ui/IconButton";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useDialogAccessibility } from "@/lib/client/use-dialog-accessibility";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Notification Center Item” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type NotificationCenterItem = {
+  // จำนวนที่ค้างอยู่ เช่นมีบิลรอตรวจ 3 ใบ เป็น 0 จะไม่แสดงรายการนี้
   count: number;
   description: string;
+  // ส่ง href ถ้ากดแล้วไปหน้าอื่น หรือส่ง onSelect ถ้าอยากทำอย่างอื่นแทน
   href?: string;
   icon: ReactNode;
   id: string;
@@ -27,18 +20,14 @@ export type NotificationCenterItem = {
   title: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Notification Center” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { isLoading = false, items, onRefresh, readOnly = false, sto: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กระดิ่งแจ้งเตือนบนแถบหัวเรื่อง รวมงานค้างของหน้าต่าง ๆ ไว้ที่เดียว
 export function NotificationCenter({
   isLoading = false,
   items,
   onRefresh,
+  // true = ดูได้อย่างเดียว ใช้กับบทบาทที่ยังไม่มีสิทธิ์จัดการ
   readOnly = false,
+  // แยก key ตามบทบาทหรือหอพัก ไม่งั้นสถานะอ่านแล้วจะปนกันข้ามบัญชี
   storageKey,
 }: {
   isLoading?: boolean;
@@ -53,76 +42,50 @@ export function NotificationCenter({
   const dialogRef = useRef<HTMLElement>(null);
   const previousTotalRef = useRef<number | null>(null);
   const [countAnnouncement, setCountAnnouncement] = useState("");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “visible Items” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
+  // ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง
   const visibleItems = items.filter((item) => item.count > 0);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “fingerprint” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
+  // ผูก id กับจำนวนไว้ด้วยกัน พอจำนวนเปลี่ยนก็ถือว่าเป็นเรื่องใหม่ที่ยังไม่ได้อ่าน
   const fingerprint = (item: NotificationCenterItem) => `${item.id}:${item.count}`;
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “unread Items” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
   const unreadItems = visibleItems.filter((item) => !readFingerprints.includes(fingerprint(item)));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: แปลงข้อมูลในขั้นตอน “total” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-   * รับค่า:
-   * - sum: ค่า “sum” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
+  // นับจากที่ยังไม่ได้อ่านเท่านั้น ตัวเลขบนกระดิ่งจะได้ลดลงเมื่อกดอ่าน
   const total = unreadItems.reduce((sum, item) => sum + item.count, 0);
+
+  // จัดการ Esc ขังโฟกัสไว้ในแผง และคืนโฟกัสให้กระดิ่งตอนปิด
   useDialogAccessibility(dialogRef, () => setIsOpen(false), isOpen);
 
   useEffect(() => {
     const previousTotal = previousTotalRef.current;
     previousTotalRef.current = total;
+    // รอบแรกยังไม่มีค่าเก่าไว้เทียบ และค่าเท่าเดิมก็ไม่ต้องประกาศซ้ำให้รำคาญ
     if (previousTotal === null || previousTotal === total) return;
+    // คนที่ใช้โปรแกรมอ่านหน้าจอไม่เห็นตัวเลขบนกระดิ่ง จึงต้องบอกด้วยเสียงแทน
     setCountAnnouncement(total > 0
       ? `จำนวนการแจ้งเตือนที่ยังไม่ได้อ่านเปลี่ยนเป็น ${total} รายการ`
       : "อ่านการแจ้งเตือนครบทั้งหมดแล้ว");
   }, [total]);
 
   useEffect(() => {
+    // อ่านใน effect ไม่ใช่ตอนตั้ง state เพราะฝั่งเซิร์ฟเวอร์ไม่มี localStorage
+    // try/catch เผื่อค่าที่เก็บไว้เสียหรือเบราว์เซอร์ปิดการเก็บข้อมูลไว้
     try { setReadFingerprints(JSON.parse(localStorage.getItem(storageKey) ?? "[]") as string[]); } catch { setReadFingerprints([]); }
   }, [storageKey]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “mark Read” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - fingerprints: ค่า “fingerprints” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const markRead = (fingerprints: string[]) => setReadFingerprints((current) => {
+    // Set กันค่าซ้ำ และเก็บแค่ 100 รายการหลังสุด ไม่ให้ localStorage โตไม่รู้จบ
     const next = [...new Set([...current, ...fingerprints])].slice(-100);
     localStorage.setItem(storageKey, JSON.stringify(next));
     return next;
   });
 
   useEffect(() => {
+    // ผูก listener เฉพาะตอนแผงเปิด ปิดแล้วไม่ต้องไปกวน event ของทั้งหน้า
     if (!isOpen) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close On Outside Click” ตามกฎของระบบ
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+
+    // คลิกที่ไหนก็ได้นอกแผงแล้วปิด ส่วน Esc มี useDialogAccessibility ดูแลอยู่แล้ว
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
     };
@@ -132,13 +95,7 @@ export function NotificationCenter({
     };
   }, [isOpen]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “select Item” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // กดรายการไหนถือว่าอ่านแล้ว แล้วปิดแผงเพื่อให้เห็นหน้าปลายทาง
   const selectItem = (item: NotificationCenterItem) => {
     markRead([fingerprint(item)]);
     setIsOpen(false);
@@ -151,13 +108,17 @@ export function NotificationCenter({
       <IconButton
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        className={`notification-trigger relative grid size-11 place-items-center rounded-xl border border-[#d7d8df] bg-[#fff] text-[#35363c] shadow-sm transition hover:border-brand/40 hover:bg-brand/[.04] hover:text-brand ${isOpen ? "notification-trigger-open" : ""}`}
+        className={`notification-trigger relative grid size-11 place-items-center rounded-xl border border-[#d7d8df] bg-[#fff] text-[#35363c] shadow-sm transition hover:border-brand/40 hover:bg-brand/[.04] hover:text-[#4651c7] ${isOpen ? "notification-trigger-open" : ""}`}
+        // hover ใช้ #4651c7 ไม่ใช่ text-brand เพราะพื้นหลังตอน hover มี tint 4%
+        // ทำให้ #5865f2 เหลือ contrast 4.38:1 ต่ำกว่าเกณฑ์ 4.5 ส่วนสีนี้ได้ 6.12:1
+        // ใส่จำนวนใน label ด้วย เพราะโปรแกรมอ่านหน้าจอมองไม่เห็นป้ายตัวเลข
         label={total > 0 ? `ศูนย์การแจ้งเตือน มี ${total} รายการ` : "ศูนย์การแจ้งเตือน"}
         onClick={() => setIsOpen((current) => !current)}
       >
         <Bell aria-hidden="true" size={20} />
         {total > 0 ? (
           <span className="notification-count-badge absolute -right-1.5 -top-1.5 inline-flex min-w-5 items-center justify-center rounded-full border-2 border-[#fff] bg-red-500 px-1 text-[10px] font-black leading-4 text-[#fff]">
+            {/* ตัดที่ 99+ กันเลขหลายหลักดันป้ายจนล้นออกนอกกระดิ่ง */}
             {total > 99 ? "99+" : total}
           </span>
         ) : null}
@@ -166,22 +127,28 @@ export function NotificationCenter({
       {isOpen ? (
         <section
           aria-label="ศูนย์การแจ้งเตือน"
+          // บอกว่าส่วนอื่นของหน้าถูกบังอยู่ โปรแกรมอ่านหน้าจอจะไม่หลุดออกไปอ่านข้างนอก
           aria-modal="true"
+          // min() กันแผงล้นจอบนมือถือ กว้างสุด 390px แต่ไม่เกินความกว้างจอ
           className="notification-panel absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(390px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#d7d8df] bg-[#fff] text-[#292a30] shadow-2xl"
           ref={dialogRef}
           role="dialog"
+          // -1 ให้โฟกัสด้วยโค้ดได้ แต่ผู้ใช้กด Tab มาโดนเองไม่ได้
           tabIndex={-1}
         >
           <header className="flex items-center justify-between border-b border-black/10 px-5 py-4">
             <div>
               <h2 className="text-base font-black">การแจ้งเตือน</h2>
               <p className="mt-0.5 text-xs text-[#73757d]">{total > 0 ? `${total} รายการที่ควรตรวจสอบ` : "ไม่มีรายการค้างอยู่"}</p>
+              {/* บอกล่วงหน้าว่าดูได้แต่กดทำอะไรไม่ได้ ดีกว่าปล่อยให้กดแล้วเจอปฏิเสธทีหลัง */}
               {readOnly ? <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900"><LockKeyhole size={12} /> เปิดดูได้ แต่ยังดำเนินการไม่ได้</span> : null}
             </div>
             <div className="flex items-center gap-1">
+              {/* ซ่อนปุ่มนี้เมื่ออ่านครบแล้ว จะได้ไม่มีปุ่มที่กดไปก็ไม่เกิดอะไร */}
               {unreadItems.length ? <IconButton label="ทำเครื่องหมายว่าอ่านทั้งหมด" onClick={() => markRead(visibleItems.map(fingerprint))}><CheckCheck size={18} /></IconButton> : null}
               {onRefresh ? (
                 <IconButton
+                  // ปิดปุ่มระหว่างโหลด กันกดรัวจนยิงหลายรอบ
                   disabled={isLoading}
                   label="อัปเดตการแจ้งเตือน"
                   onClick={() => void onRefresh()}
@@ -190,6 +157,7 @@ export function NotificationCenter({
                 </IconButton>
               ) : null}
               <IconButton
+                // ขยายพื้นที่กดให้ถึงเกณฑ์นิ้วสัมผัสบนมือถือ
                 className="min-h-[45px] min-w-[45px]"
                 label="ปิดศูนย์การแจ้งเตือน"
                 onClick={() => setIsOpen(false)}
@@ -199,9 +167,11 @@ export function NotificationCenter({
             </div>
           </header>
 
+          {/* จำกัดความสูงแล้วให้เลื่อนข้างใน กันแผงยาวเกินจอตอนมีรายการเยอะ */}
           <div className="notification-list max-h-[min(520px,65vh)] overflow-y-auto p-2">
             {visibleItems.length ? visibleItems.map((item) => {
               const isUnread = !readFingerprints.includes(fingerprint(item));
+              // แยกเนื้อหาออกมา เพราะข้างล่างต้องใช้ซ้ำทั้งแบบลิงก์และแบบปุ่ม
               const content = (
                 <>
                   <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{item.icon}</span>
@@ -213,13 +183,16 @@ export function NotificationCenter({
                 </>
               );
               const actionLabel = item.href ? "เปิดหน้าที่เกี่ยวข้อง" : "เปิดรายการนี้";
+              // อ่านแล้วทำให้จางลง เพื่อให้เรื่องใหม่เด่นกว่าโดยไม่ต้องซ่อนของเก่า
               const className = `notification-item interactive-card flex w-full items-start gap-3 rounded-xl border border-transparent p-3 text-left text-[#292a30] no-underline hover:bg-brand/5 hover:no-underline ${isUnread ? "bg-brand/[0.03]" : "opacity-70"}`;
+              // มี href ใช้ Link เพื่อให้เปิดแท็บใหม่หรือคัดลอกลิงก์ได้ ไม่มีก็เป็นปุ่มธรรมดา
               return item.href ? (
                 <Link aria-label={`${item.title} ${item.count} รายการ ${actionLabel}`} className={className} href={item.href} key={item.id} onClick={() => selectItem(item)}>{content}<span className="sr-only">{actionLabel}</span></Link>
               ) : (
                 <button aria-label={`${item.title} ${item.count} รายการ ${actionLabel}`} className={className} key={item.id} onClick={() => selectItem(item)} type="button">{content}<span className="sr-only">{actionLabel}</span></button>
               );
             }) : (
+              // บอกว่าว่างเพราะไม่มีงานค้าง ไม่ใช่เพราะระบบพัง
               <div className="grid justify-items-center px-6 py-10 text-center">
                 <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={24} /></span>
                 <strong className="mt-3">เรียบร้อยทั้งหมด</strong>

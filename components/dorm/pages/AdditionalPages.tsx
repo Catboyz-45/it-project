@@ -1,13 +1,8 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Additional Pages” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บฟอร์มและสถานะของกล่องโต้ตอบไว้ฝั่งเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Building2,
@@ -37,20 +32,15 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Announcement Audience” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ขอบเขตผู้รับประกาศ ไล่จากกว้างไปแคบ ทั้งหอ อาคาร ชั้น หรือระบุห้อง
 type AnnouncementAudience = "ALL_TENANTS" | "BUILDING" | "FLOOR" | "ROOM";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Announcement” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ประกาศหนึ่งรายการ
 export type Announcement = {
   audience: string;
   audienceType?: AnnouncementAudience;
@@ -62,31 +52,25 @@ export type Announcement = {
   id: string;
   status: "เผยแพร่แล้ว" | "ตั้งเวลา" | "ฉบับร่าง";
   title: string;
+  // ส่งกลับไปตอนแก้ไข เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว กันแก้ทับกัน
   updatedAt?: string;
+  // มีค่าเฉพาะประกาศที่ตั้งเวลาไว้ ประกาศที่เผยแพร่ทันทีเป็น null
   publishAt?: string | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “today Input Value” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// วันนี้ในรูปแบบ "YYYY-MM-DD" ตามเวลาของเครื่องผู้ใช้
+// ต้องหักเขตเวลาออกก่อน เพราะ toISOString แปลงเป็น UTC ซึ่งอาจกลายเป็นเมื่อวานสำหรับคนไทย
 function todayInputValue() {
   const now = new Date();
   const timezoneOffset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Announcements Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { initialAnnouncements, onChanged, propertyId, readOnly = fa: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: {
+// หน้าประกาศ ส่งถึงทั้งหอหรือเจาะจงอาคาร ชั้น หรือห้อง และตั้งเวลาเผยแพร่ได้
+export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: {
   initialAnnouncements: Announcement[];
+  // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialLoaded?: boolean;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
@@ -115,14 +99,6 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
   });
   const { page, pageItems, setPage, totalPages } = useTablePagination(announcements);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Announcements” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadAnnouncements = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
     setFormError("");
@@ -141,13 +117,6 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
         summary?: { total: number; published: number; scheduled: number; draft: number };
       };
       if (!response.ok || !payload.data || !payload.pageInfo || !payload.summary) throw new Error(payload.error || "โหลดประกาศไม่สำเร็จ");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: แปลงข้อมูลในขั้นตอน “mapped” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
       const mapped: Announcement[] = payload.data.map((item) => ({
         id: item.id,
         title: item.title,
@@ -173,36 +142,19 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
     }
   }, [propertyId, rooms]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “reset Form” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ล้างฟอร์มกลับเป็นค่าเริ่มต้น ใช้ทั้งตอนเปิดฟอร์มใหม่และตอนบันทึกเสร็จ
   const resetForm = () => {
     setForm({ audience: "ALL_TENANTS", buildingId: "", floorId: "", roomIds: [], content: "", publishDate: todayInputValue(), publishMode: "now", title: "" });
     setFormError("");
     setEditingId(null);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Create Form” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const openCreateForm = () => {
     resetForm();
     setIsCreateOpen(true);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Edit Form” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - announcement: ค่า “announcement” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปิดฟอร์มพร้อมค่าเดิมของประกาศที่เลือก
   const openEditForm = (announcement: Announcement) => {
     setEditingId(announcement.id);
     setForm({
@@ -212,6 +164,7 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
       roomIds: announcement.roomIds ?? [],
       content: announcement.content,
       publishDate: announcement.publishAt?.slice(0, 10) ?? todayInputValue(),
+      // ประกาศที่เผยแพร่ไปแล้วเปิดมาเป็นโหมดทันที ไม่ใช่ตั้งเวลา เพราะเวลาเดิมผ่านไปแล้ว
       publishMode: announcement.status === "ตั้งเวลา" ? "scheduled" : "now",
       title: announcement.title,
     });
@@ -219,14 +172,16 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
     setIsCreateOpen(true);
   };
 
-  useEffect(() => { void loadAnnouncements(); }, [loadAnnouncements]);
+  const skipInitialLoadRef = useRef(initialLoaded);
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Announcement” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ใช้ตัวเดียวกันทั้งสร้างและแก้ไข ต่างกันที่ URL กับเมท็อด
   const saveAnnouncement = async () => {
     const title = form.title.trim();
     const content = form.content.trim();
@@ -238,6 +193,7 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
       setFormError("กรุณาเลือกวันที่เผยแพร่");
       return;
     }
+    // เลือกขอบเขตแบบเจาะจงแล้วต้องระบุด้วยว่าอาคารไหน ชั้นไหน หรือห้องไหน
     if ((form.audience === "BUILDING" && !form.buildingId) || (form.audience === "FLOOR" && !form.floorId) || (form.audience === "ROOM" && form.roomIds.length === 0)) {
       setFormError("กรุณาเลือกกลุ่มผู้รับประกาศให้ครบ");
       return;
@@ -255,7 +211,9 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
           floorId: form.audience === "FLOOR" ? form.floorId : undefined,
           roomIds: form.audience === "ROOM" ? form.roomIds : [],
           status: form.publishMode === "now" ? "PUBLISHED" : "SCHEDULED",
+          // ตั้งเวลาไว้ 9 โมงเช้าตามเวลาไทย เพราะฟอร์มให้เลือกแค่วัน ไม่ได้ให้เลือกเวลา
           ...(form.publishMode === "scheduled" ? { publishAt: new Date(`${form.publishDate}T09:00:00+07:00`).toISOString() } : {}),
+          // แก้ไขต้องแนบเวลาที่แก้ล่าสุดไปด้วย สร้างใหม่ไม่ต้องเพราะยังไม่มีของเดิมให้ชน
           ...(editingId ? { expectedUpdatedAt: current?.updatedAt } : {}),
         }),
       });
@@ -271,13 +229,6 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “delete Announcement” ตามกฎของระบบ
-   * รับค่า:
-   * - announcement: ค่า “announcement” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const deleteAnnouncement = (announcement: Announcement) => {
     setAnnouncementToDelete(announcement);
   };
@@ -292,14 +243,13 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
         <Summary label="ผู้รับทั้งหมด" value={`${recipientRoomCount} ห้อง`} icon={<UsersRound size={20} />} tone="blue" />
       </div>
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>ประกาศและข่าวสาร</h2><p>สื่อสารข่าวสารสำคัญถึงผู้เช่าในหอพัก</p></div>
+        <PageHeaderActions>
           {!readOnly ? (
             <button className="primary-button" onClick={openCreateForm} type="button">
               <Plus aria-hidden="true" size={18} /> สร้างประกาศ
             </button>
           ) : null}
-        </div>
+        </PageHeaderActions>
         <div className="figma-table-wrap">
           <table className="figma-table">
             <thead><tr><th>หัวข้อ</th><th>กลุ่มผู้รับ</th><th>วันที่เผยแพร่</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
@@ -325,7 +275,7 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
         {hasNextPage ? <LoadMoreButton isLoading={isLoadingMore} label="โหลดประกาศเพิ่มเติม" onClick={() => void loadAnnouncements(serverPage + 1, true)} /> : null}
       </article>
       {isCreateOpen ? (
-        <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" onClose={() => { resetForm(); setIsCreateOpen(false); }}>
+        <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" className="modal-md" onClose={() => { resetForm(); setIsCreateOpen(false); }}>
           <form className="modal-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -437,10 +387,6 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Complaint” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type Complaint = {
   id: string;
   title: string;
@@ -454,15 +400,10 @@ export type Complaint = {
   updatedAt?: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Complaints Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { complaints: initialComplaints, onChanged, onAddRequestHand: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าเรื่องร้องเรียน ไล่สถานะจากรับเรื่อง ไปตรวจสอบ แล้วปิดงาน
 export function ComplaintsPage({
   complaints: initialComplaints,
+  initialLoaded = false,
   onChanged,
   onAddRequestHandled,
   openAddOnMount,
@@ -470,6 +411,8 @@ export function ComplaintsPage({
   propertyId,
   readOnly = false,
 }: {
+  // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialLoaded?: boolean;
   complaints: Complaint[];
   onChanged: () => Promise<void>;
   onAddRequestHandled: () => void;
@@ -491,14 +434,6 @@ export function ComplaintsPage({
   const notify = useToast();
   const { page, pageItems, setPage, totalPages } = useTablePagination(complaints);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Complaints” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadComplaints = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
     setFormError("");
@@ -514,13 +449,6 @@ export function ComplaintsPage({
         pageInfo?: { page: number; hasNextPage: boolean };
       };
       if (!response.ok || !payload.data || !payload.pageInfo) throw new Error(payload.error || "โหลดเรื่องร้องเรียนไม่สำเร็จ");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: แปลงข้อมูลในขั้นตอน “mapped” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
       const mapped: Complaint[] = payload.data.map((item) => ({
         id: item.id,
         title: item.title,
@@ -541,21 +469,21 @@ export function ComplaintsPage({
     }
   }, [propertyId]);
 
+  const skipInitialComplaintsRef = useRef(initialLoaded);
   useEffect(() => {
+    if (skipInitialComplaintsRef.current) {
+      skipInitialComplaintsRef.current = false;
+      return;
+    }
     void loadComplaints();
     if (openAddOnMount) onAddRequestHandled();
   }, [loadComplaints, onAddRequestHandled, openAddOnMount]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “advance Status” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - complaint: ค่า “complaint” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เลื่อนไปสถานะถัดไปทีละขั้น ปุ่มเดียวไม่ต้องให้ผู้ใช้เลือกเองว่าจะไปสถานะไหน
   const advanceStatus = async (complaint: Complaint) => {
     const status = complaint.status === "รับเรื่องแล้ว" ? "ACKNOWLEDGED"
       : complaint.status === "กำลังตรวจสอบ" ? "RESOLVED" : null;
+    // ปิดงานไปแล้วก็ไม่มีขั้นถัดไป
     if (!status) return;
     setFormError("");
     try {
@@ -570,12 +498,6 @@ export function ComplaintsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Complaint” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveComplaint = async () => {
     if (!editingComplaint) return;
     setIsSaving(true); setFormError("");
@@ -587,14 +509,9 @@ export function ComplaintsPage({
     finally { setIsSaving(false); }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “cancel Complaint” ตามกฎของระบบ
-   * รับค่า:
-   * - complaint: ค่า “complaint” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ยกเลิกเรื่อง ไม่ได้ลบทิ้ง ประวัติกับข้อความเดิมยังอยู่ให้ตรวจย้อนหลังได้
   const cancelComplaint = async (complaint: Complaint) => {
+    // ถามยืนยันก่อน เพราะย้อนกลับไม่ได้
     if (!await confirm({ title: "ยกเลิกเรื่องร้องเรียน?", description: `เรื่อง “${complaint.title}” จะถูกปิดเป็นยกเลิก ประวัติและข้อความเดิมยังคงอยู่เพื่อตรวจสอบ`, confirmLabel: "ยกเลิกเรื่อง", variant: "danger" })) return;
     setFormError("");
     try {
@@ -619,7 +536,6 @@ export function ComplaintsPage({
         <Link href={ownerPagePath(propertyId, "repairHistory")}>ประวัติที่เสร็จแล้ว</Link>
       </nav>
       <article className="figma-table-card">
-        <div className="additional-card-head"><div><h2>รายการร้องเรียน</h2><p>{readOnly ? "ตรวจสอบสถานะและประวัติเรื่องร้องเรียนจากผู้เช่า" : "ติดตามและจัดการเรื่องร้องเรียนจากผู้เช่า"}</p></div></div>
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th>เลขที่</th><th>เรื่อง</th><th>ผู้แจ้ง/พื้นที่</th><th>วันที่แจ้ง</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
@@ -645,7 +561,7 @@ export function ComplaintsPage({
           {isLoadingMore ? "กำลังโหลด..." : "โหลดเรื่องร้องเรียนเพิ่มเติม"}
         </button> : null}
       </article>
-      {editingComplaint && !readOnly ? <Dialog ariaDescribedBy="complaint-edit-description" ariaLabelledBy="complaint-edit-title" onClose={() => setEditingComplaint(null)}>
+      {editingComplaint && !readOnly ? <Dialog ariaDescribedBy="complaint-edit-description" ariaLabelledBy="complaint-edit-title" className="modal-md" onClose={() => setEditingComplaint(null)}>
         <header className="modal-header"><div><h2 id="complaint-edit-title">แก้ไขเรื่องร้องเรียน</h2><p id="complaint-edit-description">ประวัติสถานะและข้อความตอบกลับจะไม่ถูกลบ</p></div><Button aria-label="ปิด" onClick={() => setEditingComplaint(null)} variant="icon">×</Button></header>
         <div className="modal-form"><label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} required value={editForm.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setEditForm((current) => ({ ...current, detail: event.target.value }))} required rows={5} value={editForm.detail} /></label><DropdownField label="ความเร่งด่วน" onChange={(value) => setEditForm((current) => ({ ...current, priority: value as "NORMAL" | "URGENT" }))} options={[{ value: "NORMAL", label: "ปกติ" }, { value: "URGENT", label: "ด่วน" }]} value={editForm.priority} /></div>
         <footer className="modal-actions"><Button onClick={() => setEditingComplaint(null)} variant="secondary">ยกเลิก</Button><Button disabled={!editForm.title.trim() || !editForm.detail.trim()} isLoading={isSaving} onClick={() => void saveComplaint()}>บันทึกการแก้ไข</Button></footer>
@@ -655,6 +571,8 @@ export function ComplaintsPage({
   );
 }
 
+// เนื้อหาคู่มือทั้งหมดเก็บเป็นข้อมูลไว้ในไฟล์นี้ ไม่ได้ดึงจากเซิร์ฟเวอร์
+// แก้คู่มือแล้วต้อง deploy ใหม่ แลกกับการที่หน้านี้เปิดได้ทันทีและใช้ได้แม้ตอนเน็ตมีปัญหา
 const helpTopics = [
   {
     id: "getting-started",
@@ -703,49 +621,25 @@ const helpTopics = [
   },
 ];
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Help Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ศูนย์ช่วยเหลือ ค้นหาและอ่านคู่มือการใช้งาน
 export function HelpPage() {
   const [query, setQuery] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedArticleIndex, setSelectedArticleIndex] = useState(0);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “selected Topic” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - topic: ค่า “topic” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const selectedTopic = helpTopics.find((topic) => topic.id === selectedTopicId);
   const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “filtered Topics” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - topic: ค่า “topic” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ค้นทั้งหัวข้อ คำโปรย และเนื้อหาข้างในทุกบทความ ต่อเป็นสตริงเดียวแล้วค่อยหา
   const filteredTopics = helpTopics.filter((topic) =>
     `${topic.title} ${topic.summary} ${topic.articles.map((article) => `${article.title} ${article.body.join(" ")}`).join(" ")}`
       .toLocaleLowerCase("th-TH")
       .includes(normalizedQuery),
   );
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Topic” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - topicId: รหัสภายในของ topic
-   * - articleIndex: ค่า “article Index” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปิดบทความแล้วเลื่อนหน้าไปหา เพราะบนมือถือเนื้อหาอยู่ใต้รายการหัวข้อ
   const openTopic = (topicId: string, articleIndex = 0) => {
     setSelectedTopicId(topicId);
     setSelectedArticleIndex(articleIndex);
+    // รอให้บทความถูกวาดก่อนค่อยเลื่อนไปหา ไม่งั้นยังไม่มีองค์ประกอบให้เลื่อนไป
     window.requestAnimationFrame(() => document.getElementById("help-article")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -801,13 +695,7 @@ export function HelpPage() {
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Properties Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { activePropertyId, properties, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// รายการหอพักที่บัญชีนี้ดูแลอยู่ กดเพื่อสลับไปทำงานในหออื่น
 export function PropertiesPage({
   activePropertyId,
   properties,
@@ -827,13 +715,7 @@ export function PropertiesPage({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, label, tone, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปที่ใช้ร่วมกันในไฟล์นี้ จึงไม่ต้อง export
 function Summary({ icon, label, tone, value }: { icon: ReactNode; label: string; tone: string; value: string }) {
   return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }

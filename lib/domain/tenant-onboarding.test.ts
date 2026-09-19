@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “tenant onboarding.test” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { describe, expect, it } from "vitest";
 import {
   acceptTenantInvitationSchema,
@@ -14,6 +8,7 @@ import {
 } from "@/lib/domain/tenant-onboarding";
 
 describe("tenant onboarding validation", () => {
+  // ค่าเริ่มต้นเป็นผู้พักร่วม ไม่ใช่ผู้เช่าหลัก เพราะสิทธิ์น้อยกว่า พลาดแล้วเสียหายน้อยกว่า
   it("limits invitation lifetime and defaults the occupant role", () => {
     const invitation = createInvitationSchema.parse({
       roomId: "cm12345678901234567890123",
@@ -36,6 +31,7 @@ describe("tenant onboarding validation", () => {
     }).success).toBe(true);
   });
 
+  // รหัสที่มีแต่ตัวพิมพ์เล็กต้องไม่ผ่าน และช่องยอมรับข้อกำหนดส่ง false มาก็ไม่ผ่าน ไม่ใช่แค่ต้องส่งมา
   it("requires a strong tenant password", () => {
     const base = {
       invitationCode: "a".repeat(43),
@@ -51,6 +47,7 @@ describe("tenant onboarding validation", () => {
     expect(tenantRegistrationSchema.safeParse({ ...base, password: "StrongPassword1", termsAccepted: false }).success).toBe(false);
   });
 
+  // ตั้งกลับเป็นรออนุมัติไม่ได้ ผลการตรวจมีแค่ผ่านหรือไม่ผ่าน
   it("allows only approval or rejection during review", () => {
     expect(reviewOccupancySchema.safeParse({ status: "ACTIVE" }).success).toBe(true);
     expect(reviewOccupancySchema.safeParse({ status: "PENDING" }).success).toBe(false);

@@ -1,12 +1,7 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “lease expiry.test” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { describe, expect, it } from "vitest";
 import { daysUntilLeaseExpiry, leaseDisplayStatus, leaseExpiryWindow } from "@/lib/domain/lease-expiry";
 
+// ตรึงเวลาไว้ ไม่ใช้เวลาจริง ไม่งั้นตัวทดสอบจะพังเองเมื่อเวลาผ่านไป
 const now = new Date("2026-08-11T08:00:00.000Z");
 
 describe("lease expiry", () => {
@@ -15,6 +10,8 @@ describe("lease expiry", () => {
     expect(daysUntilLeaseExpiry("2026-12-09", now)).toBe(120);
   });
 
+  // ฐานข้อมูลเก็บแค่ ACTIVE ส่วน EXPIRING กับ EXPIRED คำนวณจากวันหมดอายุตอนแสดงผล
+  // สถานะที่ถูกยกเลิกไปแล้วต้องไม่ถูกคำนวณทับ
   it("derives expiring and expired display statuses from the end date", () => {
     expect(leaseDisplayStatus("ACTIVE", "2026-12-09", now)).toBe("EXPIRING");
     expect(leaseDisplayStatus("ACTIVE", "2026-12-10", now)).toBe("ACTIVE");
@@ -22,6 +19,7 @@ describe("lease expiry", () => {
     expect(leaseDisplayStatus("CANCELLED", "2026-12-09", now)).toBe("CANCELLED");
   });
 
+  // ช่วงเตือนล่วงหน้า 120 วัน นับรวมทั้งวันแรกและวันสุดท้าย
   it("builds an inclusive 120-day notification window", () => {
     expect(leaseExpiryWindow(now)).toEqual({
       from: new Date("2026-08-11T00:00:00.000Z"),

@@ -1,84 +1,53 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “api” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { after, NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { writeAuditLogSafely } from "@/lib/server/audit";
 import { getRequestActorContext } from "@/lib/server/request-context";
 import type { AuditInput } from "@/lib/server/audit";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Same Origin” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - expectedContentType: ค่า “expected Content Type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ป้องกัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง ไม่ใช่จากเว็บอื่นที่หลอกให้ผู้ใช้กด
+// ทุก route ที่เปลี่ยนข้อมูลต้องเรียกตัวนี้
 export function assertSameOrigin(
   request: NextRequest,
   expectedContentType: string | null = "application/json",
 ) {
   const origin = request.headers.get("origin");
+  // อยู่หลัง proxy ต้องดู x-forwarded-host เพราะ host จะเป็นของ proxy ไม่ใช่ที่ผู้ใช้เห็น
   const forwardedHost = request.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
   const requestHost = forwardedHost || request.headers.get("host") || request.nextUrl.host;
   let originHost = "";
   try {
     originHost = origin ? new URL(origin).host : "";
   } catch {
-    // Invalid origins are rejected by the host comparison below.
+    // origin รูปแบบผิดก็ปล่อยให้เป็นสตริงว่าง แล้วไปตกที่การเทียบ host ข้างล่างซึ่งจะไม่ผ่านอยู่ดี
   }
   const acceptedHosts = new Set([requestHost, request.nextUrl.host]);
+  // ไม่มี origin มาเลยก็ไม่ผ่าน เพราะเบราว์เซอร์ส่งมาเสมอสำหรับคำขอที่เปลี่ยนข้อมูล
   if (!originHost || !acceptedHosts.has(originHost)) throw new ApiError(403, "Request origin is not allowed");
+  // บังคับ Content-Type ด้วย เพราะฟอร์ม HTML ธรรมดาส่ง application/json ไม่ได้
+  // จึงเป็นอีกชั้นที่กันไม่ให้เว็บอื่นสร้างฟอร์มมายิงใส่ API ของเรา
   if (expectedContentType && request.headers.get("content-type")?.split(";", 1)[0] !== expectedContentType) {
     throw new ApiError(415, `Content-Type must be ${expectedContentType}`);
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คลาส “Api Error” รวมข้อมูลและพฤติกรรมที่ต้องทำงานร่วมกันเป็นออบเจ็กต์เดียว
- */
+// Error ที่พกรหัสสถานะ HTTP ติดมาด้วย โยนจากที่ไหนก็ได้แล้วกลายเป็นคำตอบที่ถูกต้อง
 export class ApiError extends Error {
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เตรียมค่าเริ่มต้นเมื่อสร้างออบเจ็กต์ api
-   * รับค่า:
-   * - status: ค่า “status” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - message: ค่า “message” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: ไม่มีค่าคืน; ผลคือออบเจ็กต์หรือสถานะภายในได้รับการตั้งค่า
-   */
   constructor(readonly status: number, message: string) { super(message); }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “api Success Response” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - body: ค่า “body” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - init: ค่า “init” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - audit: ค่า “audit” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตอบกลับตอนสำเร็จ ทุก route ใช้ตัวนี้ จะได้มีรูปแบบและ requestId เหมือนกันหมด
+// มีตัวทดสอบคอยเช็คว่าไม่มี route ไหนตอบเองโดยไม่ผ่านตรงนี้
 export function apiSuccessResponse(
   request: NextRequest,
   body: Record<string, unknown>,
   init?: { status?: number; headers?: HeadersInit },
   audit?: Omit<AuditInput, "request" | "requestId" | "result">,
 ) {
+  // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  // บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
   if (request.method !== "GET" && request.method !== "HEAD") {
     const context = getRequestActorContext(request);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “record Success” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const recordSuccess = () => writeAuditLogSafely({
       userId: context.userId,
       propertyId: context.propertyId,
@@ -89,6 +58,8 @@ export function apiSuccessResponse(
       requestId,
       result: "SUCCESS",
     });
+    // after ทำให้เขียน log หลังส่งคำตอบไปแล้ว ผู้ใช้จะได้ไม่ต้องรอ
+    // ใช้ไม่ได้ตอนเรียก route ตรง ๆ ในการทดสอบ จึงมีทางสำรองให้เขียนทันที
     try {
       after(recordSuccess);
     } catch {
@@ -97,34 +68,22 @@ export function apiSuccessResponse(
   }
   const headers = new Headers(init?.headers);
   headers.set("x-request-id", requestId);
+  // แนบ requestId ไปทั้งใน header และในตัวข้อมูล เผื่อฝั่งเบราว์เซอร์อ่านได้ไม่ครบทั้งสองทาง
   return NextResponse.json({ ...body, requestId }, { ...init, headers });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “api Success Binary Response” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - body: ค่า “body” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - init: ค่า “init” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - audit: ค่า “audit” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แบบเดียวกันแต่สำหรับไฟล์ ใช้กับ PDF และ CSV ที่ตอบเป็น JSON ไม่ได้
 export function apiSuccessBinaryResponse(
   request: NextRequest,
   body: BodyInit | null,
   init: ResponseInit,
   audit?: Omit<AuditInput, "request" | "requestId" | "result">,
 ) {
+  // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  // บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
   if (request.method !== "GET" && request.method !== "HEAD") {
     const context = getRequestActorContext(request);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “record Success” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const recordSuccess = () => writeAuditLogSafely({
       userId: context.userId,
       propertyId: context.propertyId,
@@ -146,26 +105,15 @@ export function apiSuccessBinaryResponse(
   return new NextResponse(body, { ...init, headers });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “api Error Response” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - error: ข้อผิดพลาดที่ต้องแปลง บันทึก หรือแสดงอย่างปลอดภัย
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตอบกลับตอนพลาด แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
 export function apiErrorResponse(error: unknown, request?: NextRequest) {
   const requestId = request?.headers.get("x-request-id") ?? crypto.randomUUID();
+  // ข้อมูลไม่ผ่านการตรวจเป็น 400 ที่เราโยนเองใช้รหัสที่ระบุไว้ ที่เหลือคือ 500
   const status = error instanceof ZodError ? 400 : error instanceof ApiError ? error.status : 500;
   if (request && request.method !== "GET" && request.method !== "HEAD") {
     const context = getRequestActorContext(request);
+    // คำขอที่พลาดตั้งแต่ก่อนตรวจสิทธิ์จะยังไม่มี propertyId ใน context จึงลองดึงจาก URL แทน
     const pathPropertyId = request.nextUrl.pathname.match(/\/properties\/([^/]+)/)?.[1];
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “record Failure” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const recordFailure = async () => {
       let propertyId = context.propertyId;
       if (!propertyId && pathPropertyId && context.userId) {
@@ -177,6 +125,7 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
             memberships: { where: { propertyId: pathPropertyId }, select: { propertyId: true } },
           },
         }).catch(() => null);
+        // แต่ใช้ได้ต่อเมื่อผู้ใช้มีสิทธิ์ในหอนั้นจริง ไม่งั้นใครก็ใส่ id หอของคนอื่นให้ไปโผล่ใน log ได้
         if (user?.role === "SUPER_ADMIN" || user?.memberships.length) propertyId = pathPropertyId;
       }
       await writeAuditLogSafely({
@@ -192,15 +141,18 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
     try {
       after(recordFailure);
     } catch {
-      // Direct route-handler tests do not provide Next.js request scope.
+      // การทดสอบที่เรียก route ตรง ๆ ไม่มีขอบเขตคำขอของ Next ให้ after ใช้ จึงเขียนทันทีแทน
       void recordFailure();
     }
   }
+  // ข้อผิดพลาดที่ไม่คาดคิดเท่านั้นที่เขียนลง log ของระบบ ส่วนที่เราตั้งใจโยนเป็นเรื่องปกติ
   if (!(error instanceof ZodError) && !(error instanceof ApiError)) {
     console.error(JSON.stringify({ level: "error", event: "api_failed", requestId, message: error instanceof Error ? error.message : "Unknown error" }));
   }
   const headers = { "x-request-id": requestId };
+  // บอกได้ว่าช่องไหนผิด เพราะเป็นข้อมูลที่ผู้ใช้กรอกมาเองอยู่แล้ว ไม่ใช่ความลับของระบบ
   if (error instanceof ZodError) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", requestId, issues: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) }, { status, headers });
   if (error instanceof ApiError) return NextResponse.json({ error: error.message, requestId }, { status, headers });
+  // ข้อผิดพลาดที่ไม่คาดคิดตอบข้อความกลาง ๆ ไม่ส่ง stack trace หรือข้อความจากฐานข้อมูลออกไป
   return NextResponse.json({ error: "ไม่สามารถดำเนินการได้", requestId }, { status, headers });
 }

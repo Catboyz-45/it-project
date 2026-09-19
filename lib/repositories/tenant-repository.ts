@@ -1,37 +1,26 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นชั้นเข้าถึงข้อมูลสำหรับ “tenant repository” เพื่อไม่ให้หน้าจอหรือ route ติดต่อฐานข้อมูลโดยตรง
- * การทำงาน: รวมคำสั่งอ่านและเขียนข้อมูลไว้จุดเดียว เลือกเฉพาะฟิลด์ที่จำเป็น และเปิดทางให้ตรวจสิทธิ์/transaction ใน service ชั้นบน
- */
-
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
+// รวมคำสั่งฐานข้อมูลของผู้เช่าไว้ที่เดียว route ไม่ต้องเขียน query เอง
 export const tenantRepository = {
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 async list(propertyId: string, pagination: PaginationInput, query?: string) {
     const normalizedQuery = query?.trim();
     const rows = await getDatabase().roomOccupancy.findMany({
       where: {
         propertyId,
+        // รวมที่ยังรออนุมัติด้วย เพราะหน้าผู้เช่าต้องแสดงคำขอที่รอตรวจให้เจ้าของหอเห็น
         status: { in: ["PENDING", "ACTIVE"] },
         ...(normalizedQuery ? {
           OR: [
             { room: { number: { contains: normalizedQuery, mode: "insensitive" } } },
+            // เบอร์โทรไม่ต้องใส่ insensitive เพราะเป็นตัวเลขล้วน
             { tenantProfile: { phone: { contains: normalizedQuery } } },
             { tenantProfile: { user: { displayName: { contains: normalizedQuery, mode: "insensitive" } } } },
             { tenantProfile: { user: { email: { contains: normalizedQuery, mode: "insensitive" } } } },
           ],
         } : {}),
       },
+      // เรียงตามห้อง แล้วผู้เช่าหลักก่อนผู้พักร่วม และใช้ id เป็นตัวตัดสินสุดท้าย ลำดับจะได้คงที่ทุกหน้า
       orderBy: [{ room: { number: "asc" } }, { role: "asc" }, { id: "asc" }],
       ...paginationQuery(pagination),
       select: {
@@ -39,6 +28,7 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
         room: {
           select: {
             id: true, number: true, monthlyRent: true, depositAmount: true,
+            // ดึงคนอื่นที่อยู่ห้องเดียวกันมาด้วย เพื่อให้หน้าจอแสดงได้ว่าห้องนี้มีใครบ้าง
             occupancies: {
               where: { status: "ACTIVE" },
               orderBy: [{ role: "asc" }, { createdAt: "asc" }],
@@ -56,6 +46,7 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
             user: { select: { id: true, displayName: true, email: true, isActive: true } },
           },
         },
+        // เอาสัญญาล่าสุดฉบับเดียว ห้องหนึ่งมีสัญญาหลายฉบับสะสมได้จากการต่ออายุ
         leases: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -72,14 +63,6 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
     });
     return toPaginatedResult(rows, pagination);
   },
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “find” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 find(propertyId: string, tenantProfileId: string) {
     return getDatabase().tenantProfile.findFirst({
       where: { id: tenantProfileId, occupancies: { some: { propertyId } } },

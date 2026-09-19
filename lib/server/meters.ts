@@ -1,28 +1,17 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “meters” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { billingMonthToDate, type MeterReadingInput } from "@/lib/domain/billing";
 import type { Prisma } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
+// เลือกเฉพาะฟิลด์ที่หน้าจอใช้จริง ไม่ดึงข้อมูลทั้งแถว
 const select = {
   id: true, type: true, billingMonth: true, previousReading: true,
   currentReading: true, unitRate: true, recordedAt: true,
   room: { select: { id: true, number: true } },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - reading: ค่า “reading” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// Prisma คืน Decimal มา แปลงเป็นสตริงก่อนส่งออกไป ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 const serialize = <T extends {
   previousReading: { toString(): string };
   currentReading: { toString(): string };
@@ -34,15 +23,6 @@ const serialize = <T extends {
   unitRate: reading.unitRate.toString(),
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Meter Readings” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - billingMonth: ค่า “billing Month” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listMeterReadings(
   propertyId: string,
   pagination: PaginationInput,
@@ -50,6 +30,7 @@ export async function listMeterReadings(
 ) {
   const rows = await getDatabase().meterReading.findMany({
     where: { propertyId, ...(billingMonth ? { billingMonth: billingMonthToDate(billingMonth) } : {}) },
+    // เรียงเดือนใหม่สุดก่อน แล้วเรียงห้องและชนิด ลำดับจะได้คงที่ทุกครั้งที่แบ่งหน้า
     orderBy: [{ billingMonth: "desc" }, { room: { number: "asc" } }, { type: "asc" }],
     ...paginationQuery(pagination),
     select,
@@ -57,16 +38,7 @@ export async function listMeterReadings(
   return toPaginatedResult(rows.map(serialize), pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Meter Worksheet” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - billingMonth: ค่า “billing Month” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ใบจดมิเตอร์ของเดือนหนึ่ง รวมทุกห้องพร้อมเลขครั้งก่อนและเลขที่จดไปแล้ว
 export async function getMeterWorksheet(
   propertyId: string,
   billingMonth: string,
@@ -74,12 +46,14 @@ export async function getMeterWorksheet(
   pagination: PaginationInput,
 ) {
   const month = billingMonthToDate(billingMonth);
+  // ดึงอัตราค่าน้ำค่าไฟกับรายการห้องพร้อมกัน เพราะไม่ต้องรอผลของกันและกัน
   const [settings, rooms] = await Promise.all([
     getDatabase().propertySettings.findUnique({
       where: { propertyId },
       select: { waterUnitRate: true, electricityUnitRate: true },
     }),
     getDatabase().room.findMany({
+      // ห้องที่ปิดใช้งานไม่ต้องจดมิเตอร์
       where: { propertyId, status: { not: "INACTIVE" } },
       orderBy: [
         { building: { code: "asc" } },
@@ -93,11 +67,14 @@ export async function getMeterWorksheet(
         building: { select: { id: true, name: true, code: true } },
         floor: { select: { id: true, number: true, label: true } },
         occupancies: {
+          // เอาชื่อผู้เช่าหลักคนเดียวมาแสดง เพื่อให้คนจดรู้ว่าห้องนี้ใครอยู่
           where: { status: "ACTIVE", role: "PRIMARY" },
           take: 1,
           select: { tenantProfile: { select: { user: { select: { displayName: true } } } } },
         },
         meterReadings: {
+          // เอาสองแถวล่าสุดที่ไม่เกินเดือนนี้ อันหนึ่งคือของเดือนนี้ถ้าจดไปแล้ว อีกอันคือของรอบก่อนไว้เป็นเลขตั้งต้น
+          // ดึงมาในคำสั่งเดียวพร้อมรายการห้อง เลี่ยงการยิงถามทีละห้องซึ่งช้ามาก
           where: { type, billingMonth: { lte: month } },
           orderBy: { billingMonth: "desc" },
           take: 2,
@@ -113,23 +90,11 @@ export async function getMeterWorksheet(
       },
     }),
   ]);
+  // ยังไม่ได้ตั้งอัตราก็จดมิเตอร์ไปก็คำนวณเงินไม่ได้ จึงหยุดพร้อมบอกให้ไปตั้งค่าก่อน
   if (!settings) throw new ApiError(409, "กรุณาตั้งค่าอัตราค่าน้ำและค่าไฟก่อน");
   const configuredRate = type === "WATER" ? settings.waterUnitRate : settings.electricityUnitRate;
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “rows” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const rows = rooms.map((room) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “exact” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - reading: ค่า “reading” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // หาแถวของเดือนนี้เป๊ะ ๆ มีแปลว่าจดไปแล้ว แถวนั้นจะถูกล็อกไม่ให้แก้ซ้ำ
     const exact = room.meterReadings.find((reading) => reading.billingMonth.getTime() === month.getTime());
     const previous = exact
       ? undefined
@@ -157,16 +122,7 @@ export async function getMeterWorksheet(
   return toPaginatedResult(rows, pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “record With Database” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// บันทึกมิเตอร์หนึ่งรายการ แยกออกมาเพราะทั้งแบบเดี่ยวและแบบทั้งชุดใช้ตัวเดียวกัน
 async function recordWithDatabase(
   database: Prisma.TransactionClient,
   propertyId: string,
@@ -174,6 +130,7 @@ async function recordWithDatabase(
   input: MeterReadingInput,
 ) {
   const month = billingMonthToDate(input.billingMonth);
+  // ถามสี่อย่างพร้อมกัน ห้องมีจริงไหม เดือนนี้จดไปหรือยัง เลขรอบก่อนคืออะไร และมีเดือนถัดไปแล้วหรือยัง
   const [room, existing, previous, later] = await Promise.all([
     database.room.findFirst({
       where: { id: input.roomId, propertyId, status: { not: "INACTIVE" } },
@@ -194,12 +151,17 @@ async function recordWithDatabase(
     }),
   ]);
   if (!room) throw new ApiError(404, "ไม่พบห้องพัก");
+  // จดซ้ำเดือนเดิมไม่ได้ ต้องไปแก้ที่รายการเดิมแทน
   if (existing) throw new ApiError(409, "บันทึกมิเตอร์ประเภทนี้ของเดือนนี้แล้ว");
+  // ห้ามแทรกย้อนหลัง เพราะเลขของเดือนถัดไปคำนวณต่อจากเดือนนี้ แทรกแล้วยอดของเดือนหลังจะผิดหมด
   if (later) throw new ApiError(409, "ไม่สามารถเพิ่มเลขมิเตอร์ย้อนหลังหลังจากมีข้อมูลเดือนถัดไป");
+  // ครั้งแรกของห้องนั้นไม่มีเลขรอบก่อนในระบบ ผู้ใช้ต้องกรอกเลขตั้งต้นมาเอง
   if (!previous && input.previousReading === undefined) {
     throw new ApiError(400, "การบันทึกครั้งแรกต้องระบุเลขมิเตอร์ครั้งก่อน");
   }
+  // มีของเดิมในระบบก็ใช้ของเดิมเสมอ ไม่เอาที่ผู้ใช้ส่งมา กันแก้เลขตั้งต้นย้อนหลังจนยอดเพี้ยน
   const previousReading = previous ? Number(previous.currentReading) : input.previousReading!;
+  // ตรวจซ้ำที่นี่ด้วย ถึงตัวตรวจข้อมูลจะเช็คไปแล้ว เพราะตรงนี้เทียบกับเลขจริงในฐานข้อมูล
   if (input.currentReading < previousReading) {
     throw new ApiError(400, "เลขมิเตอร์ล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน");
   }
@@ -207,7 +169,9 @@ async function recordWithDatabase(
     where: { propertyId },
     select: { waterUnitRate: true, electricityUnitRate: true },
   });
+  // ยังไม่ได้ตั้งอัตราก็จดมิเตอร์ไปก็คำนวณเงินไม่ได้ จึงหยุดพร้อมบอกให้ไปตั้งค่าก่อน
   if (!settings) throw new ApiError(409, "กรุณาตั้งค่าอัตราค่าน้ำและค่าไฟก่อน");
+  // เก็บอัตราลงในแถวด้วย ขึ้นราคาทีหลังแล้วบิลเก่าจะได้ยังคิดด้วยอัตราตอนนั้น
   const unitRate = input.type === "WATER" ? settings.waterUnitRate : settings.electricityUnitRate;
   return database.meterReading.create({
     data: {
@@ -218,15 +182,7 @@ async function recordWithDatabase(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “record Meter Reading” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// Serializable เพราะอ่านแล้วเขียน สองคนจดห้องเดียวกันพร้อมกันจะได้ไม่ผ่านทั้งคู่
 export async function recordMeterReading(propertyId: string, userId: string, input: MeterReadingInput) {
   const row = await getDatabase().$transaction(
     (database) => recordWithDatabase(database, propertyId, userId, input),
@@ -235,15 +191,6 @@ export async function recordMeterReading(propertyId: string, userId: string, inp
   return serialize(row);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “record Meter Readings” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - inputs: ค่า “inputs” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function recordMeterReadings(propertyId: string, userId: string, inputs: MeterReadingInput[]) {
   const rows = await getDatabase().$transaction(async (database) => {
     const created = [];

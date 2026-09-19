@@ -1,19 +1,9 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นชั้นเข้าถึงข้อมูลสำหรับ “property repository” เพื่อไม่ให้หน้าจอหรือ route ติดต่อฐานข้อมูลโดยตรง
- * การทำงาน: รวมคำสั่งอ่านและเขียนข้อมูลไว้จุดเดียว เลือกเฉพาะฟิลด์ที่จำเป็น และเปิดทางให้ตรวจสิทธิ์/transaction ใน service ชั้นบน
- */
-
 import { getDatabase } from "@/lib/server/db";
 
+// รวมคำสั่งฐานข้อมูลของหอพักไว้ที่เดียว route ไม่ต้องเขียน query เอง
 export const propertyRepository = {
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “find Workspace” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ดึงข้อมูลหอพร้อมจำนวนอาคาร ห้อง และการเข้าพัก ในคำสั่งเดียว
+// ใช้ _count แทนการดึงแถวมานับเอง เพราะเร็วกว่าและไม่ต้องส่งข้อมูลที่ไม่ได้ใช้
 findWorkspace(propertyId: string) {
     return getDatabase().property.findUnique({
       where: { id: propertyId },
@@ -24,14 +14,7 @@ findWorkspace(propertyId: string) {
       },
     });
   },
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Identity” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - data: ข้อมูลที่ฟังก์ชันนำไปประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แก้ได้แค่ชื่อกับชื่อย่อ ระบุฟิลด์ไว้ชัด กันการแอบส่งฟิลด์อื่นมาแก้
 updateIdentity(propertyId: string, data: { name?: string; shortName?: string }) {
     return getDatabase().property.update({
       where: { id: propertyId },
@@ -39,14 +22,8 @@ updateIdentity(propertyId: string, data: { name?: string; shortName?: string }) 
       select: { id: true, name: true, shortName: true, isActive: true },
     });
   },
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “upsert Settings” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - data: ข้อมูลที่ฟังก์ชันนำไปประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// upsert เพราะหอที่เพิ่งสร้างยังไม่มีแถวการตั้งค่า
+// ดึงชนิดมาจาก Prisma โดยตรง จะได้ไม่ต้องมาตามแก้เองทุกครั้งที่ schema เปลี่ยน
 upsertSettings(propertyId: string, data: Parameters<ReturnType<typeof getDatabase>["propertySettings"]["upsert"]>[0]["create"]) {
     return getDatabase().propertySettings.upsert({
       where: { propertyId },

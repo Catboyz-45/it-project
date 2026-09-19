@@ -1,20 +1,11 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “file retention” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { getStorageAdapter, type StorageAdapter } from "@/lib/documents/storage";
 import { getDatabase } from "@/lib/server/db";
 import { getServerEnv } from "@/lib/server/env";
 
 const DAY_MS = 86_400_000;
+// สัญญาที่ยังไม่จบ เอกสารของสัญญาเหล่านี้ห้ามลบ ไม่ว่าจะสร้างมานานแค่ไหน
 const ACTIVE_LEASE_STATUSES = ["DRAFT", "PENDING_SIGNATURE", "ACTIVE", "EXPIRING"] as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Retention Policy” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type RetentionPolicy = {
   slipDays: number;
   documentDays: number;
@@ -22,10 +13,6 @@ export type RetentionPolicy = {
   batchSize: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “File Retention Result” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type FileRetentionResult = {
   paymentSlipsPurged: number;
   generatedDocumentsPurged: number;
@@ -34,24 +21,12 @@ export type FileRetentionResult = {
   failedFiles: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “retention Cutoff” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - runAt: ค่า “run At” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - days: ค่า “days” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ย้อนหลังไปตามจำนวนวันที่กำหนด สร้าง Date ใหม่ ไม่แก้ค่าที่ส่งเข้ามา
 export function retentionCutoff(runAt: Date, days: number) {
   return new Date(runAt.getTime() - days * DAY_MS);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Retention Policy” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลชนิด RetentionPolicy ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ระยะเก็บมาจากการตั้งค่าของระบบ ไม่ได้ฝังไว้ในโค้ด เพราะแต่ละที่มีข้อกำหนดต่างกัน
 export function getRetentionPolicy(): RetentionPolicy {
   const env = getServerEnv();
   return {
@@ -62,14 +37,7 @@ export function getRetentionPolicy(): RetentionPolicy {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “delete File” ตามกฎของระบบ
- * รับค่า:
- * - storage: ค่า “storage” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - key: ค่า “key” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ลบไฟล์แล้วบอกว่าสำเร็จไหม ไม่โยน error เพราะไฟล์อันหนึ่งพังต้องไม่หยุดทั้งงาน
 async function deleteFile(storage: StorageAdapter, key: string) {
   try {
     await storage.delete(key);
@@ -79,15 +47,8 @@ async function deleteFile(storage: StorageAdapter, key: string) {
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “enforce File Retention” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - runAt: ค่า “run At” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - policy: ค่า “policy” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - storage: ค่า “storage” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<FileRetentionResult> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ลบไฟล์ที่เลยระยะเก็บแล้ว รันเป็นงานเบื้องหลังตามเวลาที่ตั้งไว้
+// รับ runAt กับ policy เข้ามาได้ จะได้ตรึงเวลาและค่าตั้งค่าในการทดสอบ
 export async function enforceFileRetention(
   runAt = new Date(),
   policy = getRetentionPolicy(),
@@ -109,19 +70,26 @@ export async function enforceFileRetention(
     where: {
       slipStorageKey: { not: null },
       slipPurgedAt: null,
+      // นับจากวันที่ตรวจเสร็จ ไม่ใช่วันที่ส่ง และต้องตรวจไปแล้วจริง ๆ
+      // สลิปที่ยังรอตรวจอยู่ห้ามลบ ไม่ว่าจะส่งมานานแค่ไหน
       reviewedAt: { not: null, lte: slipCutoff },
       status: { in: ["APPROVED", "REJECTED"] },
     },
+    // ทำทีละชุด ไม่ลบทีเดียวทั้งหมด งานจะได้ไม่ค้างนานและไม่กินหน่วยความจำ
+    // เรียงเก่าสุดก่อน และใช้ id เป็นตัวตัดสินเมื่อเวลาเท่ากัน ลำดับจะได้คงที่ทุกรอบ
     orderBy: [{ reviewedAt: "asc" }, { id: "asc" }],
     take: policy.batchSize,
     select: { id: true, slipStorageKey: true },
   });
   for (const slip of slips) {
+    // ลบไฟล์จริงให้สำเร็จก่อน แล้วค่อยล้างข้อมูลในฐาน
+    // ถ้าสลับลำดับ ลบในฐานสำเร็จแต่ลบไฟล์พลาด ไฟล์นั้นจะค้างอยู่ตลอดไปโดยไม่มีใครรู้
     if (!slip.slipStorageKey || !await deleteFile(storage, slip.slipStorageKey)) {
       result.failedFiles += 1;
       continue;
     }
     const updated = await database.paymentSubmission.updateMany({
+      // ใส่ค่าเดิมไว้ใน where ด้วย ถ้ามีคนอื่นแก้ระหว่างนั้นจะไม่เขียนทับ
       where: { id: slip.id, slipStorageKey: slip.slipStorageKey, slipPurgedAt: null },
       data: { slipStorageKey: null, slipMime: null, slipSize: null, slipPurgedAt: runAt },
     });
@@ -133,6 +101,8 @@ export async function enforceFileRetention(
       storageKey: { not: null },
       filePurgedAt: null,
       createdAt: { lte: documentCutoff },
+      // ห้ามลบเอกสารที่ยังผูกกับสัญญาที่ยังไม่จบ หรือสัญญาที่เพิ่งจบไปยังไม่พ้นระยะเก็บ
+      // none แปลว่าต้องไม่มีสัญญาที่เข้าเงื่อนไขเหล่านี้เลย
       leaseVersions: {
         none: {
           lease: {

@@ -1,19 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: รวม TypeScript type ของ “repairs” เพื่อบอกโครงสร้างข้อมูลที่ส่วนต่าง ๆ ต้องใช้ร่วมกัน
- * การทำงาน: ไม่มีข้อมูลจริงอยู่ในไฟล์นี้ แต่ช่วยให้ compiler แจ้งเตือนเมื่อส่งข้อมูลผิดรูปแบบก่อนนำระบบไปรัน
- */
-
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Owner Repair Status” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สถานะของใบแจ้งซ่อมตามลำดับที่เกิดจริง ตั้งแต่รออนุมัติจนปิดงาน
 export type OwnerRepairStatus = "review" | "approved" | "scheduled" | "in_progress" | "done" | "rejected";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Owner Repair Ticket” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// รูปของใบแจ้งซ่อมที่ฝั่งหน้าจอใช้ วันที่เป็นสตริงเพราะส่งผ่าน JSON มาจาก API
+// ฟิลด์วันที่เป็น optional เพราะยังไม่ถึงขั้นนั้นก็ยังไม่มีค่า
 export type OwnerRepairTicket = {
   approvedAt?: string;
   category: string;
@@ -29,6 +18,7 @@ export type OwnerRepairTicket = {
   updatedAt: string;
 };
 
+// แปลงรหัสสถานะเป็นข้อความไทย ใช้ Record บังคับให้ครบทุกสถานะ เพิ่มสถานะใหม่แล้วลืมแปลจะคอมไพล์ไม่ผ่าน
 export const repairStatusLabel: Record<OwnerRepairStatus, string> = {
   approved: "อนุมัติแล้ว",
   done: "เสร็จแล้ว",
@@ -38,6 +28,7 @@ export const repairStatusLabel: Record<OwnerRepairStatus, string> = {
   scheduled: "นัดช่าง",
 };
 
+// คลาส CSS ของป้ายสถานะ แยกจากข้อความเพื่อให้เปลี่ยนสีได้โดยไม่ต้องยุ่งกับคำแปล
 export const repairStatusClass: Record<OwnerRepairStatus, string> = {
   approved: "badge badge-approved",
   done: "badge badge-done",

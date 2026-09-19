@@ -1,43 +1,29 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “password reset” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { createHash, randomBytes } from "node:crypto";
 import { platformProfile } from "@/lib/platform-profile";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/password";
 
+// ลิงก์อยู่ได้ 30 นาที สั้นเพราะลิงก์ที่ค้างในกล่องอีเมลเป็นความเสี่ยงถ้าอีเมลหลุด
 const resetLifetimeMs = 30 * 60 * 1000;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “hash Token” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - token: ค่า “token” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ฐานข้อมูลเก็บแต่ค่า hash ฐานข้อมูลรั่วก็เอาโทเคนไปตั้งรหัสผ่านใหม่ไม่ได้
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Password Reset” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - email: ค่า “email” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ขอลิงก์ตั้งรหัสผ่านใหม่ ตอบเหมือนกันเสมอไม่ว่าอีเมลนั้นจะมีอยู่จริงหรือไม่
+// ไม่โยน error และไม่คืนค่าอะไร เพื่อไม่ให้ใครใช้หน้านี้ไล่เดาว่าอีเมลไหนสมัครไว้แล้ว
 export async function requestPasswordReset(email: string) {
   const user = await getDatabase().user.findUnique({
     where: { email },
     select: { id: true, email: true, displayName: true, isActive: true },
   });
+  // ไม่มีบัญชีหรือบัญชีถูกระงับก็เงียบ ๆ ผู้เรียกจะได้ไม่รู้ว่าติดข้อไหน
   if (!user?.isActive) return;
   const token = randomBytes(32).toString("base64url");
   await getDatabase().$transaction([
+    // ทำโทเคนเก่าที่ยังไม่ได้ใช้ให้หมดอายุก่อน ขอใหม่แล้วอันเก่าต้องใช้ไม่ได้ทันที
     getDatabase().passwordResetToken.updateMany({
       where: { userId: user.id, usedAt: null },
       data: { usedAt: new Date() },
@@ -53,23 +39,16 @@ export async function requestPasswordReset(email: string) {
   try {
     await sendResetEmail(user.email, user.displayName, token);
   } catch {
-    // Keep the public response indistinguishable for known and unknown accounts.
+    // ส่งอีเมลไม่สำเร็จก็ยังตอบเหมือนเดิม ไม่งั้นเวลาที่ใช้ตอบจะต่างกันจนเดาได้ว่าอีเมลนั้นมีอยู่จริง
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send Reset Email” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - email: ค่า “email” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - displayName: ค่า “display Name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - token: ค่า “token” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
 async function sendResetEmail(email: string, displayName: string, token: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.PASSWORD_RESET_EMAIL_FROM;
   const appUrl = process.env.APP_URL;
+  // ตอน production ต้องตั้งค่าครบ ไม่งั้นถือว่าระบบไม่พร้อม
+  // ตอน dev ปล่อยผ่านเงียบ ๆ เพื่อให้ทดสอบขั้นตอนอื่นได้โดยไม่ต้องตั้งบริการส่งอีเมล
   if (!apiKey || !from || !appUrl) {
     if (process.env.NODE_ENV === "production") throw new ApiError(503, "ระบบส่งอีเมลยังไม่พร้อมใช้งาน");
     return;
@@ -85,28 +64,24 @@ async function sendResetEmail(email: string, displayName: string, token: string)
       subject: `ตั้งรหัสผ่าน ${platformProfile.name} ใหม่`,
       text: `สวัสดี ${displayName}\n\nเปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`,
     }),
+    // ตั้ง timeout กับคำขอที่ออกไปข้างนอกเสมอ ไม่งั้นบริการปลายทางค้างแล้วคำขอของเราค้างตาม
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new ApiError(503, "ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “reset Password” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - token: ค่า “token” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - password: ค่า “password” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตั้งรหัสผ่านใหม่จากลิงก์ในอีเมล
 export async function resetPassword(token: string, password: string) {
   const now = new Date();
   const tokenHash = hashToken(token);
+  // เข้ารหัสไว้ก่อนเข้า transaction เพราะ scrypt ตั้งใจให้ช้า ไม่ควรถือ transaction ค้างไว้ระหว่างนั้น
   const passwordHash = await hashPassword(password);
   return getDatabase().$transaction(async (database) => {
     const record = await database.passwordResetToken.findUnique({
       where: { tokenHash },
       select: { id: true, userId: true, usedAt: true, expiresAt: true },
     });
+    // ตรวจสามอย่าง มีจริง ยังไม่เคยใช้ และยังไม่หมดอายุ ข้อความผิดพลาดเหมือนกันหมด ไม่บอกว่าติดข้อไหน
     if (!record || record.usedAt || record.expiresAt <= now) {
       throw new ApiError(400, "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ");
     }
@@ -114,23 +89,18 @@ export async function resetPassword(token: string, password: string) {
       where: { id: record.userId },
       data: { passwordHash, mustChangePassword: false },
     });
+    // ปิดโทเคนที่ยังไม่ได้ใช้ทั้งหมดของคนนี้ ลิงก์ใช้ได้ครั้งเดียวจริง ๆ
     await database.passwordResetToken.updateMany({
       where: { userId: record.userId, usedAt: null },
       data: { usedAt: now },
     });
+    // ตัด session ทุกเครื่องทิ้ง เผื่อรหัสเดิมหลุดไปแล้วมีคนอื่นเข้าอยู่
     await database.session.deleteMany({ where: { userId: record.userId } });
     return record.userId;
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Temporary Password” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - password: ค่า “password” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// เปลี่ยนรหัสชั่วคราวเป็นรหัสของตัวเอง ทำตอนถูกบังคับให้เปลี่ยนหลังเข้าสู่ระบบครั้งแรก
 export async function changeTemporaryPassword(userId: string, password: string) {
   const passwordHash = await hashPassword(password);
   await getDatabase().$transaction([
@@ -146,14 +116,10 @@ export async function changeTemporaryPassword(userId: string, password: string) 
   ]);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “issue Temporary Password” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบออกรหัสชั่วคราวให้เจ้าของหอที่เข้าระบบไม่ได้
 export async function issueTemporaryPassword(userId: string) {
+  // ส่วนหน้า "Df1-" ทำให้ผ่านเกณฑ์ที่ต้องมีพิมพ์ใหญ่ พิมพ์เล็ก และตัวเลขแน่นอน
+  // ที่เหลือสุ่ม 15 ไบต์ ยาวพอที่จะเดาไม่ได้
   const temporaryPassword = `Df1-${randomBytes(15).toString("base64url")}`;
   const passwordHash = await hashPassword(temporaryPassword);
   await getDatabase().$transaction(async (database) => {
@@ -161,6 +127,8 @@ export async function issueTemporaryPassword(userId: string) {
       where: { id: userId, role: "PROPERTY_ADMIN", isActive: true },
       data: { passwordHash, mustChangePassword: true },
     });
+    // ใส่เงื่อนไขบทบาทกับสถานะไว้ใน where เลย จะได้ออกรหัสให้บัญชีอื่นไม่ได้
+    // นับจำนวนแถวที่แก้แทนการอ่านมาเช็คก่อน จึงไม่มีช่องว่างระหว่างอ่านกับเขียน
     if (updated.count !== 1) throw new ApiError(404, "ไม่พบบัญชีเจ้าของหอ");
     await database.session.deleteMany({ where: { userId } });
     await database.passwordResetToken.updateMany({

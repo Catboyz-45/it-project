@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Basic Account Panel” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
 import { FormEvent, useState } from "react";
 import { CheckCircle2, ChevronRight, LockKeyhole, X } from "lucide-react";
@@ -14,21 +9,13 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { formatClientError, readApiPayload } from "@/lib/client/api-error";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Message” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ข้อความผลลัพธ์ที่แสดงในหน้า แยกจาก toast เพราะต้องค้างไว้ให้อ่านได้จนกว่าจะทำใหม่
 type Message = { message: string; tone: "error" | "success" } | null;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Basic Account Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { displayName: initialDisplayName, email }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าบัญชีแบบย่อ ใช้กับผู้เช่าและผู้ดูแลระบบ ที่ไม่มีหน้าตั้งค่าหอพักเต็มรูปแบบ
 export function BasicAccountPanel({ displayName: initialDisplayName, email }: { displayName: string; email: string }) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
+  // แก้บนสำเนา ชื่อจริงบนหน้าจะเปลี่ยนเมื่อบันทึกสำเร็จเท่านั้น
   const [draftName, setDraftName] = useState(initialDisplayName);
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [profileMessage, setProfileMessage] = useState<Message>(null);
@@ -38,13 +25,6 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
   const [isSaving, setIsSaving] = useState(false);
   const notify = useToast();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Profile” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
     setIsSaving(true);
@@ -69,16 +49,11 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Password” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนรหัสผ่าน เซิร์ฟเวอร์จะยกเลิก session ทั้งหมดแล้วบังคับให้เข้าใหม่
   const changePassword = async (event: FormEvent) => {
     event.preventDefault();
     setPasswordMessage(null);
+    // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ครหัสเดิมด้วย
     if (passwords.newPassword !== passwords.confirmPassword) {
       setPasswordMessage({ message: "รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน", tone: "error" });
       return;
@@ -91,9 +66,11 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword }),
       }), "เปลี่ยนรหัสผ่านไม่สำเร็จ");
+      // assign ไม่ใช่ router.push เพื่อให้โหลดหน้าใหม่ทั้งหมด ข้อมูลเดิมจะได้ไม่ค้างในหน่วยความจำ
       window.location.assign(payload.redirectTo ?? "/login");
     } catch (error) {
       const message = formatClientError(error, "เปลี่ยนรหัสผ่านไม่สำเร็จ");
+      // ปลดล็อกปุ่มเฉพาะตอนพลาด สำเร็จแล้วกำลังจะเปลี่ยนหน้าอยู่ ไม่ต้องปลด
       setPasswordMessage({ message, tone: "error" });
       notify({ message, tone: "error" });
       setIsSaving(false);
@@ -105,6 +82,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
       <h2>ข้อมูลบัญชี</h2>
       <div className="account-detail-row">
         <strong>ชื่อที่แสดง</strong><span>{displayName}</span>
+        {/* ตั้งค่าสำเนาใหม่ทุกครั้งที่เปิด กันค่าที่แก้ค้างจากรอบก่อนที่กดยกเลิกไป */}
         <button onClick={() => { setDraftName(displayName); setProfileMessage(null); setIsEditingProfile(true); }} type="button">แก้ไข</button>
       </div>
       <div className="account-detail-row">
@@ -141,7 +119,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
       </form>
     </Dialog> : null}
 
-    {isEditingPassword ? <Dialog ariaDescribedBy="basic-password-description" ariaLabelledBy="basic-password-title" onClose={() => { if (!isSaving) setIsEditingPassword(false); }}>
+    {isEditingPassword ? <Dialog ariaDescribedBy="basic-password-description" ariaLabelledBy="basic-password-title" className="modal-md" onClose={() => { if (!isSaving) setIsEditingPassword(false); }}>
       <form className="modal-form" onSubmit={changePassword}>
         <header className="modal-header"><div><h2 id="basic-password-title">เปลี่ยนรหัสผ่าน</h2><p id="basic-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSaving} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">

@@ -1,24 +1,13 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Gradient Waves” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ใช้ WebGL วาดลงบน canvas จึงต้องทำงานฝั่งเบราว์เซอร์
 
 import { useEffect, useRef } from "react";
 import { Mesh, Program, Renderer, Triangle } from "ogl";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Gradient Waves Detail” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ยิ่งละเอียดยิ่งสวยแต่กินการ์ดจอมากขึ้น ดูค่าจริงได้ที่ detailToSteps
 type GradientWavesDetail = "low" | "medium" | "high";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Gradient Waves Props” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ทุกตัวมีค่าเริ่มต้นให้แล้ว ส่งมาเฉพาะตัวที่อยากปรับ
 type GradientWavesProps = {
   amplitude?: number;
   brightness?: number;
@@ -43,6 +32,7 @@ type GradientWavesProps = {
   zoom?: number;
 };
 
+// vertex shader ไม่ทำอะไรเลย แค่ส่งสามเหลี่ยมที่คลุมทั้งจอต่อไป งานจริงอยู่ที่ fragment shader
 const vertexShader = `#version 300 es
 in vec2 position;
 void main() {
@@ -50,6 +40,7 @@ void main() {
 }
 `;
 
+// fragment shader คำนวณสีทีละจุดบนจอ ตัวนี้คือที่มาของลายคลื่นทั้งหมด
 const fragmentShader = `#version 300 es
 precision highp float;
 uniform vec2 iResolution;
@@ -79,12 +70,14 @@ out vec4 fragColor;
 
 const float MAX_DIST = 20000.0;
 
+// สุ่มเลขจากพิกัด ใช้ทำเกรนให้ภาพไม่เนียนเกินจนเห็นเป็นวงสี
 float hash21(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
 }
 
+// บอกว่าจุดนี้อยู่ห่างจากผิวคลื่นเท่าไร ติดลบคือจมอยู่ใต้ผิว
 float plasma(vec3 r, vec2 freq, vec4 tc) {
   float mx = r.x + tc.x;
   mx += uSwell * sin((r.y + mx) / 20.0 + tc.y);
@@ -93,11 +86,14 @@ float plasma(vec3 r, vec2 freq, vec4 tc) {
   return r.z - (sin(mx * freq.x) * uAmplitude + sin(my * freq.y) * uAmplitude + uHeight);
 }
 
+// ยิงเส้นจากกล้องแล้วคืบไปทีละก้าวจนชนผิวคลื่น ได้ระยะทางไปคำนวณสีต่อ
 float raymarch(vec3 pos, vec3 dir, vec2 freq, vec4 tc) {
   float dist = 0.0;
+  // 128 คือเพดานตายตัวที่ GLSL ต้องรู้ตอนคอมไพล์ ส่วน uSteps คือจำนวนก้าวจริงที่ใช้
   for (int i = 0; i < 128; i++) {
     if (float(i) >= uSteps) break;
     float dscene = plasma(pos + dist * dir, freq, tc);
+    // ใกล้ผิวพอแล้วก็หยุด ไม่ต้องคืบต่อให้เปลืองแรง
     if (abs(dscene) < 0.1) break;
     dist += 0.9 * dscene;
     if (!(abs(dist) < MAX_DIST)) return MAX_DIST;
@@ -154,15 +150,10 @@ void main() {
 }
 `;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “hex To Rgb” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - hex: ค่า “hex” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด Float32Array ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// shader รับสีเป็นเลข 0-1 ไม่ใช่ #rrggbb จึงต้องแปลงก่อนส่งเข้าไป
 function hexToRgb(hex: string): Float32Array {
   const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  // รูปแบบสีผิดก็คืนสีขาวไปก่อน ดีกว่าปล่อยให้ shader พังทั้งจอ
   if (!match) return new Float32Array([1, 1, 1]);
 
   return new Float32Array([
@@ -172,26 +163,14 @@ function hexToRgb(hex: string): Float32Array {
   ]);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “detail To Steps” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - detail: ค่า “detail” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด number ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// แปลงระดับความละเอียดเป็นจำนวนก้าวของ raymarch ยิ่งมากยิ่งคมแต่ยิ่งหนัก
 function detailToSteps(detail: GradientWavesDetail): number {
   if (detail === "low") return 40;
   if (detail === "high") return 110;
   return 70;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Gradient Waves” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { amplitude = 2.5, brightness = 1, className = "", crestColo: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// พื้นหลังคลื่นไล่สีของหน้าเข้าสู่ระบบ เป็นภาพประดับล้วน ไม่มีข้อมูลอยู่ในนั้น
 export function GradientWaves({
   amplitude = 2.5,
   brightness = 1,
@@ -226,22 +205,27 @@ export function GradientWaves({
       renderer = new Renderer({
         alpha: true,
         antialias: false,
+        // จำกัดความละเอียดไว้ที่ 1.5 เท่า จอ Retina จะได้ไม่ต้องวาดพิกเซลเยอะจนเครื่องร้อน
         dpr: Math.min(window.devicePixelRatio || 1, 1.5),
         premultipliedAlpha: true,
         webgl: 2,
       });
     } catch {
+      // เครื่องที่ไม่รองรับ WebGL 2 ก็ปล่อยพื้นหลังว่างไป ไม่ต้องทำให้หน้าเข้าสู่ระบบพัง
       return;
     }
 
     const gl = renderer.gl;
+    // สร้าง canvas เองแล้วยัดเข้า container แทนที่จะให้ React วาด เพราะ ogl เป็นคนคุมมัน
     const canvas = gl.canvas as HTMLCanvasElement;
     canvas.style.display = "block";
     canvas.style.height = "100%";
     canvas.style.width = "100%";
+    // พื้นหลังโปร่งใส เนื้อหาที่วางทับข้างบนจะได้มองทะลุเห็นคลื่น
     gl.clearColor(0, 0, 0, 0);
     container.appendChild(canvas);
 
+    // uniforms คือค่าที่ส่งจาก JavaScript เข้าไปให้ shader ใช้ ชื่อต้องตรงกับที่ประกาศไว้ข้างบน
     const uniforms = {
       iResolution: { value: new Float32Array([1, 1]) },
       iTime: { value: 0 },
@@ -268,9 +252,11 @@ export function GradientWaves({
       uZoom: { value: zoom },
     };
 
+    // สามเหลี่ยมใหญ่อันเดียวที่คลุมทั้งจอ ถูกกว่าใช้สี่เหลี่ยมสองอัน
     const geometry = new Triangle(gl);
     const program = new Program(gl, { fragment: fragmentShader, uniforms, vertex: vertexShader });
     const mesh = new Mesh(gl, { geometry, program });
+    // คนที่ตั้งเครื่องไว้ว่าไม่อยากเห็นภาพเคลื่อนไหว จะได้เห็นเป็นภาพนิ่งแทน
     const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const startTime = performance.now();
     let animationFrame = 0;
@@ -278,36 +264,18 @@ export function GradientWaves({
     let isVisible = true;
     let reduceMotion = reduceMotionQuery.matches;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “draw” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - time: ค่า “time” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const draw = (time = startTime) => {
+      // ตรึงเวลาไว้ที่ 0 ตอนปิดภาพเคลื่อนไหว คลื่นจะหยุดนิ่งแต่ยังเห็นภาพอยู่
       uniforms.iTime.value = reduceMotion ? 0 : (time - startTime) * 0.001;
       renderer.render({ scene: mesh });
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “stop” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const stop = () => {
       if (animationFrame) cancelAnimationFrame(animationFrame);
       animationFrame = 0;
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “animate” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - time: ค่า “time” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // วาดหนึ่งเฟรมแล้วค่อยขอเฟรมถัดไป หยุดทันทีเมื่อไม่มีใครเห็น จะได้ไม่กินแบตเปล่า
     const animate = (time: number) => {
       animationFrame = 0;
       draw(time);
@@ -316,63 +284,40 @@ export function GradientWaves({
       }
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “start” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const start = () => {
+      // เช็ค animationFrame ก่อน กันเรียกซ้ำจนมีลูปวาดซ้อนกันสองชุด
       if (!animationFrame && isPageVisible && isVisible && !reduceMotion) {
         animationFrame = requestAnimationFrame(animate);
       }
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “resize” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const resize = () => {
       const { height: nextHeight, width: nextWidth } = container.getBoundingClientRect();
+      // อย่างน้อย 1 พิกเซล เพราะขนาด 0 ทำให้ WebGL error ตอนกล่องยังไม่มีขนาด
       renderer.setSize(Math.max(1, nextWidth), Math.max(1, nextHeight));
+      // ใช้ขนาดจริงของบัฟเฟอร์ ไม่ใช่ขนาด CSS เพราะสองค่านี้ต่างกันบนจอความละเอียดสูง
       uniforms.iResolution.value[0] = gl.drawingBufferWidth;
       uniforms.iResolution.value[1] = gl.drawingBufferHeight;
+      // ตอนภาพหยุดอยู่ ต้องสั่งวาดเองหนึ่งครั้ง ไม่งั้นขนาดใหม่จะไม่ขึ้น
       if (!animationFrame) draw();
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รับเหตุการณ์ “handle Pointer Move” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ส่งตำแหน่งเมาส์เป็นสัดส่วน 0-1 ให้ shader เอียงกล้องตาม
     const handlePointerMove = (event: PointerEvent) => {
       const bounds = container.getBoundingClientRect();
       uniforms.uMouse.value[0] = (event.clientX - bounds.left) / bounds.width;
+      // กลับแกน y เพราะ WebGL นับจากล่างขึ้นบน แต่ DOM นับจากบนลงล่าง
       uniforms.uMouse.value[1] = 1 - (event.clientY - bounds.top) / bounds.height;
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รับเหตุการณ์ “handle Visibility Change” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // สลับไปแท็บอื่นก็หยุดวาด กลับมาค่อยวาดต่อ
     const handleVisibilityChange = () => {
       isPageVisible = !document.hidden;
       if (isPageVisible) start();
       else stop();
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รับเหตุการณ์ “handle Reduced Motion Change” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ผู้ใช้เปลี่ยนการตั้งค่าระหว่างเปิดหน้าอยู่ก็ปรับตามทันที ไม่ต้องรีเฟรช
     const handleReducedMotionChange = () => {
       reduceMotion = reduceMotionQuery.matches;
       if (reduceMotion) {
@@ -383,7 +328,9 @@ export function GradientWaves({
       }
     };
 
+    // ตามขนาดกล่องแทนการฟัง resize ของหน้าต่าง เพราะกล่องอาจเปลี่ยนขนาดเองได้
     const resizeObserver = new ResizeObserver(resize);
+    // เลื่อนจนพื้นหลังพ้นจอก็หยุดวาด
     const intersectionObserver = new IntersectionObserver(([entry]) => {
       isVisible = entry.isIntersecting;
       if (isVisible) start();
@@ -399,6 +346,7 @@ export function GradientWaves({
     resize();
     start();
 
+    // เก็บกวาดให้ครบทุกอย่างตอนออกจากหน้า ไม่งั้น listener กับ context ของการ์ดจอจะค้าง
     return () => {
       stop();
       resizeObserver.disconnect();
@@ -407,6 +355,7 @@ export function GradientWaves({
       reduceMotionQuery.removeEventListener("change", handleReducedMotionChange);
       container.removeEventListener("pointermove", handlePointerMove);
       if (canvas.parentElement === container) container.removeChild(canvas);
+      // คืน WebGL context ให้เบราว์เซอร์ทันที เพราะแต่ละแท็บเปิดได้จำกัดจำนวน
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [
@@ -432,5 +381,6 @@ export function GradientWaves({
     zoom,
   ]);
 
+  // aria-hidden เพราะเป็นภาพประดับล้วน โปรแกรมอ่านหน้าจอไม่ต้องสนใจ
   return <div ref={containerRef} aria-hidden="true" className={`gradient-waves-container ${className}`.trim()} />;
 }

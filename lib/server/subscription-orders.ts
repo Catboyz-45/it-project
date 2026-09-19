@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “subscription orders” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { randomUUID } from "node:crypto";
 import type {
   CreateSubscriptionOrderInput,
@@ -28,13 +22,6 @@ const orderSelect = {
   },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize Order” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - order: ค่า “order” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 function serializeOrder<T extends { amount: { toString(): string }; payments: Array<{ amount: { toString(): string } }> }>(order: T) {
   return {
     ...order,
@@ -43,14 +30,6 @@ function serializeOrder<T extends { amount: { toString(): string }; payments: Ar
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Property Subscription Orders” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPropertySubscriptionOrders(propertyId: string, pagination: PaginationInput) {
   const rows = await getDatabase().subscriptionOrder.findMany({
     where: { propertyId },
@@ -61,16 +40,7 @@ export async function listPropertySubscriptionOrders(propertyId: string, paginat
   return toPaginatedResult(rows.map(serializeOrder), pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Subscription Order” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - createdByUserId: รหัสภายในของ created By User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เจ้าของหอสั่งซื้อหรือต่ออายุแพ็กเกจเอง
 export async function createSubscriptionOrder(
   propertyId: string,
   createdByUserId: string,
@@ -89,6 +59,7 @@ export async function createSubscriptionOrder(
       });
     if (!property) throw new ApiError(404, "ไม่พบหอพัก");
     if (!plan) throw new ApiError(400, "แพ็กเกจไม่พร้อมใช้งาน");
+    // มีคำสั่งซื้อค้างอยู่ก็สั่งใหม่ไม่ได้ กันสั่งซ้อนแล้วจ่ายซ้ำ
     if (openOrder) throw new ApiError(409, "หอนี้มีคำสั่งซื้อที่ยังดำเนินการไม่เสร็จ");
     const amount = input.billingInterval === "YEARLY"
       ? plan.yearlyPrice ?? plan.monthlyPrice.mul(12)
@@ -112,6 +83,7 @@ export async function createSubscriptionOrder(
       return serializeOrder(order);
     } catch (error) {
       if (error instanceof Error && error.message.includes("Unique constraint")) {
+      // ดักซ้ำจาก unique constraint ด้วย เผื่อกดพร้อมกันจนรอดการเช็คข้างบนมาได้
         throw new ApiError(409, "หอนี้มีคำสั่งซื้อที่ยังดำเนินการไม่เสร็จ");
       }
       throw error;
@@ -119,14 +91,6 @@ export async function createSubscriptionOrder(
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Subscription Payment” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createSubscriptionPayment(input: {
   propertyId: string;
   orderId: string;
@@ -146,6 +110,7 @@ export async function createSubscriptionPayment(input: {
     }
     if (order.expiresAt <= now) {
       await database.subscriptionOrder.update({ where: { id: order.id }, data: { status: "EXPIRED" } });
+    // คำสั่งซื้อมีอายุ เลยกำหนดแล้วต้องสั่งใหม่ กันโอนตามราคาเก่าที่เปลี่ยนไปแล้ว
       throw new ApiError(409, "คำสั่งซื้อหมดอายุแล้ว");
     }
     const payment = await database.subscriptionPayment.create({
@@ -167,14 +132,6 @@ export async function createSubscriptionPayment(input: {
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Pending Subscription Payments” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPendingSubscriptionPayments(pagination: PaginationInput, query?: string) {
   const where = { status: "PENDING_REVIEW" as const, ...(query ? { order: { OR: [{ orderNumber: { contains: query, mode: "insensitive" as const } }, { planName: { contains: query, mode: "insensitive" as const } }, { property: { name: { contains: query, mode: "insensitive" as const } } }] } } : {}) };
   const [rows, total] = await getDatabase().$transaction([getDatabase().subscriptionPayment.findMany({
@@ -196,13 +153,7 @@ export async function listPendingSubscriptionPayments(pagination: PaginationInpu
   return toPaginatedResult(rows.map((row) => ({ ...row, amount: row.amount.toString() })), pagination, total);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Subscription Payment Slip” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - paymentId: รหัสภายในของ payment
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คืนที่อยู่ไฟล์สลิปให้ผู้เรียกที่ตรวจสิทธิ์มาแล้ว ไม่ได้ตรวจสิทธิ์ซ้ำในนี้
 export async function getSubscriptionPaymentSlip(paymentId: string) {
   const payment = await getDatabase().subscriptionPayment.findUnique({
     where: { id: paymentId },
@@ -212,14 +163,6 @@ export async function getSubscriptionPaymentSlip(paymentId: string) {
   return payment;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “add Billing Period” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - start: ค่า “start” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - interval: ค่า “interval” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 function addBillingPeriod(start: Date, interval: "MONTHLY" | "YEARLY") {
   const end = new Date(start);
   if (interval === "YEARLY") end.setUTCFullYear(end.getUTCFullYear() + 1);
@@ -227,16 +170,7 @@ function addBillingPeriod(start: Date, interval: "MONTHLY" | "YEARLY") {
   return end;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “review Subscription Payment” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - paymentId: รหัสภายในของ payment
- * - reviewedByUserId: รหัสภายในของ reviewed By User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบตรวจหลักฐาน อนุมัติแล้วระบบเปิดใช้หรือต่ออายุแพ็กเกจให้อัตโนมัติ
 export async function reviewSubscriptionPayment(
   paymentId: string,
   reviewedByUserId: string,
@@ -250,6 +184,7 @@ export async function reviewSubscriptionPayment(
     });
     if (!payment) throw new ApiError(404, "ไม่พบหลักฐานการชำระ");
     if (payment.status !== "PENDING_REVIEW" || payment.order.status !== "PENDING_REVIEW") {
+    // ตรวจไปแล้วก็ตรวจซ้ำไม่ได้ กันอนุมัติสองรอบแล้วต่ออายุซ้อนกัน
       throw new ApiError(409, "หลักฐานนี้ถูกตรวจสอบแล้ว");
     }
     if (input.status === "REJECTED") {

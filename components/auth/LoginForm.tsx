@@ -1,27 +1,13 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Login Form” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกและส่งคำขอเข้าสู่ระบบจากเบราว์เซอร์
 
 import { FormEvent, useEffect, useState } from "react";
 import { ArrowRight, Check, Copy, Crown, Eye, EyeOff, UserRound } from "lucide-react";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Demo Account” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// บัญชีทดลองสำหรับเดโม เซิร์ฟเวอร์ส่งมาเฉพาะตอนเปิดใช้ในสภาพแวดล้อมที่ไม่ใช่ production
 type DemoAccount = { label: string; email: string; password: string };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Login Form” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { demoAccounts = [] }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ฟอร์มเข้าสู่ระบบ ใช้ร่วมกันทุกบทบาท เซิร์ฟเวอร์เป็นคนบอกว่าจะพาไปหน้าไหนต่อ
 export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] }) {
   const [email, setEmail] = useState(demoAccounts[0]?.email ?? "");
   const [password, setPassword] = useState(demoAccounts[0]?.password ?? "");
@@ -29,16 +15,11 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
   const [isReady, setIsReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // ปุ่มเริ่มต้นกดไม่ได้จนกว่า JavaScript ฝั่งเบราว์เซอร์จะทำงาน กันกดตอนฟอร์มยังส่งไม่ได้
   useEffect(() => setIsReady(true), []);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submit(event: FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
     setError("");
@@ -49,10 +30,14 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.get("email"), password: data.get("password") }),
       });
+      // ให้เซิร์ฟเวอร์เป็นคนบอกปลายทาง เพราะแต่ละบทบาทไปคนละหน้า และฝั่งเบราว์เซอร์ไม่ควรรู้กฎนี้
       const result = await response.json() as { error?: string; redirectTo?: string };
+      // ข้อความผิดพลาดที่ได้มาเป็นแบบกลาง ๆ โดยตั้งใจ ไม่บอกว่าอีเมลผิดหรือรหัสผิด กันเดาว่ามีบัญชีนี้อยู่ไหม
       if (!response.ok || !result.redirectTo) throw new Error(result.error || "เข้าสู่ระบบไม่สำเร็จ");
+      // assign ไม่ใช่ router.push เพื่อให้โหลดหน้าใหม่ทั้งหมดพร้อมคุกกี้ session ใหม่
       window.location.assign(result.redirectTo);
     } catch (submitError) {
+      // ปลดล็อกปุ่มเฉพาะตอนพลาด สำเร็จแล้วกำลังจะเปลี่ยนหน้าอยู่ ไม่ต้องปลด
       setError(submitError instanceof Error ? submitError.message : "เข้าสู่ระบบไม่สำเร็จ");
       setPending(false);
     }
@@ -60,6 +45,7 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
 
   return (
     <form className="login-form" onSubmit={submit}>
+      {/* กดการ์ดแล้วกรอกให้อัตโนมัติ ไม่ต้องพิมพ์เอง ใช้ตอนสาธิตระบบ */}
       {demoAccounts.length > 0 ? <section aria-label="บัญชีทดลอง" className="login-demo-accounts">
         <h3>บัญชีทดลอง</h3>
         {demoAccounts.map((account, index) => <article className={email === account.email ? "selected" : ""} key={account.email}>
@@ -76,7 +62,9 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
       <label>อีเมล<input autoComplete="username" name="email" onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" required type="email" value={email} /></label>
       <label>รหัสผ่าน
         <span className="login-password-field">
+          {/* minLength ตรงกับเกณฑ์ของเซิร์ฟเวอร์ ส่วน autoComplete ช่วยให้ตัวจัดการรหัสผ่านทำงานถูก */}
           <input autoComplete="current-password" minLength={12} name="password" onChange={(event) => setPassword(event.target.value)} placeholder="กรอกรหัสผ่าน" required type={showPassword ? "text" : "password"} value={password} />
+          {/* aria-pressed บอกโปรแกรมอ่านหน้าจอว่าปุ่มนี้เป็นสวิตช์ที่กดค้างอยู่หรือไม่ */}
           <button aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)} type="button">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
         </span>
       </label>

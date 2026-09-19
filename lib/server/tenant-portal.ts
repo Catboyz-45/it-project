@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “tenant portal” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { UpdateOwnTenantProfileInput } from "@/lib/domain/tenant-account";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
@@ -11,22 +5,10 @@ import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/
 import { countUnreadTicketReplies } from "@/lib/server/property-operations";
 import { TENANT_INVOICE_VIEW_STATUSES, type TenantRecordView } from "@/lib/tenant-record-view";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “decimal” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// Prisma คืน Decimal มา แปลงเป็นสตริงก่อนส่งออกไป ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 const decimal = (value: { toString(): string }) => value.toString();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Tenant Account” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ข้อมูลบัญชีผู้เช่าพร้อมรายการเข้าพักทั้งหมด ใช้ตอนเปิดพื้นที่ผู้เช่า
 export async function getTenantAccount(tenantProfileId: string) {
   const profile = await getDatabase().tenantProfile.findUnique({
     where: { id: tenantProfileId },
@@ -47,15 +29,6 @@ export async function getTenantAccount(tenantProfileId: string) {
   return profile;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Tenant Account” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateTenantAccount(
   tenantProfileId: string,
   userId: string,
@@ -65,6 +38,7 @@ export async function updateTenantAccount(
     where: { id: tenantProfileId, userId },
     select: { id: true },
   });
+  // ตรวจว่าโปรไฟล์นี้เป็นของผู้ใช้คนนี้จริง ไม่เชื่อ id ที่ส่งมาอย่างเดียว
   if (!ownedProfile) throw new ApiError(404, "ไม่พบข้อมูลบัญชี");
 
   await getDatabase().$transaction([
@@ -85,14 +59,6 @@ export async function updateTenantAccount(
   return getTenantAccount(tenantProfileId);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Tenant Room” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - roomId: รหัสภายในของห้องพัก
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getTenantRoom(tenantProfileId: string, roomId: string) {
   const occupancy = await getDatabase().roomOccupancy.findFirst({
     where: { tenantProfileId, roomId, status: "ACTIVE" },
@@ -123,6 +89,7 @@ export async function getTenantRoom(tenantProfileId: string, roomId: string) {
       },
     },
   });
+  // เช็คว่าผู้เช่าคนนี้อยู่ห้องนั้นจริง ไม่งั้นเปลี่ยน roomId ใน URL ก็ดูห้องคนอื่นได้
   if (!occupancy) throw new ApiError(404, "ไม่พบข้อมูล");
   return {
     ...occupancy,
@@ -135,23 +102,15 @@ export async function getTenantRoom(tenantProfileId: string, roomId: string) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Tenant Notification Summary” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - viewerUserId: รหัสภายในของ viewer User
- * - roomId: รหัสภายในของห้องพัก
- * - role: ค่า “role” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getTenantNotificationSummary(
   tenantProfileId: string,
   viewerUserId: string,
   roomId: string,
   role: "PRIMARY" | "CO_OCCUPANT",
 ) {
+  // รวมตัวเลขแจ้งเตือนทุกอย่างในคำขอเดียว หน้าจอจะได้ไม่ต้องยิงถามหลายรอบ
   const [unpaidInvoices, waitingParcels, openTickets, unreadMessages, unreadTicketReplies] = await Promise.all([
+    // ผู้พักร่วมไม่เห็นบิล จึงตอบ 0 ไปเลยโดยไม่ต้องถามฐานข้อมูล
     role === "PRIMARY"
       ? getDatabase().invoice.count({
           where: {
@@ -179,6 +138,8 @@ export async function getTenantNotificationSummary(
         status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] },
       },
     }),
+    // ใช้ SQL ดิบเพราะเงื่อนไขเทียบเวลาข้อความกับเวลาที่ผู้เช่าอ่านล่าสุด ซึ่ง Prisma เขียนตรง ๆ ไม่ได้
+    // ค่าส่งเป็นพารามิเตอร์ จึงไม่มีช่องให้ SQL injection
     getDatabase().$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS "count"
       FROM "ChatMessage" message
@@ -198,17 +159,6 @@ export async function getTenantNotificationSummary(
   return { unpaidInvoices, waitingParcels, openTickets, unreadMessages, unreadTicketReplies };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Invoices” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - roomId: รหัสภายในของห้องพัก
- * - role: ค่า “role” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - view: ค่า “view” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listTenantInvoices(
   tenantProfileId: string,
   roomId: string,
@@ -216,6 +166,7 @@ export async function listTenantInvoices(
   pagination: PaginationInput,
   view: TenantRecordView = "current",
 ) {
+  // กันตั้งแต่ต้น ไม่ต้องไปถามฐานข้อมูลแล้วค่อยกรองทีหลัง
   if (role !== "PRIMARY") throw new ApiError(403, "เฉพาะผู้เช่าหลักเท่านั้นที่ดูบิลได้");
   const where = {
     roomId,
@@ -241,16 +192,8 @@ export async function listTenantInvoices(
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Tenant Lease” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - roomId: รหัสภายในของห้องพัก
- * - role: ค่า “role” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getTenantLease(tenantProfileId: string, roomId: string, role: "PRIMARY" | "CO_OCCUPANT") {
+  // สัญญาก็เหมือนบิล ผู้พักร่วมไม่ใช่คนเซ็นจึงไม่เห็น
   if (role !== "PRIMARY") throw new ApiError(403, "เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้");
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -283,13 +226,6 @@ export async function getTenantLease(tenantProfileId: string, roomId: string, ro
       select,
     }),
   ]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize Lease” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-   * รับค่า:
-   * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const serializeLease = (lease: NonNullable<typeof currentLease>) => ({
     ...lease,
     monthlyRent: decimal(lease.monthlyRent),

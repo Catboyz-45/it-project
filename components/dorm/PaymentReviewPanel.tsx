@@ -1,12 +1,7 @@
 "use client";
+// โหลดรายการและส่งผลตรวจสอบจากเบราว์เซอร์
 
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Payment Review Panel” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
-
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ExternalLink, FileWarning, LoaderCircle, ReceiptText, RefreshCw, Search, X, XCircle } from "lucide-react";
 import type { PaymentSubmissionStatus } from "@/lib/domain/enums";
 import { currency } from "@/lib/dorm-utils";
@@ -21,17 +16,16 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Payment Submission” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หลักฐานการโอนที่ผู้เช่าส่งมาหนึ่งรายการ
 type PaymentSubmission = {
   id: string;
+  // จำนวนเงินเป็นสตริงเพราะฝั่งเซิร์ฟเวอร์ใช้ Decimal ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
   amount: string;
   status: PaymentSubmissionStatus;
   submittedAt: string;
   reviewedAt: string | null;
   rejectionNote: string | null;
+  // ไฟล์สลิปมีวันหมดอายุ ตัวนี้บอกว่ายังเปิดดูได้อยู่หรือเปล่า
   slipAvailable: boolean;
   invoice: {
     id: string;
@@ -42,47 +36,42 @@ type PaymentSubmission = {
   tenantProfile: { user: { displayName: string } };
 };
 
+// Record บังคับให้ครอบคลุมทุกสถานะตั้งแต่ตอนคอมไพล์ เพิ่มสถานะใหม่แล้วลืมแปลจะคอมไพล์ไม่ผ่าน
 const statusLabels: Record<PaymentSubmissionStatus, string> = {
   PENDING_REVIEW: "รอตรวจสอบ",
   APPROVED: "อนุมัติแล้ว",
   REJECTED: "ปฏิเสธ",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “parse Response” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function parseResponse<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Payment Review Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onChanged, propertyId, readOnly = false, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าตรวจหลักฐานการชำระ ซ้ายเป็นคิวรายการ ขวาเป็นสลิปกับปุ่มอนุมัติหรือปฏิเสธ
 export function PaymentReviewPanel({
+  initialPayments = null,
   onChanged,
   propertyId,
   readOnly = false,
 }: {
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดแท็บ
+  initialPayments?: { data: PaymentSubmission[]; hasNextPage: boolean } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
 }) {
-  const [payments, setPayments] = useState<PaymentSubmission[]>([]);
+  const [payments, setPayments] = useState<PaymentSubmission[]>(initialPayments?.data ?? []);
+  // ข้อมูลที่ส่งมาเป็นชุดของสถานะรอตรวจสอบหน้าแรก ตรงกับที่ effect จะยิงรอบแรกพอดี จึงข้ามรอบนั้นได้
+  const skipInitialLoadRef = useRef(initialPayments !== null);
+  // เปิดมาที่รอตรวจสอบก่อน เพราะเป็นงานที่ต้องทำ ส่วนที่ตรวจไปแล้วไว้ดูย้อนหลัง
   const [status, setStatus] = useState<PaymentSubmissionStatus | "ALL">("PENDING_REVIEW");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialPayments === null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialPayments?.hasNextPage ?? false);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const actionFeedback = useActionFeedback();
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
@@ -90,21 +79,15 @@ export function PaymentReviewPanel({
   const [rejectionNote, setRejectionNote] = useState("");
   const { confirm, confirmationDialog } = useConfirmation();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Payments” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // append = กดโหลดเพิ่ม เอามาต่อท้าย ไม่ใช่โหลดใหม่ทั้งชุด
   const loadPayments = useCallback(async (targetPage = 1, append = false, signal?: AbortSignal) => {
     setError("");
+    // แยกสถานะโหลดสองตัว กันรายการที่ดูอยู่หายไปตอนกดโหลดเพิ่ม
     if (append) setIsLoadingMore(true);
     else setIsLoading(true);
     try {
       const search = new URLSearchParams({ page: String(targetPage), pageSize: "50" });
+      // ให้เซิร์ฟเวอร์กรองสถานะ เพราะรายการที่ตรวจไปแล้วสะสมเยอะเกินจะโหลดมาทั้งหมด
       if (status !== "ALL") search.set("status", status);
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/payment-submissions?${search}`, {
         cache: "no-store",
@@ -117,11 +100,13 @@ export function PaymentReviewPanel({
         requestId?: string;
         pageInfo?: { page: number; hasNextPage: boolean };
       }>(response, "โหลดรายการชำระไม่สำเร็จ");
+      // ตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้ ต้องดักไว้ก่อน
       if (!payload.data || !payload.pageInfo) throw new Error("ข้อมูลรายการชำระที่ได้รับไม่ครบถ้วน");
       setPayments((current) => append ? [...current, ...payload.data!] : payload.data!);
       setServerPage(payload.pageInfo.page);
       setHasNextPage(payload.pageInfo.hasNextPage);
     } catch (loadError) {
+      // ยกเลิกเองตอนเปลี่ยนสถานะหรือออกจากหน้า ไม่ใช่ข้อผิดพลาดจริง
       if (loadError instanceof DOMException && loadError.name === "AbortError") return;
       setError(formatClientError(loadError, "โหลดรายการชำระไม่สำเร็จ"));
     } finally {
@@ -130,18 +115,18 @@ export function PaymentReviewPanel({
     }
   }, [propertyId, status]);
 
+  // เปลี่ยนสถานะที่กรองก็โหลดใหม่ พร้อมยกเลิกคำขอเก่าที่ยังค้าง
   useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void loadPayments(1, false, controller.signal);
     return () => controller.abort();
   }, [loadPayments]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “visible Payments” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // กรองคำค้นในเครื่อง ส่วนการกรองสถานะให้เซิร์ฟเวอร์ทำ
   const visiblePayments = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("th");
     if (!normalized) return payments;
@@ -152,10 +137,13 @@ export function PaymentReviewPanel({
     ].some((value) => value.toLocaleLowerCase("th").includes(normalized)));
   }, [payments, query]);
   const { page, pageItems, setPage, totalPages } = useTablePagination(visiblePayments);
+  // ตกไปที่รายการแรกของหน้าเมื่อรายการที่เลือกไว้หายไป เช่นเพิ่งตรวจเสร็จแล้วหลุดจากคิว
+  // ฝั่งขวาจะได้ไม่ว่างเปล่า ผู้ใช้ตรวจรายการถัดไปต่อได้เลย
   const selectedPayment = visiblePayments.find((payment) => payment.id === selectedPaymentId)
     ?? pageItems[0]
     ?? null;
 
+  // ซิงก์ id ที่เก็บไว้ให้ตรงกับรายการที่แสดงจริง หลังจากตกไปใช้ค่าสำรองข้างบน
   useEffect(() => {
     if (!selectedPayment) {
       setSelectedPaymentId(null);
@@ -164,16 +152,9 @@ export function PaymentReviewPanel({
     if (selectedPayment.id !== selectedPaymentId) setSelectedPaymentId(selectedPayment.id);
   }, [selectedPayment, selectedPaymentId]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “review” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - payment: ค่า “payment” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - nextStatus: ค่า “next Status” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - note: ค่า “note” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // อนุมัติหรือปฏิเสธ ปฏิเสธต้องมีเหตุผลด้วย เพราะผู้เช่าต้องรู้ว่าจะแก้อะไร
   const review = async (payment: PaymentSubmission, nextStatus: "APPROVED" | "REJECTED", note?: string) => {
+    // กันกดซ้ำระหว่างรอเซิร์ฟเวอร์ตอบ
     if (reviewingId || actionFeedback.isPending) return;
     setReviewingId(payment.id);
     setError("");
@@ -193,6 +174,7 @@ export function PaymentReviewPanel({
       setRejecting(null);
       setRejectionNote("");
       await Promise.all([loadPayments(1), onChanged()]);
+      // คืนโฟกัสเฉพาะตอนอนุมัติ เพราะตอนปฏิเสธกล่องกรอกเหตุผลปิดตัวเองและจัดการโฟกัสอยู่แล้ว
       }, { pending: `กำลัง${action}...`, success: `${action}แล้ว`, error: `${action}ไม่สำเร็จ` }, { restoreFocus: nextStatus === "APPROVED" });
     } catch (reviewError) {
       setError(formatClientError(reviewError, "ตรวจสอบรายการไม่สำเร็จ"));
@@ -201,13 +183,6 @@ export function PaymentReviewPanel({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Rejection” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submitRejection = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (rejecting) void review(rejecting, "REJECTED", rejectionNote.trim());
@@ -245,11 +220,13 @@ export function PaymentReviewPanel({
         </div>
       </div>
 
+      {/* ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีรายการในสถานะนี้ ต้องบอกคนละแบบ */}
       {isLoading ? <div className="payment-review-loading" aria-live="polite"><LoaderCircle className="animate-spin" /> กำลังโหลดหลักฐานการชำระ...</div> : pageItems.length === 0 && query.trim() ? <SearchEmptyState description="ลองใช้เลขบิล เลขห้อง หรือชื่อผู้เช่าอื่น" title="ไม่พบรายการที่ค้นหา" /> : pageItems.length === 0 ? <div className="payment-review-loading"><Clock3 /><p>ไม่มีรายการในสถานะนี้</p></div> : (
         <div className="payment-review-workspace">
           <aside aria-label="คิวหลักฐานการชำระ" className="payment-review-queue">
             <header><div><strong>คิวตรวจสอบ</strong><small>{visiblePayments.length} รายการ</small></div></header>
             <div className="payment-review-list">
+              {/* aria-current บอกโปรแกรมอ่านหน้าจอว่ากำลังดูรายการไหน ไม่ใช่แค่ทำให้สีเข้ม */}
               {pageItems.map((payment) => <button
                 aria-current={selectedPayment?.id === payment.id ? "true" : undefined}
                 className={`payment-review-item ${selectedPayment?.id === payment.id ? "active" : ""}`}
@@ -279,8 +256,9 @@ export function PaymentReviewPanel({
     </article>
 
     {confirmationDialog}
+    {/* บังคับกรอกเหตุผล ปุ่มยืนยันจะกดไม่ได้จนกว่าจะพิมพ์ */}
     {rejecting ? (
-      <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" onClose={() => setRejecting(null)}>
+      <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" className="modal-sm" onClose={() => setRejecting(null)}>
           <header className="modal-header">
             <div><h2 id="reject-payment-title">ปฏิเสธหลักฐานการชำระ</h2><p id="reject-payment-description">บิล {rejecting.invoice.invoiceNumber} · ห้อง {rejecting.invoice.room.number}</p></div>
             <IconButton disabled={reviewingId !== null} label="ปิด" onClick={() => setRejecting(null)} tooltip="ปิดหน้าต่างปฏิเสธหลักฐาน"><X /></IconButton>
@@ -301,13 +279,7 @@ export function PaymentReviewPanel({
   </>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Payment Inspection Pane” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onApprove, onReject, payment, propertyId, readOnly, review: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ฝั่งขวา แสดงสลิปกับข้อมูลให้เทียบยอด ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readOnly, reviewing }: {
   onApprove: () => void;
   onReject: () => void;
@@ -316,6 +288,7 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
   readOnly: boolean;
   reviewing: boolean;
 }) {
+  // ไฟล์สลิปผ่าน API ที่ตรวจสิทธิ์ก่อน ไม่ได้วางไว้ในโฟลเดอร์สาธารณะให้ใครก็เปิดได้
   const slipUrl = `/api/v1/admin/properties/${propertyId}/payment-submissions/${payment.id}/slip`;
   return <section aria-label={`รายละเอียดการชำระ ${payment.invoice.invoiceNumber}`} className="payment-inspection-pane">
     <header className="payment-inspection-header">
@@ -323,6 +296,7 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
       <em className={`figma-status ${payment.status === "APPROVED" ? "normal" : payment.status === "PENDING_REVIEW" ? "warning" : ""}`}>{statusLabels[payment.status]}</em>
     </header>
     <div className="payment-inspection-facts">
+      {/* วางยอดที่แจ้งกับยอดตามบิลติดกัน ผู้ตรวจจะได้เห็นทันทีว่าตรงกันหรือไม่ */}
       <div><span>ยอดที่แจ้งชำระ</span><strong>{currency.format(Number(payment.amount))}</strong></div>
       <div><span>ยอดตามบิล</span><strong>{currency.format(Number(payment.invoice.total))}</strong></div>
       <div><span>ส่งหลักฐานเมื่อ</span><strong>{new Date(payment.submittedAt).toLocaleString("th-TH")}</strong></div>
@@ -330,22 +304,18 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
     </div>
     <div className="payment-slip-toolbar"><strong><ReceiptText size={17} /> หลักฐานการชำระ</strong>{payment.slipAvailable ? <a href={slipUrl} rel="noreferrer" target="_blank"><ExternalLink size={15} /> เปิดหน้าต่างใหม่</a> : null}</div>
     <div className="payment-slip-preview">
+      {/* key เป็น id เพื่อบังคับให้ iframe โหลดใหม่ตอนเปลี่ยนรายการ ไม่งั้นจะค้างสลิปเดิม */}
       {payment.slipAvailable ? <iframe key={payment.id} src={slipUrl} title={`หลักฐานการชำระ ${payment.invoice.invoiceNumber}`} /> : <div><FileWarning /><strong>หลักฐานหมดอายุหรือไม่พร้อมใช้งาน</strong><p>ตรวจสอบข้อมูลรายการและติดต่อผู้เช่าหากจำเป็น</p></div>}
     </div>
     {payment.rejectionNote ? <div className="payment-rejection-note"><strong>เหตุผลที่ปฏิเสธ</strong><p>{payment.rejectionNote}</p></div> : null}
+    {/* ซ่อนปุ่มเมื่อตรวจไปแล้ว เพราะย้อนกลับไม่ได้ ต้องให้ผู้เช่าส่งหลักฐานใหม่แทน */}
     {payment.status === "PENDING_REVIEW" ? <footer className="payment-inspection-actions">
       {readOnly ? <ReadOnlyNotice compact /> : <><button className="secondary-button destructive-outline-button payment-reject-button" disabled={reviewing} onClick={onReject} type="button"><XCircle size={17} /> ปฏิเสธหลักฐาน</button><button className="primary-button" disabled={reviewing} onClick={onApprove} type="button">{reviewing ? <LoaderCircle className="animate-spin" size={17} /> : <Check size={17} />} ยืนยันรับชำระ</button></>}
     </footer> : null}
   </section>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Payment Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปเล็ก ๆ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function PaymentSummary({ label, value }: { label: string; value: string }) {
   return <article className="figma-summary-card compact"><div><small>{label}</small><strong>{value}</strong></div></article>;
 }

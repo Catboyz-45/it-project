@@ -1,42 +1,11 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคำสั่งสำหรับนักพัฒนา/ระบบอัตโนมัติในงาน “openapi response contracts”
- * การทำงาน: เรียกใช้จาก terminal หรือ package script เพื่อทำงานบำรุงรักษาที่ทำซ้ำได้; ควรทดลองในสภาพแวดล้อมที่ไม่ใช่ production ก่อนเมื่อมีการเขียนข้อมูล
- */
-
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “ref” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// รูปของคำตอบของทุก endpoint เก็บไว้ที่เดียว ให้ sync-openapi-v1.mjs ดึงไปใช้
+// ใช้ $ref ชี้ไปที่ schema กลาง แทนการเขียนรูปเดิมซ้ำในทุก endpoint
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “nullable Ref” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// ช่องที่ว่างได้ ต้องเขียนเป็น anyOf คู่กับ null เพราะ OpenAPI 3.1 ไม่มีคำว่า nullable แล้ว
 const nullableRef = (name) => ({ anyOf: [ref(name), { type: "null" }] });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “array Of” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const arrayOf = (name) => ({ type: "array", items: ref(name) });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “entity” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - required: ค่า “required” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - properties: ค่า “properties” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// ตั้ง additionalProperties: false ให้ทุกก้อน ตัว check-openapi จะได้จับได้ถ้ามีฟิลด์ที่ไม่ได้เขียนไว้
 const entity = (required, properties) => ({
   type: "object",
   required,
@@ -47,6 +16,7 @@ const entity = (required, properties) => ({
 const id = { type: "string", minLength: 1 };
 const text = { type: "string" };
 const dateTime = { type: "string", format: "date-time" };
+// เงินส่งเป็นสตริงเสมอ ไม่ใช่ number เพราะ JSON เก็บทศนิยมแล้วปัดเศษเพี้ยน
 const money = { type: "string", pattern: "^-?\\d+(\\.\\d+)?$" };
 
 export const responseSchemas = {
@@ -591,13 +561,7 @@ const samples = {
   TemporaryPasswordResult: { temporaryPassword: "Df1-example-temporary", mustChangePassword: true },
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “sample” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// หาตัวอย่างของ schema หนึ่งตัว ก๊อปออกมาก่อนคืนเพราะคนเรียกอาจไปแก้ต่อ
 function sample(name) {
   if (samples[name]) return structuredClone(samples[name]);
   if (name === "ChatThread") return { conversationId: "conversation_01", messages: [sample("ChatMessage")] };
@@ -663,15 +627,7 @@ const collectionSchemas = new Map([
   ["rooms", "Room"], ["tenants", "Tenant"], ["tickets", "ServiceTicket"],
 ]);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “data” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - array: ค่า “array” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - nullable: ค่า “nullable” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คำตอบทุกอันห่อไว้ใน { data: ... } รูปแบบเดียวกันหมด ฝั่งที่เรียกจะได้เขียนโค้ดอ่านแบบเดียว
 function data(schema, array = false, nullable = false) {
   const value = array ? arrayOf(schema) : nullable ? nullableRef(schema) : ref(schema);
   return {
@@ -713,13 +669,7 @@ const paginatedPaths = new Set([
   "/api/v1/super-admin/users",
 ]);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “paginated Data” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คำตอบแบบแบ่งหน้า มี pageInfo ติดมาด้วยเพื่อบอกว่ายังมีหน้าถัดไปไหม
 function paginatedData(schema) {
   return {
     description: "Successful paginated response",
@@ -743,25 +693,11 @@ function paginatedData(schema) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “direct” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คำตอบไม่กี่เส้นที่ไม่ได้ห่อใน data เป็นของเดิมที่มีมาก่อนจะตั้งกติกานี้
 function direct(schema) {
   return { description: "Successful response", content: { "application/json": { schema: ref(schema), example: sample(schema) } } };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Example” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function requestExample(method, apiPath) {
   if (method === "get" || method === "delete") return undefined;
   if (apiPath.endsWith("/temporary-password")) return undefined;
@@ -801,14 +737,7 @@ export function requestExample(method, apiPath) {
   return { file: "(binary file)" };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “json Success Response” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เลือกรูปคำตอบให้ endpoint หนึ่งเส้น ดักเส้นทางพิเศษก่อน แล้วที่เหลือค่อยเดาจากชื่อ URL
 export function jsonSuccessResponse(method, apiPath) {
   if (method === "get" && apiPath === "/api/v1/admin/properties/{propertyId}/search") {
     return data("PropertySearchResult", true);
@@ -830,13 +759,6 @@ export function jsonSuccessResponse(method, apiPath) {
     if (apiPath === "/api/v1/tenant/announcements") return paginatedData("TenantAnnouncement");
     if (apiPath === "/api/v1/tenant/parcels") return paginatedData("TenantParcel");
     if (apiPath === "/api/v1/tenant/tickets") return paginatedData("TenantTicket");
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “segment” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - candidate: ค่าจริง/เท็จที่ใช้เปิดหรือปิดเงื่อนไขนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const segment = [...collectionSchemas.keys()].find((candidate) => apiPath.endsWith(`/${candidate}`));
     if (!segment) throw new Error(`No paginated schema for ${apiPath}`);
     return paginatedData(collectionSchemas.get(segment));

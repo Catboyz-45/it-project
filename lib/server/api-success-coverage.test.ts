@@ -1,20 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “api success coverage.test” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “route Files” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - directory: ค่า “directory” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด string[] ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ไล่หาไฟล์ route.ts ทุกอันใต้ app/api แบบลงลึกทุกโฟลเดอร์
 function routeFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
@@ -23,24 +11,21 @@ function routeFiles(directory: string): string[] {
   });
 }
 
+// ตัวทดสอบที่อ่านโค้ดของโปรเจกเอง ไม่ได้เรียกฟังก์ชันไหน
+// เพราะการตอบกลับที่รูปแบบไม่ตรงกันจะทำให้ฝั่งเบราว์เซอร์อ่านผลไม่ได้ และคนเขียน route ใหม่มักลืม
 describe("mutation API success responses", () => {
   it("uses the central success response helper in every mutation route", () => {
     const root = process.cwd();
     const files = routeFiles(join(root, "app/api"));
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “missing” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
     const missing = files.filter((file) => {
       const source = readFileSync(file, "utf8");
+      // สนใจเฉพาะ route ที่เปลี่ยนข้อมูล ส่วน GET ตอบกลับได้หลายรูปแบบ เช่นไฟล์หรือสตรีม
       if (!/export async function (POST|PUT|PATCH|DELETE)/.test(source)) return false;
       return !source.includes("apiSuccessResponse(") && !source.includes("apiSuccessBinaryResponse(");
     });
 
+    // เทียบกับอาเรย์ว่าง ไม่ใช่เช็คความยาว เพราะถ้าพลาดจะได้เห็นชื่อไฟล์ที่ต้องไปแก้เลย
     expect(missing).toEqual([]);
   });
 });

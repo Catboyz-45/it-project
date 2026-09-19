@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Invoices Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บตัวกรอง โหลดข้อมูลทีละหน้า และเปิดกล่องโต้ตอบจากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, Eye, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
@@ -23,16 +18,12 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invoices Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { initialView = "invoices", invoices, onChanged, propertyId,: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าบิล มีสองแท็บ รายการบิลของห้อง กับการตรวจหลักฐานการชำระ
 export function InvoicesPage({
+  initialPayments = null,
   initialView = "invoices",
   invoices,
   onChanged,
@@ -41,6 +32,8 @@ export function InvoicesPage({
   readOnly = false,
   rooms,
 }: {
+  // ส่งต่อให้แท็บตรวจหลักฐานการชำระ
+  initialPayments?: Parameters<typeof PaymentReviewPanel>[0]["initialPayments"];
   initialView?: "invoices" | "payments";
   invoices: Invoice[];
   onChanged: () => Promise<void>;
@@ -50,6 +43,8 @@ export function InvoicesPage({
   rooms: Room[];
 }) {
   const [view, setView] = useState<"invoices" | "payments">(initialView);
+  // ข้อมูลจากเซิร์ฟเวอร์ใช้ได้แค่ตอนเปิดหน้าครั้งแรก ออกจากแท็บแล้วกลับมาให้โหลดใหม่ กันข้อมูลค้าง
+  const [paymentSeed, setPaymentSeed] = useState(initialView === "payments" ? initialPayments : null);
   const [generationMode, setGenerationMode] = useState<"single" | "bulk" | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -63,33 +58,23 @@ export function InvoicesPage({
   const [isCancelling, setIsCancelling] = useState(false);
   const actionFeedback = useActionFeedback();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change View” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - nextView: ค่า “next View” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เก็บแท็บไว้ใน URL เพื่อให้กดรีเฟรชหรือแชร์ลิงก์แล้วยังอยู่แท็บเดิม
   const changeView = (nextView: "invoices" | "payments") => {
     setView(nextView);
     const url = new URL(window.location.href);
     if (nextView === "payments") url.searchParams.set("tab", "payments");
     else url.searchParams.delete("tab");
+    // ใช้ replaceState ไม่ใช่ router เพราะแค่เปลี่ยน URL ไม่ต้องให้ Next โหลดหน้าใหม่
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    // ออกจากแท็บแล้วชุดที่เซิร์ฟเวอร์ส่งมาถือว่าเก่า กลับเข้ามาอีกครั้งให้โหลดใหม่
+    if (nextView !== "payments") setPaymentSeed(null);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Invoices” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const loadInvoices = useCallback(async (targetPage = 1, signal?: AbortSignal) => {
     setIsLoading(true);
     setLoadError("");
     try {
+      // ให้เซิร์ฟเวอร์กรองทั้งคำค้นและสถานะ บิลสะสมเยอะเกินจะโหลดมาทั้งหมด
       const status = statusFilter === "all" ? "" : `&status=${statusFilter.toUpperCase()}`;
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/invoices?page=${targetPage}&pageSize=20&query=${encodeURIComponent(query.trim())}${status}`, {
         cache: "no-store", signal,
@@ -105,22 +90,11 @@ export function InvoicesPage({
         pageInfo?: ServerPageInfo;
         summary?: { draft: number; paid: number; pending: number; overdue: number; total: string };
       }>(response, "โหลดบิลไม่สำเร็จ");
+      // ตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้ ต้องดักไว้ก่อน
       if (!payload.data || !payload.pageInfo || !payload.summary) throw new Error("ข้อมูลบิลที่ได้รับไม่ครบถ้วน");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: แปลงข้อมูลในขั้นตอน “mapped” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-       */
+      // แปลงจากรูปแบบของ API เป็นรูปแบบที่หน้าจอใช้
       const mapped: Invoice[] = payload.data.map((item) => {
-        /**
-         * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-         * หน้าที่: รวมขั้นตอนย่อยของ “amount” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-         * รับค่า:
-         * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-         * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-         */
+        // API ส่งรายการค่าใช้จ่ายมาเป็นอาเรย์ ตัวช่วยนี้ดึงยอดของประเภทที่ต้องการออกมา
         const amount = (type: string) => Number(item.items.find((line) => line.type === type)?.amount ?? 0);
         return {
           id: item.invoiceNumber,
@@ -132,6 +106,7 @@ export function InvoicesPage({
           rent: amount("RENT"),
           water: amount("WATER"),
           electricity: amount("ELECTRICITY"),
+          // ที่เหลือนอกจากค่าเช่า ค่าน้ำ ค่าไฟ รวมเป็นค่าบริการอื่น ๆ ก้อนเดียว
           service: item.items.filter((line) => !["RENT", "WATER", "ELECTRICITY"].includes(line.type)).reduce((sum, line) => sum + Number(line.amount), 0),
           status: item.status === "DRAFT" ? "draft" : item.status === "PAID" ? "paid" : item.status === "OVERDUE" ? "overdue" : item.status === "CANCELLED" ? "cancelled" : "pending",
         };
@@ -140,6 +115,7 @@ export function InvoicesPage({
       setPageInfo(payload.pageInfo);
       setSummary(payload.summary);
     } catch (error) {
+      // ยกเลิกเองตอนผู้ใช้พิมพ์ต่อ ไม่ใช่ข้อผิดพลาดจริง ไม่ต้องขึ้นเตือนให้ตกใจ
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(formatClientError(error, "โหลดบิลไม่สำเร็จ"));
     } finally {
@@ -147,13 +123,7 @@ export function InvoicesPage({
     }
   }, [propertyId, query, statusFilter]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “issue Draft” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนร่างเป็นบิลจริง หลังจากนี้ผู้เช่าจะเห็นและชำระได้
   const issueDraft = async (invoice: Invoice) => {
     if (!invoice.databaseId || !invoice.version) return;
     if (actionFeedback.isPending) return;
@@ -164,6 +134,7 @@ export function InvoicesPage({
         method: "PATCH",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
+        // ส่ง version ไปด้วย เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นแก้บิลใบนี้ไปแล้ว กันแก้ทับกัน
         body: JSON.stringify({ version: invoice.version }),
       });
       await readApiPayload(response, "ออกบิลไม่สำเร็จ");
@@ -175,12 +146,7 @@ export function InvoicesPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “cancel Selected Invoice” ตามกฎของระบบ
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ยกเลิกบิล ไม่ได้ลบทิ้ง เพราะต้องเก็บไว้ในประวัติพร้อมเหตุผลเพื่อตรวจสอบย้อนหลังได้
   const cancelSelectedInvoice = async () => {
     if (!invoiceToCancel?.databaseId || !invoiceToCancel.version || cancellationReason.trim().length < 3) return;
     if (isCancelling || actionFeedback.isPending) return;
@@ -199,6 +165,7 @@ export function InvoicesPage({
       setCancellationReason("");
       await onChanged();
       await loadInvoices();
+      // ไม่คืนโฟกัส เพราะกล่องกรอกเหตุผลปิดตัวเองและจัดการโฟกัสอยู่แล้ว
       }, { pending: "กำลังยกเลิกบิล...", success: "ยกเลิกบิลแล้ว", error: "ยกเลิกบิลไม่สำเร็จ" }, { restoreFocus: false });
     } catch (error) {
       setLoadError(formatClientError(error, "ยกเลิกบิลไม่สำเร็จ"));
@@ -207,16 +174,10 @@ export function InvoicesPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Invoice Pdf” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - invoice: บิลที่จะสร้างเอกสาร PDF ให้
-   * - action: ดูตัวอย่าง หรือสร้างและดาวน์โหลดไฟล์จริง
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // สร้างเอกสารบิล ดูตัวอย่างหรือดาวน์โหลดจริง
   const requestInvoicePdf = async (invoice: Invoice, action: "preview" | "generate") => {
     if (actionFeedback.isPending) return;
+    // ประกอบข้อมูลให้ตรงกับช่องว่างใน Template ของเอกสาร
     const data: InvoiceDocumentData = {
       property_name: propertyName,
       room_number: invoice.roomId,
@@ -240,18 +201,15 @@ export function InvoicesPage({
           : { pending: "กำลังสร้าง PDF...", success: "ดาวน์โหลด PDF บิลแล้ว", error: "สร้าง PDF บิลไม่สำเร็จ" },
       );
     } catch {
-      // actionFeedback already surfaced the error via toast/announcement.
+      // actionFeedback แจ้งผู้ใช้ไปแล้วทั้งทาง toast และเสียงอ่าน ตรงนี้จึงไม่ต้องทำอะไรซ้ำ
+      // แต่ต้องดักไว้ ไม่งั้นเป็น unhandled rejection
     }
   };
 
   useEffect(() => {
     const controller = new AbortController();
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timeout” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // หน่วง 250 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
+    // ส่วน abort ยกเลิกคำขอเก่า กันผลเก่ามาถึงทีหลังแล้วทับผลใหม่
     const timeout = window.setTimeout(() => void loadInvoices(1, controller.signal), 250);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [loadInvoices]);
@@ -270,12 +228,12 @@ export function InvoicesPage({
         <button className={view === "invoices" ? "active" : ""} onClick={() => changeView("invoices")} type="button">บิลห้องพัก</button>
         <button className={view === "payments" ? "active" : ""} onClick={() => changeView("payments")} type="button">ตรวจสอบการชำระ</button>
       </div>
-      {view === "payments" ? <PaymentReviewPanel onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <>
+      {view === "payments" ? <PaymentReviewPanel initialPayments={paymentSeed} onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <>
       <article className="figma-table-card">
-        <div className="additional-card-head">
-          <div><h2>รายการบิลห้องพัก</h2><p>ตรวจสอบยอด ค่าใช้จ่าย สถานะ และจัดการบิลรายห้อง</p></div>
+        {/* ส่งปุ่มสร้างร่างขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
+        <PageHeaderActions>
           {!readOnly ? <button className="primary-button" onClick={() => setGenerationMode("bulk")} type="button"><Files size={16} /> สร้างร่างทั้งหอ</button> : <ReadOnlyNotice compact />}
-        </div>
+        </PageHeaderActions>
         {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาบิล" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเลขที่บิล ห้อง หรือผู้เช่า..." value={query} /></div>
@@ -295,12 +253,15 @@ export function InvoicesPage({
               <span>{currency.format(invoice.rent)}</span><span>{currency.format(invoice.water)}</span><span>{currency.format(invoice.electricity)}</span>
               <span><strong>{currency.format(totalInvoice(invoice))}</strong></span>
               <span><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></span>
+              {/* รายการในเมนูขึ้นกับสถานะบิล ร่างยังออกบิลได้ ที่ออกไปแล้วเหลือแค่ตรวจการชำระ */}
               <span><ActionMenu
                 items={[
                   { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างบิล (PDF)", onSelect: () => void requestInvoicePdf(invoice, "preview") },
+                  // ร่างยังไม่มีเลขบิลจริง จึงให้ดูตัวอย่างได้อย่างเดียว ยังดาวน์โหลดไม่ได้
                   ...(invoice.status !== "draft" ? [
                     { disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF บิล", onSelect: () => void requestInvoicePdf(invoice, "generate") },
                   ] : []),
+                  // บิลที่ชำระแล้วหรือยกเลิกแล้วเป็นอันจบ ไม่มีอะไรให้ทำต่อ
                   ...(!readOnly && invoice.status !== "paid" && invoice.status !== "cancelled" ? (invoice.status === "draft" ? [
                     { disabled: actionFeedback.isPending, icon: <ReceiptText aria-hidden="true" size={16} />, id: "issue", label: actionFeedback.isPending ? "กำลังออกบิล..." : "ออกบิล", onSelect: () => void issueDraft(invoice) },
                     { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกบิล", onSelect: () => { setCancellationReason(""); setInvoiceToCancel(invoice); }, variant: "danger" as const },
@@ -314,6 +275,7 @@ export function InvoicesPage({
             </div>
           ))}
         </div>
+        {/* ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีบิลเลย ต้องบอกคนละแบบ */}
         {!isLoading && !loadError && loadedInvoices.length === 0 && (query.trim() || statusFilter !== "all") ? (
           <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ" title="ไม่พบบิลตามเงื่อนไข" />
         ) : !isLoading && !loadError && loadedInvoices.length === 0 ? <p className="settings-empty-list">ยังไม่มีบิล</p> : null}
@@ -327,8 +289,9 @@ export function InvoicesPage({
         propertyId={propertyId}
         rooms={rooms}
       /> : null}
+      {/* บังคับกรอกเหตุผลอย่างน้อย 3 ตัวอักษร เพราะเหตุผลนี้ถูกเก็บไว้ในประวัติถาวร */}
       {invoiceToCancel ? (
-        <Dialog ariaDescribedBy="invoice-cancel-description" ariaLabelledBy="invoice-cancel-title" onClose={() => { if (!isCancelling) setInvoiceToCancel(null); }}>
+        <Dialog ariaDescribedBy="invoice-cancel-description" ariaLabelledBy="invoice-cancel-title" className="modal-sm" onClose={() => { if (!isCancelling) setInvoiceToCancel(null); }}>
           <header className="modal-header">
             <div>
               <h2 id="invoice-cancel-title">ยกเลิกบิล {invoiceToCancel.id}</h2>
@@ -353,13 +316,7 @@ export function InvoicesPage({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invoice Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, label, tone, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function InvoiceSummary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: string }) {
   return <article className={`figma-summary-card compact tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }

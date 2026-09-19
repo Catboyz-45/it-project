@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “subscription guard.test” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { describe, expect, it } from "vitest";
 import {
   assertActiveSubscription,
@@ -13,13 +7,8 @@ import {
   type SubscriptionAccess,
 } from "@/lib/server/subscription-guard";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “subscription” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - overrides: ค่า “overrides” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด SubscriptionAccess ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ตัวช่วยสร้างข้อมูลทดสอบ ตั้งค่ากลาง ๆ ไว้แล้วให้แต่ละเคสทับเฉพาะที่สนใจ
+// allowFileUploads ตั้งเป็น false ไว้ตั้งแต่ต้น เพื่อใช้ทดสอบความสามารถที่แพ็กเกจไม่รองรับ
 function subscription(
   overrides: Partial<SubscriptionAccess> = {},
 ): SubscriptionAccess {
@@ -38,9 +27,11 @@ function subscription(
   };
 }
 
+// ตรึงเวลาไว้ ไม่ใช้เวลาจริง ไม่งั้นตัวทดสอบจะพังเองเมื่อเวลาผ่านไป
 const now = new Date("2026-07-29T00:00:00.000Z");
 
 describe("subscription guard", () => {
+  // ไล่ครบทุกทางที่ต้องไม่ผ่าน ไม่มีแพ็กเกจ ถูกระงับ หมดอายุ ยังไม่ถึงวันเริ่ม และหมดอายุพอดีวันนี้
   it("allows active and trial subscriptions only inside their validity period", () => {
     expect(() => assertActiveSubscription(subscription(), now)).not.toThrow();
     expect(() => assertActiveSubscription(subscription({ status: "TRIAL" }), now)).not.toThrow();
@@ -53,6 +44,7 @@ describe("subscription guard", () => {
     expect(() => assertActiveSubscription(subscription({ expiresAt: now }), now)).toThrow();
   });
 
+  // ไม่มีข้อมูลแพ็กเกจต้องถือว่าไม่ผ่าน ไม่ใช่ปล่อยผ่าน นี่คือหลักปฏิเสธไว้ก่อนเมื่อไม่แน่ใจ
   it("fails closed when a feature plan is missing or the feature is disabled", () => {
     expect(() => assertSubscriptionFeature(subscription(), "allowPromptPay", now)).not.toThrow();
     expect(() => assertSubscriptionFeature(subscription(), "allowFileUploads", now)).toThrow();
@@ -60,6 +52,7 @@ describe("subscription guard", () => {
     expect(() => assertSubscriptionFeature(null, "allowPromptPay", now)).toThrow();
   });
 
+  // สามระดับต้องแยกจากกันชัด เพราะช่วงผ่อนผันยังแก้ข้อมูลได้ แต่อ่านอย่างเดียวแก้ไม่ได้
   it("separates full, grace-period, and read-only access", () => {
     expect(getSubscriptionAccessState(subscription(), now, 7).mode).toBe("FULL");
 

@@ -1,33 +1,20 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “dashboard read model” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { OwnerWorkspaceReadModel } from "@/types/dashboard";
 import { getDatabase } from "@/lib/server/db";
 
-// The dashboard is a workspace snapshot, not a history/export endpoint. Keep
-// every collection in this projection bounded; complete datasets are available
-// through their paginated resource APIs.
+// ก้อนนี้เป็นภาพรวมของพื้นที่ทำงาน ไม่ใช่ endpoint สำหรับดูประวัติหรือส่งออกข้อมูล
+// ทุกรายการจึงต้องมีเพดาน ข้อมูลครบ ๆ ให้ไปเอาจาก API ที่แบ่งหน้าของแต่ละเรื่องแทน
+// ไม่งั้นหอที่มีห้องเป็นพันจะโหลดหน้าแรกไม่ไหว
 const DASHBOARD_ROOM_LIMIT = 1_200;
 const DASHBOARD_OCCUPANCY_LIMIT = 2_400;
 const DASHBOARD_INVOICE_LIMIT = 1_200;
 const DASHBOARD_METER_READING_LIMIT = DASHBOARD_ROOM_LIMIT * 2;
 const DASHBOARD_CONFIG_LIMIT = 200;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Dashboard Read Model” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<OwnerWorkspaceReadModel> ตามสัญญา TypeScript ของฟังก์ชัน
- */
 export async function getDashboardReadModel(propertyId: string): Promise<OwnerWorkspaceReadModel> {
-  // This transitional workspace projection is intentionally bounded. Full
-  // history belongs to the paginated resource APIs, not the dashboard payload.
   const now = new Date();
+  // ย้อนหลัง 12 เดือนพอ ประวัติที่เก่ากว่านั้นไปดูในหน้าบิลที่แบ่งหน้าได้
   const invoiceHistoryStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1));
+  // ยิงห้าคำสั่งพร้อมกัน เพราะไม่มีตัวไหนต้องรอผลของอีกตัว
   const [property, rooms, occupancies, invoices, readings] = await Promise.all([
     getDatabase().property.findUnique({ where: { id: propertyId }, select: {
       name: true, settings: true,
@@ -41,6 +28,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
       serviceCharges: { orderBy: { name: "asc" }, take: DASHBOARD_CONFIG_LIMIT },
       furnitureOptions: { orderBy: { name: "asc" }, take: DASHBOARD_CONFIG_LIMIT },
     } }),
+    // ดึงเฟอร์นิเจอร์และข้อมูลชั้นกับอาคารมาพร้อมกัน เลี่ยงการยิงถามทีละห้อง
     getDatabase().room.findMany({ where: { propertyId, status: { not: "INACTIVE" } }, orderBy: [{ floor: { number: "asc" } }, { number: "asc" }], include: {
       floor: { select: { id: true, number: true } },
       building: { select: { id: true, name: true } },
@@ -56,6 +44,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
       include: {
         tenantProfile: { include: { user: true, vehicle: true } },
         room: true,
+        // เอาสัญญาล่าสุดฉบับเดียว ห้องหนึ่งมีสัญญาหลายฉบับสะสมได้จากการต่ออายุ
         leases: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -84,14 +73,6 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
     }),
   ]);
   if (!property) throw new Error("Property not found");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “latest Reading” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - roomId: รหัสภายในของห้องพัก
-   * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const latestReading = (roomId: string, type: "WATER" | "ELECTRICITY") =>
     readings.find((item) => item.roomId === roomId && item.type === type);
   const primaryByRoom = new Map(occupancies.filter((item) => item.role === "PRIMARY").map((item) => [item.roomId, item]));
@@ -101,13 +82,6 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
     roomOccupants.push(occupancy);
     activeOccupantsByRoom.set(occupancy.roomId, roomOccupants);
   }
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “ui Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const uiRooms = rooms.map((room) => ({
     id: room.number,
     databaseId: room.id,
@@ -123,13 +97,6 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
     waterMeter: Number(latestReading(room.id, "WATER")?.currentReading ?? 0),
     electricMeter: Number(latestReading(room.id, "ELECTRICITY")?.currentReading ?? 0),
   }));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “ui Tenants” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const uiTenants = occupancies.map((item) => {
     const lease = item.leases[0]?.lease;
     const vehicle = item.tenantProfile.vehicle;
@@ -170,14 +137,6 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
       leaseStatus: lease?.status,
     };
   });
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “item Amount” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const itemAmount = (invoice: typeof invoices[number], type: string) =>
     Number(invoice.items.find((item) => item.type === type)?.amount ?? 0);
   return {

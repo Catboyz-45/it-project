@@ -1,28 +1,12 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API GET ที่ URL /api/v1/admin/properties/[propertyId]/search สำหรับเจ้าของหอหรือผู้ดูแลหอ
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขออ่านข้อมูลของ API เส้นทางนี้ หลังตรวจสิทธิ์และข้อมูลใน URL
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ค้นรวมทั้งหอ ผู้เช่า ห้อง บิล และสัญญาในคำขอเดียว
 export async function GET(request: NextRequest, context: Context) {
   try {
     const { propertyId } = await requireAdminProperty(request, (await context.params).propertyId);
@@ -40,5 +24,6 @@ export async function GET(request: NextRequest, context: Context) {
       ...invoices.map((i) => ({ id: i.id, type: "invoice", title: i.invoiceNumber, subtitle: `ห้อง ${i.room.number} · ฿${i.total.toString()} · ${i.status}`, href: `/admin/properties/${propertyId}/invoices` })),
       ...leases.map((l) => ({ id: l.id, type: "lease", title: l.leaseNumber, subtitle: `ห้อง ${l.room.number} · ${l.status}`, href: `/admin/properties/${propertyId}/contracts` })),
     ] });
+  // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
   } catch (error) { return apiErrorResponse(error, request); }
 }

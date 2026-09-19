@@ -1,23 +1,15 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Super Admin Resource Tables” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// โหลดข้อมูลทีละหน้าและเก็บตัวกรองไว้ฝั่งเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Activity,
-  Building2,
-  Crown,
   Download,
+  Inbox,
   LoaderCircle,
   Pencil,
   Plus,
   Search,
-  UsersRound,
   X,
 } from "lucide-react";
 import { AccountApprovalActions } from "@/components/admin/AccountApprovalActions";
@@ -28,10 +20,6 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Page Info” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PageInfo = {
   page: number;
   pageSize: number;
@@ -39,20 +27,12 @@ type PageInfo = {
   total?: number;
   totalPages?: number;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Property” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Property = {
   id: string;
   name: string;
   shortName: string;
   isActive: boolean;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Admin” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Admin = {
   id: string;
   email: string;
@@ -62,10 +42,6 @@ type Admin = {
   approvalRejectionReason: string | null;
   memberships: Array<{ property: { id: string; name: string } }>;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Plan” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Plan = {
   id: string;
   code: string;
@@ -77,10 +53,6 @@ type Plan = {
   isActive: boolean;
   _count: { subscriptions: number };
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Audit Log” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type AuditLog = {
   id: string;
   action: string;
@@ -90,41 +62,40 @@ type AuditLog = {
   property: { name: string } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Paginated Table” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, empty, endpoint, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตารางที่โหลดทีละหน้า ค้นหาได้ และกรองได้ ใช้ร่วมกันทั้งสี่ตารางในหน้าผู้ดูแลระบบ
+// generic เพราะแต่ละตารางมีรูปแบบข้อมูลต่างกัน แต่วิธีโหลดกับแบ่งหน้าเหมือนกันหมด
 function PaginatedTable<T>({
+  action,
   children,
   empty,
+  emptyDescription,
   endpoint,
+  initialPageInfo = null,
+  initialRows = null,
 }: {
+  action?: React.ReactNode;
+  // รับเป็นฟังก์ชัน เพื่อให้ผู้เรียกเป็นคนตัดสินใจว่าจะวาดแต่ละแถวยังไง
   children: (rows: T[]) => React.ReactNode;
   empty: string;
+  emptyDescription?: string;
   endpoint: string;
+  // ส่งมาจาก Server Component ของหน้านั้น มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  // ค้นหา กรอง และเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
+  initialPageInfo?: PageInfo | null;
+  initialRows?: T[] | null;
 }) {
-  const [rows, setRows] = useState<T[]>([]);
-  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [rows, setRows] = useState<T[]>(initialRows ?? []);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(initialPageInfo ?? null);
+  const [isLoading, setIsLoading] = useState(initialRows === null);
+  const skipInitialLoadRef = useRef(initialRows !== null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState("");
+  // สองตารางนี้เท่านั้นที่มีช่องกรอง ดูจาก endpoint แทนการส่ง prop เพิ่ม
   const hasFilter = endpoint.endsWith("/users") || endpoint.endsWith("/audit-logs");
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const load = useCallback(
     async (page: number, append: boolean, signal?: AbortSignal) => {
       if (append) setIsLoadingMore(true);
@@ -136,6 +107,7 @@ function PaginatedTable<T>({
           pageSize: "20",
         });
         if (debouncedQuery) search.set("query", debouncedQuery);
+        // ชื่อพารามิเตอร์ของตัวกรองต่างกันตาม endpoint บัญชีกรองด้วยสถานะอนุมัติ ส่วน audit log กรองด้วยผลลัพธ์
         if (filter) search.set(endpoint.endsWith("/users") ? "approvalStatus" : "result", filter);
         const response = await fetch(`${endpoint}?${search}`, {
           cache: "no-store",
@@ -151,6 +123,7 @@ function PaginatedTable<T>({
         setRows(payload.data!);
         setPageInfo(payload.pageInfo);
       } catch (cause) {
+        // ยกเลิกเองตอนผู้ใช้พิมพ์ต่อ ไม่ใช่ข้อผิดพลาดจริง ไม่ต้องขึ้นเตือนให้ตกใจ
         if (cause instanceof DOMException && cause.name === "AbortError")
           return;
         setError(
@@ -164,18 +137,20 @@ function PaginatedTable<T>({
     [debouncedQuery, endpoint, filter],
   );
 
+  // หน่วง 300 มิลลิวินาทีหลังหยุดพิมพ์ แยกค่าที่หน่วงแล้วออกจากค่าที่พิมพ์อยู่
+  // จะได้ช่องกรอกตอบสนองทันทีโดยที่ยังไม่ยิงคำขอ
   useEffect(() => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timer” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  // เปลี่ยนคำค้นหรือตัวกรองก็กลับไปหน้า 1 เสมอ พร้อมยกเลิกคำขอเก่าที่ยังค้าง
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void load(1, false, controller.signal);
     return () => controller.abort();
@@ -187,7 +162,7 @@ function PaginatedTable<T>({
         <label className="admin-table-search">
           <span className="sr-only">ค้นหา</span>
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#73757d]"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#62646c]"
             size={17}
           />
           <input
@@ -226,6 +201,7 @@ function PaginatedTable<T>({
             />
           </div>
         ) : null}
+        <div className="admin-table-actions">
         <a
           className="secondary-button admin-table-export"
           download
@@ -233,6 +209,8 @@ function PaginatedTable<T>({
         >
           <Download size={16} /> CSV
         </a>
+          {action}
+        </div>
       </div>
       {isLoading ? (
         <div className="document-editor-state">
@@ -250,7 +228,11 @@ function PaginatedTable<T>({
         ) : debouncedQuery || filter ? (
           <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรอง" title="ไม่พบรายการตามเงื่อนไข" />
         ) : (
-          <p className="p-8 text-center text-[#62646c]">{empty}</p>
+          <div className="empty-state m-6">
+            <Inbox aria-hidden={true} size={20} />
+            <strong>{empty}</strong>
+            {emptyDescription ? <p>{emptyDescription}</p> : null}
+          </div>
         ))}
       {pageInfo ? (
         <>
@@ -292,32 +274,29 @@ function PaginatedTable<T>({
   );
 }
 
+// as const ทำให้ TypeScript รู้ว่ามีแค่สามค่านี้ ไม่ใช่ string อะไรก็ได้
 const approvalLabels = {
   PENDING: "รออนุมัติ",
   APPROVED: "อนุมัติแล้ว",
   REJECTED: "ไม่อนุมัติ",
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Super Admin Resource” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type SuperAdminResource =
   "plans" | "properties" | "accounts" | "audit-logs";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Super Admin Resource Tables” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { accountAction, propertyAction, resources = ["plans", "prop: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตารางข้อมูลหลักของผู้ดูแลระบบ แพ็กเกจ หอพัก บัญชี และ audit log
+// แต่ละหน้าเลือกเอาเฉพาะตารางที่ต้องการผ่าน resources
+// ข้อมูลตั้งต้นของแต่ละตาราง ส่งมาเฉพาะตารางที่หน้านั้นแสดงจริง
+export type SuperAdminInitialTable = { pageInfo: PageInfo; rows: unknown[] };
+
 export function SuperAdminResourceTables({
   accountAction,
+  initialTables,
   propertyAction,
   resources = ["plans", "properties", "accounts", "audit-logs"],
 }: {
   accountAction?: React.ReactNode;
+  initialTables?: Partial<Record<SuperAdminResource, SuperAdminInitialTable>> | null;
   propertyAction?: React.ReactNode;
   resources?: SuperAdminResource[];
 }) {
@@ -325,22 +304,20 @@ export function SuperAdminResourceTables({
   return (
     <>
       {resources.includes("plans") ? (
-        <ResourceSection
-          action={
-            <button
-              className="primary-button"
-              onClick={() => setEditingPlan("new")}
-              type="button"
-            >
-              <Plus size={16} /> สร้างแพ็กเกจ
-            </button>
-          }
-          icon={<Crown className="text-brand-green" />}
-          subtitle="ราคา ขีดจำกัด และจำนวนสมาชิก"
-          title="แพ็กเกจ SaaS"
-        >
+        <ResourceSection>
           <PaginatedTable<Plan>
-            empty="ยังไม่มีแพ็กเกจ"
+            initialPageInfo={initialTables?.["plans"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["plans"]?.rows as Plan[] | undefined) ?? null}
+            action={
+              <button
+                className="primary-button"
+                onClick={() => setEditingPlan("new")}
+                type="button"
+              >
+                <Plus size={16} /> สร้างแพ็กเกจ
+              </button>
+            }
+            empty="ยังไม่มีแพ็กเกจ" emptyDescription="สร้างแพ็กเกจแรกเพื่อเปิดให้หอพักสมัครใช้งาน"
             endpoint="/api/v1/super-admin/plans"
           >
             {(plans) => (
@@ -399,14 +376,12 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("properties") ? (
-        <ResourceSection
-          action={propertyAction}
-          icon={<Building2 className="text-brand-green" />}
-          subtitle="พื้นที่ในแพลตฟอร์ม"
-          title="หอพักทั้งหมด"
-        >
+        <ResourceSection>
           <PaginatedTable<Property>
-            empty="ยังไม่มีหอพัก"
+            initialPageInfo={initialTables?.["properties"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["properties"]?.rows as Property[] | undefined) ?? null}
+            action={propertyAction}
+            empty="ยังไม่มีหอพัก" emptyDescription="หอพักที่เพิ่มเข้าระบบแล้วจะแสดงที่นี่"
             endpoint="/api/v1/super-admin/properties"
           >
             {(properties) => (
@@ -450,14 +425,12 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("accounts") ? (
-        <ResourceSection
-          action={accountAction}
-          icon={<UsersRound className="text-brand-cyan" />}
-          subtitle="บัญชีและขอบเขตที่รับผิดชอบ"
-          title="แอดมินประจำหอ"
-        >
+        <ResourceSection>
           <PaginatedTable<Admin>
-            empty="ยังไม่มีบัญชี"
+            initialPageInfo={initialTables?.["accounts"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["accounts"]?.rows as Admin[] | undefined) ?? null}
+            action={accountAction}
+            empty="ยังไม่มีบัญชี" emptyDescription="บัญชีเจ้าของหอที่สร้างไว้จะแสดงที่นี่"
             endpoint="/api/v1/super-admin/users"
           >
             {(admins) => (
@@ -520,13 +493,11 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("audit-logs") ? (
-        <ResourceSection
-          icon={<Activity className="text-brand-magenta" />}
-          subtitle="ติดตามเหตุการณ์สำคัญทั้งหมด"
-          title="Audit Log"
-        >
+        <ResourceSection>
           <PaginatedTable<AuditLog>
-            empty="ยังไม่มีรายการ"
+            initialPageInfo={initialTables?.["audit-logs"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["audit-logs"]?.rows as AuditLog[] | undefined) ?? null}
+            empty="ยังไม่มีรายการ" emptyDescription="เหตุการณ์สำคัญในระบบจะถูกบันทึกมาที่นี่"
             endpoint="/api/v1/super-admin/audit-logs"
           >
             {(logs) => (
@@ -575,13 +546,7 @@ export function SuperAdminResourceTables({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Plan Editor” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { plan, onClose, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องสร้างและแก้ไขแพ็กเกจ ใช้ตัวเดียวกันทั้งสองงาน "new" แปลว่าสร้างใหม่
 function PlanEditor({
   plan,
   onClose,
@@ -591,18 +556,13 @@ function PlanEditor({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submit(event: React.FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
     setError("");
     const form = new FormData(event.currentTarget);
+    // สร้างใหม่ต้องส่ง code กับค่าเริ่มต้นไปด้วย ส่วนแก้ไขส่ง isActive แทน เพราะ code เปลี่ยนไม่ได้
     const body = {
       ...(plan === "new"
         ? {
@@ -615,6 +575,7 @@ function PlanEditor({
         : {}),
       name: String(form.get("name")),
       monthlyPrice: Number(form.get("monthlyPrice")),
+      // ปล่อยว่างได้ หมายถึงไม่เปิดขายรายปี ระบบจะคิดจากรายเดือนคูณ 12 ให้เอง
       yearlyPrice: form.get("yearlyPrice")
         ? Number(form.get("yearlyPrice"))
         : null,
@@ -642,7 +603,7 @@ function PlanEditor({
     }
   }
   return (
-    <Dialog ariaDescribedBy="plan-editor-description" ariaLabelledBy="plan-editor-title" onClose={onClose}>
+    <Dialog ariaDescribedBy="plan-editor-description" ariaLabelledBy="plan-editor-title" className="modal-md" onClose={onClose}>
         <header className="modal-header">
           <div><h2 id="plan-editor-title">{plan === "new" ? "สร้างแพ็กเกจ" : "แก้ไขแพ็กเกจ"}</h2><p id="plan-editor-description">กำหนดราคาและขีดจำกัดการใช้งานของแพ็กเกจ</p></div>
           <IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแพ็กเกจ"><X /></IconButton>
@@ -731,37 +692,9 @@ function PlanEditor({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Resource Section” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { action, children, icon, subtitle, title, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function ResourceSection({
-  action,
-  children,
-  icon,
-  subtitle,
-  title,
-}: {
-  action?: React.ReactNode;
-  children: React.ReactNode;
-  icon: React.ReactNode;
-  subtitle: string;
-  title: string;
-}) {
+// กรอบของแต่ละตาราง แยกออกมาเพื่อให้ระยะห่างเท่ากันทุกตาราง
+function ResourceSection({ children }: { children: React.ReactNode }) {
   return (
-    <section className="panel overflow-hidden p-0">
-      <div className="flex items-center gap-3 border-b border-[#e3e4e8] p-5">
-        {icon}
-        <div className="flex-1">
-          <h2 className="text-xl font-black">{title}</h2>
-          <p className="text-sm text-[#62646c]">{subtitle}</p>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
+    <section className="panel overflow-hidden p-0">{children}</section>
   );
 }

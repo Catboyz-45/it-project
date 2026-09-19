@@ -1,20 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นการทดสอบอัตโนมัติของ “contrast.spec” เพื่อป้องกันพฤติกรรมสำคัญย้อนกลับไปเสีย
- * การทำงาน: เตรียมสถานการณ์ เรียกโค้ดเหมือนผู้ใช้หรือระบบจริง แล้วตรวจผลลัพธ์ทั้งกรณีสำเร็จและกรณีที่ต้องปฏิเสธ
- */
-
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
 import { expectContrast } from "./helpers/contrast";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “login” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ล็อกอินด้วยบัญชีเจ้าของหอ ใช้ซ้ำในทุกเทสต์ของกลุ่มแรก
 async function login(page: Page) {
   await page.goto("/login");
   await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
@@ -23,14 +11,7 @@ async function login(page: Page) {
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “login As” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - email: ค่า “email” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// เหมือน login แต่ระบุอีเมลได้ ใช้กับเทสต์ที่ต้องสลับเป็นผู้เช่าหรือซูเปอร์แอดมิน
 async function loginAs(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("อีเมล").fill(email);
@@ -39,15 +20,8 @@ async function loginAs(page: Page, email: string) {
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “check Interactive States” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - locator: ค่า “locator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - minimum: ค่า “minimum” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// เช็คสามสถานะรวดเดียว ปกติ ชี้เมาส์ และโฟกัส เพราะหลายที่พลาดเฉพาะตอน hover ที่สีอ่อนลง
+// ค่าเริ่มต้น 4.5 คือเกณฑ์ข้อความของ WCAG AA ส่วนไอคอนกับเส้นขอบใช้ 3
 async function checkInteractiveStates(locator: Locator, name: string, minimum = 4.5) {
   await expectContrast(locator, { minimum, name, state: "default" });
   await locator.hover();
@@ -57,23 +31,26 @@ async function checkInteractiveStates(locator: Locator, name: string, minimum = 
 }
 
 test.describe("computed WCAG contrast", () => {
+  // ล็อกอินใหม่ทุกเทสต์ แต่ละเทสต์จะได้เริ่มจากสถานะเดียวกัน
   test.beforeEach(async ({ page }) => login(page));
 
   test("text and interactive states meet WCAG AA", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
 
-    const heading = page.getByRole("heading", { name: "ประกาศและข่าวสาร" });
+    const heading = page.getByRole("heading", { name: "ประกาศ/ข่าวสาร" });
     await expectContrast(heading, { minimum: 4.5, name: "page heading", state: "default" });
 
     const primary = page.getByRole("button", { name: "สร้างประกาศ" });
     await checkInteractiveStates(primary, "primary action");
 
     await page.goto(`/admin/properties/${e2e.propertyId}/meters/water`);
+    // ปุ่มที่กดไม่ได้ใช้เกณฑ์ 3 ตามสเปก เพราะตั้งใจให้ดูจางกว่าเพื่อบอกว่ากดไม่ได้
     const disabled = page.locator('button[aria-describedby="meter-save-disabled-reason"]');
     await expect(disabled).toBeDisabled();
     await expectContrast(disabled, { minimum: 3, name: "disabled primary action", state: "disabled" });
   });
 
+  // ไอคอนใช้เกณฑ์ 3 เพราะเป็นภาพ ไม่ใช่ข้อความ
   test("icons expose non-text contrast in default, hover and focus states", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
     const iconButton = page.getByRole("button", { name: "จัดการประกาศ ประกาศ E2E" });
@@ -88,6 +65,7 @@ test.describe("computed WCAG contrast", () => {
     await expectContrast(badge, { minimum: 4.5, name: "published status badge", state: "default" });
   });
 
+  // เส้นขอบช่องกรอกต้องเห็นชัด ไม่งั้นคนสายตาไม่ดีจะไม่รู้ว่าตรงไหนพิมพ์ได้
   test("input and button boundaries meet non-text contrast requirements", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
     await page.getByRole("button", { name: "สร้างประกาศ" }).click();
@@ -98,11 +76,13 @@ test.describe("computed WCAG contrast", () => {
     await expectContrast(input, { kind: "border", minimum: 3, name: "title input boundary", state: "focus" });
   });
 
+  // ปุ่มบางแบบไม่มีใช้ในหน้านี้ จึงแทรก HTML ทดสอบเข้าไปเองเพื่อวัดให้ครบทุกแบบในที่เดียว
   test("shared button variants meet text contrast in every interactive state", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
     await page.evaluate(() => {
       const fixture = document.createElement("section");
       fixture.id = "contrast-button-fixture";
+      // ตรึงไว้มุมบนซ้ายและดันขึ้นชั้นบนสุด กันของอื่นบังจนวัดไม่ได้
       fixture.className = "fixed left-4 top-4 z-[9999] grid gap-3 bg-[#fff] p-4";
       fixture.innerHTML = `
         <button class="app-button app-button--primary" data-contrast="primary">ดำเนินการหลัก</button>
@@ -114,6 +94,7 @@ test.describe("computed WCAG contrast", () => {
       document.body.append(fixture);
     });
 
+    // วนเช็คทุกแบบ ปุ่มที่กดไม่ได้แยกออกมาเพราะใช้เกณฑ์คนละตัวและ hover ไม่ได้
     for (const variant of ["primary", "secondary", "tertiary", "danger"] as const) {
       await checkInteractiveStates(page.locator(`[data-contrast="${variant}"]`), `${variant} button`);
     }
@@ -124,6 +105,7 @@ test.describe("computed WCAG contrast", () => {
     });
   });
 
+  // สีบอกผลอย่างสำเร็จ เตือน ผิดพลาด ต้องอ่านออกทั้งตัวอักษรและเส้นขอบ
   test("semantic feedback colors meet text and boundary contrast contracts", async ({ page }) => {
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
     await page.evaluate(() => {
@@ -146,6 +128,7 @@ test.describe("computed WCAG contrast", () => {
       const control = page.locator(`[data-contrast="${tone}"]`);
       await expectContrast(control, { minimum: 4.5, name: `${tone} feedback`, state: "default" });
     }
+    // เช็คเส้นขอบเฉพาะอันที่มีกรอบ ป้ายสถานะไม่มีกรอบจึงไม่อยู่ในรอบนี้
     for (const tone of ["success", "warning", "error", "read-only"] as const) {
       await expectContrast(page.locator(`[data-contrast="${tone}"]`), {
         kind: "border",
@@ -158,6 +141,7 @@ test.describe("computed WCAG contrast", () => {
 });
 
 test.describe("role-specific computed contrast", () => {
+  // เช็คฝั่งผู้เช่าแยกต่างหาก เพราะใช้ชุดสีและ layout คนละแบบกับฝั่งเจ้าของหอ
   test("Tenant navigation, notification action and statuses meet WCAG AA", async ({ page }) => {
     await loginAs(page, e2e.tenantEmail);
     await page.goto("/tenant");
@@ -168,10 +152,12 @@ test.describe("role-specific computed contrast", () => {
     const notifications = page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ });
     await checkInteractiveStates(notifications, "tenant notification action", 3);
 
+    // เช็คป้ายสถานะเฉพาะตอนที่มีให้เห็น บัญชีทดสอบอาจยังไม่มีบิลหรือรายการค้าง
     const status = page.locator(".badge").first();
     if (await status.count()) await expectContrast(status, { minimum: 4.5, name: "tenant status badge", state: "default" });
   });
 
+  // ฝั่งซูเปอร์แอดมินก็ใช้ชุดสีของตัวเอง จึงต้องเช็คแยกอีกชุด
   test("Super Admin navigation and table statuses meet WCAG AA", async ({ page }) => {
     await loginAs(page, e2e.superAdminEmail);
     const accounts = page.getByRole("navigation", { name: "เมนู Super Admin" })

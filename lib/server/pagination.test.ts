@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “pagination.test” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { describe, expect, it } from "vitest";
 import {
   paginationQuery,
@@ -16,6 +10,7 @@ describe("pagination", () => {
     const input = parsePagination(new URLSearchParams());
 
     expect(input).toEqual({ page: 1, pageSize: 50 });
+    // take 51 ไม่ใช่ 50 เพราะขอเกินมาหนึ่งแถวไว้เช็คว่ามีหน้าถัดไปไหม โดยไม่ต้องนับทั้งตาราง
     expect(paginationQuery(input)).toEqual({ skip: 0, take: 51 });
   });
 
@@ -30,6 +25,7 @@ describe("pagination", () => {
     });
   });
 
+  // ค่ามาจาก URL ที่ผู้ใช้พิมพ์เองได้ ขอเกินเพดานหรือส่งค่าที่ไม่ใช่ตัวเลขมาต้องไม่ผ่าน
   it("rejects invalid and oversized page sizes", () => {
     expect(() => parsePagination(new URLSearchParams({ page: "0" }))).toThrow();
     expect(() => parsePagination(new URLSearchParams({ pageSize: "101" }))).toThrow();

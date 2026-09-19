@@ -1,33 +1,18 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Password Flow Form” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Forgot Password Form” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ขอลิงก์ตั้งรหัสผ่านใหม่ ตอบข้อความเดียวกันเสมอไม่ว่าอีเมลนั้นมีอยู่จริงหรือไม่
+// เพื่อไม่ให้ใครใช้หน้านี้ไล่เดาว่าอีเมลไหนสมัครไว้แล้ว
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async (event: FormEvent) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault(); setLoading(true); setError("");
     try {
       const response = await fetch("/api/auth/forgot-password", {
@@ -47,28 +32,17 @@ export function ForgotPasswordForm() {
   </form>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Set Password Form” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { token, forced = false }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตั้งรหัสผ่านใหม่ ใช้สองกรณี มาจากลิงก์ในอีเมล หรือถูกบังคับให้เปลี่ยนตอนเข้าสู่ระบบ
+// forced ไม่ต้องมี token เพราะยืนยันตัวตนจากคุกกี้ session ที่มีอยู่แล้ว
 export function SetPasswordForm({ token, forced = false }: { token?: string; forced?: boolean }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ค token กับความแข็งแรงของรหัสด้วย
     if (password !== confirm) { setError("รหัสผ่านทั้งสองช่องไม่ตรงกัน"); return; }
     setLoading(true); setError("");
     try {
@@ -78,6 +52,7 @@ export function SetPasswordForm({ token, forced = false }: { token?: string; for
       });
       const payload = await response.json() as { redirectTo?: string; error?: string };
       if (!response.ok) throw new Error(payload.error || "ตั้งรหัสผ่านไม่สำเร็จ");
+      // replace ไม่ใช่ push เพราะกดย้อนกลับมาหน้านี้อีกไม่ได้ ลิงก์ตั้งรหัสผ่านใช้ได้ครั้งเดียว
       router.replace(payload.redirectTo ?? "/login");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "ตั้งรหัสผ่านไม่สำเร็จ"); }
     finally { setLoading(false); }
@@ -85,6 +60,7 @@ export function SetPasswordForm({ token, forced = false }: { token?: string; for
   return <form className="grid gap-5" onSubmit={submit}>
     <label>รหัสผ่านใหม่ <input autoComplete="new-password" minLength={12} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
     <label>ยืนยันรหัสผ่าน <input autoComplete="new-password" minLength={12} onChange={(event) => setConfirm(event.target.value)} required type="password" value={confirm} /></label>
+    {/* บอกเกณฑ์ไว้ตั้งแต่แรก ดีกว่าให้กรอกเสร็จแล้วค่อยโดนปฏิเสธ */}
     <p className="text-sm text-[#62646c]">อย่างน้อย 12 ตัวอักษร</p>
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <button className="primary-button" disabled={loading} type="submit">{loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}</button>

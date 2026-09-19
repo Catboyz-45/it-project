@@ -1,17 +1,12 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Tenant Portal” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ถือ state ของทั้งพื้นที่ผู้เช่า และโหลดข้อมูลใหม่จากเบราว์เซอร์
 
 import Image from "next/image";
 import Link from "next/link";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { useRouter } from "next/navigation";
-import { FormEvent, Fragment, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { FormEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -53,15 +48,14 @@ import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
 import { formatStatus } from "@/lib/ui-labels";
-import { tenantPagePath, type TenantTab } from "@/lib/navigation-routes";
+import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
+import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
+import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Account” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// บัญชีผู้เช่าหนึ่งคน คนหนึ่งอาจมีหลายการเข้าพัก เช่นย้ายห้องหรือเช่าหลายห้อง
 type Account = {
   id: string;
   phone: string;
@@ -69,6 +63,7 @@ type Account = {
   emergencyName: string | null;
   emergencyPhone: string | null;
   user: { displayName: string; email: string };
+  // เก็บทุกสถานะ ไม่ใช่แค่ที่ยังใช้งานอยู่ เพราะต้องใช้บอกว่ากำลังรออนุมัติหรือถูกปฏิเสธ
   occupancies: Array<{
     id: string;
     role: "PRIMARY" | "CO_OCCUPANT";
@@ -79,10 +74,6 @@ type Account = {
     property: { id: string; name: string; shortName: string; isActive: boolean };
   }>;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Room Data” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type RoomData = {
   role: "PRIMARY" | "CO_OCCUPANT";
   startedAt: string | null;
@@ -100,16 +91,14 @@ type RoomData = {
     };
   };
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Tenant Notification Summary” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ตัวเลขงานค้างทั้งหมดในคำขอเดียว ไม่ต้องยิงถามทีละหน้า
 type TenantNotificationSummary = {
   unpaidInvoices: number;
   waitingParcels: number;
   openTickets: number;
   unreadMessages: number;
   unreadTicketReplies: number;
+  // แพ็กเกจเป็นของหอ ไม่ใช่ของผู้เช่า แต่หอหมดอายุแล้วผู้เช่าก็ทำรายการไม่ได้เหมือนกัน
   subscriptionAccess: {
     mode: "FULL" | "GRACE" | "READ_ONLY";
     isReadOnly: boolean;
@@ -117,21 +106,19 @@ type TenantNotificationSummary = {
   };
 };
 
-/** สีประจำหมวดของไอคอนเมนู (ดู .sidebar nav [data-accent] ใน globals.css) ให้
- * ตรงชุดเดียวกับฝั่งแอดมิน: บิล/ชำระเงิน = เขียว, แจ้งเรื่อง/ซ่อม = magenta,
- * พัสดุ = cyan ใช้เฉพาะเมนูเดสก์ท็อป (.sidebar) ส่วน bottom nav บนมือถือคง
- * ไอคอนสีเดียวไว้ตามเดิมเพื่อความเรียบร้อยของแถบเล็ก ๆ */
-const tabs: Array<{ accent?: "green" | "magenta" | "cyan"; id: TenantTab; label: string; icon: typeof Home }> = [
+// เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหน้าใหม่โดยไม่ต้องแก้ JSX
+const tabs: Array<{ id: TenantTab; label: string; icon: typeof Home }> = [
   { id: "home", label: "หน้าหลัก", icon: Home },
-  { accent: "green", id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
+  { id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
   { id: "lease", label: "สัญญา", icon: FileText },
   { id: "announcements", label: "ประกาศ", icon: Bell },
-  { accent: "cyan", id: "parcels", label: "พัสดุ", icon: Package },
-  { accent: "magenta", id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
+  { id: "parcels", label: "พัสดุ", icon: Package },
+  { id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
   { id: "chat", label: "ติดต่อหอ", icon: MessageSquare },
   { id: "account", label: "บัญชีของฉัน", icon: UserRound },
 ];
 
+// Record บังคับให้ทุกหน้ามีคำอธิบายตั้งแต่ตอนคอมไพล์ เพิ่มหน้าใหม่แล้วลืมจะคอมไพล์ไม่ผ่าน
 const tabDescriptions: Record<TenantTab, string> = {
   home: "ภาพรวมข้อมูลสำคัญและงานที่ต้องดำเนินการ",
   invoices: "ตรวจสอบบิล กำหนดชำระ และประวัติการชำระเงิน",
@@ -143,61 +130,26 @@ const tabDescriptions: Record<TenantTab, string> = {
   account: "จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชี",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “mobile Primary Tabs” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - { id }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// แถบล่างบนมือถือใส่ได้แค่ 4 ช่อง จึงเลือกเฉพาะที่ใช้บ่อย ที่เหลือไปอยู่ในเมนูเพิ่มเติม
 const mobilePrimaryTabs = tabs.filter(({ id }) => ["home", "invoices", "parcels", "tickets"].includes(id));
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “navigation Tabs” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - { id }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// แชทกับบัญชีไม่อยู่ในเมนูหลักของจอกว้าง เพราะมีปุ่มของตัวเองอยู่แล้ว
 const navigationTabs = tabs.filter(({ id }) => !["chat", "account"].includes(id));
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “mobile More Tabs” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - { id }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const mobileMoreTabs = tabs.filter(({ id }) => ["lease", "announcements", "account"].includes(id));
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “api Data” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function apiData<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Api Resource” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า:
- * - url: ค่า “url” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - enabled: ค่า “enabled” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
-function useApiResource<T>(url: string, enabled = true) {
-  const [data, setData] = useState<T | null>(null);
+// โหลดข้อมูลชุดเดียวจาก URL พร้อมจัดการสถานะโหลดกับข้อผิดพลาดให้ครบ
+// enabled=false ใช้ตอนยังไม่มีการเข้าพักที่ใช้งานอยู่ จะได้ไม่ยิงคำขอที่ยังไงก็ถูกปฏิเสธ
+// initialData มาจาก Server Component ของหน้านั้น ข้อมูลจึงมาพร้อม HTML
+// ไม่ต้องขึ้นสถานะโหลด และไม่ต้องยิงซ้ำตอน mount เพราะเป็นข้อมูลชุดเดียวกัน
+function useApiResource<T>(url: string, enabled = true, initialData: T | null = null) {
+  const [data, setData] = useState<T | null>(initialData);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(enabled);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  const [isLoading, setIsLoading] = useState(enabled && initialData === null);
+  const skipInitialLoadRef = useRef(initialData !== null);
   const load = useCallback(async (signal?: AbortSignal) => {
     if (!enabled) return;
     setIsLoading(true);
@@ -216,6 +168,12 @@ function useApiResource<T>(url: string, enabled = true) {
     }
   }, [enabled, url]);
   useEffect(() => {
+    // ได้ข้อมูลมาพร้อมหน้าแล้ว ยิงซ้ำตอน mount คือทำงานเดิมสองรอบ
+    // ต้องการของใหม่เมื่อไหร่ค่อยเรียก reload() เอง เช่นหลังบันทึกอะไรสักอย่าง
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void load(controller.signal);
     return () => controller.abort();
@@ -223,10 +181,6 @@ function useApiResource<T>(url: string, enabled = true) {
   return { data, error, isLoading, reload: load };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Paginated Resource” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PaginatedResource<T> = {
   data: T[];
   error: string;
@@ -238,37 +192,27 @@ type PaginatedResource<T> = {
   reload: () => Promise<void>;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Paginated Resource” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า:
- * - url: ค่า “url” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - pageSize: ค่า “page Size” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด PaginatedResource<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
-function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<T> {
-  const [data, setData] = useState<T[]>([]);
+// แบบเดียวกันแต่โหลดทีละหน้า และต่อท้ายเมื่อกดโหลดเพิ่ม
+// initialPage มาจาก Server Component ของหน้านั้น หน้าแรกจึงมาพร้อม HTML
+// ไม่ต้องขึ้น skeleton และไม่ต้องยิงซ้ำตอน mount
+export type InitialPage<T> = { data: T[]; hasNextPage: boolean; total: number | null };
+// enabled=false ใช้กับแท็บที่ยังไม่ได้เปิด จะได้ไม่โหลดข้อมูลที่ผู้ใช้ยังไม่ได้ขอดู
+function usePaginatedResource<T>(url: string, pageSize = 20, initialPage: InitialPage<T> | null = null, enabled = true): PaginatedResource<T> {
+  const [data, setData] = useState<T[]>(initialPage?.data ?? []);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [total, setTotal] = useState<number | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(initialPage?.hasNextPage ?? false);
+  const [total, setTotal] = useState<number | null>(initialPage?.total ?? null);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled && initialPage === null);
+  const skipInitialPageRef = useRef(initialPage !== null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Page” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - replace: ค่า “replace” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: สัญญาณยกเลิก ใช้ตอน component ถูก unmount หรือ url เปลี่ยน
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const requestPage = useCallback(async (targetPage: number, replace: boolean, signal?: AbortSignal) => {
     if (replace) setIsLoading(true);
     else setIsLoadingMore(true);
     setError("");
     try {
+      // บาง URL มีพารามิเตอร์มาแล้ว ต้องเลือกตัวคั่นให้ถูก
       const separator = url.includes("?") ? "&" : "?";
       const response = await fetch(`${url}${separator}page=${targetPage}&pageSize=${pageSize}`, {
         cache: "no-store",
@@ -298,62 +242,72 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
     }
   }, [pageSize, url]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “reload” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const reload = useCallback(() => requestPage(1, true), [requestPage]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load More” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const loadMore = useCallback(() => requestPage(page + 1, false), [page, requestPage]);
   useEffect(() => {
+    // ยังไม่เปิดแท็บนี้ก็ยังไม่ต้องโหลด รอจนกดค่อยยิง
+    if (!enabled) return;
+    // หน้าแรกมาพร้อม HTML แล้ว ยิงซ้ำตอน mount คือทำงานเดิมสองรอบ
+    if (skipInitialPageRef.current) {
+      skipInitialPageRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void requestPage(1, true, controller.signal);
     return () => controller.abort();
-  }, [requestPage]);
+  }, [enabled, requestPage]);
   return { data, error, hasNextPage, isLoading, isLoadingMore, loadMore, reload, total };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Portal” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { activeTab, initialAccount, initialSelectedOccupancyId, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// สิ่งที่แท็บต้องใช้ร่วมกัน ส่งผ่าน context เพราะเปลือกอยู่ใน layout ส่วนแท็บมาทาง children
+// จึงเป็นพี่น้องกันในต้นไม้ React ส่งเป็น prop ตรง ๆ ไม่ได้
+type TenantPortalValue = {
+  account: Account;
+  accessState: ReturnType<typeof resolveSubscriptionUiAccessState>;
+  active: Account["occupancies"][number] | undefined;
+  isPrimary: boolean;
+  isReadOnly: boolean;
+  notificationResource: ReturnType<typeof useApiResource<TenantNotificationSummary>>;
+  roomResource: ReturnType<typeof useApiResource<RoomData>>;
+  setAccount: (account: Account) => void;
+  refreshAccount: () => Promise<void>;
+};
+const TenantPortalContext = createContext<TenantPortalValue | null>(null);
+
+// แท็บทุกอันอยู่ใต้เปลือกเสมอ ไม่เจอ context แปลว่าประกอบหน้าผิดที่ ต้องรู้ทันทีไม่ใช่ปล่อยให้พังเงียบ
+function useTenantPortal() {
+  const value = useContext(TenantPortalContext);
+  if (!value) throw new Error("ต้องใช้ภายใน TenantPortal เท่านั้น");
+  return value;
+}
+
+// เปลือกของทั้งพื้นที่ผู้เช่า อยู่ใน layout จึงไม่ถูกถอดตอนเปลี่ยนแท็บ
+// ข้อมูลร่วมอย่างห้องและยอดแจ้งเตือนจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
 export function TenantPortal({
-  activeTab,
+  children,
   initialAccount,
   initialSelectedOccupancyId,
 }: {
-  activeTab: TenantTab;
+  children: ReactNode;
   initialAccount: Account;
   initialSelectedOccupancyId: string | null;
 }) {
   const router = useRouter();
+  // อ่านแท็บจาก URL แทนการรับเป็น prop เพราะ layout ไม่รู้พารามิเตอร์ของ route ลูก
+  const pathname = usePathname();
+  const activeTab = tenantTabFromSegments(pathname.replace(/^\/tenant\/?/, "").split("/").filter(Boolean)) ?? "home";
   const [account, setAccount] = useState(initialAccount);
   const [selectedOccupancyId, setSelectedOccupancyId] = useState(initialSelectedOccupancyId);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isQuickChatOpen, setIsQuickChatOpen] = useState(false);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “active” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ต้องเช็คสถานะด้วย ไม่ใช่เทียบแค่ id เพราะห้องที่เลือกไว้อาจย้ายออกไปแล้ว
   const active = account.occupancies.find((item) => item.id === selectedOccupancyId && item.status === "ACTIVE");
   const roomResource = useApiResource<RoomData>("/api/v1/tenant/room", Boolean(active));
   const notificationResource = useApiResource<TenantNotificationSummary>(
     "/api/v1/tenant/notifications/summary",
     Boolean(active),
   );
+  // ผู้เช่าหลักเท่านั้นที่เห็นบิลกับสัญญา ผู้พักร่วมเห็นแค่ข้อมูลห้องและเรื่องทั่วไป
   const primary = active?.role === "PRIMARY";
   const accessState = resolveSubscriptionUiAccessState({
     accessMode: notificationResource.data?.subscriptionAccess.mode,
@@ -361,19 +315,15 @@ export function TenantPortal({
     error: notificationResource.error,
     isLoading: notificationResource.isLoading,
   });
+  // เป็นแค่การซ่อนปุ่มให้ผู้ใช้รู้ตัว ส่วนการบังคับจริงอยู่ที่เซิร์ฟเวอร์ทุกครั้ง
   const isReadOnly = blocksSubscriptionMutations(accessState);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “notification Count” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - tab: ค่า “tab” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ตัวเลขบนป้ายของแต่ละแท็บ หน้าหลักรวมทุกอย่าง ส่วนแท็บอื่นนับเฉพาะของตัวเอง
   const notificationCount = (tab: TenantTab) => {
     const summary = notificationResource.data;
     if (!summary) return 0;
     if (tab === "invoices") return summary.unpaidInvoices;
     if (tab === "parcels") return summary.waitingParcels;
+    // มีคำตอบใหม่ให้โชว์จำนวนคำตอบก่อน เพราะเป็นเรื่องที่ต้องเข้าไปอ่าน ไม่ใช่แค่รออยู่
     if (tab === "tickets") return summary.unreadTicketReplies || summary.openTickets;
     if (tab === "chat") return summary.unreadMessages;
     if (tab === "home") {
@@ -388,13 +338,7 @@ export function TenantPortal({
     { id: "ticket-replies", count: notificationResource.data.unreadTicketReplies, title: "มีคำตอบใหม่ในเรื่องแจ้ง", description: "เปิดอ่านคำตอบล่าสุดจากผู้ดูแลหอ", href: tenantPagePath("tickets"), icon: <MessageSquare size={19} /> },
     { id: "messages", count: notificationResource.data.unreadMessages, title: "ข้อความใหม่จากหอพัก", description: "เปิดอ่านข้อความจากผู้ดูแลหอ", href: tenantPagePath("chat"), icon: <MessageSquare size={19} /> },
   ] : [];
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “switch Occupancy” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - occupancyId: รหัสภายในของ occupancy
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // สลับห้องที่กำลังดู เซิร์ฟเวอร์เก็บไว้ในคุกกี้เพื่อให้เปิดครั้งหน้ายังอยู่ห้องเดิม
   const switchOccupancy = async (occupancyId: string) => {
     setIsSwitching(true);
     try {
@@ -406,19 +350,16 @@ export function TenantPortal({
       }));
       setSelectedOccupancyId(occupancyId);
       setIsQuickChatOpen(false);
+      // โหลดข้อมูลห้องกับตัวเลขแจ้งเตือนใหม่พร้อมกัน เพราะเป็นคนละห้องแล้ว
       await Promise.all([roomResource.reload(), notificationResource.reload()]);
+      // กลับหน้าหลักเพราะหน้าที่ดูอยู่อาจไม่มีในห้องใหม่ เช่นผู้พักร่วมไม่มีหน้าบิล
       router.push(tenantPagePath("home"));
+      // refresh ให้ส่วนที่วาดจากฝั่งเซิร์ฟเวอร์อัปเดตตามคุกกี้ที่เพิ่งเปลี่ยน
       router.refresh();
     } finally {
       setIsSwitching(false);
     }
   };
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “refresh Account” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const refreshAccount = async () => {
     const updated = await apiData<Account>(await fetch("/api/v1/tenant/me", {
       cache: "no-store",
@@ -429,16 +370,22 @@ export function TenantPortal({
 
   const activeTabItem = tabs.find(({ id }) => id === activeTab) ?? tabs[0];
 
-  return <main className="tenant-portal tenant-shell shell text-[#292a30]">
+  const portalValue: TenantPortalValue = {
+    account, accessState, active, isPrimary: primary, isReadOnly,
+    notificationResource, roomResource, setAccount, refreshAccount,
+  };
+
+  return <TenantPortalContext.Provider value={portalValue}><PageHeaderSlotProvider>
+    <main className="tenant-portal tenant-shell shell text-[#292a30]">
     <LiveAnnouncement message={`เปิดหน้า ${tabs.find(({ id }) => id === activeTab)?.label ?? "พื้นที่ผู้เช่า"}`} />
     <aside className="sidebar tenant-sidebar">
       <div className="brand tenant-brand">
-        <PlatformBrand className="[&_small]:text-[#73757d] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
+        <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
-        {navigationTabs.map(({ accent, id, icon: Icon, label }) => (
-          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} data-accent={accent} href={tenantPagePath(id)} key={id}>
+        {navigationTabs.map(({ id, icon: Icon, label }) => (
+          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
             <Icon size={19} />{label}
             {notificationCount(id) > 0 ? (
               <span className="notification-badge" aria-label={`${notificationCount(id)} รายการที่ต้องตรวจสอบ`}>
@@ -462,6 +409,7 @@ export function TenantPortal({
           <p className="page-subtitle">{tabDescriptions[activeTab]}</p>
         </div>
         <div className="tenant-header-actions flex items-center gap-3">
+          <PageHeaderTarget />
           {active ? <NotificationCenter isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
           {account.occupancies.filter(({ status }) => status === "ACTIVE").length > 0 ? <DropdownField
             disabled={isSwitching}
@@ -492,29 +440,9 @@ export function TenantPortal({
         <p>คุณยังดูห้อง บิล สัญญา ประกาศ พัสดุ และประวัติเดิมได้ แต่ยังส่งสลิป แจ้งเรื่อง หรือส่งข้อความใหม่ไม่ได้</p>
       </div>
     </div> : null}
+    {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
     <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6">
-      <section className="view-transition min-w-0" key={activeTab}>
-        {activeTab === "account" ? (
-          <AccountPanel account={account} onUpdated={setAccount} refreshAccount={refreshAccount} />
-        ) : !active ? <PendingState account={account} /> : <>
-          {activeTab === "home" ? (
-            <HomePanel
-              account={account}
-              isPrimary={primary}
-              notificationResource={notificationResource}
-              roomResource={roomResource}
-            />
-          ) : null}
-          {activeTab === "invoices" ? primary ? <InvoicesPanel readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" /> : null}
-          {activeTab === "lease" ? primary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" /> : null}
-          {activeTab === "announcements" ? <AnnouncementsPanel /> : null}
-          {activeTab === "parcels" ? <ParcelsPanel /> : null}
-          {activeTab === "tickets" ? <TicketsPanel onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} /> : null}
-          {activeTab === "chat" ? roomResource.isLoading ? <Loading /> : roomResource.error || !roomResource.data
-            ? <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />
-            : <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} /> : null}
-        </>}
-      </section>
+      <section className="min-w-0">{children}</section>
     </div>
     </section>
     <nav aria-label="เมนูผู้เช่าบนมือถือ" className="tenant-mobile-navigation">
@@ -569,16 +497,56 @@ export function TenantPortal({
         variant="widget"
       />
     ) : null}
-  </main>;
+  </main>
+  </PageHeaderSlotProvider></TenantPortalContext.Provider>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Account Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { account, onUpdated, refreshAccount, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// เนื้อของแท็บหนึ่งแท็บ page ของแต่ละ route เรียกตัวนี้พร้อมบอกว่าเป็นแท็บอะไร
+// ข้อมูลร่วมหยิบจาก context ที่เปลือกเตรียมไว้ จึงไม่ต้องโหลดซ้ำตอนเปลี่ยนแท็บ
+export function TenantSectionPanel({
+  initialInvoices = null,
+  initialSummary = null,
+  initialTickets = null,
+  tab,
+}: {
+  initialInvoices?: TenantInitialViews<Invoice> | null;
+  initialSummary?: TenantHomeSummary | null;
+  initialTickets?: TenantInitialViews<Ticket> | null;
+  tab: TenantTab;
+}) {
+  // เรียก context ครั้งเดียวบนสุด hook ห้ามอยู่หลัง early return
+  const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
+  // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
+  if (tab === "account") return <AccountPanel account={account} onUpdated={setAccount} refreshAccount={refreshAccount} />;
+  // ยังไม่มีห้องที่ใช้งานอยู่ ทุกแท็บที่เหลือจึงไม่มีข้อมูลให้แสดง
+  if (!active) return <PendingState account={account} />;
+  if (tab === "home") {
+    return <HomePanel
+      account={account}
+      initialSummary={initialSummary}
+      isPrimary={isPrimary}
+      notificationResource={notificationResource}
+      roomResource={roomResource}
+    />;
+  }
+  // บิลกับสัญญาเป็นเรื่องของผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทน
+  if (tab === "invoices") return isPrimary ? <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" />;
+  if (tab === "lease") return isPrimary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" />;
+  if (tab === "announcements") return <AnnouncementsPanel />;
+  if (tab === "parcels") return <ParcelsPanel />;
+  if (tab === "tickets") return <TicketsPanel initialViews={initialTickets} onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
+  if (tab === "chat") {
+    // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
+    if (roomResource.isLoading) return <Loading />;
+    if (roomResource.error || !roomResource.data) {
+      return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
+    }
+    return <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
+  }
+  return null;
+}
+
+// แท็บบัญชีของฉัน แก้ข้อมูลติดต่อและเปลี่ยนรหัสผ่าน
 function AccountPanel({
   account,
   onUpdated,
@@ -616,13 +584,6 @@ function AccountPanel({
   const isPasswordDirty = Object.values(password).some(Boolean);
   useUnsavedChanges((isProfileDirty || isPasswordDirty) && !isSavingProfile && !isSavingPassword);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Profile” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
     setIsSavingProfile(true);
@@ -648,13 +609,6 @@ function AccountPanel({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Password” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const changePassword = async (event: FormEvent) => {
     event.preventDefault();
     setPasswordError("");
@@ -719,23 +673,23 @@ function AccountPanel({
         {account.occupancies.length ? account.occupancies.map((occupancy) => <article className="account-occupancy-row" key={occupancy.id}>
           <div>
             <strong>{occupancy.property.name} · ห้อง {occupancy.room.number}</strong>
-            <p className="text-sm text-[#73757d]">
+            <p className="text-sm text-[#62646c]">
               {occupancy.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}
               {occupancy.startedAt ? ` · เริ่ม ${new Date(occupancy.startedAt).toLocaleDateString("th-TH")}` : ""}
               {occupancy.endedAt ? ` · สิ้นสุด ${new Date(occupancy.endedAt).toLocaleDateString("th-TH")}` : ""}
             </p>
           </div>
           <span className="badge">{occupancyLabels[occupancy.status]}</span>
-        </article>) : <Empty icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
+        </article>) : <Empty description="เมื่อเจ้าของหอเพิ่มคุณเข้าห้องแล้ว ข้อมูลห้องและบริการจะแสดงที่นี่" icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
         </div>
-        <div className="mt-5 border-t border-[#e3e4e8] pt-5">
+        <div className="mt-5 border-t border-[#e4e4e7] pt-5">
         <AcceptInvitationForm onAccepted={refreshAccount} />
         </div>
       </section>
       <PrivacyPreferencesPanel />
     </div>
 
-    {isEditingProfile ? <Dialog ariaDescribedBy="tenant-profile-description" ariaLabelledBy="tenant-profile-title" onClose={() => { if (!isSavingProfile) setIsEditingProfile(false); }}>
+    {isEditingProfile ? <Dialog ariaDescribedBy="tenant-profile-description" ariaLabelledBy="tenant-profile-title" className="modal-md" onClose={() => { if (!isSavingProfile) setIsEditingProfile(false); }}>
       <form className="modal-form" onSubmit={saveProfile}>
         <header className="modal-header"><div><h2 id="tenant-profile-title">แก้ไขข้อมูลส่วนตัว</h2><p id="tenant-profile-description">ข้อมูลสำหรับการติดต่อและกรณีฉุกเฉิน</p></div><IconButton disabled={isSavingProfile} label="ปิด" onClick={() => setIsEditingProfile(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -750,7 +704,7 @@ function AccountPanel({
       </form>
     </Dialog> : null}
 
-    {isEditingPassword ? <Dialog ariaDescribedBy="tenant-password-description" ariaLabelledBy="tenant-password-title" onClose={() => { if (!isSavingPassword) setIsEditingPassword(false); }}>
+    {isEditingPassword ? <Dialog ariaDescribedBy="tenant-password-description" ariaLabelledBy="tenant-password-title" className="modal-md" onClose={() => { if (!isSavingPassword) setIsEditingPassword(false); }}>
       <form className="modal-form" onSubmit={changePassword}>
         <header className="modal-header"><div><h2 id="tenant-password-title">เปลี่ยนรหัสผ่าน</h2><p id="tenant-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSavingPassword} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">
@@ -766,25 +720,12 @@ function AccountPanel({
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Accept Invitation Form” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onAccepted }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// รับคำเชิญเข้าห้องเพิ่ม ใช้ตอนผู้เช่าเดิมได้รหัสเชิญของอีกห้องมา
 function AcceptInvitationForm({ onAccepted }: { onAccepted: () => Promise<void> }) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setIsSending(true); setError(""); setMessage("");
@@ -822,135 +763,54 @@ function AcceptInvitationForm({ onAccepted }: { onAccepted: () => Promise<void> 
   </form>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Pending State” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { account }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าจอตอนสมัครแล้วแต่ยังไม่ได้รับอนุมัติ ยังเข้าใช้งานส่วนอื่นไม่ได้
 function PendingState({ account }: { account: Account }) {
   const latest = account.occupancies[0];
   return <Panel title="สถานะการเข้าพัก"><div className="empty-state"><Clock3 size={40} /><strong>{latest?.status === "PENDING" ? "รอเจ้าของหออนุมัติ" : "ยังไม่มีการเข้าพักที่ใช้งาน"}</strong><p>เมื่อได้รับอนุมัติแล้ว คุณจะเข้าถึงข้อมูลห้องและบริการของหอได้</p></div></Panel>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Home Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { account, isPrimary, notificationResource, roomResource, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// แท็บหน้าหลัก ดึงเฉพาะ 5 รายการล่าสุดของแต่ละอย่างมาแสดงพอให้เห็นภาพรวม
+// initialSummary มาจาก Server Component ของหน้าแรก สามรายการนี้จึงมาพร้อม HTML
+// ส่วนห้องกับยอดแจ้งเตือนยังมาจาก context เพราะเปลือกโหลดไว้แล้วและใช้ร่วมกับแถบเมนู
+// หน้าบิลกับหน้าแจ้งเรื่องมีสองมุมมอง ส่งมาได้ทั้งคู่หรือจะส่งแค่มุมมองที่เปิดอยู่ก็ได้
+export type TenantInitialViews<T> = { current?: InitialPage<T> | null; history?: InitialPage<T> | null };
+
+export type TenantHomeSummary = {
+  invoices: Invoice[] | null;
+  parcels: Parcel[] | null;
+  tickets: Ticket[] | null;
+};
+
 function HomePanel({
   account,
+  initialSummary,
   isPrimary,
   notificationResource,
   roomResource,
 }: {
   account: Account;
+  initialSummary?: TenantHomeSummary | null;
   isPrimary: boolean;
   notificationResource: ReturnType<typeof useApiResource<TenantNotificationSummary>>;
   roomResource: ReturnType<typeof useApiResource<RoomData>>;
 }) {
-  const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary);
-  const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5");
-  const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5");
-  const heroRef = useRef<HTMLElement>(null);
-  const heroCopyRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (roomResource.isLoading || !heroRef.current || !heroCopyRef.current) return;
-    const hero = heroRef.current;
-    const copy = heroCopyRef.current;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let animationFrame = 0;
-
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Hero” โดยใช้ค่าที่รับเข้ามา
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
-    const updateHero = () => {
-      animationFrame = 0;
-      const bounds = hero.getBoundingClientRect();
-      const heroTop = bounds.top + window.scrollY;
-      const fadeStart = Math.max(0, heroTop - 96);
-      const fadeDistance = Math.max(180, bounds.height * 0.7);
-      const progress = reduceMotion.matches
-        ? 0
-        : Math.min(1, Math.max(0, (window.scrollY - fadeStart) / fadeDistance));
-      copy.style.setProperty("--tenant-hero-progress", progress.toFixed(3));
-      hero.style.setProperty("--tenant-hero-progress", progress.toFixed(3));
-    };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “request Update” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
-    const requestUpdate = () => {
-      if (!animationFrame) animationFrame = window.requestAnimationFrame(updateHero);
-    };
-
-    updateHero();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-    reduceMotion.addEventListener("change", requestUpdate);
-    return () => {
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      reduceMotion.removeEventListener("change", requestUpdate);
-    };
-  }, [roomResource.isLoading]);
-
+  const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary, initialSummary?.invoices ?? null);
+  const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5", true, initialSummary?.parcels ?? null);
+  const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5", true, initialSummary?.tickets ?? null);
   if (roomResource.isLoading) return <Loading />;
   if (roomResource.error || !roomResource.data) {
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
   }
 
-  const { room, role, startedAt } = roomResource.data;
+  const { room, startedAt } = roomResource.data;
   const furniture = Array.isArray(room.furniture) ? room.furniture.filter((item): item is string => typeof item === "string") : [];
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “unpaid Invoice” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const unpaidInvoice = invoices.data?.find((invoice) => ["PENDING", "OVERDUE"].includes(invoice.status));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “waiting Parcel” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - parcel: ค่า “parcel” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const waitingParcel = parcels.data?.find((parcel) => parcel.status === "WAITING");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Ticket” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - ticket: ค่า “ticket” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const openTicket = tickets.data?.find((ticket) => !["RESOLVED", "CANCELLED"].includes(ticket.status));
   const summary = notificationResource.data;
   const hasOverviewError = notificationResource.error || invoices.error || parcels.error || tickets.error;
 
   return <div className="tenant-home">
-    <section className="tenant-home-hero" ref={heroRef}>
-      <div className="tenant-home-hero-copy" ref={heroCopyRef}>
-        <p className="tenant-home-eyebrow">{room.property.name}</p>
-        <h1>
-          <span className="tenant-home-title-line">สวัสดี</span>
-          <span className="tenant-home-title-line tenant-home-title-line-secondary">{account.user.displayName}</span>
-        </h1>
-        <p className="tenant-home-room">ห้อง {room.number} · {room.building.name} · {room.floor.label ?? `ชั้น ${room.floor.number}`} · {role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</p>
-      </div>
-    </section>
-
     <div className="tenant-home-surface">
 
     {hasOverviewError ? (
@@ -969,8 +829,8 @@ function HomePanel({
 
     <section aria-labelledby="tenant-priority-heading">
       <div className="mb-3">
-        <h2 className="text-2xl font-black" id="tenant-priority-heading">ภาพรวมที่ต้องรู้</h2>
-        <p className="text-sm text-[#73757d]">บิล พัสดุ และเรื่องที่กำลังติดตาม</p>
+        <h2 className="text-base font-semibold" id="tenant-priority-heading">ภาพรวมที่ต้องรู้</h2>
+        <p className="text-sm text-[#62646c]">บิล พัสดุ และเรื่องที่กำลังติดตาม</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <HomePriorityCard
@@ -1047,7 +907,7 @@ function HomePanel({
     </div>
 
     <details className="panel group">
-      <summary className="cursor-pointer list-none text-lg font-black">ข้อมูลห้องและช่องทางติดต่อ</summary>
+      <summary className="cursor-pointer list-none text-sm font-semibold">ข้อมูลห้องและช่องทางติดต่อ</summary>
       <dl className="mt-5 grid gap-4 sm:grid-cols-2">
         <Info label="ที่อยู่" value={room.property.settings?.address ?? "-"} />
         <Info label="โทรศัพท์" value={room.property.settings?.contactPhone ?? "-"} />
@@ -1056,19 +916,12 @@ function HomePanel({
         <Info label="อุปกรณ์ในห้อง" value={furniture.join(", ") || "-"} />
         <Info label="เบอร์ผู้เช่า" value={account.phone} />
       </dl>
-      {room.property.settings?.houseRules ? <div className="mt-5 rounded-2xl bg-brand/[.06] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
+      {room.property.settings?.houseRules ? <div className="mt-5 rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
     </details>
     </div>
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Home Priority Card” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { accent, detail, href, icon, label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function HomePriorityCard({ accent, detail, href, icon, label, value }: {
   accent: string;
   detail: string;
@@ -1077,63 +930,37 @@ function HomePriorityCard({ accent, detail, href, icon, label, value }: {
   label: string;
   value: string;
 }) {
-  return <Link className={`rounded-3xl border p-5 transition hover:-translate-y-0.5 hover:shadow-lg ${accent}`} href={href}>
+  return <Link className={`rounded-xl border p-5 transition-colors duration-150 ${accent}`} href={href}>
     <div className="flex items-start justify-between gap-3">
-      <span className="grid size-11 place-items-center rounded-2xl bg-white text-brand shadow-sm">{icon}</span>
+      <span className="grid size-9 place-items-center rounded-md bg-white text-[#4651c7]">{icon}</span>
       <ArrowRight size={19} />
     </div>
-    <p className="mt-5 text-sm font-bold text-[#73757d]">{label}</p>
-    <strong className="mt-1 block text-2xl font-black">{value}</strong>
-    <small className="mt-2 block text-[#73757d]">{detail}</small>
+    <p className="mt-5 text-sm font-bold text-[#62646c]">{label}</p>
+    <strong className="mt-1 block text-2xl font-bold">{value}</strong>
+    <small className="mt-2 block text-[#62646c]">{detail}</small>
   </Link>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Home Task” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { detail, href, label, tone }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function HomeTask({ detail, href, label, tone }: {
   detail: string;
   href: string;
   label: string;
   tone: string;
 }) {
-  return <Link className="flex items-center gap-4 rounded-2xl border border-[#e3e4e8] p-4 transition hover:border-brand hover:bg-brand/[.03]" href={href}>
+  return <Link className="flex items-center gap-4 rounded-xl border border-[#e4e4e7] p-4 transition hover:border-brand hover:bg-brand/[.03]" href={href}>
     <AlertCircle className={tone} size={23} />
     <span className="min-w-0 flex-1">
       <strong className="block">{label}</strong>
-      <small className="block truncate text-[#73757d]">{detail}</small>
+      <small className="block truncate text-[#62646c]">{detail}</small>
     </span>
-    <ArrowRight className="shrink-0 text-[#73757d]" size={18} />
+    <ArrowRight className="shrink-0 text-[#62646c]" size={18} />
   </Link>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Invoice” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Invoice = { id: string; invoiceNumber: string; billingMonth: string; status: string; dueDate: string; total: string; paidAt: string | null; cancelledAt: string | null };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Invoice Detail” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type InvoiceDetail = Invoice & { subtotal: string; lateFee: string; room: { number: string }; items: Array<{ id: string; description: string; quantity: string; unitPrice: string; amount: string }> };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Submission” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Submission = { id: string; amount: string; status: string; submittedAt: string; reviewedAt: string | null; rejectionNote: string | null };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant History Tabs” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { currentLabel, historyLabel, id, onChange, view, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TenantHistoryTabs({
   currentLabel,
   historyLabel,
@@ -1159,13 +986,6 @@ function TenantHistoryTabs({
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant History Table” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, title, total }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TenantHistoryTable({ children, title, total }: { children: ReactNode; title: string; total: number | null }) {
   return <section className="figma-table-card">
     <header className="additional-card-head">
@@ -1175,45 +995,25 @@ function TenantHistoryTable({ children, title, total }: { children: ReactNode; t
   </section>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invoices Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { readOnly }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function InvoicesPanel({ readOnly }: { readOnly: boolean }) {
+function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }) {
   const [view, setView] = useState<TenantRecordView>("current");
-  const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current");
-  const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history");
+  const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current", 20, initialViews?.current ?? null);
+  const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history", 20, initialViews?.history ?? null, view === "history");
   const reloadCurrentInvoices = currentResource.reload;
   const reloadInvoiceHistory = historyResource.reload;
   const resource = view === "current" ? currentResource : historyResource;
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change View” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - nextView: ค่า “next View” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const changeView = (nextView: TenantRecordView) => {
     setExpandedInvoiceId(null);
     setView(nextView);
   };
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “reload Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const reloadInvoices = useCallback(async () => {
     await Promise.all([reloadCurrentInvoices(), reloadInvoiceHistory()]);
   }, [reloadCurrentInvoices, reloadInvoiceHistory]);
   return <div className="grid gap-5">
     <TenantHistoryTabs currentLabel="บิลปัจจุบัน" historyLabel="ประวัติบิล" id="tenant-invoices" onChange={changeView} view={view} />
     <div aria-labelledby={`tenant-invoices-tab-${view}`} aria-live="polite" id="tenant-invoices-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
+    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((invoice) => {
@@ -1254,13 +1054,6 @@ function InvoicesPanel({ readOnly }: { readOnly: boolean }) {
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invoice Details” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { id, invoice, onChanged, readOnly }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function InvoiceDetails({ id, invoice, onChanged, readOnly }: { id: string; invoice: Invoice; onChanged: () => Promise<void>; readOnly: boolean }) {
   const detail = useApiResource<InvoiceDetail>(`/api/v1/tenant/invoices/${invoice.id}`);
   const submissions = useApiResource<Submission[]>(`/api/v1/tenant/invoices/${invoice.id}/payment-submissions`);
@@ -1268,12 +1061,6 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: { id: string; invo
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
   const payable = ["PENDING", "OVERDUE"].includes(invoice.status);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async () => {
     if (!file) return;
     setIsSending(true); setError("");
@@ -1286,69 +1073,45 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: { id: string; invo
     } catch (uploadError) { setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ"); }
     finally { setIsSending(false); }
   };
-  return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e3e4e8] bg-[#fcfcfe] p-5" id={id}>
+  return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e4e4e7] bg-[#fcfcfe] p-5" id={id}>
     {detail.isLoading ? <Loading /> : detail.data ? <div className="grid gap-2">{detail.data.items.map((item) => <div className="flex justify-between gap-3 rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{item.description} × {item.quantity}</span><strong>{currency.format(Number(item.amount))}</strong></div>)}<div className="flex justify-between p-3 text-lg"><span>ค่าปรับ</span><strong>{currency.format(Number(detail.data.lateFee))}</strong></div></div> : <ErrorState error={detail.error} retry={() => void detail.reload()} />}
-    {payable && !readOnly ? <div className="mt-5 grid gap-4 rounded-2xl border border-brand/20 p-4">
+    {payable && !readOnly ? <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
       <PromptPayQr invoice={invoice} />
       <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
       {error ? <p className="form-alert error" role="alert">{error}</p> : null}
       <button aria-describedby={!file && !isSending ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button"><Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}</button>
       {!file && !isSending ? <p className="disabled-reason" id="payment-slip-disabled-reason">เลือกไฟล์สลิปก่อนส่งหลักฐานการชำระเงิน</p> : null}
     </div> : payable && readOnly ? <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice> : null}
-    <div className="mt-5"><strong>ประวัติหลักฐาน</strong>{submissions.data?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span><span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span></div>)}{submissions.data?.length === 0 ? <p className="mt-2 text-[#73757d]">ยังไม่เคยส่งหลักฐาน</p> : null}</div>
+    <div className="mt-5"><strong>ประวัติหลักฐาน</strong>{submissions.data?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span><span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span></div>)}{submissions.data?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}</div>
   </section>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Prompt Pay Qr” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { invoice }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function PromptPayQr({ invoice }: { invoice: Invoice }) {
   const promptPay = useApiResource<{ invoiceNumber: string; amount: string; payload: string }>(`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr?format=json`);
   if (promptPay.isLoading) return <Loading />;
   if (promptPay.error || !promptPay.data) return <div className="form-alert error">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
   return <div className="text-center">
     <strong className="block text-lg">สแกน PromptPay</strong>
-    <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-2xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
-    <p className="mt-2 text-sm text-[#73757d]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
+    <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
+    <p className="mt-2 text-sm text-[#62646c]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Lease” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Lease = { id: string; leaseNumber: string; status: string; startDate: string; endDate: string; monthlyRent: string; depositAmount: string; currentVersion: number; activatedAt: string | null; room: { number: string } };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Lease Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function LeasePanel() {
   const resource = useApiResource<{ current: Lease | null; upcoming: Lease | null }>("/api/v1/tenant/lease");
   if (resource.isLoading) return <Loading />;
   if (resource.error) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  if (!resource.data?.current && !resource.data?.upcoming) return <Empty icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
+  if (!resource.data?.current && !resource.data?.upcoming) return <Empty description="เมื่อเจ้าของหอออกสัญญาให้แล้ว เอกสารจะมาแสดงที่นี่" icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
   return <div className="grid gap-5">
-    {resource.data.current ? <TenantLeaseCard lease={resource.data.current} title="สัญญาปัจจุบัน" /> : <Empty icon={<FileText />} text="ไม่มีสัญญาที่กำลังใช้งานในขณะนี้" />}
+    {resource.data.current ? <TenantLeaseCard lease={resource.data.current} title="สัญญาปัจจุบัน" /> : <Empty icon={<FileText />} description="สัญญาที่สิ้นสุดแล้วยังเปิดดูได้จากประวัติด้านล่าง" text="ไม่มีสัญญาที่กำลังใช้งานในขณะนี้" />}
     {resource.data.upcoming ? <TenantLeaseCard lease={resource.data.upcoming} title="สัญญารอบถัดไป" /> : null}
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Lease Card” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { lease, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TenantLeaseCard({ lease, title }: { lease: Lease; title: string }) {
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
-    <h2 className="text-lg font-black text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
+    <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>
     <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="Version" value={`v${lease.currentVersion}`} /><Info label="วันเริ่มต้น" value={new Date(lease.startDate).toLocaleDateString("th-TH")} /><Info label="วันสิ้นสุด" value={new Date(lease.endDate).toLocaleDateString("th-TH")} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
     <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
@@ -1356,33 +1119,13 @@ function TenantLeaseCard({ lease, title }: { lease: Lease; title: string }) {
   </section>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Announcement” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Announcement = { id: string; title: string; content: string; publishedAt: string | null; publishAt: string | null; createdAt: string };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Announcements Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function AnnouncementsPanel() {
   const resource = usePaginatedResource<Announcement>("/api/v1/tenant/announcements");
-  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#73757d]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
+  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ" emptyDescription="ประกาศจากหอพักจะมาแสดงที่นี่">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Parcel” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Parcel = { id: string; status: string; note: string | null; registeredAt: string; receivedAt: string | null; imageUrl: string | null };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Parcels Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function ParcelsPanel() {
   const [view, setView] = useState<TenantRecordView>("current");
   const currentResource = usePaginatedResource<Parcel>("/api/v1/tenant/parcels?view=current");
@@ -1395,22 +1138,18 @@ function ParcelsPanel() {
         <table>
           <thead><tr><th scope="col">พัสดุ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่รับเข้าระบบ</th><th scope="col">วันที่รับพัสดุ</th><th scope="col">สถานะ</th></tr></thead>
           <tbody>{resource.data.map((item) => <tr key={item.id}>
-            <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#73757d]">ไม่มีรูป</span>}</td>
+            <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#62646c]">ไม่มีรูป</span>}</td>
             <td>{item.note || "ไม่มีหมายเหตุ"}</td>
             <td>{new Date(item.registeredAt).toLocaleString("th-TH")}</td>
             <td>{item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : "—"}</td>
             <td><Status value={item.status} /></td>
           </tr>)}</tbody>
         </table>
-      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#73757d]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#73757d]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
+      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
     </div>
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Ticket” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Ticket = {
   id: string; type: "REPAIR" | "COMPLAINT"; status: string; priority: string;
   title: string; detail: string; createdAt: string; updatedAt: string;
@@ -1421,43 +1160,23 @@ type Ticket = {
     fromValue: string | null; toValue: string | null; createdAt: string;
   }>;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tickets Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onUnreadChanged, readOnly }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function TicketsPanel({ onUnreadChanged, readOnly }: { onUnreadChanged: () => Promise<void>; readOnly: boolean }) {
+function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialViews?: TenantInitialViews<Ticket> | null; onUnreadChanged: () => Promise<void>; readOnly: boolean }) {
   const [view, setView] = useState<TenantRecordView>("current");
-  const currentResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=current");
-  const historyResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=history");
+  const currentResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=current", 20, initialViews?.current ?? null);
+  const historyResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=history", 20, initialViews?.history ?? null, view === "history");
   const resource = view === "current" ? currentResource : historyResource;
   const reloadCurrentTickets = currentResource.reload;
   const reloadTicketHistory = historyResource.reload;
   const [isOpen, setIsOpen] = useState(false);
   const [openReplyTicketId, setOpenReplyTicketId] = useState<string | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “reload Tickets” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const reloadTickets = useCallback(async () => {
     await Promise.all([reloadCurrentTickets(), reloadTicketHistory()]);
   }, [reloadCurrentTickets, reloadTicketHistory]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change View” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - nextView: ค่า “next View” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const changeView = (nextView: TenantRecordView) => {
     setOpenReplyTicketId(null);
     setView(nextView);
   };
-  return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button> : null}</div>
+  return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}</div>
     {readOnly ? <ReadOnlyNotice>ดูสถานะ ประวัติ และไฟล์แนบเดิมได้ แต่ไม่สามารถสร้างหรือตอบกลับรายการได้</ReadOnlyNotice> : null}
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
     {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
@@ -1486,13 +1205,6 @@ function TicketsPanel({ onUnreadChanged, readOnly }: { onUnreadChanged: () => Pr
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Ticket Details Content” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onRead, readOnly, showReplyThread, ticket, toggleReply }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggleReply }: {
   onRead: () => void;
   readOnly: boolean;
@@ -1504,30 +1216,16 @@ function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggl
     <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticket.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#73757d]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {event.type === "CREATED" ? "สร้างรายการ" : event.type === "STATUS_CHANGED" ? `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "PRIORITY_CHANGED" ? `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "REPLY_ADDED" ? "มีข้อความตอบกลับ" : "แนบไฟล์"}</li>)}</ol>
+    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {event.type === "CREATED" ? "สร้างรายการ" : event.type === "STATUS_CHANGED" ? `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "PRIORITY_CHANGED" ? `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "REPLY_ADDED" ? "มีข้อความตอบกลับ" : "แนบไฟล์"}</li>)}</ol>
     {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
   </>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Ticket Dialog” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onClose, onCreated }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
   const [form, setForm] = useState({ type: "REPAIR", title: "", detail: "", priority: "NORMAL", isAnonymous: false });
   const [file, setFile] = useState<File | null>(null); const [error, setError] = useState(""); const [saving, setSaving] = useState(false);
   const [createdTicketId, setCreatedTicketId] = useState<string | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError("");
     try {
@@ -1543,7 +1241,7 @@ function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
     } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "สร้างรายการไม่สำเร็จ"); }
     finally { setSaving(false); }
   };
-  return <Dialog ariaDescribedBy="tenant-ticket-description" ariaLabelledBy="tenant-ticket-title" onClose={onClose}><header className="modal-header"><div><h2 id="tenant-ticket-title">แจ้งเรื่องใหม่</h2><p id="tenant-ticket-description">ส่งรายการแจ้งซ่อมหรือร้องเรียนถึงผู้ดูแลหอพัก</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแจ้งเรื่อง"><X /></IconButton></header><form className="modal-form" onSubmit={submit}>
+  return <Dialog ariaDescribedBy="tenant-ticket-description" ariaLabelledBy="tenant-ticket-title" className="modal-md" onClose={onClose}><header className="modal-header"><div><h2 id="tenant-ticket-title">แจ้งเรื่องใหม่</h2><p id="tenant-ticket-description">ส่งรายการแจ้งซ่อมหรือร้องเรียนถึงผู้ดูแลหอพัก</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแจ้งเรื่อง"><X /></IconButton></header><form className="modal-form" onSubmit={submit}>
     <div className="modal-grid"><DropdownField label="ประเภท" onChange={(value) => setForm({ ...form, type: value })} options={[{ label: "แจ้งซ่อม", value: "REPAIR" }, { label: "ร้องเรียน", value: "COMPLAINT" }]} value={form.type} /><DropdownField label="ความเร่งด่วน" onChange={(value) => setForm({ ...form, priority: value })} options={[{ label: "ปกติ", value: "NORMAL" }, { label: "ด่วน", value: "URGENT" }]} value={form.priority} /></div>
     <label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} required value={form.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setForm({ ...form, detail: event.target.value })} required value={form.detail} /></label>
     {form.type === "COMPLAINT" ? <label className="flex items-center gap-2"><input checked={form.isAnonymous} className="size-5 min-h-0" onChange={(event) => setForm({ ...form, isAnonymous: event.target.checked })} type="checkbox" /> ไม่แสดงชื่อกับผู้ดูแลหอ</label> : null}
@@ -1551,18 +1249,7 @@ function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
   </form></Dialog>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Chat Message” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type ChatMessage = { id: string; body: string; senderRole: "ADMIN" | "TENANT" | "SUPER_ADMIN"; senderName: string; createdAt: string; attachment: { name: string; mimeType: string; size: number; url: string } | null };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Chat” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onClose, propertyId, readOnly, variant = "page", }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TenantChat({
   onClose,
   propertyId,
@@ -1579,12 +1266,6 @@ function TenantChat({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const load = useCallback(async () => { setLoading(true); setError(""); try { const response = await fetch("/api/v1/tenant/chat", { cache: "no-store" }); const payload = await response.json() as { conversationId?: string; hasMore?: boolean; messages?: ChatMessage[]; error?: string }; if (!response.ok || !payload.messages || !payload.conversationId) throw new Error(payload.error || "โหลดแชตไม่สำเร็จ"); setMessages(payload.messages); setHasOlderMessages(payload.hasMore ?? false); setConversationId(payload.conversationId); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "โหลดแชตไม่สำเร็จ"); } finally { setLoading(false); } }, []);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (!conversationId) return; const stream = new EventSource(`/api/v1/chat/conversations/${conversationId}/stream?propertyId=${encodeURIComponent(propertyId)}&after=${encodeURIComponent(new Date().toISOString())}`); stream.onmessage = (event) => { const message = JSON.parse(event.data) as ChatMessage; setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]); }; stream.onerror = () => setError("การเชื่อมต่อข้อความขัดข้อง ระบบกำลังเชื่อมต่อใหม่"); return () => stream.close(); }, [conversationId, propertyId]);
@@ -1592,12 +1273,6 @@ function TenantChat({
     if (shouldScrollToEndRef.current) endRef.current?.scrollIntoView({ behavior: "smooth" });
     shouldScrollToEndRef.current = true;
   }, [messages]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Older” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadOlder = async () => {
     const oldest = messages[0];
     if (!oldest || loadingOlder) return;
@@ -1622,13 +1297,6 @@ function TenantChat({
       setError(loadError instanceof Error ? loadError.message : "โหลดข้อความก่อนหน้าไม่สำเร็จ");
     } finally { setLoadingOlder(false); }
   };
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const send = async (event: FormEvent) => {
     event.preventDefault();
     const body = text.trim();
@@ -1667,9 +1335,9 @@ function TenantChat({
     } finally { setSending(false); }
   };
   const messageList = (
-    <div className={variant === "widget" ? "tenant-quick-chat-messages" : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-2xl bg-[#f3f3f5] p-4"} ref={scrollRef}>
+    <div className={variant === "widget" ? "tenant-quick-chat-messages" : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-xl bg-[#f3f3f5] p-4"} ref={scrollRef}>
       {loading ? <Loading /> : messages.length === 0 ? (
-        <p className="m-auto text-center text-sm text-[#73757d]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p>
+        <p className="m-auto text-center text-sm text-[#62646c]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p>
       ) : <>
         {hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={loadingOlder} label="โหลดข้อความก่อนหน้า" onClick={() => void loadOlder()} /> : null}
         {messages.map((message) => (
@@ -1752,7 +1420,7 @@ function TenantChat({
           <span className="chat-person-avatar support"><MessageSquare aria-hidden="true" size={19} /></span>
           <span>
             <strong className="block">ติดต่อหอ</strong>
-            <small className="block text-[#73757d]">ข้อความถึงผู้ดูแลหอพัก</small>
+            <small className="block text-[#62646c]">ข้อความถึงผู้ดูแลหอพัก</small>
           </span>
         </div>
         <div className="chat-header-actions">
@@ -1785,92 +1453,16 @@ function TenantChat({
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Resource List” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, empty, resource }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function ResourceList<T extends { id: string }>({ children, empty, resource }: { children: (item: T) => ReactNode; empty: string; resource: PaginatedResource<T>; subtitle: string; title: string }) {
+function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, resource }: { children: (item: T) => ReactNode; empty: string; emptyDescription?: string; resource: PaginatedResource<T>; subtitle: string; title: string }) {
   if (resource.isLoading) return <Loading />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
+  return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
 }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Pagination Actions” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { resource }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) {
   if (!resource.hasNextPage) return null;
   return <button className="secondary-button mx-auto" disabled={resource.isLoadingMore} onClick={() => void resource.loadMore()} type="button">
     {resource.isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}
   </button>;
 }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function Panel({ children, title }: { children: ReactNode; title: string }) { return <section className="panel"><h2 className="mb-4 text-xl font-black">{title}</h2>{children}</section>; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Info Card” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function InfoCard({ label, value }: { label: string; value: string }) { return <article className="panel"><small>{label}</small><strong className="mt-2 block text-2xl">{value}</strong></article>; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Info” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm text-[#73757d]">{label}</dt><dd className="font-bold">{value}</dd></div>; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Loading” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function Loading() { return <LoadingSkeleton count={3} label="กำลังโหลดข้อมูล" variant="list" />; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Error State” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { error, retry }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function ErrorState({ error, retry }: { error: string; retry: () => void }) { return <div className="form-alert error" role="alert"><span>{error || "โหลดข้อมูลไม่สำเร็จ"}</span><RetryButton onClick={retry} /></div>; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Empty” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, text }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function Empty({ icon, text }: { icon: ReactNode; text: string }) { return <div className="empty-state">{icon}<p>{text}</p></div>; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Restricted Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { message }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function RestrictedPanel({ message }: { message: string }) { return <Empty icon={<QrCode />} text={message} />; }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Status” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-function Status({ value }: { value: string }) {
-  return <span className={`badge ${["PAID", "APPROVED", "RESOLVED"].includes(value) ? "badge-paid" : ""}`}>{formatStatus(value)}</span>;
-}

@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Occupancy Transition Modal” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มและยิงคำขอจากเบราว์เซอร์
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, ArrowRightLeft, CheckCircle2, LoaderCircle, LogOut, Plus, RefreshCw, Trash2, X, XCircle } from "lucide-react";
@@ -19,15 +14,9 @@ import { currency } from "@/lib/dorm-utils";
 import type { Room, Tenant } from "@/types/dorm";
 import { ownerPagePath } from "@/lib/navigation-routes";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Deduction” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// เก็บจำนวนเงินเป็นสตริงเพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนคำนวณกับตอนส่ง
 type Deduction = { label: string; amount: string };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Move Out Readiness” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ผลตรวจจากเซิร์ฟเวอร์ว่าย้ายออกได้หรือยัง ไม่ให้ฝั่งเบราว์เซอร์เดาเอง
 type MoveOutReadiness = {
   billingMonth: string;
   meters: { ready: boolean; waterRecordedAt: string | null; electricityRecordedAt: string | null };
@@ -35,10 +24,7 @@ type MoveOutReadiness = {
   ready: boolean;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Move Room Lease Draft” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ส่งกลับให้หน้าแม่หลังย้ายห้องสำเร็จ เพื่อเปิดฟอร์มสัญญาใหม่ที่กรอกไว้ให้แล้ว
 export type MoveRoomLeaseDraft = {
   depositAmount: number;
   monthlyRent: number;
@@ -46,13 +32,7 @@ export type MoveRoomLeaseDraft = {
   startDate: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Occupancy Transition Modal” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onClose, onCompleted, propertyId, rooms, tenant }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องย้ายออกกับย้ายห้อง สองงานนี้ใช้ฟอร์มเดียวกันเพราะต้องสรุปเงินประกันเหมือนกัน
 export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, rooms, tenant }: {
   onClose: () => void;
   onCompleted: (leaseDraft?: MoveRoomLeaseDraft) => Promise<void>;
@@ -75,30 +55,17 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
   const [error, setError] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const { confirm, confirmationDialog: discardDialog } = useConfirmation();
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “deduction Total” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // || 0 กันช่องที่ยังว่างหรือกรอกไม่เป็นตัวเลข ทำให้ยอดรวมกลายเป็น NaN
   const deductionTotal = useMemo(() => deductions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0), [deductions]);
+  // ไม่ให้ติดลบ หักเกินเงินประกันก็แค่คืน 0 ส่วนที่เกินเป็นหนี้ที่ต้องตามเก็บต่างหาก
+  // เรียกว่าเบื้องต้นเพราะยอดจริงเซิร์ฟเวอร์เป็นคนคิด โดยรวมค่าค้างชำระจากบิลเข้าไปด้วย
   const preliminaryBalance = Math.max(tenant.deposit - deductionTotal, 0);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “destination Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ห้องปลายทางต้องว่าง ไม่ใช่ห้องเดิม และต้องมีอยู่ในฐานข้อมูลจริง
   const destinationRooms = rooms.filter((room) => room.status === "available" && room.id !== tenant.roomId && room.databaseId);
+  // นับว่าแก้แล้วถ้าแตะอะไรก็ตาม ใช้ตัดสินว่าต้องถามก่อนปิดหรือไม่
   const isDirty = destinationRoomId !== "" || reason !== "" || note !== "" || deductions.length > 0 || type !== "MOVE_OUT" || roomInspected;
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Readiness” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ถามเซิร์ฟเวอร์ว่ามิเตอร์กับบิลสุดท้ายครบหรือยัง ย้ายห้องไม่ต้องตรวจเพราะสัญญายังไม่จบ
   const loadReadiness = useCallback(async () => {
     if (type !== "MOVE_OUT") return;
     setIsCheckingReadiness(true);
@@ -113,25 +80,17 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
       setReadinessError(cause instanceof Error ? cause.message : "ตรวจสอบข้อมูลก่อนย้ายออกไม่สำเร็จ");
     } finally { setIsCheckingReadiness(false); }
   }, [effectiveDate, propertyId, tenant.id, type]);
+  // ตรวจใหม่ทุกครั้งที่เปลี่ยนวันที่มีผล เพราะคนละเดือนก็คนละบิลคนละมิเตอร์
   useEffect(() => { void loadReadiness(); }, [loadReadiness]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่กรอกไว้หายหมด
   const requestClose = useCallback(() => {
     if (!isDirty) return onClose();
     void confirm({ title: "ทิ้งข้อมูลที่ยังไม่บันทึก?", description: "รายการในแบบฟอร์มย้ายออก/ย้ายห้องจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((accepted) => { if (accepted) onClose(); });
   }, [confirm, isDirty, onClose]);
+  // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Confirmation” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ตรวจให้ครบก่อนเปิดกล่องยืนยัน ผู้ใช้จะได้ไม่กดยืนยันแล้วเจอปฏิเสธทีหลัง
   const requestConfirmation = () => {
     if (!reason.trim() || (type === "MOVE_ROOM" && !destinationRoomId)) {
       setError(type === "MOVE_ROOM" ? "กรุณาเลือกห้องปลายทางและระบุเหตุผล" : "กรุณาระบุเหตุผล");
@@ -141,6 +100,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
       setError("กรุณาตรวจสอบรายการหักเงินประกัน");
       return;
     }
+    // ย้ายออกต้องครบทั้งสามอย่าง ระบบตรวจสองอย่างแรกให้ ส่วนการตรวจห้องต้องมีคนยืนยัน
     if (type === "MOVE_OUT" && (!readiness?.ready || !roomInspected)) {
       setError("กรุณาทำรายการย้ายออกให้ครบ: มิเตอร์สุดท้าย บิลสุดท้าย และตรวจสภาพห้อง");
       return;
@@ -149,12 +109,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
     setIsConfirming(true);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ตรวจซ้ำอีกรอบตรงนี้ เพราะ requestConfirmation กับ submit ถูกเรียกคนละจังหวะ
   const submit = async () => {
     if (!reason.trim() || (type === "MOVE_ROOM" && !destinationRoomId)) {
       setError(type === "MOVE_ROOM" ? "กรุณาเลือกห้องปลายทางและระบุเหตุผล" : "กรุณาระบุเหตุผล");
@@ -175,6 +130,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
           ...(type === "MOVE_ROOM" ? { destinationRoomId } : {}),
           effectiveDate,
           reason,
+          // แนบผลตรวจไว้ในหมายเหตุ เพื่อให้ประวัติบอกได้ว่าตอนนั้นตรวจอะไรผ่านมาบ้าง
           settlementNote: type === "MOVE_OUT"
             ? `[ตรวจจากระบบ: มิเตอร์และบิลสุดท้ายครบ, ผู้ใช้ยืนยันตรวจสภาพห้อง]${note ? ` ${note}` : ""}`
             : note || undefined,
@@ -186,15 +142,10 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
         error?: string;
       };
       if (!response.ok) throw new Error(payload.error || "ดำเนินการไม่สำเร็จ");
+      // ย้ายห้องต้องรู้ยอดที่โอนไป ไม่งั้นสัญญาใหม่จะกรอกเงินประกันไม่ถูก
       if (type === "MOVE_ROOM" && !payload.data) throw new Error("ไม่พบข้อมูลยอดเงินประกันที่โอนไปห้องใหม่");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “destination Room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า:
-       * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
       const destinationRoom = destinationRooms.find((room) => room.databaseId === destinationRoomId);
+      // ส่งร่างสัญญาใหม่กลับไปเฉพาะตอนย้ายห้อง ย้ายออกไม่มีสัญญาต่อ
       await onCompleted(type === "MOVE_ROOM" ? {
         depositAmount: payload.data!.transferredAmount,
         monthlyRent: destinationRoom?.rent ?? tenant.monthlyRent ?? 0,
@@ -216,15 +167,18 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
           <button className={`rounded-2xl border p-4 text-left ${type === "MOVE_ROOM" ? "border-brand bg-brand/10" : "border-[#d9dae0]"}`} onClick={() => setType("MOVE_ROOM")} type="button"><ArrowRightLeft className="mb-2" /><strong className="block">ย้ายห้อง</strong><small>ย้ายผู้พักทั้งห้องและโอนเงินประกันคงเหลือ</small></button>
         </div>
         <div className="tenant-config-grid">
+          {/* max เป็นวันนี้ เพราะย้ายออกในอนาคตต้องรอให้ถึงวันจริงก่อน จะได้ไม่ปิดสัญญาล่วงหน้า */}
           <label><span>วันที่มีผล</span><input max={new Date().toISOString().slice(0, 10)} onChange={(event) => setEffectiveDate(event.target.value)} required type="date" value={effectiveDate} /></label>
           {type === "MOVE_ROOM" ? <DropdownField label="ห้องปลายทาง" onChange={setDestinationRoomId} options={[{ label: "เลือกห้องว่าง", value: "" }, ...destinationRooms.flatMap((room) => room.databaseId ? [{ label: `${room.id} · ${currency.format(room.rent)}/เดือน`, value: room.databaseId }] : [])]} value={destinationRoomId} /> : null}
           <label className="full-width"><span>เหตุผล</span><textarea maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={type === "MOVE_OUT" ? "เช่น ครบกำหนดสัญญา" : "เช่น ต้องการห้องขนาดใหญ่ขึ้น"} required value={reason} /></label>
         </div>
         <section className="rounded-2xl border border-[#d9dae0] p-4">
           <div className="mb-3 flex items-center justify-between"><div><strong>รายการหักเงินประกัน</strong><p className="text-sm opacity-60">ค่าค้างชำระจากบิลจะถูกระบบรวมให้อัตโนมัติ</p></div><button className="secondary-button" onClick={() => setDeductions((current) => [...current, { label: "", amount: "" }])} type="button"><Plus size={16} /> เพิ่มรายการ</button></div>
+          {/* ใช้ index เป็น key ได้เพราะแถวเหล่านี้ไม่มี id และผู้ใช้ไม่ได้สลับลำดับ */}
           <div className="grid gap-2">{deductions.map((item, index) => <div className="grid grid-cols-[1fr_160px_44px] gap-2" key={index}><input aria-label={`รายละเอียดรายการหัก ${index + 1}`} maxLength={160} onChange={(event) => setDeductions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, label: event.target.value } : row))} placeholder="เช่น ค่าทำความสะอาด" value={item.label} /><input aria-label={`จำนวนเงินรายการหัก ${index + 1}`} min="0" onChange={(event) => setDeductions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, amount: event.target.value } : row))} placeholder="บาท" step="0.01" type="number" value={item.amount} /><IconButton label="ลบรายการ" onClick={() => setDeductions((current) => current.filter((_, rowIndex) => rowIndex !== index))} variant="danger"><Trash2 size={16} /></IconButton></div>)}</div>
           <div className="mt-4 grid grid-cols-3 gap-3 text-sm"><div><span className="block opacity-60">เงินประกัน</span><strong>{currency.format(tenant.deposit)}</strong></div><div><span className="block opacity-60">รายการหัก</span><strong>{currency.format(deductionTotal)}</strong></div><div><span className="block opacity-60">คงเหลือเบื้องต้น</span><strong>{currency.format(preliminaryBalance)}</strong></div></div>
         </section>
+        {/* สองข้อแรกระบบตรวจให้ ข้อสามต้องมีคนไปดูห้องจริง จึงเป็นช่องติ๊กเอง */}
         {type === "MOVE_OUT" ? <section className="rounded-2xl border border-brand/20 bg-brand/5 p-4">
           <strong>Checklist ก่อนย้ายออก</strong>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm opacity-60">ระบบตรวจข้อมูลของเดือน {readiness?.billingMonth ?? effectiveDate.slice(0, 7)} จากฐานข้อมูล</p><button className="secondary-button" disabled={isCheckingReadiness} onClick={() => void loadReadiness()} type="button"><RefreshCw className={isCheckingReadiness ? "animate-spin" : ""} size={16} /> ตรวจอีกครั้ง</button></div>
@@ -241,6 +195,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
       </div>
       <footer className="modal-actions"><button className="secondary-button" disabled={isSubmitting} onClick={requestClose} type="button">ยกเลิก</button><button className="primary-button" disabled={isSubmitting} onClick={requestConfirmation} type="button">{isSubmitting ? "กำลังดำเนินการ..." : type === "MOVE_ROOM" ? "ตรวจสอบการย้ายห้อง" : "ตรวจสอบการย้ายออก"}</button></footer>
     </Dialog>
+    {/* ถามยืนยันแยกอีกชั้น เพราะกดแล้วสัญญาปิดทันทีและย้อนกลับไม่ได้ */}
     {isConfirming ? <ConfirmationDialog
       confirmDisabled={isSubmitting || (type === "MOVE_OUT" && (!readiness?.ready || !roomInspected))}
       confirmLabel={type === "MOVE_ROOM" ? "ยืนยันย้ายห้อง" : "ยืนยันย้ายออก"}
@@ -253,13 +208,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
   </>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Readiness Row” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { action, help, loading, onAction, ready, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// แถวหนึ่งข้อของ checklist พร้อมปุ่มลัดไปหน้าที่ต้องไปทำ ใช้แค่ในไฟล์นี้
 function ReadinessRow({ action, help, loading, onAction, ready, title }: { action: string; help: string; loading: boolean; onAction: () => void; ready: boolean; title: string }) {
   return <div className="flex items-center gap-3 rounded-xl border border-[#d9dae0] bg-white/50 p-3">
     {loading ? <LoaderCircle className="animate-spin" aria-label="กำลังตรวจสอบ" size={20} /> : ready ? <CheckCircle2 className="text-emerald-600" aria-label="ผ่าน" size={20} /> : <XCircle className="text-red-600" aria-label="ยังไม่ผ่าน" size={20} />}

@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “admin property api” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { NextRequest } from "next/server";
 import { propertyIdSchema } from "@/lib/domain/property-structure";
 import { ApiError } from "@/lib/server/api";
@@ -19,30 +13,29 @@ import {
 } from "@/lib/server/subscription-guard";
 import { setRequestActorContext } from "@/lib/server/request-context";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Admin Property” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - rawPropertyId: รหัสภายในของ raw Property
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ด่านตรวจของทุก API ฝั่งเจ้าของหอ ตรวจครบทุกชั้นก่อนปล่อยให้แตะข้อมูล
+// route ทุกเส้นเรียกตัวนี้เป็นอย่างแรก จะได้ไม่มีเส้นไหนลืมตรวจ
 export async function requireAdminProperty(
   request: NextRequest,
   rawPropertyId: string,
 ) {
   const parsed = propertyIdSchema.safeParse(rawPropertyId);
+  // id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด เพราะแบบหลังช่วยให้เดาได้ว่าหอไหนมีอยู่จริง
   if (!parsed.success) throw new ApiError(404, "ไม่พบหอพัก");
 
   const auth = await requireRequestAuth(request);
   requireRole(auth, "PROPERTY_ADMIN");
   requirePropertyAccess(auth, parsed.data);
+  // ฝากไว้กับคำขอ เพื่อให้ audit log กับตัวจำกัดจำนวนคำขอหยิบไปใช้ได้โดยไม่ต้องส่งต่อเป็นพารามิเตอร์
   setRequestActorContext(request, { userId: auth.userId, propertyId: parsed.data });
   const property = await getDatabase().property.findUnique({
     where: { id: parsed.data },
     select: { isActive: true },
   });
+  // หอที่ถูกปิดใช้งานก็ถือว่าไม่พบ ไม่ใช่บอกว่ามีอยู่แต่เข้าไม่ได้
   if (!property?.isActive) throw new ApiError(404, "ไม่พบหอพัก");
+  // แพ็กเกจหมดอายุยังอ่านข้อมูลเดิมได้ แต่แก้ไขไม่ได้ จึงตรวจเฉพาะคำขอที่เปลี่ยนข้อมูล
+  // นี่คือด่านบังคับจริง ส่วนการซ่อนปุ่มในหน้าจอเป็นแค่การบอกผู้ใช้ให้รู้ตัวก่อน
   const isReadRequest = request.method === "GET" || request.method === "HEAD";
   if (!isReadRequest) await requireSubscriptionWriteAccess(parsed.data);
   const subscriptionAccess = await getPropertySubscriptionAccess(parsed.data);

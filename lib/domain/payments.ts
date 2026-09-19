@@ -1,27 +1,11 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “payments” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { z } from "zod";
 import { paymentSubmissionStatusSchema } from "@/lib/domain/enums";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกาศค่าหรือ schema “payment Invoice Id Schema” ที่ส่วนอื่นนำไปใช้ร่วมกัน เพื่อให้กฎและรูปแบบมีแหล่งอ้างอิงเดียว
- */
 export const paymentInvoiceIdSchema = z.string().cuid();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “payment Review Schema” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ตรวจผลการตรวจหลักฐานการชำระ
 export const paymentReviewSchema = z.object({
+  // เอาเฉพาะสองค่านี้จากรายการสถานะเต็ม เพราะ PENDING_REVIEW เป็นค่าตั้งต้น ไม่ใช่ผลการตรวจ
   status: paymentSubmissionStatusSchema.extract(["APPROVED", "REJECTED"]),
   rejectionNote: z.string().trim().min(1).max(500).optional(),
 }).strict().superRefine((value, context) => {
@@ -33,23 +17,11 @@ export const paymentReviewSchema = z.object({
   }
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “field” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - id: ค่า “id” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// รูปแบบของ QR ชำระเงินตามมาตรฐาน EMVCo ทุกช่องเขียนเป็น รหัส + ความยาวสองหลัก + ค่า
 const field = (id: string, value: string) => `${id}${String(value.length).padStart(2, "0")}${value}`;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “crc16” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// CRC-16/CCITT-FALSE ตามที่มาตรฐานกำหนด แอปธนาคารใช้ค่านี้ตรวจว่า QR ไม่ถูกแก้ระหว่างทาง
+// 0xffff คือค่าตั้งต้น ส่วน 0x1021 คือ polynomial ทั้งสองค่ามาจากมาตรฐาน ห้ามเปลี่ยน
 function crc16(value: string) {
   let crc = 0xffff;
   for (const character of new TextEncoder().encode(value)) {
@@ -60,21 +32,17 @@ function crc16(value: string) {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Prompt Pay Payload” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - promptPayId: รหัสภายในของ prompt Pay
- * - amount: ค่า “amount” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างข้อความสำหรับ QR พร้อมเพย์ ให้ผู้เช่าสแกนจ่ายได้ตรงยอด
 export function createPromptPayPayload(promptPayId: string, amount: number) {
+  // ตัดขีดกับช่องว่างออกก่อน ผู้ใช้กรอกเบอร์มาได้หลายรูปแบบ
   const digits = promptPayId.replace(/\D/g, "");
   let target: string;
   let targetTag: "01" | "02";
+  // เบอร์ไทย 10 หลัก ต้องแปลงเป็นรูปแบบสากล ตัด 0 หน้าแล้วเติมรหัสประเทศ 0066
   if (/^0\d{9}$/.test(digits)) {
     target = `0066${digits.slice(1)}`;
     targetTag = "01";
+  // 13 หลักคือเลขประจำตัวประชาชนหรือเลขผู้เสียภาษี ใช้เป็นตัวรับได้เหมือนกัน แต่คนละรหัสช่อง
   } else if (/^\d{13}$/.test(digits)) {
     target = digits;
     targetTag = "02";
@@ -82,14 +50,17 @@ export function createPromptPayPayload(promptPayId: string, amount: number) {
     throw new Error("PromptPay ID must be a Thai phone number or 13-digit identifier");
   }
   if (!Number.isFinite(amount) || amount <= 0 || amount > 10_000_000) throw new Error("Invalid PromptPay amount");
+  // A000000677010111 คือรหัสประจำระบบพร้อมเพย์ที่มาตรฐานกำหนดไว้ตายตัว
   const merchant = field("00", "A000000677010111") + field(targetTag, target);
   const withoutCrc = [
     field("00", "01"),
     field("01", "12"),
     field("29", merchant),
+    // 764 คือรหัสสกุลเงินบาทตาม ISO 4217 และ TH คือรหัสประเทศ
     field("53", "764"),
     field("54", amount.toFixed(2)),
     field("58", "TH"),
+    // "6304" คือหัวของช่อง CRC ต้องรวมเข้าไปก่อนคำนวณ แล้วค่อยต่อค่า CRC ท้ายสุด
     "6304",
   ].join("");
   return `${withoutCrc}${crc16(withoutCrc)}`;

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { LegalDocumentPage } from "@/components/legal/LegalDocumentPage";
 import { currentPolicyVersions } from "@/lib/legal/policies";
 
+// ชื่อหน้าที่ขึ้นบนแท็บเบราว์เซอร์และผลค้นหา
 export const metadata: Metadata = { title: "ข้อกำหนดการใช้บริการ | Nestly" };
 
-/** ข้อกำหนดฉบับอ่านง่าย เนื้อหาสัญญาเช่าหรือระเบียบเฉพาะหอจะแสดงแยกก่อนผู้เช่าลงนาม */
+// ข้อกำหนดของตัวแพลตฟอร์มเท่านั้น สัญญาเช่าและระเบียบของแต่ละหอเป็นคนละฉบับ แสดงแยกก่อนผู้เช่าลงนาม
 export default function TermsPage() {
   return <LegalDocumentPage title="ข้อกำหนดการใช้บริการ" version={currentPolicyVersions.terms}>
     <section><h2>1. ขอบเขตของบริการ</h2><p>Nestly เป็นระบบช่วยบริหารหอพัก เช่น ห้อง ผู้เช่า สัญญา มิเตอร์ บิล การชำระเงิน พัสดุ งานแจ้งซ่อม เอกสาร และการติดต่อภายในระบบ ผู้ประกอบการหอพักยังคงรับผิดชอบข้อมูล ราคา ระเบียบ และการให้บริการของหอพักตนเอง</p></section>

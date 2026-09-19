@@ -1,12 +1,7 @@
 "use client";
+// เก็บฟอร์ม อัปโหลดไฟล์ และโหลดข้อมูลจากเบราว์เซอร์
 
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Parcels Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Ban, CheckCircle2, ImageUp, PackageCheck, Pencil, Plus } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -21,24 +16,16 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Parcel View” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สองมุมมองของหน้านี้ รอรับกับประวัติที่รับไปแล้ว หน้าแม่เป็นคนบอกว่าอยู่มุมมองไหน
 export type ParcelView = "waiting" | "history";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Parcel Status” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// cancelled ใช้กับรายการที่ลงทะเบียนผิด ยกเลิกแล้วไม่ลบทิ้ง เพื่อให้ตรวจย้อนหลังได้
 type ParcelStatus = "waiting" | "received" | "cancelled";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Parcel Record” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// พัสดุหนึ่งชิ้น
 export type ParcelRecord = {
   id: string;
   imageUrl?: string;
@@ -48,26 +35,26 @@ export type ParcelRecord = {
   receivedAt?: string;
   registeredAt: string;
   status: ParcelStatus;
+  // ส่งกลับไปตอนแก้ไข เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว กันแก้ทับกัน
   updatedAt?: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Parcels Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { activeView, initialParcels, onChanged, propertyId, readOnl: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าพัสดุ ลงทะเบียนพัสดุเข้า และบันทึกตอนผู้เช่ามารับ
 export function ParcelsPage({
   activeView,
+  initialHasNextPage = false,
   initialParcels,
+  initialSummary,
   onChanged,
   propertyId,
   readOnly = false,
   rooms,
 }: {
   activeView: ParcelView;
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialHasNextPage?: boolean;
   initialParcels: ParcelRecord[];
+  initialSummary?: { today: number; waiting: number; received: number; olderThanThreeDays: number } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
@@ -76,76 +63,34 @@ export function ParcelsPage({
   const notify = useToast();
   const actionFeedback = useActionFeedback();
   const { confirm, confirmationDialog } = useConfirmation();
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “occupied Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const occupiedRooms = rooms.filter((room) => room.status === "occupied");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort((a, b) => a - b);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingParcel, setEditingParcel] = useState<ParcelRecord | null>(null);
   const [editNote, setEditNote] = useState("");
   const [parcels, setParcels] = useState(initialParcels);
-  const [summary, setSummary] = useState({ today: 0, waiting: 0, received: 0, olderThanThreeDays: 0 });
+  const [summary, setSummary] = useState(initialSummary ?? { today: 0, waiting: 0, received: 0, olderThanThreeDays: 0 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requestError, setRequestError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
   const [selectedFloor, setSelectedFloor] = useState(floors[0] ?? 1);
   const [form, setForm] = useState({
     imageUrl: "",
     note: "",
     roomId: occupiedRooms[0]?.id ?? rooms[0]?.id ?? "",
   });
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floor Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เลือกชั้นก่อนแล้วค่อยเลือกห้อง หอที่มีหลายสิบห้องจะได้ไม่ต้องไถหาในรายการเดียว
   const floorRooms = occupiedRooms.filter((room) => room.floor === selectedFloor);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “waiting Parcels” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - parcel: ค่า “parcel” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const waitingParcels = parcels.filter((parcel) => parcel.status === "waiting");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “received Parcels” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - parcel: ค่า “parcel” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const receivedParcels = parcels.filter((parcel) => parcel.status === "received");
+  // รายการที่ยกเลิกไม่แสดงในทั้งสองมุมมอง เก็บไว้ในฐานข้อมูลเฉย ๆ
   const visibleParcels = activeView === "waiting" ? waitingParcels : receivedParcels;
   const { page, pageItems, setPage, totalPages } = useTablePagination(visibleParcels);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Parcels” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadParcels = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
     else setIsLoading(true);
@@ -164,13 +109,6 @@ export function ParcelsPage({
         summary?: { today: number; waiting: number; received: number; olderThanThreeDays: number };
       };
       if (!response.ok || !payload.data || !payload.pageInfo) throw new Error(payload.error || "โหลดพัสดุไม่สำเร็จ");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: แปลงข้อมูลในขั้นตอน “mapped” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
       const mapped: ParcelRecord[] = payload.data.map((item) => ({
         id: item.id,
         imageUrl: item.imageUrl ?? undefined,
@@ -193,26 +131,24 @@ export function ParcelsPage({
       setIsLoadingMore(false);
     }
   }, [propertyId]);
-  useEffect(() => { void loadParcels(); }, [loadParcels]);
+  // เซิร์ฟเวอร์ส่งรายการกับตัวเลขสรุปมาให้แล้วตั้งแต่เปิดหน้า จึงไม่ต้องยิงซ้ำ
+  // ไม่ได้ส่งมา (เช่นถูกเรียกจากที่อื่น) ค่อยโหลดเองเหมือนเดิม
+  const skipInitialLoadRef = useRef(initialSummary != null);
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadParcels();
+  }, [loadParcels]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “register Parcel” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const registerParcel = async () => {
     setIsSaving(true);
     setRequestError("");
     try {
+      // FormData เพราะอาจแนบรูปพัสดุมาด้วย และปล่อยให้เบราว์เซอร์ตั้ง Content-Type เอง
       const payload = new FormData();
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
+      // หน้าจอใช้เลขห้องที่คนอ่านได้ แต่ API ต้องการ id จริงจากฐานข้อมูล
       const room = rooms.find((item) => item.id === form.roomId);
       if (!room?.databaseId) throw new Error("ไม่พบรหัสห้องในฐานข้อมูล");
       payload.set("roomId", room.databaseId);
@@ -221,6 +157,7 @@ export function ParcelsPage({
       if (selectedFile) payload.set("file", selectedFile);
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/parcels`, { method: "POST", body: payload });
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "ลงทะเบียนพัสดุไม่สำเร็จ");
+      // คืนหน่วยความจำของรูปตัวอย่าง เบราว์เซอร์ไม่เก็บกวาด URL พวกนี้ให้เอง
       if (form.imageUrl) URL.revokeObjectURL(form.imageUrl);
       setForm((current) => ({ ...current, imageUrl: "", note: "" }));
       setSelectedFile(null);
@@ -235,13 +172,6 @@ export function ParcelsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “mark Received” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - parcelId: รหัสภายในของ parcel
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const markReceived = async (parcelId: string) => {
     if (actionFeedback.isPending) return;
     setRequestError("");
@@ -249,6 +179,7 @@ export function ParcelsPage({
       await actionFeedback.runAction(async () => {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/parcels/${parcelId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
+        // แนบเวลาที่แก้ล่าสุดไปด้วย เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นบันทึกไปก่อนแล้ว
         body: JSON.stringify({ status: "RECEIVED", expectedUpdatedAt: parcels.find((item) => item.id === parcelId)?.updatedAt }),
       });
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "อัปเดตพัสดุไม่สำเร็จ");
@@ -260,12 +191,6 @@ export function ParcelsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Parcel Edit” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveParcelEdit = async () => {
     if (!editingParcel) return;
     setIsSaving(true); setRequestError("");
@@ -280,14 +205,9 @@ export function ParcelsPage({
     finally { setIsSaving(false); }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “cancel Parcel” ตามกฎของระบบ
-   * รับค่า:
-   * - parcel: ค่า “parcel” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ยกเลิกรายการที่ลงทะเบียนผิด ผู้เช่าจะไม่เห็นอีก แต่ข้อมูลยังอยู่ในฐาน
   const cancelParcel = async (parcel: ParcelRecord) => {
+    // ถามยืนยันก่อน เพราะย้อนกลับไม่ได้
     if (!await confirm({ title: "ยกเลิกรายการพัสดุ?", description: `พัสดุห้อง ${parcel.roomId} จะถูกยกเลิกและไม่แสดงแก่ผู้เช่า การทำรายการนี้ย้อนกลับไม่ได้`, confirmLabel: "ยกเลิกพัสดุ", variant: "danger" })) return;
     setRequestError("");
     try {
@@ -297,28 +217,17 @@ export function ParcelsPage({
     } catch (error) { setRequestError(error instanceof Error ? error.message : "ยกเลิกพัสดุไม่สำเร็จ"); }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รับเหตุการณ์ “handle Floor Change” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-   * รับค่า:
-   * - floor: ค่า “floor” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนชั้นแล้วเด้งไปห้องแรกของชั้นนั้น เอาห้องที่มีผู้เช่าก่อน เพราะพัสดุมักส่งถึงคนที่อยู่จริง
   const handleFloorChange = (floor: number) => {
     const nextRoom = occupiedRooms.find((room) => room.floor === floor) ?? rooms.find((room) => room.floor === floor);
     setSelectedFloor(floor);
     setForm((current) => ({ ...current, roomId: nextRoom?.id ?? "" }));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รับเหตุการณ์ “handle Image Upload” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-   * รับค่า:
-   * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // แสดงรูปตัวอย่างทันทีจากไฟล์ในเครื่อง ไม่ต้องรออัปโหลดขึ้นเซิร์ฟเวอร์ก่อน
   const handleImageUpload = (file: File | undefined) => {
     if (!file) return;
+    // คืนหน่วยความจำของรูปเก่าก่อนสร้างใหม่ ไม่งั้นเลือกรูปหลายรอบแล้วรั่วสะสม
     if (form.imageUrl) URL.revokeObjectURL(form.imageUrl);
     setSelectedFile(file);
     setForm((current) => ({ ...current, imageUrl: URL.createObjectURL(file) }));
@@ -346,11 +255,13 @@ export function ParcelsPage({
                 : `${receivedParcels.length} รายการรับแล้ว`}
             </p>
           </div>
-          {!readOnly ? (
-            <button className="primary-button" onClick={() => setIsRegisterOpen(true)} type="button">
-              <Plus aria-hidden="true" size={18} /> รับพัสดุใหม่
-            </button>
-          ) : <span className="badge badge-paid">{waitingParcels.length} รอรับ</span>}
+          <PageHeaderActions>
+            {!readOnly ? (
+              <button className="primary-button" onClick={() => setIsRegisterOpen(true)} type="button">
+                <Plus aria-hidden="true" size={18} /> รับพัสดุใหม่
+              </button>
+            ) : <span className="badge badge-paid">{waitingParcels.length} รอรับ</span>}
+          </PageHeaderActions>
         </div>
 
         {!isLoading && pageItems.length > 0 ? (
@@ -386,7 +297,7 @@ export function ParcelsPage({
           </div>
         ) : !isLoading ? (
           <div className="repair-empty">
-            <strong>{activeView === "waiting" ? "ยังไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติรับพัสดุ"}</strong>
+            <strong>{activeView === "waiting" ? "ยังไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติรับพัสดุ"}</strong><p>{activeView === "waiting" ? "พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ" : "พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่"}</p>
             <span>{activeView === "waiting" ? "กดเพิ่มพัสดุเพื่อบันทึกรายการใหม่" : "รายการจะย้ายมาที่นี่หลังจากกดรับแล้ว"}</span>
           </div>
         ) : <LoadingSkeleton count={4} label="กำลังโหลดรายการพัสดุ" variant="table" />}
@@ -443,7 +354,7 @@ export function ParcelsPage({
             {!form.roomId ? <p className="disabled-reason justify-self-end" id="parcel-save-disabled-reason">เลือกห้องผู้รับก่อนบันทึกพัสดุ</p> : null}
         </Dialog>
       ) : null}
-      {editingParcel && !readOnly ? <Dialog ariaDescribedBy="parcel-edit-description" ariaLabelledBy="parcel-edit-title" onClose={() => setEditingParcel(null)}>
+      {editingParcel && !readOnly ? <Dialog ariaDescribedBy="parcel-edit-description" ariaLabelledBy="parcel-edit-title" className="modal-sm" onClose={() => setEditingParcel(null)}>
         <header className="modal-header"><div><h2 id="parcel-edit-title">แก้ไขพัสดุห้อง {editingParcel.roomId}</h2><p id="parcel-edit-description">แก้ไขได้เฉพาะรายการที่ยังรอรับ</p></div><Button aria-label="ปิด" onClick={() => setEditingParcel(null)} variant="icon">×</Button></header>
         <label className="modal-field"><span>หมายเหตุ</span><textarea maxLength={1000} onChange={(event) => setEditNote(event.target.value)} rows={4} value={editNote} /></label>
         <footer className="modal-actions"><Button onClick={() => setEditingParcel(null)} variant="secondary">ยกเลิก</Button><Button isLoading={isSaving} onClick={() => void saveParcelEdit()}>บันทึกการแก้ไข</Button></footer>

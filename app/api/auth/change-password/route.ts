@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/auth/change-password สำหรับการยืนยันตัวตนและบัญชีผู้ใช้
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
@@ -18,15 +12,10 @@ const schema = z.object({
     .regex(/[0-9]/, "ต้องมีตัวเลข"),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เปลี่ยนรหัสชั่วคราวเป็นรหัสของตัวเอง ใช้ตอนถูกบังคับให้เปลี่ยนหลังเข้าระบบครั้งแรก
 export async function POST(request: NextRequest) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const auth = await getRequestAuth(request);
     if (!auth) throw new ApiError(401, "กรุณาเข้าสู่ระบบ");
@@ -37,6 +26,7 @@ export async function POST(request: NextRequest) {
       userId: auth.userId, action: "TEMPORARY_PASSWORD_CHANGE", targetType: "User", targetId: auth.userId,
     });
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

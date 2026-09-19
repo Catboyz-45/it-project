@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “property structure” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type {
   CreateBuildingInput,
   CreateFloorInput,
@@ -52,13 +46,6 @@ const roomSelect = {
   updatedAt: true,
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize Room” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 function serializeRoom<T extends {
   monthlyRent: { toString(): string };
   depositAmount: { toString(): string };
@@ -73,13 +60,6 @@ function serializeRoom<T extends {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Buildings” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listBuildings(propertyId: string) {
   return getDatabase().building.findMany({
     where: { propertyId },
@@ -88,20 +68,14 @@ export async function listBuildings(propertyId: string) {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Building” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างอาคารพร้อมชั้นในคำสั่งเดียว อาคารที่ไม่มีชั้นเลยใช้งานไม่ได้
 export async function createBuilding(propertyId: string, input: CreateBuildingInput) {
   return getDatabase().$transaction(async (database) => {
     const duplicate = await database.building.findUnique({
       where: { propertyId_code: { propertyId, code: input.code } },
       select: { id: true },
     });
+    // รหัสอาคารต้องไม่ซ้ำในหอเดียวกัน เพราะใช้อ้างอิงในเลขห้องและรายงาน
     if (duplicate) throw new ApiError(409, "รหัสอาคารนี้ถูกใช้งานแล้ว");
 
     return database.building.create({
@@ -116,15 +90,6 @@ export async function createBuilding(propertyId: string, input: CreateBuildingIn
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Building” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - buildingId: รหัสภายในของ building
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateBuilding(
   propertyId: string,
   buildingId: string,
@@ -142,7 +107,8 @@ export async function updateBuilding(
         where: { propertyId, code: input.code, id: { not: buildingId } },
         select: { id: true },
       });
-      if (duplicate) throw new ApiError(409, "รหัสอาคารนี้ถูกใช้งานแล้ว");
+      // รหัสอาคารต้องไม่ซ้ำในหอเดียวกัน เพราะใช้อ้างอิงในเลขห้องและรายงาน
+    if (duplicate) throw new ApiError(409, "รหัสอาคารนี้ถูกใช้งานแล้ว");
     }
 
     if (input.isActive === false) {
@@ -150,6 +116,7 @@ export async function updateBuilding(
         where: { buildingId, propertyId, status: { not: "INACTIVE" } },
       });
       if (activeRooms > 0) {
+      // ปิดอาคารที่ยังมีห้องเปิดอยู่ไม่ได้ ไม่งั้นห้องจะลอยอยู่ในอาคารที่ไม่มีแล้ว
         throw new ApiError(409, "ต้องปิดใช้งานห้องทั้งหมดในอาคารก่อน");
       }
     }
@@ -162,15 +129,6 @@ export async function updateBuilding(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Floor” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - buildingId: รหัสภายในของ building
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createFloor(
   propertyId: string,
   buildingId: string,
@@ -187,6 +145,7 @@ export async function createFloor(
       where: { buildingId_number: { buildingId, number: input.number } },
       select: { id: true },
     });
+    // ชั้นซ้ำในอาคารเดียวกันไม่ได้ เพราะเลขห้องอ้างอิงจากเลขชั้น
     if (duplicate) throw new ApiError(409, "หมายเลขชั้นนี้มีอยู่แล้ว");
 
     return database.floor.create({
@@ -196,16 +155,6 @@ export async function createFloor(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Floor” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - buildingId: รหัสภายในของ building
- * - floorId: รหัสภายในของ floor
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateFloor(
   propertyId: string,
   buildingId: string,
@@ -224,13 +173,6 @@ export async function updateFloor(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Rooms” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listRooms(propertyId: string) {
   const rooms = await getDatabase().room.findMany({
     where: { propertyId },
@@ -244,14 +186,6 @@ export async function listRooms(propertyId: string) {
   return rooms.map(serializeRoom);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Room” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createRoom(propertyId: string, input: CreateRoomInput) {
   const room = await getDatabase().$transaction(async (database) => {
     const property = await database.property.findFirst({
@@ -287,6 +221,7 @@ export async function createRoom(propertyId: string, input: CreateRoomInput) {
       });
 
     if (!property) throw new ApiError(404, "ไม่พบหอพักที่เปิดใช้งาน");
+    // เช็คว่าชั้นที่ส่งมาอยู่ในอาคารของหอนี้จริง กันส่ง id ของหออื่นมาสร้างห้องข้ามหอ
     if (!floor) throw new ApiError(400, "อาคารหรือชั้นไม่อยู่ในหอพักนี้");
     if (duplicate) throw new ApiError(409, "เลขห้องนี้ถูกใช้งานแล้ว");
 
@@ -294,6 +229,7 @@ export async function createRoom(propertyId: string, input: CreateRoomInput) {
     assertSubscriptionWriteAccess(subscription);
     const roomCount = await database.room.count({ where: { propertyId } });
     if (roomCount >= subscription.maxRooms) {
+    // จำนวนห้องจำกัดตามแพ็กเกจ นับในคำสั่งเดียวกับที่สร้าง จึงเกินไม่ได้แม้กดพร้อมกัน
       throw new ApiError(409, "จำนวนห้องถึงขีดจำกัดของแพ็กเกจแล้ว");
     }
 
@@ -318,15 +254,6 @@ export async function createRoom(propertyId: string, input: CreateRoomInput) {
   return serializeRoom(room);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Room” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - roomId: รหัสภายในของห้องพัก
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateRoom(
   propertyId: string,
   roomId: string,
@@ -347,6 +274,7 @@ export async function updateRoom(
         where: { roomId, propertyId, status: "ACTIVE" },
       });
       if (activeOccupancy > 0) {
+      // ห้องที่มีคนอยู่เปลี่ยนสถานะเองไม่ได้ ต้องผ่านขั้นตอนย้ายออก ข้อมูลจะได้ไม่ขัดกัน
         throw new ApiError(409, "ไม่สามารถเปลี่ยนสถานะห้องที่มีผู้เช่าอยู่");
       }
     }
@@ -370,15 +298,7 @@ export async function updateRoom(
   return serializeRoom(room);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “resolve Furniture” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - names: ค่า “names” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลงชื่อเฟอร์นิเจอร์เป็น id ที่มีอยู่จริง กันสร้างรายการซ้ำจากชื่อที่พิมพ์ไม่ตรงกัน
 async function resolveFurniture(
   database: Prisma.TransactionClient,
   propertyId: string,
@@ -390,13 +310,6 @@ async function resolveFurniture(
     select: { id: true, name: true },
   });
   const found = new Set(options.map((option) => option.name));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “missing” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const missing = uniqueNames.filter((name) => !found.has(name));
   if (missing.length) {
     await database.furnitureOption.createMany({

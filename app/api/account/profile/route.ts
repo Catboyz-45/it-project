@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API PATCH ที่ URL /api/account/profile สำหรับส่วนกลางของระบบ
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
@@ -14,15 +8,10 @@ const profileSchema = z.object({
   displayName: z.string().trim().min(2, "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร").max(120),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอแก้ข้อมูลบางส่วนหรือเปลี่ยนสถานะของ API เส้นทางนี้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แก้ชื่อที่แสดงของบัญชีตัวเอง
 export async function PATCH(request: NextRequest) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     const input = profileSchema.parse(await request.json());
@@ -38,6 +27,7 @@ export async function PATCH(request: NextRequest) {
       targetId: auth.userId,
     });
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

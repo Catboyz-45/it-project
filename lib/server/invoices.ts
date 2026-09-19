@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “invoices” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { Prisma } from "@/generated/prisma/client";
 import {
   billingMonthToDate,
@@ -16,6 +10,7 @@ import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
+// เลือกเฉพาะฟิลด์ที่หน้าจอใช้จริง รวมไว้ที่เดียวจะได้ตอบกลับรูปแบบเดียวกันทุก endpoint
 const invoiceSelect = {
   id: true, invoiceNumber: true, billingMonth: true, status: true,
   issuedAt: true, dueDate: true, subtotal: true, lateFee: true, total: true,
@@ -36,13 +31,7 @@ const invoiceSelect = {
   },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// Prisma คืน Decimal มา แปลงเป็นสตริงก่อนส่งออกไป ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 const serialize = <T extends {
   subtotal: { toString(): string }; lateFee: { toString(): string }; total: { toString(): string };
   items: Array<{ quantity: { toString(): string }; unitPrice: { toString(): string }; amount: { toString(): string } }>;
@@ -56,24 +45,19 @@ const serialize = <T extends {
   })),
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “prepare With Database” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เตรียมข้อมูลบิลหนึ่งใบ ตรวจทุกเงื่อนไขและคำนวณยอด แต่ยังไม่บันทึกลงฐาน
+// แยกออกมาเพราะทั้งการตรวจความพร้อมและการสร้างจริงใช้ตัวเดียวกัน ผลจึงตรงกันแน่นอน
 async function prepareWithDatabase(
   database: Prisma.TransactionClient,
   propertyId: string,
   input: GenerateInvoiceInput,
 ) {
   const billingMonth = billingMonthToDate(input.billingMonth);
+  // ถามสามอย่างพร้อมกัน ห้องพร้อมออกบิลไหม ตั้งค่าหอครบไหม และเดือนนี้ออกบิลไปแล้วหรือยัง
   const [room, settings, existing] = await Promise.all([
     database.room.findFirst({
       where: {
+        // ออกบิลได้เฉพาะห้องที่มีผู้เช่าหลักอยู่จริง เช็คในคำสั่งฐานข้อมูลเลย
         id: input.roomId, propertyId, status: "OCCUPIED",
         occupancies: { some: { role: "PRIMARY", status: "ACTIVE" } },
       },
@@ -84,6 +68,7 @@ async function prepareWithDatabase(
           select: { tenantProfile: { select: { user: { select: { displayName: true } } } } },
         },
         leases: {
+          // เอาสัญญาที่ยังใช้งานอยู่ ค่าเช่าในสัญญามาก่อนค่าเช่าที่ตั้งไว้ในห้อง
           where: { status: { in: ["ACTIVE", "EXPIRING"] } },
           orderBy: { createdAt: "desc" }, take: 1, select: { id: true, monthlyRent: true },
         },
@@ -97,53 +82,36 @@ async function prepareWithDatabase(
   ]);
   if (!room) throw new ApiError(409, "ห้องต้องมีผู้เช่าหลักที่ใช้งานอยู่");
   if (!settings) throw new ApiError(409, "กรุณาตั้งค่าหอก่อนสร้างบิล");
+  // ห้องหนึ่งมีบิลได้เดือนละใบ กันออกซ้ำ
   if (existing) throw new ApiError(409, "ห้องนี้มีบิลของเดือนดังกล่าวแล้ว");
 
   const readings = await database.meterReading.findMany({
     where: { roomId: room.id, billingMonth },
     select: { id: true, type: true, previousReading: true, currentReading: true, unitRate: true },
   });
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “reading” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const reading = (type: "WATER" | "ELECTRICITY") => readings.find((item) => item.type === type);
   const water = reading("WATER");
   const electricity = reading("ELECTRICITY");
+  // ตั้งอัตราไว้แล้วแต่ยังไม่จดมิเตอร์ ก็ออกบิลไม่ได้ เพราะจะได้ยอดที่ไม่ครบ
+  // อัตราเป็น 0 แปลว่าหอนี้ไม่เก็บค่าน้ำหรือค่าไฟ จึงไม่ต้องจด
   if (Number(settings.waterUnitRate) > 0 && !water) throw new ApiError(409, `ห้อง ${room.number} ยังไม่มีเลขมิเตอร์น้ำ`);
   if (Number(settings.electricityUnitRate) > 0 && !electricity) throw new ApiError(409, `ห้อง ${room.number} ยังไม่มีเลขมิเตอร์ไฟ`);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “usage” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // หน่วยที่ใช้คือเลขล่าสุดลบเลขครั้งก่อน
   const usage = (value: typeof water) => value ? Number(value.currentReading) - Number(value.previousReading) : 0;
   const calculation = calculateInvoice({
+    // ใช้อัตราที่บันทึกไว้ในมิเตอร์ ไม่ใช่อัตราปัจจุบัน ขึ้นราคาทีหลังแล้วบิลเก่าจะได้ไม่เปลี่ยน
     monthlyRent: Number(room.leases[0]?.monthlyRent ?? room.monthlyRent),
     ...(water ? { water: { units: usage(water), unitRate: Number(water.unitRate), meterReadingId: water.id } } : {}),
     ...(electricity ? { electricity: { units: usage(electricity), unitRate: Number(electricity.unitRate), meterReadingId: electricity.id } } : {}),
   });
   const dueDate = calculateDueDate(billingMonth, settings.billingDay, settings.dueDay);
   const monthCode = input.billingMonth.replace("-", "");
+  // เลขบิลประกอบจากคำนำหน้าที่หอตั้ง เดือน และเลขห้อง อ่านแล้วรู้ทันทีว่าเป็นของใครเดือนไหน
   const invoiceNumber = `${settings.invoicePrefix}-${monthCode}-${room.number}`.slice(0, 50);
   return { billingMonth, calculation, dueDate, invoiceNumber, room };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create With Database” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 async function createWithDatabase(
   database: Prisma.TransactionClient,
   propertyId: string,
@@ -155,6 +123,7 @@ async function createWithDatabase(
     data: {
       propertyId, roomId: room.id, leaseId: room.leases[0]?.id,
       invoiceNumber, billingMonth,
+      // เกิดเป็นร่างเสมอ และยังไม่มีวันออกบิล ผู้เช่าจึงยังไม่เห็น
       status: "DRAFT",
       issuedAt: null,
       dueDate, subtotal: calculation.subtotal, total: calculation.subtotal,
@@ -170,14 +139,7 @@ async function createWithDatabase(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “preflight Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตรวจล่วงหน้าว่าห้องไหนออกบิลได้ ห้องไหนติดอะไร ใช้กับตัวช่วยสร้างบิลก่อนกดยืนยัน
 export async function preflightInvoices(
   propertyId: string,
   input: { billingMonth: string; roomId?: string },
@@ -196,6 +158,8 @@ export async function preflightInvoices(
     }> = [];
     const blocked: Array<{ roomId: string; roomNumber: string; reason: string }> = [];
     for (const target of rooms) {
+      // ใช้ตัวเตรียมข้อมูลตัวเดียวกับตอนสร้างจริง เจอปัญหาก็จับ error มาแสดงเป็นเหตุผล
+      // ทำแบบนี้ผลการตรวจจึงตรงกับผลการสร้างจริงเสมอ
       try {
         const prepared = await prepareWithDatabase(database, propertyId, { billingMonth: input.billingMonth, roomId: target.id, issueImmediately: false });
         ready.push({
@@ -228,16 +192,6 @@ export async function preflightInvoices(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Invoices” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - billingMonth: ค่า “billing Month” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - filters: ค่า “filters” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listInvoices(
   propertyId: string,
   pagination: PaginationInput,
@@ -290,14 +244,6 @@ export async function listInvoices(
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกอบหรือคำนวณผลลัพธ์ของ “generate Invoice” จากข้อมูลที่ได้รับ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function generateInvoice(propertyId: string, input: GenerateInvoiceInput) {
   const row = await getDatabase().$transaction(
     (database) => createWithDatabase(database, propertyId, input),
@@ -306,14 +252,6 @@ export async function generateInvoice(propertyId: string, input: GenerateInvoice
   return serialize(row);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกอบหรือคำนวณผลลัพธ์ของ “generate Bulk Invoices” จากข้อมูลที่ได้รับ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function generateBulkInvoices(
   propertyId: string,
   input: Omit<GenerateInvoiceInput, "roomId">,
@@ -342,20 +280,15 @@ export async function generateBulkInvoices(
   }, { isolationLevel: "Serializable", timeout: 30_000 });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “issue Invoice” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - invoiceId: รหัสภายในของบิล
- * - version: ค่า “version” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ออกบิล เปลี่ยนร่างเป็นบิลจริงที่ผู้เช่าเห็นได้
 export async function issueInvoice(propertyId: string, invoiceId: string, version: number) {
+  // ใส่ทั้งสถานะและ version ไว้ใน where แล้วนับจำนวนแถวที่แก้ได้
+  // จึงไม่มีช่องว่างระหว่างอ่านกับเขียน สองคนกดพร้อมกันจะสำเร็จแค่คนเดียว
   const result = await getDatabase().invoice.updateMany({
     where: { id: invoiceId, propertyId, status: "DRAFT", version },
     data: { status: "PENDING", issuedAt: new Date(), version: { increment: 1 } },
   });
+  // ไม่มีแถวถูกแก้ ต้องไปอ่านดูว่าเพราะอะไร จะได้บอกผู้ใช้ได้ตรงจุด
   if (result.count === 0) {
     const invoice = await getDatabase().invoice.findFirst({
       where: { id: invoiceId, propertyId },
@@ -373,16 +306,7 @@ export async function issueInvoice(propertyId: string, invoiceId: string, versio
   return serialize(invoice);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “cancel Invoice” ตามกฎของระบบ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - invoiceId: รหัสภายในของบิล
- * - version: ค่า “version” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - reason: ค่า “reason” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ยกเลิกบิล ไม่ได้ลบทิ้ง เก็บไว้ในประวัติพร้อมเหตุผลเพื่อตรวจสอบย้อนหลังได้
 export async function cancelInvoice(propertyId: string, invoiceId: string, version: number, reason: string) {
   const cancellationNote = reason.trim();
   const invoice = await getDatabase().$transaction(async (database) => {
@@ -403,6 +327,7 @@ export async function cancelInvoice(propertyId: string, invoiceId: string, versi
       throw new ApiError(409, invoice.status === "PAID" ? "ไม่สามารถยกเลิกบิลที่ชำระแล้ว" : "บิลนี้ถูกยกเลิกแล้ว");
     }
     if (invoice.version !== version) throw new ApiError(409, "บิลถูกแก้ไขแล้ว กรุณาโหลดข้อมูลล่าสุดก่อนยกเลิก");
+    // มีหลักฐานการโอนค้างอยู่ก็ยกเลิกไม่ได้ ไม่งั้นผู้เช่าจ่ายไปแล้วแต่บิลหายไปเฉย ๆ
     if (invoice.paymentSubmissions.length > 0) throw new ApiError(409, "กรุณาปฏิเสธหรือตรวจสอบหลักฐานการชำระให้เสร็จก่อนยกเลิกบิล");
     return database.invoice.update({
       where: { id: invoiceId },
@@ -418,16 +343,8 @@ export async function cancelInvoice(propertyId: string, invoiceId: string, versi
   return serialize(invoice);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “recalculate Overdue Invoices With Database” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - asOf: ค่า “as Of” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - requireSettings: ค่า “require Settings” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คิดค่าปรับล่าช้าใหม่ทุกวัน เพราะยอดเพิ่มขึ้นตามจำนวนวันที่เลยกำหนด
+// requireSettings เป็น false ตอนงานเบื้องหลังเรียก เพราะหอที่ยังตั้งค่าไม่ครบไม่ควรทำให้ทั้งงานล้ม
 export async function recalculateOverdueInvoicesWithDatabase(
   database: Prisma.TransactionClient,
   propertyId: string,
@@ -448,12 +365,15 @@ export async function recalculateOverdueInvoicesWithDatabase(
         invoice.dueDate, asOf, Number(settings?.lateFeePerDay ?? 0),
         settings?.lateFeeCap == null ? null : Number(settings.lateFeeCap),
       );
+      // ยังไม่เลยกำหนดก็ข้ามไป
       if (late.daysLate === 0) continue;
       const item = {
         description: `ค่าปรับล่าช้า ${late.daysLate} วัน`,
         quantity: late.daysLate, unitPrice: Number(settings?.lateFeePerDay ?? 0),
         amount: late.fee, sortOrder: 999,
       };
+      // สามทาง ค่าปรับเป็น 0 แล้วก็ลบรายการทิ้ง มีอยู่แล้วก็แก้ยอด ยังไม่มีก็สร้างใหม่
+      // ทำแบบนี้บิลจะมีรายการค่าปรับได้ไม่เกินหนึ่งรายการเสมอ ไม่ว่าจะรันซ้ำกี่รอบ
       if (invoice.items[0] && late.fee === 0) {
         await database.invoiceItem.delete({ where: { id: invoice.items[0].id } });
       } else if (invoice.items[0]) {
@@ -463,20 +383,13 @@ export async function recalculateOverdueInvoicesWithDatabase(
       }
       await database.invoice.update({
         where: { id: invoice.id },
+        // ยอดรวมคิดจากยอดตั้งต้นบวกค่าปรับ ไม่ใช่บวกทับของเดิม รันซ้ำจึงไม่บวกซ้อน
         data: { status: "OVERDUE", lateFee: late.fee, total: Number(invoice.subtotal) + late.fee },
       });
     }
     return { updated: invoices.length, asOf };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “recalculate Overdue Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - asOf: ค่า “as Of” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function recalculateOverdueInvoices(propertyId: string, asOf = new Date()) {
   return getDatabase().$transaction(
     (database) => recalculateOverdueInvoicesWithDatabase(database, propertyId, asOf),

@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “chat auth” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { ApiError } from "@/lib/server/api";
@@ -14,27 +8,14 @@ import type { ConversationActor } from "@/lib/server/chat";
 
 const idSchema = z.string().cuid();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “parse Chat Id” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด เพราะแบบหลังช่วยให้เดาได้ว่าข้อมูลมีอยู่จริงไหม
 export function parseChatId(value: string) {
   const parsed = idSchema.safeParse(value);
   if (!parsed.success) throw new ApiError(404, "ไม่พบข้อมูล");
   return parsed.data;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Owner Chat Actor” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - rawPropertyId: รหัสภายในของ raw Property
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เจ้าของหอต้องผ่านสามด่าน เป็นผู้ดูแลหอ มีสิทธิ์ในหอนี้ และหอนี้ยังเปิดใช้งานอยู่
 export async function requireOwnerChatActor(request: NextRequest, rawPropertyId: string) {
   const propertyId = parseChatId(rawPropertyId);
   const auth = await requireRequestAuth(request);
@@ -44,6 +25,7 @@ export async function requireOwnerChatActor(request: NextRequest, rawPropertyId:
     where: {
       id: propertyId,
       isActive: true,
+      // เช็คสิทธิ์ซ้ำในคำสั่งฐานข้อมูลด้วย ไม่พึ่งแค่ค่าที่อ่านมาจาก session
       memberships: { some: { userId: auth.userId } },
     },
     select: { id: true },
@@ -52,14 +34,7 @@ export async function requireOwnerChatActor(request: NextRequest, rawPropertyId:
   return { auth, actor: { userId: auth.userId, role: "PROPERTY_ADMIN", propertyId } satisfies ConversationActor };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Super Admin Chat Actor” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - rawPropertyId: รหัสภายในของ raw Property
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบเข้าได้ทุกหอ รวมถึงหอที่ปิดใช้งานแล้ว เพราะต้องช่วยเรื่องต่ออายุแพ็กเกจได้
 export async function requireSuperAdminChatActor(request: NextRequest, rawPropertyId: string) {
   const propertyId = parseChatId(rawPropertyId);
   const auth = await requireRequestAuth(request);
@@ -68,13 +43,7 @@ export async function requireSuperAdminChatActor(request: NextRequest, rawProper
   return { auth, actor: { userId: auth.userId, role: "SUPER_ADMIN", propertyId } satisfies ConversationActor };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Tenant Chat Actor” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้เช่าคุยได้เฉพาะหอที่ตัวเองพักอยู่จริงในตอนนี้ ไม่ต้องส่ง propertyId มา ระบบดูจากการเข้าพัก
 export async function requireTenantChatActor(request: NextRequest) {
   const { auth, occupancy } = await requireActiveTenant(request);
   return {
@@ -89,18 +58,12 @@ export async function requireTenantChatActor(request: NextRequest) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Chat Actor For Property” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - rawPropertyId: รหัสภายในของ raw Property
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เลือกวิธีตรวจตามบทบาท ใช้กับ endpoint ที่เปิดให้ทั้งสามฝ่ายเรียกได้
 export async function requireChatActorForProperty(request: NextRequest, rawPropertyId: string) {
   const auth = await requireRequestAuth(request);
   if (auth.role === "TENANT") {
     const result = await requireTenantChatActor(request);
+    // ผู้เช่าขอหอที่ไม่ใช่ของตัวเองก็ตอบว่าไม่พบ ไม่บอกว่าหอนั้นมีอยู่แต่เข้าไม่ได้
     if (result.actor.propertyId !== rawPropertyId) throw new ApiError(404, "ไม่พบข้อมูล");
     return result.actor;
   }

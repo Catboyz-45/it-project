@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นตัวช่วยฝั่งเบราว์เซอร์สำหรับ “api error.test” เช่น interaction การเรียก API หรือสถานะหน้าจอ
- * การทำงาน: ทำงานหลังหน้าโหลดแล้วและต้องถือว่าข้อมูลจากผู้ใช้ไม่น่าเชื่อถือ; เซิร์ฟเวอร์ยังต้องตรวจข้อมูลและสิทธิ์ซ้ำเสมอ
- */
-
 import { describe, expect, it } from "vitest";
 import { createApiError, formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 
@@ -13,6 +7,7 @@ describe("client API errors", () => {
     expect(formatClientError(error, "ผิดพลาด")).toBe("บันทึกไม่สำเร็จ (รหัสอ้างอิง: req-123)");
   });
 
+  // ค่าที่ไม่ใช่ Error ต้องได้ข้อความสำรอง ไม่ใช่ข้อความว่างหรือรายละเอียดภายในระบบ
   it("uses a safe fallback for unknown errors", () => {
     expect(formatClientError(null, "ไม่สามารถดำเนินการได้")).toBe("ไม่สามารถดำเนินการได้");
   });
@@ -29,6 +24,7 @@ describe("client API errors", () => {
     });
   });
 
+  // ตอบกลับมาไม่ใช่ JSON เช่นหน้า error ของ proxy ก็ยังต้องได้รหัสอ้างอิงจาก header ไว้ให้ผู้ใช้แจ้ง
   it("uses the response header request ID when the body is invalid", async () => {
     const response = new Response("not-json", {
       status: 502,

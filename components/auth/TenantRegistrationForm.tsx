@@ -1,33 +1,18 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Tenant Registration Form” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะของฟอร์มและส่งคำขอสมัครจากเบราว์เซอร์
 
 import { FormEvent, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Registration Form” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ฟอร์มสมัครของผู้เช่า ต้องมีรหัสเชิญจากหอพัก เพื่อให้ระบบผูกบัญชีกับห้องได้ถูก
+// สมัครแล้วยังเข้าใช้งานไม่ได้ทันที ต้องรอเจ้าของหออนุมัติก่อน
 export function TenantRegistrationForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submit(event: FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
     setError("");
@@ -43,6 +28,7 @@ export function TenantRegistrationForm() {
           email: data.get("email"),
           phone: data.get("phone"),
           password: data.get("password"),
+          // ช่องติ๊กส่งค่ามาเป็น "on" หรือไม่มีเลย แปลงเป็น true/false ก่อนส่ง
           termsAccepted: data.get("termsAccepted") === "on",
           privacyAcknowledged: data.get("privacyAcknowledged") === "on",
           marketingConsent: data.get("marketingConsent") === "on",
@@ -50,6 +36,7 @@ export function TenantRegistrationForm() {
       });
       const payload = await response.json() as { data?: { message: string }; error?: string };
       if (!response.ok || !payload.data) throw new Error(payload.error || "สมัครผู้เช่าไม่สำเร็จ");
+      // ล้างฟอร์มเมื่อสมัครสำเร็จเท่านั้น สมัครไม่ผ่านที่กรอกไว้จะได้ยังอยู่ให้แก้
       setMessage(payload.data.message);
       event.currentTarget.reset();
     } catch (cause) {
@@ -60,9 +47,11 @@ export function TenantRegistrationForm() {
   }
 
   return <form className="login-form tenant-registration-form" onSubmit={submit}>
+    {/* รหัสเชิญยาว 32 ตัวขึ้นไป ปิด autoComplete เพราะเป็นค่าที่ใช้ครั้งเดียว ไม่ควรให้เบราว์เซอร์จำ */}
     <label className="tenant-invitation-field">รหัสเชิญจากหอพัก
       <input autoComplete="off" minLength={32} name="invitationCode" placeholder="วางรหัสเชิญที่ได้รับ" required />
     </label>
+    {/* สองข้อแรกบังคับติ๊ก ส่วนข่าวสารเป็นความสมัครใจและถอนได้ทีหลัง ตามหลักการขอความยินยอม */}
     <fieldset className="legal-consent-fields">
       <legend>ข้อตกลงและการใช้ข้อมูล</legend>
       <label className="legal-checkbox">
@@ -89,6 +78,7 @@ export function TenantRegistrationForm() {
     </label>
     <label>รหัสผ่าน
       <input
+        // ผูกคำอธิบายเกณฑ์รหัสผ่านไว้กับช่อง โปรแกรมอ่านหน้าจอจะได้อ่านให้ฟังด้วย
         aria-describedby="tenant-password-help"
         autoComplete="new-password"
         maxLength={128}

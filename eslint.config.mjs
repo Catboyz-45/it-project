@@ -1,24 +1,20 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าหรือจุดเชื่อมระบบ “eslint.config” ของโปรเจกต์ Nestly
- * การทำงาน: กำหนดวิธีที่เครื่องมือ build, test หรือ runtime ทำงานร่วมกับโค้ดหลัก โดยไม่เก็บข้อมูลผู้ใช้งานจริง
- */
-
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypeScript from "eslint-config-next/typescript";
 
+// ต่อกฎสองชุดของ Next เข้าด้วยกัน ชุดหนึ่งเรื่องคุณภาพหน้าเว็บ อีกชุดเรื่อง TypeScript
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
   {
-    // Existing data-loading effects intentionally synchronize API state after
-    // mount. Migrate these incrementally to server components/query hooks.
+    // โค้ดเดิมใช้ useEffect ดึงข้อมูลหลังคอมโพเนนต์ขึ้นจอ ซึ่งกฎสองข้อนี้ห้ามไว้
+    // ปิดไปก่อนแล้วค่อยทยอยย้ายไปเป็น Server Component ทีละจุด
     rules: {
       "react-hooks/purity": "off",
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  // ข้ามโฟลเดอร์ที่เครื่องมือสร้างให้ ไม่ใช่โค้ดที่เราเขียนเอง จึงไม่ต้องตรวจ
   globalIgnores([
     ".next/**",
     ".next-*/**",

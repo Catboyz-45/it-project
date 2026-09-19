@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/auth/login สำหรับการยืนยันตัวตนและบัญชีผู้ใช้
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createSession } from "@/lib/server/auth";
@@ -20,26 +14,15 @@ const loginSchema = z.object({
 
 const dummyPasswordHash = "scrypt-v1$AAAAAAAAAAAAAAAAAAAAAA==$z89B3WFqfR2gHfnf+BQhQb5aQIsCnmihMRj9J4OajdoHDo/yrjh+2Gv5j18PJvGX2D0cTxnCoDZVQ6ICp3/vqQ==";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Ip” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 function requestIp(request: NextRequest) {
   return request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown";
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เข้าสู่ระบบ ตรวจรหัสผ่านแล้วสร้าง session
+// เซิร์ฟเวอร์เป็นคนตัดสินว่าจะพาไปหน้าไหน เพราะแต่ละบทบาทไปคนละที่
 export async function POST(request: NextRequest) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const input = loginSchema.parse(await request.json());
     const ip = requestIp(request);
@@ -67,6 +50,7 @@ export async function POST(request: NextRequest) {
     await createSession(user.id, response);
     return response;
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

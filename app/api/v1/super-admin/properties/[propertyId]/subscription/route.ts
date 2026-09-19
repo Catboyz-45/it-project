@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API PUT ที่ URL /api/v1/super-admin/properties/[propertyId]/subscription สำหรับผู้ดูแลแพลตฟอร์ม (Super Admin)
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { assignSubscriptionSchema } from "@/lib/domain/saas";
@@ -11,22 +5,13 @@ import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { assignPropertySubscription } from "@/lib/server/saas";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอแทนค่าข้อมูลทั้งชุดของ API เส้นทางนี้ โดยรักษากฎธุรกิจของระบบ
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// กำหนดแพ็กเกจให้หอโดยตรง ต่างจากการที่เจ้าของหอสั่งซื้อเอง
 export async function PUT(request: NextRequest, context: Context) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
@@ -37,5 +22,6 @@ export async function PUT(request: NextRequest, context: Context) {
       userId: auth.userId, propertyId: parsed.data, action: "PROPERTY_SUBSCRIPTION_ASSIGN",
       targetType: "PropertySubscription", targetId: parsed.data,
     });
+  // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
   } catch (error) { return apiErrorResponse(error, request); }
 }

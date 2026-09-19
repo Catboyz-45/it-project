@@ -1,33 +1,26 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: ดูแลขั้นตอนสร้างหรือจัดรูปแบบเอกสารในหัวข้อ “pdf”
- * การทำงาน: รับข้อมูลที่ผ่านการตรวจแล้ว สร้างผลลัพธ์เอกสารอย่างสม่ำเสมอ และส่งต่อให้ storage โดยไม่เปิดเผยตำแหน่งไฟล์จริงแก่ผู้ใช้
- */
-
 import puppeteer from "puppeteer";
 import { getServerEnv } from "@/lib/server/env";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกอบหรือคำนวณผลลัพธ์ของ “generate Pdf” จากข้อมูลที่ได้รับ
- * รับค่า:
- * - html: ค่า “html” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลง HTML เป็น PDF ด้วยเบราว์เซอร์จริง เพราะต้องได้ผลตรงกับที่เห็นในตัวแก้ไข
 export async function generatePdf(html: string) {
   const env = getServerEnv();
   const browser = await puppeteer.launch({
     headless: true,
+    // ระบุ path ของเบราว์เซอร์ผ่าน env เพื่อให้ใช้ตัวที่ติดตั้งไว้ใน image ตอนอยู่ใน Docker
     executablePath: env.PUPPETEER_EXECUTABLE_PATH,
   });
 
   try {
     const page = await browser.newPage();
+    // ปิด JavaScript เพราะ HTML มาจากที่ผู้ใช้แก้ได้ ไม่ควรให้มีสคริปต์ทำงานในเบราว์เซอร์ของเซิร์ฟเวอร์
     await page.setJavaScriptEnabled(false);
+    // ตั้ง timeout ไว้ทั้งสองขั้น กันเอกสารที่มีปัญหาทำให้เบราว์เซอร์ค้างกินหน่วยความจำไม่เลิก
     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15_000 });
+    // preferCSSPageSize ให้ CSS ในเอกสารเป็นคนกำหนดขนาดหน้า ผลจะได้ตรงกับที่เห็นในตัวแก้ไข
     const bytes = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true, timeout: 20_000 });
     return Buffer.from(bytes);
   } finally {
+    // ต้องปิดทุกกรณี ไม่งั้น process ของเบราว์เซอร์ค้างสะสมจนเครื่องเต็ม
     await browser.close();
   }
 }

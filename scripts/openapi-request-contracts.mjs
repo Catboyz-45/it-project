@@ -1,71 +1,17 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคำสั่งสำหรับนักพัฒนา/ระบบอัตโนมัติในงาน “openapi request contracts”
- * การทำงาน: เรียกใช้จาก terminal หรือ package script เพื่อทำงานบำรุงรักษาที่ทำซ้ำได้; ควรทดลองในสภาพแวดล้อมที่ไม่ใช่ production ก่อนเมื่อมีการเขียนข้อมูล
- */
-
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “text” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - extra: ค่า “extra” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// รูปของข้อมูลขาเข้าของทุก endpoint เก็บไว้ที่เดียว ให้ sync-openapi-v1.mjs ดึงไปใช้
+// ตัวช่วยสั้น ๆ ข้างล่างนี้ทำให้เขียน schema ได้กระชับ ไม่ต้องพิมพ์ type ซ้ำเป็นร้อยรอบ
 const text = (extra = {}) => ({ type: "string", ...extra });
 const id = text({ minLength: 1 });
 const bool = { type: "boolean" };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “integer” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - minimum: ค่า “minimum” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - maximum: ค่า “maximum” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const integer = (minimum, maximum) => ({ type: "integer", ...(minimum === undefined ? {} : { minimum }), ...(maximum === undefined ? {} : { maximum }) });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “number” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - minimum: ค่า “minimum” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const number = (minimum = 0) => ({ type: "number", minimum });
 const dateTime = text({ format: "date-time" });
 const billingMonth = text({ pattern: "^\\d{4}-(0[1-9]|1[0-2])$" });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “nullable” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// ช่องที่ว่างได้ ต้องเขียนเป็น anyOf คู่กับ null เพราะ OpenAPI 3.1 ไม่มีคำว่า nullable แล้ว
 const nullable = (schema) => ({ anyOf: [schema, { type: "null" }] });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “array” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - items: ค่า “items” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - extra: ค่า “extra” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const array = (items, extra = {}) => ({ type: "array", items, ...extra });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “object” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - required: ค่า “required” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - properties: ค่า “properties” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// ตั้ง additionalProperties: false ให้ทุกก้อน ฟิลด์แปลกปลอมจะได้ถูกปฏิเสธ กันการยัดฟิลด์เกินมาเขียนทับข้อมูลอื่น
 const object = (required, properties) => ({ type: "object", required, properties, additionalProperties: false });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “partial” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - properties: ค่า “properties” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const partial = (properties) => object([], properties);
 const file = text({ format: "binary" });
 
@@ -84,35 +30,10 @@ const planFields = {
 };
 
 const contracts = new Map();
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “json” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - path: ค่า “path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - example: ค่า “example” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// ลงทะเบียน endpoint ที่รับ JSON พร้อมตัวอย่าง คนอ่านเอกสารจะได้ลอกไปใช้ได้เลย
 const json = (method, path, schema, example) => contracts.set(`${method} ${path}`, { mediaType: "application/json", schema, example });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “multipart” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - path: ค่า “path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - example: ค่า “example” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const multipart = (path, schema, example) => contracts.set(`post ${path}`, { mediaType: "multipart/form-data", schema, example });
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “no Body” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - path: ค่า “path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// บอกชัดว่า endpoint นี้ไม่มี body ต่างจากการไม่ลงทะเบียนเลยซึ่งถือว่าลืม
 const noBody = (method, path) => contracts.set(`${method} ${path}`, null);
 
 json("post", "/api/v1/admin/properties/{propertyId}/buildings",
@@ -337,28 +258,15 @@ json("patch", "/api/v1/super-admin/users/{userId}/memberships",
   { propertyIds: ["property_01", "property_02"] });
 noBody("post", "/api/v1/super-admin/users/{userId}/temporary-password");
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Contract” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ไม่เจอใน Map คือโยน error ไปเลย บังคับให้คนเพิ่ม endpoint ใหม่ต้องมาลงทะเบียนที่นี่
+// ลืมแล้วจะรู้ตัวตั้งแต่ตอนรันสคริปต์ ไม่ใช่ไปเจอเอกสารที่ขาดหายทีหลัง
 export function requestContract(method, apiPath) {
   const key = `${method} ${apiPath}`;
   if (!contracts.has(key)) throw new Error(`No endpoint-specific request contract for ${key}`);
   return contracts.get(key);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบว่าเงื่อนไข “has Request Contract” เป็นจริงหรือไม่ เพื่อใช้ตัดสินใจในขั้นตอนถัดไป
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รุ่นที่ไม่โยน error ใช้ตอนแค่อยากเช็คว่ามีหรือยัง
 export function hasRequestContract(method, apiPath) {
   return contracts.has(`${method} ${apiPath}`);
 }

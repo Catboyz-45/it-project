@@ -1,54 +1,35 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “use confirmation” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บ state และ render กล่องโต้ตอบ
 
 import { useCallback, useState } from "react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Confirmation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Confirmation = {
   title: string;
   description: string;
+  // ไม่ส่งมาก็ได้ กล่องจะใช้คำเริ่มต้นของมันเอง
   confirmLabel?: string;
+  // danger ใช้กับการกระทำที่ย้อนกลับไม่ได้ เช่น ลบข้อมูล
   variant?: "default" | "danger";
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Confirmation” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ถามยืนยันแบบ await ได้:  if (!(await confirm({ title, description }))) return;
+// ต้องวาง confirmationDialog ไว้ใน JSX ของหน้าด้วย ไม่งั้นกล่องไม่ถูก render
 export function useConfirmation() {
+  // null = ไม่ได้ถามอะไรอยู่ กล่องจึงไม่แสดง
   const [pending, setPending] = useState<(Confirmation & { resolve: (value: boolean) => void }) | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “confirm” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - options: ตัวเลือกเพิ่มเติมที่ปรับพฤติกรรมของฟังก์ชัน
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
+  // เก็บ resolve ไว้ใน state แล้วปล่อย Promise ค้าง จนกว่าผู้ใช้จะกดปุ่ม
   const confirm = useCallback((options: Confirmation) => new Promise<boolean>((resolve) => {
     setPending({ ...options, resolve });
   }), []);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close” ตามกฎของระบบ
-   * รับค่า:
-   * - result: ค่า “result” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+
+  // ส่งคำตอบกลับให้ Promise ที่รออยู่ แล้วล้าง state เพื่อปิดกล่อง
   const close = (result: boolean) => {
     pending?.resolve(result);
     setPending(null);
   };
+
   const confirmationDialog = pending ? <ConfirmationDialog
     confirmLabel={pending.confirmLabel}
     description={pending.description}
@@ -57,5 +38,6 @@ export function useConfirmation() {
     title={pending.title}
     variant={pending.variant}
   /> : null;
+
   return { confirm, confirmationDialog };
 }

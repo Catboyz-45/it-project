@@ -1,35 +1,33 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Live Announcement” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ใช้ state กับ timer ของเบราว์เซอร์
 
 import { useEffect, useRef, useState } from "react";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Live Announcement” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { message, politeness = "polite", }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ข้อความที่มองไม่เห็น ไว้ให้โปรแกรมอ่านหน้าจอประกาศ เช่น "เปิดหน้า คลังพัสดุ"
 export function LiveAnnouncement({
   message,
+  // polite = รอจังหวะว่าง / assertive = ขัดจังหวะทันที ใช้เฉพาะเรื่องด่วน
   politeness = "polite",
 }: {
   message: string;
   politeness?: "assertive" | "polite";
 }) {
+  // แยกจาก message เพราะต้องล้างเป็นค่าว่างก่อนหนึ่งจังหวะ
   const [announcement, setAnnouncement] = useState("");
+  // เก็บใน ref เพื่อยกเลิกได้ถ้า message เปลี่ยนก่อนครบเวลา
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // ทิ้ง timer ค้างจากข้อความก่อน จะได้ไม่ประกาศซ้อน
     if (timerRef.current) clearTimeout(timerRef.current);
+
+    // ล้างก่อน เพราะโปรแกรมอ่านหน้าจอประกาศเฉพาะตอนข้อความเปลี่ยน ใส่ซ้ำของเดิมจะเงียบ
     setAnnouncement("");
+
+    // หน่วงให้เบราว์เซอร์เห็นค่าว่างก่อน ถ้าใส่กลับทันที React จะรวบเป็นครั้งเดียว
     if (message) timerRef.current = setTimeout(() => setAnnouncement(message), 50);
 
+    // ถอดคอมโพเนนต์ก่อนครบ 50ms ต้องยกเลิก ไม่งั้น setState หลังถอดแล้ว
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -37,8 +35,10 @@ export function LiveAnnouncement({
 
   return (
     <span
+      // อ่านทั้งก้อนใหม่ ไม่ใช่เฉพาะส่วนที่ต่าง
       aria-atomic="true"
       aria-live={politeness}
+      // ซ่อนจากสายตา แต่ยังอยู่ใน DOM ให้โปรแกรมอ่านหน้าจอเข้าถึง
       className="sr-only"
       role={politeness === "assertive" ? "alert" : "status"}
     >

@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “saas.test” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { describe, expect, it } from "vitest";
 import {
   assignSubscriptionSchema,
@@ -15,6 +9,7 @@ import {
 } from "@/lib/domain/saas";
 
 describe("SaaS plans", () => {
+  // รหัสแพ็กเกจเก็บเป็นตัวพิมพ์ใหญ่เสมอ จะได้ไม่มี growth กับ GROWTH เป็นคนละอันในฐานข้อมูล
   it("normalizes plan codes", () => {
     expect(createSaasPlanSchema.parse({
       code: "growth", name: "Growth", monthlyPrice: 699,
@@ -42,6 +37,7 @@ describe("SaaS plans", () => {
     }).success).toBe(true);
   });
 
+  // แปลงยอดรายปีเป็นต่อเดือนเพื่อเทียบกันได้ และใช้เกิน 100% ก็แสดงแค่ 100 ไม่ให้แถบล้น
   it("normalizes yearly revenue and caps usage", () => {
     expect(monthlyEquivalent(12000, "YEARLY")).toBe(1000);
     expect(usagePercent(35, 30)).toBe(100);

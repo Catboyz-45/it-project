@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/super-admin/properties สำหรับผู้ดูแลแพลตฟอร์ม (Super Admin)
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
@@ -15,15 +9,10 @@ const schema = z.object({
   shortName: z.string().trim().min(1).max(80),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบสร้างหอพักใหม่
 export async function POST(request: NextRequest) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
@@ -56,6 +45,7 @@ export async function POST(request: NextRequest) {
       targetType: "Property", targetId: property.id,
     });
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

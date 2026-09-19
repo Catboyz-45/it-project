@@ -1,13 +1,10 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: ดูแลขั้นตอนสร้างหรือจัดรูปแบบเอกสารในหัวข้อ “default templates”
- * การทำงาน: รับข้อมูลที่ผ่านการตรวจแล้ว สร้างผลลัพธ์เอกสารอย่างสม่ำเสมอ และส่งต่อให้ storage โดยไม่เปิดเผยตำแหน่งไฟล์จริงแก่ผู้ใช้
- */
-
 import type { DocumentKind } from "@/lib/documents/types";
 import contractTemplate from "@/lib/documents/contract-template.json";
 
+// Template ตั้งต้นที่ใช้ตอนหอยังไม่ได้แก้เอง ผู้ใช้แก้แล้วจะเก็บเป็นของหอนั้นในฐานข้อมูล
+// {{...}} คือช่องที่จะถูกแทนด้วยข้อมูลจริงตอนสร้างเอกสาร
 export const defaultTemplates: Record<DocumentKind, { name: string; html: string }> = {
+  // สัญญายาวเกินจะเขียนในไฟล์นี้ จึงแยกไปไว้เป็น JSON ต่างหาก
   contract: {
     name: contractTemplate.name,
     html: contractTemplate.html,

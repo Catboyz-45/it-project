@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/v1/chat/conversations/[conversationId]/attachments สำหรับระบบสนทนา
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { randomUUID } from "node:crypto";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { NextRequest } from "next/server";
@@ -23,13 +17,6 @@ const fieldsSchema = z.object({
   clientId: chatClientIdSchema,
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “detect File” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - bytes: ค่า “bytes” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 function detectFile(bytes: Uint8Array) {
   const png = [137, 80, 78, 71, 13, 10, 26, 10];
   if (bytes.length >= 8 && png.every((value, index) => bytes[index] === value)) return { extension: "png", mimeType: "image/png" };
@@ -39,20 +26,10 @@ function detectFile(bytes: Uint8Array) {
   return null;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Context = { params: Promise<{ conversationId: string }> };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ส่งข้อความพร้อมไฟล์แนบ
+// ตรวจชนิดไฟล์จากไบต์จริง ไม่เชื่อชนิดที่เบราว์เซอร์แจ้งมา
 export async function POST(request: NextRequest, context: Context) {
   let storageKey: string | undefined;
   try {

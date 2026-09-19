@@ -1,36 +1,26 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Icon Link” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// วัดตำแหน่งจาก DOM และฟัง event ของหน้าต่าง
 
 import { forwardRef, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AnchorHTMLAttributes, CSSProperties, ReactNode } from "react";
 import type { IconButtonSize, IconButtonVariant } from "@/components/ui/IconButton";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Icon Link Props” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ตัด aria-label ออกแล้วบังคับ label แทน เพราะลิงก์ไอคอนไม่มีข้อความให้อ่าน
 export type IconLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "aria-label" | "children"> & {
   children: ReactNode;
   label: string;
   size?: IconButtonSize;
+  // ข้อความบนคำแนะนำ ถ้าไม่ส่งจะใช้ label เดียวกัน
   tooltip?: string;
   variant?: IconButtonVariant;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Icon Link” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, className = "", label, onBlur, onFocus, onKeyDow: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * - ref: ค่า “ref” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กวาดเมาส์ผ่านแถวปุ่มไอคอนแล้วคำแนะนำจะเด้งทีละอันจนตาลาย รอ 50ms ก่อนค่อยแสดง
+// เท่ากับ delayDuration ของ Cal.com ซึ่งสั้นพอที่จะยังรู้สึกว่าขึ้นทันทีเมื่อตั้งใจชี้จริง
+const tooltipHoverDelayMs = 50;
+
+// เหมือน IconButton แต่เป็นลิงก์ ใช้ตอนกดแล้วต้องเปลี่ยนหน้าหรือเปิดไฟล์
 export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function IconLink({
   children,
   className = "",
@@ -46,19 +36,22 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
   ...props
 }, ref) {
   const tooltipText = tooltip ?? label;
+  // id เฉพาะตัว เพราะหน้าหนึ่งมีลิงก์ไอคอนหลายอัน แต่ละอันต้องชี้คำแนะนำของตัวเอง
   const tooltipId = useId();
   const linkRef = useRef<HTMLAnchorElement | null>(null);
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ยกเลิกตัวจับเวลาที่ยังค้าง ใช้ทั้งตอนเมาส์ออกและตอนถอดคอมโพเนนต์
+  const cancelHoverTimer = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = null;
+  };
+  useEffect(() => cancelHoverTimer, []);
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “assign Ref” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - node: ค่า “node” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เก็บ ref ไว้ใช้วัดตำแหน่งเอง พร้อมส่งต่อให้ผู้เรียกที่ขอ ref มาด้วย
+  // ต้องรองรับทั้งแบบฟังก์ชันและแบบ object เพราะ React มีสองรูปแบบ
   const assignRef = (node: HTMLAnchorElement | null) => {
     linkRef.current = node;
     if (typeof ref === "function") ref(node);
@@ -69,29 +62,30 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
     if (!isTooltipVisible) return;
     let frameId = 0;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Position” โดยใช้ค่าที่รับเข้ามา
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const updatePosition = () => {
       const link = linkRef.current;
       if (!link) return;
       const rect = link.getBoundingClientRect();
+      // เว้นขอบจอไว้ กันคำแนะนำไปติดริมจนอ่านไม่ออก
       const viewportPadding = 12;
+
+      // รอบแรกเดาความกว้างจากจำนวนตัวอักษร เพราะยังไม่ได้ render จึงวัดจริงไม่ได้
+      // ทำไปก่อนเพื่อไม่ให้คำแนะนำโผล่ที่มุมซ้ายบนแล้วค่อยกระโดดมาตำแหน่งถูก
       const estimatedHalfWidth = Math.min(112, Math.max(42, tooltipText.length * 4.5));
       const center = rect.left + rect.width / 2;
+      // หนีบค่าไว้ในจอ ไม่ให้ล้นออกไปทั้งซ้ายและขวา
       const left = Math.min(
         window.innerWidth - viewportPadding - estimatedHalfWidth,
         Math.max(viewportPadding + estimatedHalfWidth, center),
       );
 
+      // อยู่ใกล้ขอบบนเกินไปก็วางไว้ข้างล่างแทน
       setTooltipStyle(rect.top < 64
         ? { left, top: rect.bottom + 12, transform: "translateX(-50%)" }
         : { bottom: window.innerHeight - rect.top + 12, left, transform: "translateX(-50%)" });
 
       window.cancelAnimationFrame(frameId);
+      // รอบสองรอให้ render เสร็จก่อน แล้ววัดความกว้างจริงมาแก้ตำแหน่งให้แม่น
       frameId = window.requestAnimationFrame(() => {
         const renderedTooltip = tooltipRef.current;
         if (!renderedTooltip) return;
@@ -101,6 +95,7 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
           window.innerWidth - viewportPadding - halfWidth,
           Math.max(viewportPadding + halfWidth, center),
         );
+        // คราวนี้รู้ความสูงจริงแล้ว จึงตัดสินได้ว่าข้างบนมีที่พอไหม
         const showBelow = rect.top < tooltipRect.height + viewportPadding + 12;
         setTooltipStyle(showBelow
           ? { left: measuredLeft, top: rect.bottom + 12, transform: "translateX(-50%)" }
@@ -110,6 +105,7 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
 
     updatePosition();
     window.addEventListener("resize", updatePosition);
+    // true = จับ scroll ของกล่องข้างในด้วย ไม่ใช่แค่ของหน้าต่าง คำแนะนำจะได้ตามทัน
     window.addEventListener("scroll", updatePosition, true);
     return () => {
       window.cancelAnimationFrame(frameId);
@@ -122,26 +118,33 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
     <>
       <a
         {...props}
+        // ชี้ไปที่คำแนะนำเฉพาะตอนแสดงอยู่ ไม่งั้นจะชี้ไปยัง id ที่ไม่มีใน DOM
         aria-describedby={isTooltipVisible ? tooltipId : undefined}
         aria-label={label}
         className={`icon-button icon-button-${size} icon-button-${variant} ${className}`.trim()}
+        // แสดงทั้งตอนเมาส์ชี้และตอนโฟกัสด้วยคีย์บอร์ด ไม่งั้นคนที่ใช้ Tab จะไม่เห็นคำแนะนำเลย
         onBlur={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(false);
           onBlur?.(event);
         }}
         onFocus={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(true);
           onFocus?.(event);
         }}
+        // Esc ปิดคำแนะนำโดยไม่ต้องย้ายโฟกัสออก
         onKeyDown={(event) => {
           if (event.key === "Escape") setIsTooltipVisible(false);
           onKeyDown?.(event);
         }}
         onMouseEnter={(event) => {
-          setIsTooltipVisible(true);
+          cancelHoverTimer();
+          hoverTimerRef.current = setTimeout(() => setIsTooltipVisible(true), tooltipHoverDelayMs);
           onMouseEnter?.(event);
         }}
         onMouseLeave={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(false);
           onMouseLeave?.(event);
         }}
@@ -149,6 +152,7 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
       >
         {children}
       </a>
+      {/* วางที่ body กัน overflow ของตารางหรือการ์ดที่ครอบอยู่มาตัดคำแนะนำขาด */}
       {isTooltipVisible && tooltipStyle && typeof document !== "undefined"
         ? createPortal(
           <span className="icon-tooltip" id={tooltipId} ref={tooltipRef} role="tooltip" style={tooltipStyle}>

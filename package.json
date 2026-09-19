@@ -19,8 +19,6 @@
     "test:e2e:install": "playwright install chromium",
     "openapi:check": "node scripts/check-openapi.mjs",
     "openapi:sync": "node scripts/sync-openapi-v1.mjs",
-    "docs:annotate": "node scripts/add-file-overviews.mjs",
-    "docs:annotate:symbols": "node scripts/add-symbol-comments.mjs",
     "docs:api": "node scripts/generate-api-reference.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

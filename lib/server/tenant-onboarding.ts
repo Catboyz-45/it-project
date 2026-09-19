@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “tenant onboarding” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { createHash, randomBytes } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import type {
@@ -20,27 +14,15 @@ import { recordRequiredPolicies } from "@/lib/server/legal-policies";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 import { assertSubscriptionWriteAccess } from "@/lib/server/subscription-guard";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “hash Code” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - code: ค่า “code” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const hashCode = (code: string) => createHash("sha256").update(code).digest("hex");
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “reserve Invitation” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - database: ตัวเชื่อมต่อฐานข้อมูลที่ใช้ใน transaction นี้
- * - invitationCode: ค่า “invitation Code” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// จองรหัสเชิญ ทำสามอย่างตามลำดับ ตรวจว่ารหัสใช้ได้ ปิดรหัสทันที แล้วค่อยเช็คว่าห้องยังรับได้
+// ปิดรหัสก่อนเช็คห้อง เพราะคนสองคนที่ถือรหัสเดียวกันต้องผ่านได้แค่คนเดียว
 async function reserveInvitation(
   database: Prisma.TransactionClient,
   invitationCode: string,
 ) {
+  // ค้นด้วยค่า hash เพราะฐานข้อมูลไม่ได้เก็บรหัสจริง ฐานข้อมูลรั่วก็เอารหัสไปใช้ไม่ได้
   const invitation = await database.tenantInvitation.findUnique({
     where: { tokenHash: hashCode(invitationCode) },
     select: {
@@ -72,14 +54,18 @@ async function reserveInvitation(
       },
     },
   });
+  // ตรวจสามอย่างรวดเดียว ข้อความเหมือนกันหมด ไม่บอกว่าติดข้อไหน จะได้ไม่ช่วยให้เดารหัส
   if (!invitation || invitation.status !== "PENDING" || invitation.expiresAt <= new Date()) {
     throw new ApiError(400, "รหัสเชิญไม่ถูกต้องหรือหมดอายุ");
   }
+  // แพ็กเกจของหอหมดอายุก็รับผู้เช่าใหม่ไม่ได้ ตรวจตรงนี้ก่อนเสียเวลาสร้างบัญชี
   assertSubscriptionWriteAccess(
     invitation.property.subscription,
     new Date(),
     getServerEnv().SUBSCRIPTION_GRACE_PERIOD_DAYS,
   );
+  // ใส่เงื่อนไขไว้ใน where แล้วนับจำนวนแถวที่แก้ได้ จึงไม่มีช่องว่างระหว่างอ่านกับเขียน
+  // คนสองคนกดพร้อมกันจะมีแค่คนเดียวที่ได้ 1 แถว อีกคนได้ 0
   const reservation = await database.tenantInvitation.updateMany({
     where: { id: invitation.id, status: "PENDING", expiresAt: { gt: new Date() } },
     data: { status: "ACCEPTED", acceptedAt: new Date() },
@@ -92,9 +78,11 @@ async function reserveInvitation(
       _count: { select: { occupancies: { where: { status: { in: ["PENDING", "ACTIVE"] } } } } },
     },
   });
+  // นับทั้งที่รออนุมัติและที่อยู่จริง ไม่งั้นจะเชิญเกินความจุได้ด้วยคำขอที่ยังค้างอยู่
   if (!room || room._count.occupancies >= room.capacity) {
     throw new ApiError(409, "จำนวนผู้พักถึงความจุห้องแล้ว");
   }
+  // ห้องหนึ่งมีผู้เช่าหลักได้คนเดียว เพราะเป็นคนที่ชื่ออยู่บนสัญญาและรับบิล
   if (invitation.intendedRole === "PRIMARY" && await database.roomOccupancy.count({
     where: { roomId: invitation.roomId, role: "PRIMARY", status: { in: ["PENDING", "ACTIVE"] } },
   })) {
@@ -103,14 +91,6 @@ async function reserveInvitation(
   return invitation;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Invitations” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listInvitations(propertyId: string, pagination: PaginationInput) {
   const rows = await getDatabase().tenantInvitation.findMany({
     where: { propertyId },
@@ -126,14 +106,6 @@ export async function listInvitations(propertyId: string, pagination: Pagination
   return toPaginatedResult(rows, pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Pending Occupancies” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPendingOccupancies(propertyId: string, pagination: PaginationInput) {
   const rows = await getDatabase().roomOccupancy.findMany({
     where: { propertyId, status: "PENDING" },
@@ -153,15 +125,6 @@ export async function listPendingOccupancies(propertyId: string, pagination: Pag
   return toPaginatedResult(rows, pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Invitation” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - createdByUserId: รหัสภายในของ created By User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createInvitation(
   propertyId: string,
   createdByUserId: string,
@@ -194,17 +157,13 @@ export async function createInvitation(
   return { invitation, invitationCode: code };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “register Tenant” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สมัครเป็นผู้เช่า สร้างบัญชี โปรไฟล์ และคำขอเข้าพักในคำสั่งเดียว
 export async function registerTenant(input: TenantRegistrationInput) {
+  // เข้ารหัสไว้ก่อนเข้า transaction เพราะ scrypt ตั้งใจให้ช้า ไม่ควรถือ transaction ค้างไว้ระหว่างนั้น
   const passwordHash = await hashPassword(input.password);
   return getDatabase().$transaction(async (database) => {
     if (await database.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
+      // ข้อความกลาง ๆ ไม่บอกว่าอีเมลนี้มีคนใช้แล้ว เพราะเท่ากับยืนยันว่ามีบัญชีนั้นอยู่ในระบบ
       throw new ApiError(409, "ไม่สามารถใช้อีเมลนี้ได้");
     }
     const invitation = await reserveInvitation(database, input.invitationCode);
@@ -213,12 +172,15 @@ export async function registerTenant(input: TenantRegistrationInput) {
       data: {
         email: input.email, passwordHash, displayName: input.displayName,
         role: "TENANT",
+        // ผู้เช่าไม่ต้องรอผู้ดูแลระบบอนุมัติบัญชี เพราะได้รับเชิญจากเจ้าของหอมาแล้ว
+        // แต่การเข้าพักยังเป็น PENDING รอเจ้าของหอตรวจอีกที
         approvalStatus: "APPROVED",
         tenantProfile: { create: { phone: input.phone } },
       },
       select: { id: true, tenantProfile: { select: { id: true } } },
     });
     if (!user.tenantProfile) throw new ApiError(500, "ไม่สามารถสร้างข้อมูลผู้เช่าได้");
+    // เก็บหลักฐานการยอมรับข้อกำหนดไว้ใน transaction เดียวกัน จะได้ไม่มีบัญชีที่ไม่มีบันทึกความยินยอม
     await recordRequiredPolicies(user.id, {
       action: "accept-required",
       termsAccepted: input.termsAccepted,
@@ -237,17 +199,10 @@ export async function registerTenant(input: TenantRegistrationInput) {
       data: { acceptedById: user.tenantProfile.id },
     });
     return { userId: user.id, occupancy };
+  // Serializable เพราะอ่านแล้วเขียนหลายตาราง ยอมให้คำขอสองอันทำงานสลับกันจนผลเพี้ยนไม่ได้
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “accept Tenant Invitation” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function acceptTenantInvitation(
   tenantProfileId: string,
   input: AcceptTenantInvitationInput,
@@ -262,6 +217,7 @@ export async function acceptTenantInvitation(
       },
       select: { id: true },
     });
+    // กันรับคำเชิญซ้ำห้องเดิม ไม่งั้นคนเดียวจะมีหลายรายการในห้องเดียว
     if (existing) throw new ApiError(409, "บัญชีนี้มีคำขอหรือการเข้าพักในห้องนี้แล้ว");
     const occupancy = await database.roomOccupancy.create({
       data: {
@@ -284,16 +240,7 @@ export async function acceptTenantInvitation(
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “review Occupancy” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - occupancyId: รหัสภายในของ occupancy
- * - reviewedByUserId: รหัสภายในของ reviewed By User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เจ้าของหออนุมัติหรือปฏิเสธคำขอเข้าพัก
 export async function reviewOccupancy(
   propertyId: string,
   occupancyId: string,
@@ -310,6 +257,7 @@ export async function reviewOccupancy(
       const existing = await database.roomOccupancy.count({
         where: { roomId: occupancy.roomId, role: "PRIMARY", status: "ACTIVE", id: { not: occupancy.id } },
       });
+      // เช็คอีกรอบตอนอนุมัติ เพราะระหว่างที่คำขอรออยู่ อาจมีคนอื่นถูกอนุมัติเป็นผู้เช่าหลักไปแล้ว
       if (existing > 0) throw new ApiError(409, "ห้องนี้มีผู้เช่าหลักแล้ว");
     }
     const updated = await database.roomOccupancy.update({

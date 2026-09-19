@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “leases” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { leaseStatusTransitions } from "@/lib/domain/enums";
@@ -12,6 +6,7 @@ import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
+// เลือกเฉพาะฟิลด์ที่หน้าจอใช้จริง รวมไว้ที่เดียวจะได้ตอบกลับรูปแบบเดียวกันทุก endpoint
 const leaseSelect = {
   id: true, leaseNumber: true, status: true, startDate: true, endDate: true,
   monthlyRent: true, depositAmount: true, currentVersion: true,
@@ -26,28 +21,13 @@ const leaseSelect = {
   versions: { orderBy: { version: "desc" as const }, select: { id: true, version: true, documentId: true, signedStorageKey: true, createdAt: true } },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// Prisma คืน Decimal มา แปลงเป็นสตริงก่อนส่งออกไป ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 const serialize = <T extends { monthlyRent: { toString(): string }; depositAmount: { toString(): string } }>(lease: T) => ({
   ...lease,
   monthlyRent: lease.monthlyRent.toString(),
   depositAmount: lease.depositAmount.toString(),
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Leases” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listLeases(propertyId: string, pagination: PaginationInput, query?: string) {
   const normalizedQuery = query?.trim();
   const leases = await getDatabase().lease.findMany({
@@ -72,29 +52,13 @@ export async function listLeases(propertyId: string, pagination: PaginationInput
   return toPaginatedResult(leases.map(serialize), pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Lease” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - leaseId: รหัสภายในของ lease
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getLease(propertyId: string, leaseId: string) {
   const lease = await getDatabase().lease.findFirst({ where: { id: leaseId, propertyId }, select: leaseSelect });
   if (!lease) throw new ApiError(404, "ไม่พบสัญญา");
   return serialize(lease);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Lease” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างสัญญาใหม่ เกิดเป็นร่างเสมอ ต้องไปเปลี่ยนสถานะทีหลังถึงจะมีผล
 export async function createLease(propertyId: string, userId: string, input: CreateLeaseInput) {
   const lease = await getDatabase().$transaction(async (database) => {
     const occupancy = await database.roomOccupancy.findFirst({
@@ -105,10 +69,12 @@ export async function createLease(propertyId: string, userId: string, input: Cre
         tenantProfile: { select: { id: true, user: { select: { displayName: true, email: true } } } },
       },
     });
+    // ต้องมีผู้เช่าหลักก่อน เพราะสัญญาต้องมีชื่อคนเซ็น
     if (!occupancy) throw new ApiError(409, "ห้องต้องมีผู้เช่าหลักที่อนุมัติแล้ว");
     const live = await database.lease.count({
       where: { roomId: input.roomId, status: { in: ["PENDING_SIGNATURE", "ACTIVE", "EXPIRING"] } },
     });
+    // ห้องหนึ่งมีสัญญาที่ใช้งานอยู่ได้ฉบับเดียว ต้องปิดของเดิมก่อนหรือใช้การต่ออายุแทน
     if (live > 0) throw new ApiError(409, "ห้องนี้มีสัญญาที่ใช้งานอยู่");
     if (input.templateId) {
       const template = await database.documentTemplate.count({ where: { id: input.templateId, propertyId, kind: "CONTRACT" } });
@@ -139,16 +105,7 @@ export async function createLease(propertyId: string, userId: string, input: Cre
   return serialize(lease);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “renew Lease” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - sourceLeaseId: รหัสภายในของ source Lease
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ต่อสัญญา สร้างฉบับใหม่ต่อจากฉบับเดิม ไม่ได้แก้ฉบับเดิม ประวัติจะได้ครบ
 export async function renewLease(propertyId: string, sourceLeaseId: string, userId: string, input: RenewLeaseInput) {
   const lease = await getDatabase().$transaction(async (database) => {
     const source = await database.lease.findFirst({
@@ -166,8 +123,10 @@ export async function renewLease(propertyId: string, sourceLeaseId: string, user
       },
     });
     if (!source) throw new ApiError(404, "ไม่พบสัญญาที่ต่ออายุได้");
+    // ฉบับใหม่ต้องเริ่มหลังฉบับเดิมจบ ไม่งั้นจะมีสองสัญญาคาบเกี่ยวกันในห้องเดียว
     if (input.startDate <= source.endDate) throw new ApiError(409, "สัญญาใหม่ต้องเริ่มหลังวันสิ้นสุดของสัญญาเดิม");
     const primary = source.tenants[0]?.occupancy;
+    // คนเดิมย้ายออกไปแล้วก็ต่อสัญญาไม่ได้ ต้องทำสัญญาใหม่ให้คนใหม่แทน
     if (!primary || primary.status !== "ACTIVE") throw new ApiError(409, "ผู้เช่าหลักของสัญญานี้ไม่ได้พักอยู่ในห้องแล้ว");
     const overlapping = await database.lease.count({
       where: {
@@ -178,6 +137,7 @@ export async function renewLease(propertyId: string, sourceLeaseId: string, user
         endDate: { gte: input.startDate },
       },
     });
+    // เช็คซ้อนทับกับทุกสัญญาของห้อง ไม่ใช่แค่ฉบับที่กำลังต่อ เผื่อมีฉบับอื่นค้างอยู่
     if (overlapping > 0) throw new ApiError(409, "ช่วงวันที่นี้ซ้อนกับสัญญาอื่นของห้อง");
     const leaseNumber = `CTR-${input.startDate.getFullYear()}-${source.room.number}-${randomUUID().slice(0, 8).toUpperCase()}`;
     const snapshot = {
@@ -210,16 +170,6 @@ export async function renewLease(propertyId: string, sourceLeaseId: string, user
   return serialize(lease);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Lease” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - leaseId: รหัสภายในของ lease
- * - userId: รหัสภายในของบัญชีผู้ใช้
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateLease(propertyId: string, leaseId: string, userId: string, input: UpdateLeaseInput) {
   const lease = await getDatabase().$transaction(async (database) => {
     const current = await database.lease.findFirst({
@@ -231,6 +181,7 @@ export async function updateLease(propertyId: string, leaseId: string, userId: s
       },
     });
     if (!current) throw new ApiError(404, "ไม่พบสัญญา");
+    // แก้ได้เฉพาะตอนยังไม่มีผล สัญญาที่ใช้งานแล้วต้องต่ออายุหรือยกเลิกแทน
     if (!["DRAFT", "PENDING_SIGNATURE"].includes(current.status)) throw new ApiError(409, "สถานะนี้ไม่สามารถแก้ไขสัญญาได้");
     if (current.currentVersion !== input.expectedVersion) throw new ApiError(409, "สัญญาถูกแก้ไขโดยผู้ใช้อื่น กรุณาโหลดใหม่");
     const startDate = input.startDate ?? current.startDate;
@@ -266,15 +217,6 @@ export async function updateLease(propertyId: string, leaseId: string, userId: s
   return serialize(lease);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “transition Lease” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - leaseId: รหัสภายในของ lease
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function transitionLease(propertyId: string, leaseId: string, input: TransitionLeaseInput) {
   return getDatabase().$transaction(async (database) => {
     const lease = await database.lease.findFirst({
@@ -283,6 +225,8 @@ export async function transitionLease(propertyId: string, leaseId: string, input
     });
     if (!lease) throw new ApiError(404, "ไม่พบสัญญา");
     if (lease.currentVersion !== input.expectedVersion) throw new ApiError(409, "สัญญาถูกแก้ไข กรุณาโหลดใหม่");
+    // ใช้ตารางกฎจาก enums.ts เป็นตัวตัดสิน ไม่ได้เขียน if ไล่เองตรงนี้
+    // กฎจึงอยู่ที่เดียวและมีตัวทดสอบคุมอยู่
     if (!leaseStatusTransitions[lease.status].includes(input.status)) throw new ApiError(409, "ไม่สามารถเปลี่ยนสถานะสัญญาแบบนี้ได้");
     if (input.status === "ACTIVE" && !lease.signedStorageKey) throw new ApiError(409, "กรุณาอัปโหลดสัญญาฉบับลงนามก่อน");
     if (input.status === "ACTIVE") {
@@ -303,15 +247,6 @@ export async function transitionLease(propertyId: string, leaseId: string, input
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “attach Signed Lease” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - leaseId: รหัสภายในของ lease
- * - storageKey: ค่า “storage Key” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
 export async function attachSignedLease(propertyId: string, leaseId: string, storageKey: string) {
   await getDatabase().$transaction(async (database) => {
     const lease = await database.lease.findFirst({
@@ -330,14 +265,6 @@ export async function attachSignedLease(propertyId: string, leaseId: string, sto
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Signed Lease Key” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - leaseId: รหัสภายในของ lease
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getSignedLeaseKey(propertyId: string, leaseId: string) {
   const lease = await getDatabase().lease.findFirst({
     where: { id: leaseId, propertyId, signedStorageKey: { not: null } },

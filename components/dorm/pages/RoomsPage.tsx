@@ -1,9 +1,4 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Rooms Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
-
+// หน้าผังห้อง ใช้ state เก็บชั้นที่เลือกและรูปแบบการแสดงผล
 import { useMemo, useState } from "react";
 import { Building2, CircleDollarSign, DoorOpen, Grid2X2, Hammer, List, UsersRound } from "lucide-react";
 import { currency, getStatusClass, statusText } from "@/lib/dorm-utils";
@@ -13,13 +8,7 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Rooms Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { invoices, rooms, onEditRoom, readOnly = false, selectedRoo: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ดูห้องได้สองแบบ การ์ดแบ่งตามอาคารกับชั้น หรือตารางเรียงยาว
 export function RoomsPage({
   invoices,
   rooms,
@@ -37,27 +26,15 @@ export function RoomsPage({
 }) {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [selectedFloor, setSelectedFloor] = useState<number | "all">("all");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // Set ตัดชั้นที่ซ้ำกันออก เหลือรายชื่อชั้นที่มีห้องอยู่จริง
   const floors = [...new Set(rooms.map((room) => room.floor))].sort((a, b) => a - b);
   const floorTabs: Array<number | "all"> = ["all", ...floors];
   const viewTabs = ["card", "table"] as const;
+  // แถบเลือกชั้นกับแถบเลือกมุมมองเป็น tablist ต้องเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA
   const handleFloorKeyDown = useTablistKeyboard(floorTabs, setSelectedFloor);
   const handleViewKeyDown = useTablistKeyboard(viewTabs, setViewMode);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “visible Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เรียงตามชั้นก่อน แล้วค่อยเรียงเลขห้อง
+  // numeric: true ทำให้ห้อง 10 อยู่หลังห้อง 9 ไม่ใช่หลังห้อง 1 แบบเรียงตามตัวอักษร
   const visibleRooms = rooms
     .filter((room) => selectedFloor === "all" || room.floor === selectedFloor)
     .sort((a, b) => a.floor - b.floor || a.id.localeCompare(b.id, "th", { numeric: true }));
@@ -65,24 +42,14 @@ export function RoomsPage({
   const occupied = rooms.filter((room) => room.status === "occupied").length;
   const available = rooms.filter((room) => room.status === "available").length;
   const maintenance = rooms.filter((room) => room.status === "maintenance").length;
+  // ทำเป็น Set เพราะข้างล่างต้องเช็คทีละห้องหลายรอบ Set เช็คได้เร็วกว่าไล่หาในอาเรย์
   const overdueRooms = new Set(
     invoices.filter((invoice) => invoice.status === "overdue").map((invoice) => invoice.roomId),
   );
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “room Groups” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // จัดกลุ่มไว้ใช้กับมุมมองการ์ด มุมมองตารางใช้รายการเรียงยาวตามปกติ
   const roomGroups = useMemo(() => groupRoomsByBuildingAndFloor(visibleRooms), [visibleRooms]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Room Management” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - roomId: รหัสภายในของห้องพัก
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เลือกห้องแล้วเปิดกล่องแก้ไข สองอย่างนี้ต้องทำคู่กันเสมอ จึงรวมไว้ที่เดียว
   const openRoomManagement = (roomId: string) => {
     setSelectedRoomId(roomId);
     onEditRoom();
@@ -109,7 +76,9 @@ export function RoomsPage({
           <button aria-controls="rooms-results-panel" aria-selected={viewMode === "table"} className={viewMode === "table" ? "active" : ""} id="rooms-view-tab-table" onClick={() => setViewMode("table")} role="tab" tabIndex={viewMode === "table" ? 0 : -1} type="button"><List aria-hidden="true" size={18} /> ตาราง</button>
         </div>
       </div>
+      {/* key เปลี่ยนตามชั้นและมุมมอง เพื่อบังคับให้ React วาดใหม่ทั้งก้อน อนิเมชันเปลี่ยนหน้าจะได้เล่น */}
       <div aria-label={`ผลการแสดงห้อง ${selectedFloor === "all" ? "ทุกชั้น" : `ชั้น ${selectedFloor}`} รูปแบบ${viewMode === "card" ? "การ์ด" : "ตาราง"}`} className="view-transition" id="rooms-results-panel" key={`${selectedFloor}-${viewMode}`} role="tabpanel" tabIndex={0}>
+      {/* ว่างเพราะเลือกชั้นที่ไม่มีห้อง กับว่างเพราะยังไม่มีห้องเลย ต้องบอกคนละแบบ */}
       {visibleRooms.length === 0 && selectedFloor !== "all" ? <SearchEmptyState description="ลองเลือกชั้นอื่นหรือกลับไปดูทุกชั้น" title="ไม่พบห้องในชั้นที่เลือก" /> : visibleRooms.length === 0 ? <div className="empty-state">ยังไม่มีห้องพัก</div> : viewMode === "card" ? (
         <div className="room-building-stack">
           {roomGroups.map((building) => (
@@ -121,6 +90,7 @@ export function RoomsPage({
                 {building.floors.map((floor) => (
                   <section className="room-floor-group" key={`${building.name}-${floor.number}`}>
                     <header><div><strong>ชั้น {floor.number}</strong><small>{floor.rooms.length.toLocaleString("th-TH")} ห้อง</small></div><span aria-hidden="true" /></header>
+                    {/* ใส่เลขห้องกับสถานะใน label เพราะทุกการ์ดหน้าตาเหมือนกันหมด */}
                     <div className="room-plan-grid">
                       {floor.rooms.map((room) => (
                         <button aria-label={`${readOnly ? "เปิดรายละเอียด" : "เปิดหน้าจัดการ"}ห้อง ${room.id} สถานะ${statusText[room.status]}`} className={`room-plan-card interactive-card ${selectedRoom?.id === room.id ? "selected" : ""}`} key={room.databaseId ?? `${building.name}-${room.floor}-${room.id}`} onClick={() => openRoomManagement(room.id)} type="button">
@@ -164,26 +134,19 @@ export function RoomsPage({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Room Building Group” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// โครงสร้างสองชั้น อาคารข้างในมีชั้น ชั้นข้างในมีห้อง
 type RoomBuildingGroup = {
   name: string;
   roomCount: number;
   floors: Array<{ number: number; rooms: Room[] }>;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “group Rooms By Building And Floor” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - rooms: ค่า “rooms” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด RoomBuildingGroup[] ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// จัดห้องเข้ากลุ่มตามอาคารและชั้น เพื่อให้มุมมองการ์ดแสดงเป็นผังอาคารได้
 function groupRoomsByBuildingAndFloor(rooms: Room[]): RoomBuildingGroup[] {
+  // Map ซ้อน Map เพราะต้องจัดกลุ่มสองชั้น และ Map รักษาลำดับที่ใส่เข้าไป
   const buildings = new Map<string, Map<number, Room[]>>();
   rooms.forEach((room) => {
+    // หอที่มีตึกเดียวมักไม่ได้ตั้งชื่ออาคารไว้ จึงต้องมีชื่อสำรองให้
     const buildingName = room.buildingName?.trim() || "อาคารหลัก";
     const floors = buildings.get(buildingName) ?? new Map<number, Room[]>();
     const floorRooms = floors.get(room.floor) ?? [];
@@ -193,14 +156,7 @@ function groupRoomsByBuildingAndFloor(rooms: Room[]): RoomBuildingGroup[] {
   });
 
   return Array.from(buildings, ([name, floorMap]) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “grouped Floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // เรียงห้องในแต่ละชั้น แล้วเรียงชั้นอีกที ให้ผังออกมาตรงกับของจริง
     const groupedFloors = Array.from(floorMap, ([number, floorRooms]) => ({
       number,
       rooms: floorRooms.sort((a, b) => a.id.localeCompare(b.id, "th", { numeric: true })),
@@ -209,26 +165,14 @@ function groupRoomsByBuildingAndFloor(rooms: Room[]): RoomBuildingGroup[] {
   }).sort((a, b) => a.name.localeCompare(b.name, "th", { numeric: true }));
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “room Type Label” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - roomType: ค่า “room Type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลงประเภทห้องเป็นคำไทย ค่าที่ไม่รู้จักก็แสดงตามเดิม ดีกว่าโชว์ว่างเปล่า
 function roomTypeLabel(roomType: string) {
   if (roomType === "air") return "ห้องแอร์";
   if (roomType === "fan") return "ห้องพัดลม";
   return roomType;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, label, tone, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function Summary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: number }) {
   return <article className={`figma-summary-card compact tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }

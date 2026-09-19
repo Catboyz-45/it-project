@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Overview Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// มีอนิเมชันตัวเลขที่ต้องใช้ timer และเช็คการตั้งค่าของเบราว์เซอร์
 
 import { AlertTriangle, ArrowRight, Building2, ChevronRight, CreditCard, FileClock, Gauge, Landmark, MessageSquare, PackageCheck, QrCode, ReceiptText, UserCheck, Wrench } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -15,38 +10,20 @@ import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { InvoiceList, Metric, PanelTitle } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “calendar Days Until” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
+// 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน ส่วน ceil ทำให้เศษของวันนับเป็นหนึ่งวันเต็ม
 function calendarDaysUntil(value: string | Date) {
   const now = new Date();
   const target = new Date(value);
   return Math.ceil((target.getTime() - now.getTime()) / 86_400_000);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “percent” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - max: ค่า “max” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คิดเป็นเปอร์เซ็นต์ กันหารด้วยศูนย์ตอนยังไม่มีห้อง และไม่ให้เกิน 100
 function percent(value: number, max: number) {
   return max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Animated Number” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { format = (value) => value.toLocaleString("th-TH"), label, : ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตัวเลขที่ไล่นับขึ้นตอนเปิดหน้า ทำให้ตัวเลขสำคัญสะดุดตากว่าโผล่มาเฉย ๆ
 function AnimatedNumber({
   format = (value) => value.toLocaleString("th-TH"),
   label,
@@ -59,6 +36,7 @@ function AnimatedNumber({
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
+    // คนที่ตั้งเครื่องไว้ว่าไม่อยากเห็นภาพเคลื่อนไหว ก็แสดงค่าจริงไปเลยไม่ต้องไล่นับ
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setDisplayValue(value);
       return;
@@ -68,15 +46,9 @@ function AnimatedNumber({
     const startedAt = performance.now();
     let animationFrame = 0;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update” โดยใช้ค่าที่รับเข้ามา
-     * รับค่า:
-     * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const update = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
+      // ยกกำลังสามทำให้เริ่มเร็วแล้วค่อย ๆ ช้าลงตอนใกล้ถึงค่าจริง ดูเป็นธรรมชาติกว่านับเท่ากันทุกช่วง
       const eased = 1 - ((1 - progress) ** 3);
       setDisplayValue(Math.round(value * eased));
       if (progress < 1) animationFrame = window.requestAnimationFrame(update);
@@ -87,16 +59,11 @@ function AnimatedNumber({
     return () => window.cancelAnimationFrame(animationFrame);
   }, [value]);
 
+  // โปรแกรมอ่านหน้าจออ่านค่าจริงจาก label ส่วนตัวเลขที่ไล่นับซ่อนไว้ ไม่งั้นจะอ่านรัวทุกเฟรม
   return <span aria-label={`${label} ${format(value)}`} className="animated-number"><span aria-hidden="true">{format(displayValue)}</span></span>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Overview Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { aggregation, invoices, onOpenChat, readOnly = false, rooms: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าแรกของเจ้าของหอ รวมตัวเลขสำคัญกับงานที่ต้องทำไว้ที่เดียว
 export function OverviewPage({
   aggregation,
   invoices,
@@ -116,31 +83,11 @@ export function OverviewPage({
   summary: DashboardSummary;
   tenants: Tenant[];
 }) {
+  // บิลเรียงตามเดือนมาแล้ว ตัวสุดท้ายจึงเป็นรอบล่าสุด
   const latestMonth = invoices.at(-1)?.month;
   const currentInvoices = latestMonth ? invoices.filter((invoice) => invoice.month === latestMonth) : [];
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “overdue Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const overdueInvoices = currentInvoices.filter((invoice) => invoice.status === "overdue");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “pending Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - invoice: ค่า “invoice” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const pendingInvoices = currentInvoices.filter((invoice) => invoice.status === "pending");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “near Contracts” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - tenant: ค่า “tenant” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const nearContracts = tenants.filter((tenant) => {
     if (!tenant.contractEnd) return false;
     const remainingDays = daysUntilLeaseExpiry(tenant.contractEnd);
@@ -148,6 +95,7 @@ export function OverviewPage({
   });
   const availableRooms = rooms.filter((room) => room.status === "available").length;
   const maintenanceRooms = rooms.filter((room) => room.status === "maintenance").length;
+  // รวมยอดรายรับแยกตามเดือนและแยกตามประเภท ค่าเช่า ค่าน้ำ ค่าไฟ และอื่น ๆ
   const revenueBars = Array.from(invoices.reduce((groups, invoice) => {
     const item = groups.get(invoice.month) ?? { label: invoice.month, rent: 0, water: 0, electric: 0, other: 0 };
     item.rent += invoice.rent;
@@ -156,11 +104,13 @@ export function OverviewPage({
     item.other += invoice.service;
     groups.set(invoice.month, item);
     return groups;
+  // เก็บ 12 เดือนหลังสุดพอ ย้อนไกลกว่านั้นไปดูในหน้ารายงานแทน
   }, new Map<string, { label: string; rent: number; water: number; electric: number; other: number }>()).values()).slice(-12);
   const latestRevenue = revenueBars.at(-1);
   const latestRevenueTotal = latestRevenue
     ? latestRevenue.rent + latestRevenue.water + latestRevenue.electric + latestRevenue.other
     : 0;
+  // จุดตัดของวงกลมสถานะห้อง ส่วนที่สองต้องบวกต่อจากส่วนแรก เพราะ conic-gradient นับจากจุดเริ่มเสมอ
   const occupiedEnd = percent(summary.occupied, rooms.length);
   const availableEnd = occupiedEnd + percent(availableRooms, rooms.length);
   const roomStatusItems = [
@@ -182,6 +132,7 @@ export function OverviewPage({
       title: "สัญญาใกล้หมด",
     },
   ];
+  // รวมงานค้างจากทุกส่วนไว้ในรายการเดียว จะได้เพิ่มหรือเรียงใหม่ได้โดยไม่ต้องแก้ JSX
   const workItems: Array<{
     count: number;
     detail: string;
@@ -239,6 +190,7 @@ export function OverviewPage({
       title: "ข้อความที่ยังไม่ได้อ่าน",
     },
     {
+      // เตือนล่วงหน้า 30 วัน และเตือนตลอดถ้ายังไม่มีแพ็กเกจเลย นับเป็น 1 เพราะเป็นเรื่องเดียว
       count: !aggregation.subscription
         || calendarDaysUntil(aggregation.subscription.expiresAt) <= 30
         ? 1
@@ -253,14 +205,7 @@ export function OverviewPage({
         : "แพ็กเกจใกล้หมดอายุ",
     },
   ];
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “pending Work Count” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - total: ค่า “total” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ไม่มีงานค้างเลยก็แสดงข้อความว่าง แทนที่จะโชว์กล่องเปล่า
   const pendingWorkCount = workItems.reduce((total, item) => total + item.count, 0);
 
   return (
@@ -280,6 +225,7 @@ export function OverviewPage({
           />
           {pendingWorkCount > 0 ? (
             <div className="work-item-grid">
+              {/* ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง */}
               {workItems.filter((item) => item.count > 0).map((item) => {
                 const content = <>
                   <span className="work-item-icon">{item.icon}</span>
@@ -290,6 +236,7 @@ export function OverviewPage({
                   <span className="work-item-count">{item.count > 99 ? "99+" : item.count}</span>
                   <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
                 </>;
+                // ส่วนใหญ่กดแล้วไปหน้าอื่น ยกเว้นข้อความที่เปิดหน้าต่างแชทแทน
                 return item.page ? (
                   <button aria-label={`${item.title} ${item.count} รายการ เปิดหน้า${item.title}`} className="interactive-card" key={item.title} onClick={() => setActivePage(item.page!)} type="button">{content}<span className="sr-only">เปิดหน้า{item.title}</span></button>
                 ) : (
@@ -325,6 +272,7 @@ export function OverviewPage({
           <div
             className="room-status-donut"
             aria-label={`มีผู้เช่า ${summary.occupied} ห้อง ห้องว่าง ${availableRooms} ห้อง ซ่อมบำรุง ${maintenanceRooms} ห้อง`}
+            // วาดวงกลมด้วย conic-gradient ของ CSS เบากว่าดึงไลบรารีกราฟมาทั้งตัวเพื่อวงเดียว
             style={{ background: rooms.length > 0 ? `conic-gradient(#35ed7e 0 ${occupiedEnd}%, #fbbf24 ${occupiedEnd}% ${availableEnd}%, #ec48bd ${availableEnd}% 100%)` : "#dedfe4" }}
           />
           <div className="room-status-overview">
@@ -367,6 +315,7 @@ export function OverviewPage({
 
         <article className="panel full">
           <PanelTitle title="บิลที่ต้องตาม" action={`${overdueInvoices.length} รายการค้างชำระ`} />
+          {/* โชว์บิลค้างก่อนถ้ามี ไม่มีค้างก็โชว์บิลรอบล่าสุดแทน เอาแค่ 3 รายการพอ */}
           {currentInvoices.length > 0 ? (
             <InvoiceList invoices={overdueInvoices.length > 0 ? overdueInvoices.slice(0, 3) : currentInvoices.slice(0, 3)} />
           ) : <div className="dashboard-empty-state">ยังไม่มีบิลที่ต้องติดตาม</div>}

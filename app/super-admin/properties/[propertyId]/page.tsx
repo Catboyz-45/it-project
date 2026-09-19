@@ -1,8 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นหน้าจอของเส้นทาง /super-admin/properties/[propertyId] ใน Next.js App Router
- * การทำงาน: ประกอบข้อมูลจากฝั่งเซิร์ฟเวอร์กับคอมโพเนนต์ที่นำมาใช้ซ้ำ; การตรวจสิทธิ์สำคัญต้องเกิดบนเซิร์ฟเวอร์ก่อนแสดงข้อมูล
- */
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -10,21 +5,18 @@ import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Property Detail Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { params, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน อ่านอย่างเดียว ไม่มีปุ่มแก้ไข
 export default async function PropertyDetailPage({
   params,
 }: {
   params: Promise<{ propertyId: string }>;
 }) {
+  // เช็คบทบาทซ้ำที่หน้านี้ด้วย ถึงแม้ layout จะเช็คไปแล้ว เพราะหน้านี้อ่านข้อมูลของทุกหอ
   const auth = await requirePageAuth();
   if (auth.role !== "SUPER_ADMIN") redirect("/admin");
+  // Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
   const { propertyId } = await params;
+  // ดึงทุกอย่างที่หน้านี้ใช้ในคำสั่งเดียว หอ ผู้ดูแล แพ็กเกจ และประวัติคำสั่งซื้อ
   const property = await getDatabase().property.findUnique({
     where: { id: propertyId },
     select: {
@@ -32,6 +24,7 @@ export default async function PropertyDetailPage({
       shortName: true,
       isActive: true,
       createdAt: true,
+      // ให้ฐานข้อมูลนับให้ ไม่ต้องดึงทุกแถวออกมานับเองที่นี่
       _count: { select: { rooms: true, occupancies: true, memberships: true } },
       memberships: {
         select: {
@@ -55,6 +48,7 @@ export default async function PropertyDetailPage({
           maxRooms: true,
         },
       },
+      // จำกัด 50 รายการล่าสุด หอที่ต่ออายุมานานจะได้ไม่ดึงประวัติทั้งหมดออกมา
       subscriptionOrders: {
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -72,6 +66,7 @@ export default async function PropertyDetailPage({
       },
     },
   });
+  // ไม่เจอก็ตอบ 404 ไม่ต้องแยกว่าไม่มีจริงหรือถูกลบไปแล้ว
   if (!property) notFound();
   return (
     <>
@@ -85,6 +80,7 @@ export default async function PropertyDetailPage({
       >
         ← กลับรายการหอพัก
       </Link>
+      {/* การ์ดสรุปสี่ใบ เขียนเป็นอาร์เรย์แล้ววนออกมา จะได้ไม่ต้องก๊อป markup ซ้ำสี่รอบ */}
       <section className="grid gap-4 md:grid-cols-4">
         {[
           ["สถานะ", property.isActive ? "ใช้งาน" : "ปิดใช้งาน"],
@@ -99,7 +95,8 @@ export default async function PropertyDetailPage({
         ))}
       </section>
       <section className="panel">
-        <h2 className="mb-4 text-xl font-black">แพ็กเกจปัจจุบัน</h2>
+        <h2 className="mb-4 text-base font-semibold">แพ็กเกจปัจจุบัน</h2>
+        {/* หอที่เพิ่งสร้างยังไม่มีแพ็กเกจ ต้องมีข้อความรองรับ ไม่ใช่ปล่อยว่าง */}
         {property.subscription ? (
           <div className="grid gap-3 md:grid-cols-4">
             <p>
@@ -127,7 +124,7 @@ export default async function PropertyDetailPage({
       </section>
       <section className="panel overflow-hidden p-0">
         <div className="p-5">
-          <h2 className="text-xl font-black">ประวัติ Subscription</h2>
+          <h2 className="text-base font-semibold">ประวัติ Subscription</h2>
           <p className="text-sm text-[#62646c]">คำสั่งซื้อและการต่ออายุล่าสุด</p>
         </div>
         <div className="overflow-x-auto">
@@ -155,13 +152,15 @@ export default async function PropertyDetailPage({
               ))}
             </tbody>
           </table>
+          {/* ตารางว่างก็ยังแสดงหัวตารางไว้ แล้วเติมข้อความบอกไว้ใต้ตารางแทน */}
           {property.subscriptionOrders.length === 0 ? (
             <p className="p-8 text-center text-[#62646c]">ยังไม่มีประวัติ</p>
           ) : null}
         </div>
       </section>
       <section className="panel">
-        <h2 className="mb-4 text-xl font-black">บัญชีผู้ดูแล</h2>
+        <h2 className="mb-4 text-base font-semibold">บัญชีผู้ดูแล</h2>
+        {/* แสดงอีเมลผู้ดูแลได้เพราะหน้านี้เปิดให้เฉพาะซูเปอร์แอดมิน */}
         <div className="grid gap-3 md:grid-cols-2">
           {property.memberships.map(({ user }) => (
             <div

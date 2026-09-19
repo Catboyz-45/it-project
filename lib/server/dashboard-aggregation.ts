@@ -1,41 +1,27 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “dashboard aggregation” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { getDatabase } from "@/lib/server/db";
 import { monthlyEquivalent, usagePercent } from "@/lib/domain/saas";
 import { getServerEnv } from "@/lib/server/env";
 import { getSubscriptionAccessState } from "@/lib/server/subscription-guard";
 import { leaseExpiryWindow } from "@/lib/domain/lease-expiry";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “month Key” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - date: ค่า “date” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ย่อเป็น "YYYY-MM" ไว้จับกลุ่มตามเดือน
 function monthKey(date: Date) {
   return date.toISOString().slice(0, 7);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Owner Dashboard Aggregation” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รวมตัวเลขทุกอย่างของหน้าแรกไว้ในคำขอเดียว หน้าจอจะได้ไม่ต้องยิงถามหลายรอบ
 export async function getOwnerDashboardAggregation(propertyId: string) {
   const now = new Date();
   const expiryWindow = leaseExpiryWindow(now);
   const currentMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  // ย้อนหลัง 6 เดือนรวมเดือนปัจจุบัน ใช้ทำกราฟแนวโน้มรายได้
+  // ใส่เลขติดลบให้ Date ได้เลย มันจะข้ามปีให้เอง เช่นเดือน 0 ลบ 5 กลายเป็นสิงหาคมปีก่อน
   const trendStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
   const [
     property, roomGroups, activeOccupancies, pendingOccupancies, expiringLeases,
     invoices, pendingPayments, openTickets, waitingParcels, unreadTenantMessages,
+  // ยิงทุกคำสั่งพร้อมกัน เพราะไม่มีตัวไหนต้องรอผลของอีกตัว
+  // ทำทีละอันจะช้ากว่านี้มาก เพราะเป็นการรอฐานข้อมูลสิบรอบต่อกัน
   ] = await Promise.all([
     getDatabase().property.findUnique({
       where: { id: propertyId },
@@ -56,6 +42,7 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
         },
       },
     }),
+    // groupBy ให้ฐานข้อมูลนับให้ ไม่ต้องดึงห้องมาทั้งหมดแล้วมานับเอง
     getDatabase().room.groupBy({ by: ["status"], where: { propertyId, status: { not: "INACTIVE" } }, _count: true }),
     getDatabase().roomOccupancy.count({ where: { propertyId, status: "ACTIVE" } }),
     getDatabase().roomOccupancy.count({ where: { propertyId, status: "PENDING" } }),
@@ -76,6 +63,9 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
     getDatabase().paymentSubmission.count({ where: { propertyId, status: "PENDING_REVIEW" } }),
     getDatabase().serviceTicket.count({ where: { propertyId, status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] } } }),
     getDatabase().parcel.count({ where: { propertyId, status: "WAITING" } }),
+    // ใช้ SQL ดิบเพราะเงื่อนไขเทียบเวลาข้อความกับเวลาที่อ่านล่าสุดของแต่ละห้องสนทนา ซึ่ง Prisma เขียนตรง ๆ ไม่ได้
+    // propertyId ส่งเป็นพารามิเตอร์ จึงไม่มีช่องให้ SQL injection
+    // COUNT ของ Postgres คืน bigint ซึ่ง JavaScript รับมาเป็น BigInt จึงแปลงเป็น number ก่อนใช้ต่อ
     getDatabase().$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS "count"
       FROM "ChatMessage" message
@@ -87,56 +77,13 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
     `.then((rows) => Number(rows[0]?.count ?? 0)),
   ]);
   if (!property) return null;
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “rooms By Status” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // แปลงผล groupBy เป็น object ที่หยิบด้วยชื่อสถานะได้เลย
   const roomsByStatus = Object.fromEntries(roomGroups.map((item) => [item.status, item._count]));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: แปลงข้อมูลในขั้นตอน “total Rooms” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-   * รับค่า:
-   * - sum: ค่า “sum” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const totalRooms = roomGroups.reduce((sum, item) => sum + item._count, 0);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “current Invoices” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const currentInvoices = invoices.filter((item) => monthKey(item.billingMonth) === monthKey(currentMonth));
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “sum” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - rows: ค่า “rows” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const sum = (rows: typeof invoices) => rows.reduce((total, row) => total + Number(row.total), 0);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “trends” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - _: ค่า “” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - index: ค่า “index” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const trends = Array.from({ length: 6 }, (_, index) => {
     const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “rows” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const rows = invoices.filter((item) => monthKey(item.billingMonth) === monthKey(month));
     return {
       month: monthKey(month),
@@ -190,12 +137,6 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Super Admin Dashboard Aggregation” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getSuperAdminDashboardAggregation() {
   const now = new Date();
   const expiringAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -211,22 +152,7 @@ export async function getSuperAdminDashboardAggregation() {
     getDatabase().paymentSubmission.count({ where: { status: "PENDING_REVIEW" } }),
     getDatabase().serviceTicket.count({ where: { status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] } } }),
   ]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “active” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const active = subscriptions.filter((item) => item.status === "ACTIVE" && item.expiresAt > now);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “mrr” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - sum: ค่า “sum” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const mrr = active.reduce((sum, item) => sum + monthlyEquivalent(Number(item.priceAmount), item.billingInterval), 0);
   const breakdown = new Map<string, { code: string | null; name: string; subscriptions: number; mrr: number }>();
   for (const item of active) {

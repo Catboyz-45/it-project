@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นการทดสอบอัตโนมัติของ “critical workflows.test” เพื่อป้องกันพฤติกรรมสำคัญย้อนกลับไปเสีย
- * การทำงาน: เตรียมสถานการณ์ เรียกโค้ดเหมือนผู้ใช้หรือระบบจริง แล้วตรวจผลลัพธ์ทั้งกรณีสำเร็จและกรณีที่ต้องปฏิเสธ
- */
-
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ensureTenantConversation,
@@ -42,8 +36,10 @@ import { getTenantLease } from "@/lib/server/tenant-portal";
 import { cleanupIntegrationFixture, createIntegrationFixture } from "./helpers";
 
 let fixture: Awaited<ReturnType<typeof createIntegrationFixture>> | undefined;
+// จดรหัสบัญชีที่เทสต์สร้างระหว่างทางไว้ จะได้ลบทิ้งตอนจบให้ครบ
 const createdUserIds: string[] = [];
 
+// เตรียมหอที่มีแพ็กเกจใช้งานอยู่ ไม่งั้นทุกอย่างจะติดด่านตรวจสมาชิกตั้งแต่ขั้นแรก
 beforeAll(async () => {
   fixture = await createIntegrationFixture();
   await getDatabase().propertySubscription.create({
@@ -69,6 +65,7 @@ afterAll(async () => {
 });
 
 describe("critical property workflow integration", () => {
+  // คนที่มีบัญชีผู้เช่าอยู่แล้วต้องรับคำเชิญห้องใหม่ได้ ไม่ต้องสมัครบัญชีใหม่
   it("lets an existing tenant account accept another invitation", async () => {
     if (!fixture) throw new Error("Fixture was not initialized");
     const user = await getDatabase().user.create({
@@ -113,15 +110,20 @@ describe("critical property workflow integration", () => {
       id: occupancy.id,
       status: "PENDING",
     });
+    // คนอื่นถามถึงการเข้าพักใบนี้ต้องได้ 404 ไม่ใช่ 403 เพราะ 403 เท่ากับยืนยันว่ามีอยู่จริง
     await expect(requireTenantOccupancy("cm000000000000000000099", occupancy.id))
       .rejects.toMatchObject({ status: 404 });
+    // รหัสเชิญใช้ได้ครั้งเดียว ใช้ซ้ำต้องถูกปฏิเสธ
     await expect(acceptTenantInvitation(user.tenantProfile.id, {
       invitationCode: invitation.invitationCode,
     })).rejects.toMatchObject({ status: 400 });
   });
 
+  // เทสต์ใหญ่ที่สุดของโปรเจกต์ เดินทั้งวงจรเงินตั้งแต่รับผู้เช่าจนบิลเป็นชำระแล้ว
+  // รวมเป็นเทสต์เดียวเพราะแต่ละขั้นต้องใช้ผลของขั้นก่อนหน้า แยกไฟล์แล้วต้องเตรียมข้อมูลซ้ำ
   it("persists onboarding, contract versioning, meters, billing, PromptPay, slip review, and late fees", async () => {
     if (!fixture) throw new Error("Fixture was not initialized");
+    // สร้างค่าตั้งสามอย่างในคำสั่งเดียว ไม่มีอันไหนต้องรอผลของอีกอัน
     await getDatabase().$transaction([
       getDatabase().roomTypeConfig.create({
         data: {
@@ -145,6 +147,7 @@ describe("critical property workflow integration", () => {
         data: { propertyId: fixture.property.id, name: "Bed", isDefault: true },
       }),
     ]);
+    // ค่าตั้งที่เขียนลงตารางปกติ ต้องโผล่ออกมาในรูปที่หน้าจอใช้ได้ถูกต้อง
     const settingsProjection = (await getDashboardReadModel(fixture.property.id)).settings;
     expect(settingsProjection.roomTypes).toEqual([
       expect.objectContaining({ name: "Standard", rent: 3500, deposit: 7000, capacity: 2 }),
@@ -172,12 +175,14 @@ describe("critical property workflow integration", () => {
       marketingConsent: false,
     });
     createdUserIds.push(registration.userId);
+    // สมัครแล้วยังเข้าห้องไม่ได้ทันที ต้องรอเจ้าของหออนุมัติก่อน
     expect(registration.occupancy.status).toBe("PENDING");
 
     const occupancy = await reviewOccupancy(
       fixture.property.id, registration.occupancy.id, fixture.owner.id, { status: "ACTIVE" },
     );
     expect(occupancy.status).toBe("ACTIVE");
+    // อนุมัติแล้วสถานะห้องต้องเปลี่ยนเป็นมีคนอยู่ให้เอง ไม่ต้องไปกดเปลี่ยนเองอีกที
     expect((await getDatabase().room.findUniqueOrThrow({ where: { id: fixture.room.id } })).status).toBe("OCCUPIED");
 
     const tenant = await getDatabase().tenantProfile.findUniqueOrThrow({ where: { userId: registration.userId } });
@@ -188,10 +193,12 @@ describe("critical property workflow integration", () => {
       monthlyRent: 3500,
       depositAmount: 7000,
     });
+    // แก้สัญญาต้องส่งเลขเวอร์ชันที่เห็นอยู่ไปด้วย เลขไม่ตรงแปลว่ามีคนแก้ไปก่อนแล้ว
     const versioned = await updateLease(fixture.property.id, lease.id, fixture.owner.id, {
       expectedVersion: 1, monthlyRent: 3600,
     });
     expect(versioned.currentVersion).toBe(2);
+    // ฉบับเก่ายังอยู่ครบ สัญญาเป็นเอกสารทางกฎหมาย ต้องย้อนดูได้ว่าเคยตกลงกันว่าอะไร
     expect(versioned.versions.map(({ version }) => version)).toEqual([2, 1]);
     await attachSignedLease(fixture.property.id, lease.id, `integration/${fixture.suffix}/lease.pdf`);
     const activeLease = await transitionLease(fixture.property.id, lease.id, {
@@ -210,6 +217,7 @@ describe("critical property workflow integration", () => {
     expect(tenantLeases.current?.id).toBe(lease.id);
     expect(tenantLeases.current?.status).toBe("ACTIVE");
     expect(tenantLeases.upcoming?.id).toBe(renewedLease.id);
+    // ต่อสัญญาแล้วผู้เช่าต้องเห็นสองใบ ใบที่ใช้อยู่กับใบใหม่ที่รอเซ็น
     expect(tenantLeases.upcoming?.status).toBe("PENDING_SIGNATURE");
 
     await recordMeterReading(fixture.property.id, fixture.owner.id, {
@@ -233,6 +241,7 @@ describe("critical property workflow integration", () => {
         currentReading: "106",
         unitRate: "18",
       });
+    // ใบจดของเดือนถัดไปต้องเอาเลขล่าสุดของเดือนก่อนมาเป็นเลขตั้งต้นให้อัตโนมัติ
     const nextWorksheet = await getMeterWorksheet(
       fixture.property.id,
       "2026-08",
@@ -250,6 +259,8 @@ describe("critical property workflow integration", () => {
       roomId: fixture.room.id, billingMonth: "2026-07", issueImmediately: false,
     });
     expect(invoice.status).toBe("DRAFT");
+    // บิลต้องดึงค่าน้ำค่าไฟจากที่จดไว้มาใส่เป็นรายการย่อยให้เอง
+    // 4198 = ค่าห้อง 3500 + น้ำ 6 หน่วย x 18 + ไฟ 70 หน่วย x 7
     expect(invoice.items.map(({ type }) => type)).toEqual(["RENT", "WATER", "ELECTRICITY"]);
     expect(invoice.total).toBe("4198");
 
@@ -258,23 +269,27 @@ describe("critical property workflow integration", () => {
 
     const promptPay = await getTenantPromptPay(tenant.id, issuedInvoice.id);
     expect(promptPay.amount).toBe("4198");
+    // payload ของ PromptPay ตามมาตรฐาน EMVCo ต้องขึ้นต้นด้วย 000201 เสมอ
     expect(promptPay.payload).toMatch(/^000201/);
 
     const payment = await createPaymentSubmission({
       tenantProfileId: tenant.id, invoiceId: issuedInvoice.id,
       storageKey: `integration/${fixture.suffix}/slip.png`, mimeType: "image/png", size: 1024,
     });
+    // ส่งสลิปซ้ำบิลเดิมไม่ได้ ต้องรอผลตรวจใบแรกก่อน กันการกดซ้ำจนแอดมินเห็นหลายใบ
     await expect(createPaymentSubmission({
       tenantProfileId: tenant.id, invoiceId: issuedInvoice.id,
       storageKey: "duplicate.png", mimeType: "image/png", size: 1024,
     })).rejects.toMatchObject({ status: 409 });
     expect((await getAdminSlip(fixture.property.id, payment.id)).slipStorageKey).toContain("slip.png");
+    // หออื่นเปิดดูสลิปของหอนี้ไม่ได้ สลิปมีข้อมูลบัญชีธนาคารของผู้เช่าอยู่
     await expect(getAdminSlip(fixture.otherProperty.id, payment.id)).rejects.toMatchObject({ status: 404 });
 
     const reviewed = await reviewPaymentSubmission({
       propertyId: fixture.property.id, paymentId: payment.id, reviewerId: fixture.owner.id, status: "APPROVED",
     });
     expect(reviewed.status).toBe("APPROVED");
+    // อนุมัติสลิปแล้วบิลต้องกลายเป็นชำระแล้วให้เอง ไม่ต้องไปกดเปลี่ยนสถานะบิลอีกรอบ
     expect((await getDatabase().invoice.findUniqueOrThrow({ where: { id: invoice.id } })).status).toBe("PAID");
 
     const overdueInvoice = await getDatabase().invoice.create({
@@ -284,6 +299,7 @@ describe("critical property workflow integration", () => {
         status: "PENDING", dueDate: new Date("2026-08-05T00:00:00.000Z"), subtotal: 1000, total: 1000,
       },
     });
+    // เกินกำหนด 15 วัน วันละ 20 บาทเป็น 300 แต่ติดเพดาน 200 ที่ตั้งไว้
     const recalculated = await recalculateOverdueInvoices(fixture.property.id, new Date("2026-08-20T00:00:00.000Z"));
     expect(recalculated.updated).toBe(1);
     const overdue = await getDatabase().invoice.findUniqueOrThrow({ where: { id: overdueInvoice.id } });
@@ -294,12 +310,14 @@ describe("critical property workflow integration", () => {
     const persistedCancellation = await getDatabase().invoice.findUniqueOrThrow({ where: { id: overdue.id } });
     expect(persistedCancellation.cancellationNote).toBe("สร้างบิลทดสอบผิดรอบ");
     expect(persistedCancellation.cancelledAt).toBeInstanceOf(Date);
+    // บิลที่จ่ายแล้วยกเลิกไม่ได้ ต้องได้ 409 เพราะเงินเข้าไปแล้ว
     await expect(cancelInvoice(fixture.property.id, invoice.id, 2, "ไม่ควรยกเลิกได้"))
       .rejects.toMatchObject({ status: 409 });
 
     await expect(getLease(fixture.otherProperty.id, lease.id)).rejects.toMatchObject({ status: 404 });
   });
 
+  // เช็คขอบเขตข้อมูลของทุกงานย่อย หอหนึ่งต้องแตะข้อมูลของอีกหอไม่ได้เลยสักทาง
   it("enforces ownership across announcements, parcels, tickets, attachments, and chat", async () => {
     if (!fixture) throw new Error("Fixture was not initialized");
     const occupancy = await getDatabase().roomOccupancy.findFirstOrThrow({
@@ -329,6 +347,7 @@ describe("critical property workflow integration", () => {
     expect((await updateParcel(fixture.property.id, parcel.id, {
       status: "RECEIVED", receivedByTenantId: tenant.id,
     })).status).toBe("RECEIVED");
+    // หออื่นแก้พัสดุของหอนี้ไม่ได้ ตอบ 404 ไม่ใช่ 403
     await expect(updateParcel(fixture.otherProperty.id, parcel.id, { status: "CANCELLED" }))
       .rejects.toMatchObject({ status: 404 });
 
@@ -343,6 +362,7 @@ describe("critical property workflow integration", () => {
     expect((await getTicketAttachment({
       attachmentId: attachment.id, ticketId: ticket.id, tenantProfileId: tenant.id,
     })).fileName).toBe("ticket.jpg");
+    // ไฟล์แนบก็ต้องเช็คสิทธิ์ ไม่ใช่ว่ารู้รหัสไฟล์แล้วโหลดได้เลย
     await expect(getTicketAttachment({
       attachmentId: attachment.id, ticketId: ticket.id, propertyId: fixture.otherProperty.id,
     })).rejects.toMatchObject({ status: 404 });
@@ -353,6 +373,7 @@ describe("critical property workflow integration", () => {
       data: { body: "We will inspect the pipe this afternoon." },
     });
     expect(ownerReply.body).toContain("inspect");
+    // แอดมินตอบแล้วผู้เช่าต้องเห็นว่ามีข้อความใหม่ 1 ข้อความ
     expect(await countUnreadTicketReplies({
       viewerUserId: tenant.userId,
       tenantProfileId: tenant.id,
@@ -365,6 +386,7 @@ describe("critical property workflow integration", () => {
       pagination: { page: 1, pageSize: 20 },
     });
     expect(tenantReplies.data).toHaveLength(1);
+    // เปิดอ่านแล้วตัวนับต้องกลับเป็นศูนย์ การอ่านถูกบันทึกตอนเรียกดูรายการ
     expect(await countUnreadTicketReplies({
       viewerUserId: tenant.userId,
       tenantProfileId: tenant.id,
@@ -390,8 +412,10 @@ describe("critical property workflow integration", () => {
     expect((await updateTicket(fixture.property.id, ticket.id, fixture.owner.id, { status: "ACKNOWLEDGED" })).status).toBe("ACKNOWLEDGED");
     expect((await updateTicket(fixture.property.id, ticket.id, fixture.owner.id, { status: "IN_PROGRESS" })).status).toBe("IN_PROGRESS");
     expect((await updateTicket(fixture.property.id, ticket.id, fixture.owner.id, { status: "RESOLVED" })).status).toBe("RESOLVED");
+    // ปิดงานแล้วย้อนกลับไปเปิดใหม่ไม่ได้ สถานะเดินไปข้างหน้าทางเดียว
     await expect(updateTicket(fixture.property.id, ticket.id, fixture.owner.id, { status: "OPEN" }))
       .rejects.toMatchObject({ status: 409 });
+    // ทุกการกระทำถูกจดเป็นเหตุการณ์ตามลำดับ ย้อนดูได้ว่าใครทำอะไรตอนไหน
     const events = await getDatabase().ticketEvent.findMany({
       where: { ticketId: ticket.id },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -423,9 +447,12 @@ describe("critical property workflow integration", () => {
       conversationId: conversation.id, actor: tenantActor,
       body: "This duplicate must not be inserted", clientId: `client-${fixture.suffix}`,
     });
+    // ส่งข้อความซ้ำด้วย clientId เดิมต้องได้ข้อความเดิมกลับมา ไม่ใช่เพิ่มแถวใหม่
+    // กันกรณีเน็ตกระตุกแล้วฝั่งหน้าจอส่งซ้ำ ข้อความจะได้ไม่ขึ้นสองรอบ
     expect(duplicate.id).toBe(first.id);
     expect(await getDatabase().chatMessage.count({ where: { conversationId: conversation.id } })).toBe(1);
 
+    // เจ้าของหออื่นแทรกข้อความเข้าห้องแชทนี้ไม่ได้
     await expect(sendConversationMessage({
       conversationId: conversation.id,
       actor: { role: "PROPERTY_ADMIN", userId: fixture.otherOwner.id, propertyId: fixture.otherProperty.id },
@@ -433,6 +460,7 @@ describe("critical property workflow integration", () => {
     })).rejects.toMatchObject({ status: 404 });
   });
 
+  // แชทแบ่งหน้าโดยดูเวลา ถ้าหลายข้อความเวลาตรงกันเป๊ะแล้วเรียงไม่คงที่ จะมีข้อความหายตอนเลื่อนดูของเก่า
   it("paginates more than 50 chat messages without gaps when timestamps are identical", async () => {
     if (!fixture) throw new Error("Fixture was not initialized");
     const conversation = await getDatabase().chatConversation.create({
@@ -442,6 +470,7 @@ describe("critical property workflow integration", () => {
         type: "PROPERTY_SUPPORT",
       },
     });
+    // จงใจตั้งเวลาให้ทั้ง 61 ข้อความเท่ากันหมด เพื่อบีบให้เจอกรณีที่แย่ที่สุด
     const createdAt = new Date("2026-01-01T00:00:00.000Z");
     await getDatabase().chatMessage.createMany({
       data: Array.from({ length: 61 }, (_, index) => ({
@@ -469,6 +498,7 @@ describe("critical property workflow integration", () => {
     });
     expect(older.messages).toHaveLength(11);
     expect(older.hasMore).toBe(false);
+    // รวมสองหน้าแล้วต้องได้ครบ 61 ข้อความไม่ซ้ำ พิสูจน์ว่าไม่มีข้อความหายหรือโผล่ซ้ำ
     expect(new Set([...older.messages, ...newest.messages].map(({ id }) => id)).size).toBe(61);
   });
 });

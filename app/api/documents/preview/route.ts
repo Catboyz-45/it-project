@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/documents/preview สำหรับระบบเอกสาร
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { parseDocumentData } from "@/lib/documents/placeholders";
@@ -19,15 +13,10 @@ export const maxDuration = 30;
 
 const requestSchema = z.object({ kind: z.string(), data: z.unknown().optional() }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้าง PDF ไว้ดูตัวอย่าง ไม่ได้เก็บไฟล์
 export async function POST(request: NextRequest) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     await assertApiRateLimit(request, "document", "preview");
     // Rendering a transient preview does not persist or modify property data,
@@ -47,6 +36,7 @@ export async function POST(request: NextRequest) {
       { userId: auth.userId, propertyId, action: "DOCUMENT_PREVIEW", targetType: "DocumentPreview", targetId: kind },
     );
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

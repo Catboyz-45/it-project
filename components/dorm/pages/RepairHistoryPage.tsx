@@ -1,13 +1,8 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Repair History Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บตัวกรองและโหลดข้อมูลทีละหน้าจากเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { repairStatusClass, repairStatusLabel, type OwnerRepairTicket } from "@/types/repairs";
@@ -16,38 +11,27 @@ import { createApiError, formatClientError } from "@/lib/client/api-error";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Repair History Page Props” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// tickets ที่ส่งมาคือชุดแรกที่เซิร์ฟเวอร์เตรียมไว้ หน้าถัดไปโหลดเองจากเบราว์เซอร์
 type RepairHistoryPageProps = {
   propertyId: string;
   tickets: OwnerRepairTicket[];
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องโหลดซ้ำ
+  initialPageInfo?: ServerPageInfo | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Repair History Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId, tickets: initialTickets }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
-export function RepairHistoryPage({ propertyId, tickets: initialTickets }: RepairHistoryPageProps) {
+// หน้าประวัติงานซ่อมที่ปิดเรื่องแล้ว แยกจากหน้าเรื่องร้องเรียนที่ยังทำอยู่
+export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets: initialTickets }: RepairHistoryPageProps) {
   const [tickets, setTickets] = useState(initialTickets);
-  const [pageInfo, setPageInfo] = useState<ServerPageInfo>({ page: 1, pageSize: 20, hasNextPage: false });
+  const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
+  // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  const skipInitialLoadRef = useRef(initialPageInfo !== null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Tickets” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadTickets = useCallback(async (targetPage = 1) => {
     setIsLoading(true);
     setLoadError("");
     try {
+      // ให้เซิร์ฟเวอร์กรองเฉพาะงานซ่อมที่ปิดแล้ว ประวัติสะสมเยอะเกินจะโหลดมาทั้งหมด
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/tickets?type=REPAIR&status=RESOLVED&page=${targetPage}&pageSize=20`, { cache: "no-store" });
       const payload = await response.json() as {
         data?: Array<{
@@ -58,14 +42,9 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
         requestId?: string;
         pageInfo?: ServerPageInfo;
       };
+      // เช็คทั้งสถานะและตัวข้อมูล เพราะตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้
       if (!response.ok || !payload.data || !payload.pageInfo) throw createApiError(payload, "โหลดประวัติการซ่อมไม่สำเร็จ");
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: แปลงข้อมูลในขั้นตอน “mapped” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-       * รับค่า:
-       * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
+      // แปลงจากรูปแบบของ API เป็นรูปแบบที่หน้าจอใช้ จัดวันเวลาให้เป็นแบบไทยตั้งแต่ตรงนี้
       const mapped: OwnerRepairTicket[] = payload.data.map((item) => ({
         id: item.id,
         roomId: item.room?.number ?? "-",
@@ -85,31 +64,23 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
       setIsLoading(false);
     }
   }, [propertyId]);
-  useEffect(() => { void loadTickets(); }, [loadTickets]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “completed Tickets” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // โหลดใหม่ตั้งแต่เปิดหน้า เพื่อให้ได้ pageInfo มาใช้กับแถบแบ่งหน้า
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadTickets();
+  }, [loadTickets]);
+  // กรองซ้ำอีกชั้น เผื่อข้อมูลชุดแรกจากเซิร์ฟเวอร์มีงานที่ยังไม่ปิดปนมา
   const completedTickets = useMemo(() => tickets.filter((ticket) => ticket.status === "done"), [tickets]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ตัวแรกของเลขห้องคือชั้น เช่นห้อง 301 อยู่ชั้น 3 Set ตัดชั้นที่ซ้ำกันออก
   const floors = useMemo(() => Array.from(new Set(completedTickets.map((ticket) => ticket.roomId.charAt(0)))).sort(), [completedTickets]);
   const [selectedFloor, setSelectedFloor] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState("all");
   const [query, setQuery] = useState("");
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “room Options” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // รายการห้องขึ้นกับชั้นที่เลือกอยู่ เลือกชั้น 3 ก็เห็นเฉพาะห้องชั้น 3
   const roomOptions = useMemo(() => {
     return Array.from(
       new Set(
@@ -117,16 +88,11 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
           .filter((ticket) => selectedFloor === "all" || ticket.roomId.startsWith(selectedFloor))
           .map((ticket) => ticket.roomId),
       ),
+    // localeCompare แบบไทย เพราะเลขห้องบางที่มีตัวอักษรไทยปนอยู่
     ).sort((a, b) => a.localeCompare(b, "th"));
   }, [completedTickets, selectedFloor]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “filtered Tickets” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - ticket: ค่า “ticket” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // กรองสามอย่างพร้อมกัน ชั้น ห้อง และคำค้น ทำในเครื่องกับข้อมูลของหน้าที่โหลดมาแล้ว
   const filteredTickets = completedTickets.filter((ticket) => {
     const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
     const matchesFloor = selectedFloor === "all" || ticket.roomId.startsWith(selectedFloor);
@@ -141,15 +107,9 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
     return matchesFloor && matchesRoom && matchesQuery;
   });
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รับเหตุการณ์ “handle Floor Change” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-   * รับค่า:
-   * - floor: ค่า “floor” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const handleFloorChange = (floor: string) => {
     setSelectedFloor(floor);
+    // รีเซ็ตห้องด้วย ไม่งั้นจะค้างห้องของชั้นเดิมแล้วผลลัพธ์ว่างเปล่าโดยไม่รู้สาเหตุ
     setSelectedRoom("all");
   };
 
@@ -218,10 +178,11 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
                 <small>{ticket.completedAt ? `ปิดงาน ${ticket.completedAt}` : `อัปเดต ${ticket.updatedAt}`}</small>
               </div>
             ))
+          // ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีประวัติเลย ต้องบอกคนละแบบ
           ) : query.trim() || selectedFloor !== "all" || selectedRoom !== "all" ? (
             <SearchEmptyState description="ลองเปลี่ยนคำค้นหา ชั้น หรือห้องที่ต้องการดู" title="ไม่พบประวัติการซ่อม" />
           ) : (
-            <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong></div>
+            <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong><p>งานซ่อมที่ปิดเรื่องแล้วจะมาเก็บไว้ที่นี่</p></div>
           )}
         </div>
         <ServerTablePagination currentItemCount={tickets.length} disabled={isLoading} onPageChange={(nextPage) => void loadTickets(nextPage)} pageInfo={pageInfo} />

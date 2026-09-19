@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Tenant Edit Modal” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มไว้ในสถานะฝั่งเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
@@ -17,22 +12,14 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, Tenant } from "@/types/dorm";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: interface “Tenant Edit Payload” ระบุว่าข้อมูลต้องมีฟิลด์อะไร เพื่อให้หลายส่วนส่งข้อมูลตรงรูปแบบกัน
- */
+// ห่อไว้เป็น object เผื่อวันหลังต้องส่งอย่างอื่นกลับไปด้วย จะได้ไม่ต้องแก้ทุกที่ที่เรียก
 export interface TenantEditPayload {
   tenant: Tenant;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Edit Modal” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { mode = "edit", room, rooms, tenant, onClose, onSave, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องเพิ่มและแก้ไขผู้เช่า ใช้ตัวเดียวกันทั้งสองงาน ต่างกันที่ต้องเลือกห้องหรือไม่
 export function TenantEditModal({
+  // add = เลือกห้องว่างก่อน edit = แก้ข้อมูลของห้องที่มีคนอยู่แล้ว
   mode = "edit",
   room,
   rooms,
@@ -47,20 +34,11 @@ export function TenantEditModal({
   onClose: () => void;
   onSave: (payload: TenantEditPayload) => void;
 }) {
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “all Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // โหมดแก้ไขไม่ต้องส่งรายการห้องมา เพราะแก้อยู่ห้องเดียว
   const allRooms = useMemo(() => rooms ?? [room], [room, rooms]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “available Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ย้ายคนเข้าได้เฉพาะห้องว่าง กันเผลอใส่ผู้เช่าซ้อนห้องที่มีคนอยู่แล้ว
   const availableRooms = useMemo(() => allRooms.filter((item) => item.status === "available"), [allRooms]);
+  // เปิดมาที่ห้องที่กดเข้ามาก่อน ถ้าห้องนั้นไม่ว่างแล้วก็ถอยไปห้องว่างห้องแรก
   const initialRoom = mode === "add" ? availableRooms.find((item) => item.id === room.id) ?? availableRooms[0] ?? room : room;
   const [selectedRoomId, setSelectedRoomId] = useState(initialRoom.id);
   const [name, setName] = useState(tenant?.name ?? "");
@@ -69,36 +47,22 @@ export function TenantEditModal({
   const [contractEnd, setContractEnd] = useState(tenant?.contractEnd ?? "");
   const selectedTenantRoom = allRooms.find((item) => item.id === selectedRoomId) ?? initialRoom;
   const [deposit, setDeposit] = useState(tenant ? String(tenant.deposit) : "");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // Set ตัดชั้นที่ซ้ำกันออก เหลือรายชื่อชั้นที่ยังมีห้องว่างจริง ๆ
   const floors = Array.from(new Set(availableRooms.map((item) => item.floor))).sort((a, b) => a - b);
   const selectedFloor = selectedTenantRoom.floor;
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “rooms On Selected Floor” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เลือกชั้นก่อนแล้วค่อยเลือกห้อง หอที่มีหลายสิบห้องจะได้ไม่ต้องไถหาในรายการเดียว
   const roomsOnSelectedFloor = availableRooms.filter((item) => item.floor === selectedFloor);
+  // เก็บภาพค่าเริ่มต้นไว้เทียบ จะได้รู้ว่าผู้ใช้แก้อะไรไปแล้วหรือยัง
   const initialSnapshot = JSON.stringify({ contractEnd: tenant?.contractEnd ?? "", deposit: tenant ? String(tenant.deposit) : "", name: tenant?.name ?? "", phone: tenant?.phone ?? "", selectedRoomId: initialRoom.id, startDate: tenant?.startDate ?? "" });
+  // เทียบเป็นสตริงทั้งก้อน ง่ายกว่าไล่เช็คทีละช่อง และคีย์เรียงเหมือนกันทั้งสองฝั่ง
   const isDirty = JSON.stringify({ contractEnd, deposit, name, phone, selectedRoomId, startDate }) !== initialSnapshot;
   const { confirm, confirmationDialog } = useConfirmation();
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่กรอกไว้หายหมด
   const requestClose = useCallback(() => { if (!isDirty) return onClose(); void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "ข้อมูลผู้เช่าที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((ok) => { if (ok) onClose(); }); }, [confirm, isDirty, onClose]);
+  // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
+  // เปิดกล่องให้ห้องอื่นหรือคนอื่น ต้องล้างค่าที่ค้างจากรอบก่อนทิ้งให้หมด
   useEffect(() => {
     const nextRoom = mode === "add" ? availableRooms.find((item) => item.id === room.id) ?? availableRooms[0] ?? room : room;
     setSelectedRoomId(nextRoom.id);
@@ -109,22 +73,9 @@ export function TenantEditModal({
     setDeposit(tenant ? String(tenant.deposit) : "");
   }, [availableRooms, mode, room, tenant]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Floor” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - floorValue: ค่า “floor Value” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนชั้นแล้วเด้งไปห้องว่างห้องแรกของชั้นนั้น ไม่ปล่อยให้ค้างห้องของชั้นเดิม
   const changeFloor = (floorValue: string) => {
     const nextFloor = Number(floorValue);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “next Room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const nextRoom = availableRooms.find((item) => item.floor === nextFloor);
     if (nextRoom) {
       setSelectedRoomId(nextRoom.id);
@@ -132,44 +83,27 @@ export function TenantEditModal({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Room” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - roomId: รหัสภายในของห้องพัก
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const changeRoom = (roomId: string) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “next Room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const nextRoom = availableRooms.find((item) => item.id === roomId);
     setSelectedRoomId(roomId);
     if (nextRoom && tenant) setDeposit(String(tenant.deposit));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Form” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submitForm = (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     if (mode === "add" && availableRooms.length === 0) return;
+    // ตรวจครบทุกช่องก่อนส่ง ส่วนการตรวจจริงยังต้องทำซ้ำที่เซิร์ฟเวอร์อยู่ดี
     if (!name.trim() || !phone.trim() || !startDate || !contractEnd || deposit === "" || !Number.isFinite(Number(deposit))) return;
 
     onSave({
       tenant: {
+        // กระจายของเดิมมาก่อน แล้วทับด้วยค่าที่แก้ ฟิลด์ที่กล่องนี้ไม่ได้แตะจะได้ไม่หาย
         ...tenant,
         address: tenant?.address ?? "-",
         guardianName: tenant?.guardianName ?? "-",
         guardianPhone: tenant?.guardianPhone ?? "-",
+        // ผู้เช่าใหม่ยังไม่มี id จริงจากฐานข้อมูล จึงตั้งชั่วคราวไว้ให้ React ใช้เป็น key ก่อน
         id: tenant?.id ?? `t-${selectedTenantRoom.id}`,
         name: name.trim(),
         phone: phone.trim(),
@@ -218,6 +152,7 @@ export function TenantEditModal({
                     />
                   </div>
                 </>
+              // บอกทางแก้ไปเลยว่าต้องไปปรับสถานะห้องก่อน ไม่ใช่แค่บอกว่าไม่มีห้องว่าง
               ) : (
                 <div className="modal-summary full-width">
                   <span>ไม่มีห้องว่างสำหรับเพิ่มผู้เช่าใหม่</span>
@@ -255,6 +190,7 @@ export function TenantEditModal({
             <button className="secondary-button" onClick={requestClose} type="button">ยกเลิก</button>
             <div className="disabled-action">
               <button aria-describedby={mode === "add" && availableRooms.length === 0 ? "tenant-save-disabled-reason" : undefined} className="primary-button" disabled={mode === "add" && availableRooms.length === 0} type="submit">บันทึกข้อมูลผู้เช่า</button>
+              {/* ปุ่มที่กดไม่ได้ต้องบอกเหตุผลด้วย ไม่งั้นคนใช้โปรแกรมอ่านหน้าจอจะไม่รู้ว่าติดอะไร */}
               {mode === "add" && availableRooms.length === 0 ? <p className="disabled-reason" id="tenant-save-disabled-reason">ยังไม่มีห้องว่างสำหรับเพิ่มผู้เช่า</p> : null}
             </div>
           </footer>

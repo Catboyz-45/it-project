@@ -1,28 +1,17 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “subscription guard” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { SubscriptionStatus } from "@/generated/prisma/enums";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { getServerEnv } from "@/lib/server/env";
 
+// ทดลองใช้กับใช้งานจริงถือว่าใช้งานได้เหมือนกัน
 const usableStatuses = new Set<SubscriptionStatus>(["TRIAL", "ACTIVE"]);
+// หมดอายุแล้วยังได้ช่วงผ่อนผัน แต่ที่ถูกยกเลิกหรือระงับไม่ได้ เพราะเป็นการหยุดโดยตั้งใจ
 const graceEligibleStatuses = new Set<SubscriptionStatus>(["TRIAL", "ACTIVE", "EXPIRED"]);
 const millisecondsPerDay = 86_400_000;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Subscription Access Mode” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สามระดับ ใช้ได้เต็ม ช่วงผ่อนผันที่ยังแก้ได้ และอ่านอย่างเดียว
 export type SubscriptionAccessMode = "FULL" | "GRACE" | "READ_ONLY";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Subscription Access” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type SubscriptionAccess = {
   status: SubscriptionStatus;
   startsAt: Date;
@@ -36,34 +25,19 @@ export type SubscriptionAccess = {
   } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Subscription Feature” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type SubscriptionFeature =
   | "allowPromptPay"
   | "allowFileUploads"
   | "allowPrioritySupport";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Subscription Access State” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type SubscriptionAccessState = {
   mode: SubscriptionAccessMode;
   graceEndsAt: Date | null;
   isReadOnly: boolean;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Subscription Access State” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - subscription: ค่า “subscription” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - gracePeriodDays: ค่า “grace Period Days” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด SubscriptionAccessState ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ตัดสินว่าหอนี้อยู่ระดับไหน เป็นฟังก์ชันบริสุทธิ์ ไม่แตะฐานข้อมูล จึงทดสอบแยกได้
+// รับ now กับจำนวนวันผ่อนผันเข้ามา จะได้ตรึงเวลาในการทดสอบได้
 export function getSubscriptionAccessState(
   subscription: SubscriptionAccess | null | undefined,
   now = new Date(),
@@ -75,6 +49,7 @@ export function getSubscriptionAccessState(
     && subscription.startsAt <= now
     && subscription.expiresAt > now
   ) {
+    // ใช้ได้เต็มเมื่อสถานะใช้งานได้ ถึงวันเริ่มแล้ว และยังไม่ถึงวันหมดอายุ
     return { mode: "FULL", graceEndsAt: null, isReadOnly: false };
   }
 
@@ -87,25 +62,22 @@ export function getSubscriptionAccessState(
     const graceEndsAt = new Date(
       subscription.expiresAt.getTime() + gracePeriodDays * millisecondsPerDay,
     );
+    // ช่วงผ่อนผันยังแก้ข้อมูลได้ตามปกติ ให้เวลาเจ้าของหอไปต่ออายุโดยงานไม่สะดุด
     if (graceEndsAt > now) {
       return { mode: "GRACE", graceEndsAt, isReadOnly: false };
     }
   }
 
+  // ตกมาถึงตรงนี้คืออ่านอย่างเดียว รวมถึงกรณีไม่มีแพ็กเกจเลย ข้อมูลเดิมยังดูได้ไม่หายไปไหน
   return { mode: "READ_ONLY", graceEndsAt: null, isReadOnly: true };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Active Subscription” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - subscription: ค่า “subscription” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด asserts subscription is SubscriptionAccess ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// เข้มกว่าตัวอื่น ต้องใช้งานได้จริงเท่านั้น ช่วงผ่อนผันก็ไม่ผ่าน
+// ใช้กับงานที่กินทรัพยากรจริงอย่างการสร้าง PDF
 export function assertActiveSubscription(
   subscription: SubscriptionAccess | null | undefined,
   now = new Date(),
+// asserts บอก TypeScript ว่าผ่านบรรทัดนี้ไปแล้ว subscription ไม่เป็น null แน่นอน ผู้เรียกจะได้ไม่ต้องเช็คซ้ำ
 ): asserts subscription is SubscriptionAccess {
   if (
     !subscription ||
@@ -117,37 +89,21 @@ export function assertActiveSubscription(
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Subscription Feature” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - subscription: ค่า “subscription” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - feature: ค่า “feature” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - gracePeriodDays: ค่า “grace Period Days” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ความสามารถบางอย่างมีเฉพาะแพ็กเกจที่สูงพอ เช่นรับชำระผ่าน PromptPay หรือแนบไฟล์
 export function assertSubscriptionFeature(
   subscription: SubscriptionAccess | null | undefined,
   feature: SubscriptionFeature,
   now = new Date(),
   gracePeriodDays = 7,
 ) {
+  // เช็คสิทธิ์เขียนก่อน แล้วค่อยเช็คว่าแพ็กเกจรองรับความสามารถนี้ไหม
   assertSubscriptionWriteAccess(subscription, now, gracePeriodDays);
   if (!subscription.plan?.[feature]) {
     throw new ApiError(403, "แพ็กเกจปัจจุบันไม่รองรับความสามารถนี้");
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Subscription Write Access” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - subscription: ค่า “subscription” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - now: ค่า “now” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - gracePeriodDays: ค่า “grace Period Days” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด asserts subscription is SubscriptionAccess ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ด่านที่ใช้บ่อยที่สุด ทุกคำขอที่เปลี่ยนข้อมูลผ่านตัวนี้ ช่วงผ่อนผันยังผ่านได้
 export function assertSubscriptionWriteAccess(
   subscription: SubscriptionAccess | null | undefined,
   now = new Date(),
@@ -162,13 +118,7 @@ export function assertSubscriptionWriteAccess(
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “find Subscription” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เลือกมาเฉพาะฟิลด์ที่ใช้ตัดสินสิทธิ์ ไม่ดึงข้อมูลแพ็กเกจมาทั้งก้อน
 async function findSubscription(propertyId: string) {
   return getDatabase().propertySubscription.findUnique({
     where: { propertyId },
@@ -189,26 +139,13 @@ async function findSubscription(propertyId: string) {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Active Subscription” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function requireActiveSubscription(propertyId: string) {
   const subscription = await findSubscription(propertyId);
   assertActiveSubscription(subscription);
   return subscription;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Subscription Write Access” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รุ่นที่อ่านฐานข้อมูลให้เลย จำนวนวันผ่อนผันมาจากการตั้งค่าของระบบ ไม่ได้ฝังไว้ในโค้ด
 export async function requireSubscriptionWriteAccess(propertyId: string) {
   const subscription = await findSubscription(propertyId);
   assertSubscriptionWriteAccess(
@@ -219,13 +156,7 @@ export async function requireSubscriptionWriteAccess(propertyId: string) {
   return subscription;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Property Subscription Access” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// อ่านสถานะมาเฉย ๆ ไม่โยน error ใช้ตอนต้องส่งสถานะไปให้หน้าจอรู้ว่าจะซ่อนปุ่มไหน
 export async function getPropertySubscriptionAccess(propertyId: string) {
   const subscription = await findSubscription(propertyId);
   return {
@@ -238,14 +169,6 @@ export async function getPropertySubscriptionAccess(propertyId: string) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “require Subscription Feature” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - feature: ค่า “feature” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function requireSubscriptionFeature(
   propertyId: string,
   feature: SubscriptionFeature,

@@ -1,17 +1,10 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโมดูลกลาง “tenant record view” ที่รวม type ค่าคงที่ หรือฟังก์ชันซึ่งหลายส่วนของระบบใช้ร่วมกัน
- * การทำงาน: ช่วยให้กฎและรูปแบบข้อมูลมีแหล่งอ้างอิงเดียว ลดความซ้ำ และทำให้เปลี่ยนพฤติกรรมได้โดยแก้จุดเดียว
- */
-
+// หน้าฝั่งผู้เช่าทุกหน้าแบ่งเป็นสองมุมมองเหมือนกันหมด กำลังดำเนินการ กับ ประวัติ
 export const TENANT_RECORD_VIEW_IDS = ["current", "history"] as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Tenant Record View” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type TenantRecordView = (typeof TENANT_RECORD_VIEW_IDS)[number];
 
+// จับคู่ว่ามุมมองไหนครอบคลุมสถานะอะไรบ้าง
+// satisfies บังคับให้ครบทุกมุมมองตั้งแต่ตอนคอมไพล์ แต่ยังคงชนิดที่แคบไว้ให้ TypeScript ใช้ต่อได้
 export const TENANT_INVOICE_VIEW_STATUSES = {
   current: ["PENDING", "OVERDUE"],
   history: ["PAID", "CANCELLED"],

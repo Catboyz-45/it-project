@@ -1,24 +1,14 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคำสั่งสำหรับนักพัฒนา/ระบบอัตโนมัติในงาน “sync openapi v1”
- * การทำงาน: เรียกใช้จาก terminal หรือ package script เพื่อทำงานบำรุงรักษาที่ทำซ้ำได้; ควรทดลองในสภาพแวดล้อมที่ไม่ใช่ production ก่อนเมื่อมีการเขียนข้อมูล
- */
-
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { jsonSuccessResponse, responseSchemas } from "./openapi-response-contracts.mjs";
 import { requestContract } from "./openapi-request-contracts.mjs";
 
+// สร้าง docs/openapi.json ใหม่จาก route จริงใต้ app/api/v1
+// เขียนด้วยมือทั้งไฟล์คงตามไม่ไหว มี 120 กว่าเส้นทาง ให้เครื่องสร้างตามโค้ดแทน
 const root = new URL("../", import.meta.url);
 const methods = ["get", "post", "put", "patch", "delete"];
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “walk” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - directory: ค่า “directory” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ไล่เก็บไฟล์ทุกไฟล์ในโฟลเดอร์และโฟลเดอร์ย่อย เรียกตัวเองซ้ำลงไป
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
@@ -27,27 +17,15 @@ async function walk(directory) {
   }))).flat();
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “open Api Path” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลงพาธไฟล์เป็น URL ของ OpenAPI โฟลเดอร์ [propertyId] กลายเป็น {propertyId}
 function openApiPath(file) {
   return `/${path.relative(new URL("app/", root).pathname, file)
     .replace(/\/route\.ts$/, "")
     .replace(/\[([^\]]+)\]/g, "{$1}")}`;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “operation Id” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตั้งชื่อ operation จาก URL เช่น getAdminPropertiesByPropertyIdInvoices
+// ตัวสร้าง client เอาชื่อนี้ไปตั้งชื่อฟังก์ชัน จึงต้องคาดเดาได้และไม่ซ้ำกัน
 function operationId(method, apiPath) {
   const words = apiPath
     .replace(/^\/api\/v1\//, "")
@@ -57,13 +35,8 @@ function operationId(method, apiPath) {
   return method + words.map((word) => word[0].toUpperCase() + word.slice(1)).join("");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “tag For” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// จัดกลุ่ม endpoint ตามงาน ไล่จากเฉพาะเจาะจงไปกว้าง อันแรกที่ตรงชนะ
+// tag เป็นตัวแบ่งหัวข้อในหน้าเอกสาร คนอ่านจะได้หาของที่ต้องการเจอ
 function tagFor(apiPath) {
   if (apiPath.includes("/subscription-orders") || apiPath.includes("/subscription-payments")) return "SaaS";
   if (apiPath.includes("/super-admin/")) return apiPath.includes("/plans") || apiPath.includes("/subscription") ? "SaaS" : apiPath.includes("chat") ? "Chat" : "Super Admin";
@@ -78,6 +51,8 @@ function tagFor(apiPath) {
   return "Properties";
 }
 
+// รายชื่อ endpoint ที่แบ่งหน้า ต้องเติม page กับ pageSize ให้ในเอกสาร
+// เขียนไว้เป็นรายชื่อเพราะเดาจากชื่อ URL ไม่ได้ ต้องดูโค้ดจริงว่าเส้นไหนแบ่งหน้า
 const paginatedPaths = new Set([
   "/api/v1/admin/properties/{propertyId}/announcements",
   "/api/v1/admin/properties/{propertyId}/invitations",
@@ -100,22 +75,10 @@ const paginatedPaths = new Set([
   "/api/v1/tenant/tickets/{ticketId}/replies",
 ]);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “parameters For” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ประกอบพารามิเตอร์ของ endpoint หนึ่งเส้น ทั้งที่อยู่ใน path และใน query string
 function parametersFor(method, apiPath) {
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “parameters” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - match: ค่า “match” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ดึงชื่อในวงเล็บปีกกาออกมาเป็นพารามิเตอร์ของ path ทุกตัวบังคับกรอก
+  // propertyId ใช้ ref ที่ประกาศไว้ที่เดียว เพราะโผล่ในเกือบทุกเส้นทาง
   const parameters = [...apiPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1] === "propertyId"
     ? { $ref: "#/components/parameters/PropertyId" }
     : {
@@ -173,14 +136,7 @@ function parametersFor(method, apiPath) {
   return parameters;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบว่าเงื่อนไข “is Multipart” เป็นจริงหรือไม่ เพื่อใช้ตัดสินใจในขั้นตอนถัดไป
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เส้นทางที่รับไฟล์อัปโหลด ต้องบอกในเอกสารว่าไฟล์ใหญ่เกินหรือชนิดผิดจะตอบอะไร
 function isMultipart(method, apiPath) {
   return method === "post" && (
     apiPath.endsWith("/attachments") ||
@@ -190,14 +146,7 @@ function isMultipart(method, apiPath) {
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบว่าเงื่อนไข “is Binary Get” เป็นจริงหรือไม่ เพื่อใช้ตัดสินใจในขั้นตอนถัดไป
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เส้นทางที่ตอบกลับเป็นไฟล์ ไม่ใช่ JSON จึงต้องเขียนคำตอบคนละแบบ
 function isBinaryGet(method, apiPath) {
   return method === "get" && (
     apiPath.endsWith("/image") ||
@@ -207,14 +156,7 @@ function isBinaryGet(method, apiPath) {
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบว่าเงื่อนไข “is Csv Get” เป็นจริงหรือไม่ เพื่อใช้ตัดสินใจในขั้นตอนถัดไป
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เส้นทางส่งออก CSV ตอบเป็นไฟล์ตาราง ไม่ใช่ JSON เหมือนกัน
 function isCsvGet(method, apiPath) {
   return method === "get" && (
     apiPath.endsWith("/exports/{resource}") ||
@@ -222,14 +164,7 @@ function isCsvGet(method, apiPath) {
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Body For” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รูปของข้อมูลขาเข้าเก็บแยกไว้ในไฟล์ contract คนละไฟล์ ที่นี่แค่ดึงมาใส่
 function requestBodyFor(method, apiPath) {
   if (method === "get") return undefined;
   const contract = requestContract(method, apiPath);
@@ -245,15 +180,7 @@ function requestBodyFor(method, apiPath) {
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “error Response” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - description: ค่า “description” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - error: ข้อผิดพลาดที่ต้องแปลง บันทึก หรือแสดงอย่างปลอดภัย
- * - extra: ค่า “extra” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// คำตอบกรณีผิดพลาดหน้าตาเหมือนกันหมด ทำเป็นตัวช่วยอันเดียวแล้วเรียกใช้ซ้ำ
 const errorResponse = (description, error, extra = {}) => ({
   description,
   content: {
@@ -265,14 +192,8 @@ const errorResponse = (description, error, extra = {}) => ({
   ...extra,
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “responses For” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - method: ค่า “method” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - apiPath: ค่า “api Path” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ประกอบคำตอบทั้งชุดของ endpoint หนึ่งเส้น ทั้งกรณีสำเร็จและกรณีผิดพลาด
+// ดักเส้นทางที่ตอบไม่ใช่ JSON ก่อน แล้วที่เหลือค่อยใช้รูปแบบมาตรฐาน
 function responsesFor(method, apiPath) {
   if (isCsvGet(method, apiPath)) {
     return {
@@ -340,9 +261,11 @@ function responsesFor(method, apiPath) {
   };
 }
 
+// อ่านไฟล์เดิมมาแก้ ไม่ได้สร้างใหม่ทั้งใบ ส่วนที่คนเขียนเพิ่มไว้เองจะได้ไม่หาย
 const documentUrl = new URL("../docs/openapi.json", import.meta.url);
 const document = JSON.parse(await readFile(documentUrl, "utf8"));
 document.components.schemas = { ...document.components.schemas, ...responseSchemas };
+// รูปของ error ที่ทุก endpoint ใช้ร่วมกัน ตรงกับที่ apiErrorResponse ส่งออกจริง
 document.components.schemas.Error = {
   type: "object",
   required: ["error"],
@@ -407,6 +330,8 @@ for (const file of routeFiles) {
   for (const method of methods) {
     const exported = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method.toUpperCase()}\\b`).test(source);
     const current = document.paths[apiPath][method];
+    // ข้ามอันที่คนแก้เอง ดูจากคำว่า Implementation: ที่สคริปต์นี้ใส่ไว้เป็นเครื่องหมาย
+    // ไม่มีเครื่องหมายแปลว่ามีคนมาเขียนทับ ต้องเคารพของที่เขียนด้วยมือ
     if (!exported || (current && !String(current.description ?? "").startsWith("Implementation:"))) continue;
     const requestBody = requestBodyFor(method, apiPath);
     document.paths[apiPath][method] = {
@@ -414,6 +339,7 @@ for (const file of routeFiles) {
       summary: `${method.toUpperCase()} ${apiPath}`,
       description: `Implementation: ${path.relative(root.pathname, file)}`,
       tags: [tagFor(apiPath)],
+      // หน้าสมัครเป็นเส้นเดียวที่เปิดให้ยิงได้โดยไม่ต้องล็อกอิน security ว่างคือไม่ต้องยืนยันตัวตน
       ...(apiPath === "/api/v1/tenant/register" ? { security: [] } : {}),
       ...(parametersFor(method, apiPath).length ? { parameters: parametersFor(method, apiPath) } : {}),
       ...(requestBody ? { requestBody } : {}),
@@ -424,6 +350,8 @@ for (const file of routeFiles) {
 
 document.tags ??= [];
 if (!document.tags.some((tag) => tag.name === "Contracts")) document.tags.push({ name: "Contracts" });
+// รอบสอง ไล่บังคับให้ทุก endpoint มีคำตอบกรณีผิดพลาดครบทุกรหัส
+// รวมถึงอันที่คนเขียนเองด้วย เอกสารจะได้ไม่มีเส้นไหนตกหล่น
 for (const [apiPath, pathItem] of Object.entries(document.paths)) {
   if (!apiPath.startsWith("/api/v1/")) continue;
   for (const method of methods) {
@@ -452,5 +380,6 @@ for (const [apiPath, pathItem] of Object.entries(document.paths)) {
   }
 }
 for (const obsolete of ["DataObject", "DataList", "DataValue", "MessageList"]) delete document.components.responses[obsolete];
+// เรียงตามตัวอักษรก่อนเขียน diff ของ git จะได้อ่านง่าย ไม่สลับที่ไปมาทุกครั้งที่รัน
 document.paths = Object.fromEntries(Object.entries(document.paths).sort(([left], [right]) => left.localeCompare(right)));
 await writeFile(documentUrl, `${JSON.stringify(document, null, 2)}\n`);
