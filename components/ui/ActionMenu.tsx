@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Action Menu” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะเปิดปิด วัดตำแหน่งจาก DOM และย้ายโฟกัสเอง
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -12,27 +7,20 @@ import type { CSSProperties, ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Action Menu Item” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type ActionMenuItem = {
   disabled?: boolean;
   icon?: ReactNode;
+  // ต้องไม่ซ้ำกันในเมนูเดียว เพราะใช้เป็น key ของ React
   id: string;
   label: string;
   onSelect: () => void;
+  // danger ทำให้เป็นสีแดง ใช้กับรายการที่ลบหรือย้อนกลับไม่ได้
   variant?: "default" | "danger";
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Action Menu” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { align = "end", items, label = "เปิดเมนูจัดการ", }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// เมนูจุดสามจุดท้ายแถวตาราง เก็บคำสั่งที่ไม่ได้ใช้บ่อยไว้ไม่ให้แถวรก
 export function ActionMenu({
+  // end = ชิดขวาปุ่ม ใช้กับเมนูท้ายแถว start = ชิดซ้าย
   align = "end",
   items,
   label = "เปิดเมนูจัดการ",
@@ -48,12 +36,8 @@ export function ActionMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “find Removal Fallback” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // หาที่ลงของโฟกัสไว้ล่วงหน้า เผื่อคำสั่งที่เลือกลบแถวที่ปุ่มนี้อยู่ทิ้ง
+  // ถ้าไม่เตรียมไว้ โฟกัสจะตกไปที่ body แล้วคนใช้คีย์บอร์ดต้อง Tab ใหม่จากต้นหน้า
   const findRemovalFallback = () => {
     const trigger = triggerRef.current;
     const row = trigger?.closest("tr");
@@ -61,6 +45,7 @@ export function ActionMenu({
     if (row && table) {
       const rows = Array.from(table.querySelectorAll("tbody tr"));
       const rowIndex = rows.indexOf(row);
+      // ไล่หาแถวถัดไปก่อน ถ้าไม่มีค่อยย้อนขึ้นข้างบน ให้โฟกัสอยู่ใกล้จุดเดิมที่สุด
       const nearbyRows = [...rows.slice(rowIndex + 1), ...rows.slice(0, rowIndex).reverse()];
       for (const nearbyRow of nearbyRows) {
         const control = nearbyRow.querySelector<HTMLElement>(
@@ -70,33 +55,24 @@ export function ActionMenu({
       }
     }
 
+    // ไม่ได้อยู่ในตาราง หรือลบจนไม่เหลือแถว ก็ถอยไปที่หัวเรื่องของการ์ดที่ครอบอยู่
     return trigger?.closest<HTMLElement>("article, section")?.querySelector<HTMLElement>("h2, h3") ?? null;
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “focus Element” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - element: ค่า “element” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const focusElement = (element: HTMLElement | null) => {
+    // ถูกถอดออกจากหน้าไปแล้วก็โฟกัสไม่ได้ ต้องเช็คก่อน
     if (!element?.isConnected) return;
+    // หัวเรื่องปกติโฟกัสไม่ได้ ใส่ -1 ให้โฟกัสด้วยโค้ดได้ แต่ผู้ใช้กด Tab มาโดนเองไม่ได้
     if (!element.matches('button, a[href], input, select, textarea, [tabindex]')) {
       element.setAttribute("tabindex", "-1");
     }
+    // preventScroll กันหน้าเด้งไปมาตอนโฟกัสย้าย
     element.focus({ preventScroll: true });
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “preserve Focus After Action” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - trigger: ค่า “trigger” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - fallback: ค่า “fallback” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // กันโฟกัสหลุดหายหลังกดคำสั่ง มีสองจังหวะที่ต้องดัก
   const preserveFocusAfterAction = (trigger: HTMLButtonElement, fallback: HTMLElement | null) => {
+    // จังหวะแรก หลัง render รอบถัดไป ถ้าโฟกัสตกไป body ก็ดึงกลับมาที่ปุ่มเดิม
     window.requestAnimationFrame(() => {
       const activeElement = document.activeElement;
       if (activeElement === document.body || menuRef.current?.contains(activeElement)) {
@@ -104,6 +80,7 @@ export function ActionMenu({
       }
     });
 
+    // จังหวะสอง บางคำสั่งลบแถวหลังเรียก API เสร็จ ซึ่งช้ากว่า rAF มาก จึงต้องเฝ้า DOM รอ
     const observer = new MutationObserver(() => {
       if (trigger.isConnected) return;
       const activeElement = document.activeElement;
@@ -111,30 +88,21 @@ export function ActionMenu({
       observer.disconnect();
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    // เลิกเฝ้าใน 2 วิ ถ้าไม่มีอะไรถูกลบ จะได้ไม่ค้างกินแรงเครื่องไปเรื่อย ๆ
     window.setTimeout(() => observer.disconnect(), 2_000);
   };
 
   useEffect(() => {
+    // ผูก listener เฉพาะตอนเมนูเปิด ปิดแล้วไม่ต้องไปกวน event ของทั้งหน้า
     if (!isOpen) return;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close On Outside Interaction” ตามกฎของระบบ
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // เช็คทั้งปุ่มและตัวเมนู เพราะเมนูถูก portal ไปไว้ที่ body จึงไม่ได้อยู่ในปุ่ม
     const closeOnOutsideInteraction = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setIsOpen(false);
     };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close On Escape” ตามกฎของระบบ
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+
+    // Esc ปิดแล้วคืนโฟกัสให้ปุ่ม คนใช้คีย์บอร์ดจะได้ไปต่อจากจุดเดิม
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setIsOpen(false);
@@ -151,28 +119,27 @@ export function ActionMenu({
 
   useEffect(() => {
     if (!isOpen) {
+      // ล้างตำแหน่งเก่าทิ้ง ไม่งั้นเปิดครั้งหน้าจะแวบไปโผล่ที่เดิมก่อนวัดใหม่
       setMenuStyle(undefined);
       return;
     }
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “position Menu” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const positionMenu = () => {
       const trigger = triggerRef.current;
       if (!trigger) return;
       const triggerRect = trigger.getBoundingClientRect();
       const menuRect = menuRef.current?.getBoundingClientRect();
+      // รอบแรกยังไม่มีเมนูให้วัด จึงเดาขนาดไว้ก่อนจากจำนวนรายการ
       const width = menuRect?.width ?? 176;
       const height = menuRect?.height ?? Math.max(56, items.length * 44 + 12);
+      // เว้นขอบจอไว้ กันเมนูไปติดริมจนกดยาก
       const viewportPadding = 12;
       const gap = 8;
       const desiredLeft = align === "end" ? triggerRect.right - width : triggerRect.left;
+      // หนีบค่าไว้ในจอ ไม่ให้ล้นออกไปทั้งซ้ายและขวา
       const left = Math.min(window.innerWidth - width - viewportPadding, Math.max(viewportPadding, desiredLeft));
       const below = triggerRect.bottom + gap;
+      // กางลงล่างก่อน ถ้าที่ไม่พอค่อยพลิกขึ้นบน แถวท้ายตารางจะได้ไม่โดนขอบจอบัง
       const top = below + height <= window.innerHeight - viewportPadding
         ? below
         : Math.max(viewportPadding, triggerRect.top - height - gap);
@@ -180,17 +147,13 @@ export function ActionMenu({
     };
 
     positionMenu();
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “frame” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // รอบสองรอให้ render เสร็จก่อน จะได้วัดขนาดจริงแทนค่าที่เดาไว้ แล้วค่อยโฟกัสรายการแรก
     const frame = window.requestAnimationFrame(() => {
       positionMenu();
       menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
     });
     window.addEventListener("resize", positionMenu);
+    // true = จับ scroll ของกล่องข้างในด้วย ไม่ใช่แค่ของหน้าต่าง เมนูจะได้ตามปุ่มทัน
     window.addEventListener("scroll", positionMenu, true);
     return () => {
       window.cancelAnimationFrame(frame);
@@ -199,19 +162,16 @@ export function ActionMenu({
     };
   }, [align, isOpen, items.length]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “move Focus” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ลูกศรขึ้นลงเลื่อนระหว่างรายการ Home/End ไปหัวท้าย ตามมาตรฐานเมนูของ ARIA
   const moveFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!isOpen || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    // ข้ามรายการที่ปิดอยู่ ไม่งั้นโฟกัสจะไปค้างบนปุ่มที่กดไม่ได้
     const buttons = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []);
     if (!buttons.length) return;
+    // กันหน้าเลื่อนตามลูกศรไปด้วย
     event.preventDefault();
     const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    // % ทำให้วนกลับต้นเมื่อถึงท้าย และวนไปท้ายเมื่อถึงต้น
     const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowDown" ? (currentIndex + 1) % buttons.length : (currentIndex - 1 + buttons.length) % buttons.length;
     buttons[nextIndex]?.focus();
   };
@@ -219,6 +179,7 @@ export function ActionMenu({
   return (
     <div className="action-menu" ref={rootRef}>
       <IconButton
+        // ชี้ไปที่เมนูเฉพาะตอนเปิดอยู่ ไม่งั้นจะชี้ไปยัง id ที่ไม่มีใน DOM
         aria-controls={isOpen ? menuId : undefined}
         aria-expanded={isOpen}
         aria-haspopup="menu"
@@ -228,20 +189,23 @@ export function ActionMenu({
       >
         <MoreHorizontal aria-hidden="true" size={18} />
       </IconButton>
+      {/* วางที่ body กัน overflow ของตารางหรือการ์ดที่ครอบอยู่มาตัดเมนูขาด */}
       {isOpen && menuStyle && typeof document !== "undefined" ? createPortal(
         <div aria-label={label} className={`action-menu-popover action-menu-${align}`} id={menuId} onKeyDown={moveFocus} ref={menuRef} role="menu" style={menuStyle}>
           {items.map((item, index) => (
             <button
+              // โฟกัสรายการแรกที่กดได้ทันทีที่เปิด คนใช้คีย์บอร์ดจะได้ไม่ต้อง Tab เข้ามาเอง
               autoFocus={index === items.findIndex((candidate) => !candidate.disabled)}
               className={item.variant === "danger" ? "action-menu-danger" : undefined}
               disabled={item.disabled}
               key={item.id}
               onClick={() => {
+                // เก็บปุ่มกับที่ลงสำรองไว้ก่อน เพราะคำสั่งอาจลบแถวนี้ทิ้งจนหาไม่เจอทีหลัง
                 const trigger = triggerRef.current;
                 const fallback = findRemovalFallback();
                 setIsOpen(false);
-                // Move focus out of the portalled menu before it is removed. This also
-                // gives dialogs opened by the action a stable element to restore to.
+                // ย้ายโฟกัสออกจากเมนูก่อนเมนูถูกถอด และเผื่อคำสั่งเปิดกล่องโต้ตอบ
+                // กล่องนั้นจะได้มีปุ่มที่แน่นอนไว้คืนโฟกัสให้ตอนปิด
                 trigger?.focus({ preventScroll: true });
                 item.onSelect();
                 if (trigger) preserveFocusAfterAction(trigger, fallback);
