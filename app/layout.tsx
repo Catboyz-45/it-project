@@ -7,7 +7,6 @@
 import type { Metadata } from "next";
 import { Anuphan } from "next/font/google";
 import "@/app/globals.css";
-import { ClickSpark } from "@/components/ui/ClickSpark";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { platformProfile } from "@/lib/platform-profile";
 
@@ -47,9 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html className={anuphan.variable} lang="th">
       <body>
-        <ClickSpark sparkColor="#ec48bd" sparkCount={8} sparkRadius={18} sparkSize={10}>
-          <ToastProvider>{children}</ToastProvider>
-        </ClickSpark>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
