@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Super Admin Resource Tables” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// โหลดข้อมูลทีละหน้าและเก็บตัวกรองไว้ฝั่งเบราว์เซอร์
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -25,10 +20,6 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Page Info” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PageInfo = {
   page: number;
   pageSize: number;
@@ -36,20 +27,12 @@ type PageInfo = {
   total?: number;
   totalPages?: number;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Property” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Property = {
   id: string;
   name: string;
   shortName: string;
   isActive: boolean;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Admin” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Admin = {
   id: string;
   email: string;
@@ -59,10 +42,6 @@ type Admin = {
   approvalRejectionReason: string | null;
   memberships: Array<{ property: { id: string; name: string } }>;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Plan” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type Plan = {
   id: string;
   code: string;
@@ -74,10 +53,6 @@ type Plan = {
   isActive: boolean;
   _count: { subscriptions: number };
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Audit Log” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type AuditLog = {
   id: string;
   action: string;
@@ -87,13 +62,8 @@ type AuditLog = {
   property: { name: string } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Paginated Table” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, empty, endpoint, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตารางที่โหลดทีละหน้า ค้นหาได้ และกรองได้ ใช้ร่วมกันทั้งสี่ตารางในหน้าผู้ดูแลระบบ
+// generic เพราะแต่ละตารางมีรูปแบบข้อมูลต่างกัน แต่วิธีโหลดกับแบ่งหน้าเหมือนกันหมด
 function PaginatedTable<T>({
   action,
   children,
@@ -102,6 +72,7 @@ function PaginatedTable<T>({
   endpoint,
 }: {
   action?: React.ReactNode;
+  // รับเป็นฟังก์ชัน เพื่อให้ผู้เรียกเป็นคนตัดสินใจว่าจะวาดแต่ละแถวยังไง
   children: (rows: T[]) => React.ReactNode;
   empty: string;
   emptyDescription?: string;
@@ -115,17 +86,9 @@ function PaginatedTable<T>({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState("");
+  // สองตารางนี้เท่านั้นที่มีช่องกรอง ดูจาก endpoint แทนการส่ง prop เพิ่ม
   const hasFilter = endpoint.endsWith("/users") || endpoint.endsWith("/audit-logs");
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const load = useCallback(
     async (page: number, append: boolean, signal?: AbortSignal) => {
       if (append) setIsLoadingMore(true);
@@ -137,6 +100,7 @@ function PaginatedTable<T>({
           pageSize: "20",
         });
         if (debouncedQuery) search.set("query", debouncedQuery);
+        // ชื่อพารามิเตอร์ของตัวกรองต่างกันตาม endpoint บัญชีกรองด้วยสถานะอนุมัติ ส่วน audit log กรองด้วยผลลัพธ์
         if (filter) search.set(endpoint.endsWith("/users") ? "approvalStatus" : "result", filter);
         const response = await fetch(`${endpoint}?${search}`, {
           cache: "no-store",
@@ -152,6 +116,7 @@ function PaginatedTable<T>({
         setRows(payload.data!);
         setPageInfo(payload.pageInfo);
       } catch (cause) {
+        // ยกเลิกเองตอนผู้ใช้พิมพ์ต่อ ไม่ใช่ข้อผิดพลาดจริง ไม่ต้องขึ้นเตือนให้ตกใจ
         if (cause instanceof DOMException && cause.name === "AbortError")
           return;
         setError(
@@ -165,17 +130,14 @@ function PaginatedTable<T>({
     [debouncedQuery, endpoint, filter],
   );
 
+  // หน่วง 300 มิลลิวินาทีหลังหยุดพิมพ์ แยกค่าที่หน่วงแล้วออกจากค่าที่พิมพ์อยู่
+  // จะได้ช่องกรอกตอบสนองทันทีโดยที่ยังไม่ยิงคำขอ
   useEffect(() => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timer” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  // เปลี่ยนคำค้นหรือตัวกรองก็กลับไปหน้า 1 เสมอ พร้อมยกเลิกคำขอเก่าที่ยังค้าง
   useEffect(() => {
     const controller = new AbortController();
     void load(1, false, controller.signal);
@@ -300,26 +262,18 @@ function PaginatedTable<T>({
   );
 }
 
+// as const ทำให้ TypeScript รู้ว่ามีแค่สามค่านี้ ไม่ใช่ string อะไรก็ได้
 const approvalLabels = {
   PENDING: "รออนุมัติ",
   APPROVED: "อนุมัติแล้ว",
   REJECTED: "ไม่อนุมัติ",
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Super Admin Resource” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type SuperAdminResource =
   "plans" | "properties" | "accounts" | "audit-logs";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Super Admin Resource Tables” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { accountAction, propertyAction, resources = ["plans", "prop: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตารางข้อมูลหลักของผู้ดูแลระบบ แพ็กเกจ หอพัก บัญชี และ audit log
+// แต่ละหน้าเลือกเอาเฉพาะตารางที่ต้องการผ่าน resources
 export function SuperAdminResourceTables({
   accountAction,
   propertyAction,
@@ -567,13 +521,7 @@ export function SuperAdminResourceTables({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Plan Editor” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { plan, onClose, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องสร้างและแก้ไขแพ็กเกจ ใช้ตัวเดียวกันทั้งสองงาน "new" แปลว่าสร้างใหม่
 function PlanEditor({
   plan,
   onClose,
@@ -583,18 +531,13 @@ function PlanEditor({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function submit(event: React.FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
     setError("");
     const form = new FormData(event.currentTarget);
+    // สร้างใหม่ต้องส่ง code กับค่าเริ่มต้นไปด้วย ส่วนแก้ไขส่ง isActive แทน เพราะ code เปลี่ยนไม่ได้
     const body = {
       ...(plan === "new"
         ? {
@@ -607,6 +550,7 @@ function PlanEditor({
         : {}),
       name: String(form.get("name")),
       monthlyPrice: Number(form.get("monthlyPrice")),
+      // ปล่อยว่างได้ หมายถึงไม่เปิดขายรายปี ระบบจะคิดจากรายเดือนคูณ 12 ให้เอง
       yearlyPrice: form.get("yearlyPrice")
         ? Number(form.get("yearlyPrice"))
         : null,
@@ -723,13 +667,7 @@ function PlanEditor({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Resource Section” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { action, children, icon, subtitle, title, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กรอบของแต่ละตาราง แยกออกมาเพื่อให้ระยะห่างเท่ากันทุกตาราง
 function ResourceSection({ children }: { children: React.ReactNode }) {
   return (
     <section className="panel overflow-hidden p-0">{children}</section>
