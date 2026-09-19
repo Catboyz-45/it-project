@@ -1,21 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นการทดสอบอัตโนมัติของ “accessibility controls.spec” เพื่อป้องกันพฤติกรรมสำคัญย้อนกลับไปเสีย
- * การทำงาน: เตรียมสถานการณ์ เรียกโค้ดเหมือนผู้ใช้หรือระบบจริง แล้วตรวจผลลัพธ์ทั้งกรณีสำเร็จและกรณีที่ต้องปฏิเสธ
- */
-
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
 import { measureContrast } from "./helpers/contrast";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “login” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - email: ค่า “email” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ล็อกอินที่ใช้ซ้ำทุกเทสต์ในไฟล์นี้
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("อีเมล").fill(email);
@@ -24,22 +11,11 @@ async function login(page: Page, email: string) {
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “contrast Ratio” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - locator: ค่า “locator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// วัดความต่างของสีแบบย่อ คืนมาแค่ตัวเลข ส่วนตัวเต็มที่บอกค่าสีด้วยอยู่ใน helpers/contrast.ts
+// ทั้งก้อนรันในเบราว์เซอร์ เพราะต้องใช้สีที่เรนเดอร์จริงหลังคำนวณ CSS ครบแล้ว
 async function contrastRatio(locator: Locator) {
   return locator.evaluate((element) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: แปลงข้อมูลในขั้นตอน “parse” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-     * รับค่า:
-     * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
+    // ยืมมือ canvas แปลงสี CSS ทุกรูปแบบเป็นตัวเลข rgba ไม่ต้องเขียนตัวแปลงเอง
     const parse = (value: string) => {
       const canvas = document.createElement("canvas");
       canvas.width = 1;
@@ -52,24 +28,11 @@ async function contrastRatio(locator: Locator) {
       const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
       return [red, green, blue, alpha / 255];
     };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “composite” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - foreground: ค่า “foreground” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * - background: ค่า “background” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // ซ้อนสีโปร่งใสลงบนพื้นหลัง ได้สีที่ตาเห็นจริง
     const composite = (foreground: number[], background: number[]) => foreground
       .slice(0, 3)
       .map((channel, index) => channel * foreground[3] + background[index] * (1 - foreground[3]));
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “background For” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - start: ค่า “start” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
+    // ไล่ขึ้นไปหาตัวแม่จนเจอชั้นที่ทึบ เพราะตัวเองอาจโปร่งใสจนมองทะลุไปเห็นพื้นหลังข้างหลัง
     const backgroundFor = (start: Element) => {
       let result = [255, 255, 255];
       const layers: number[][] = [];
@@ -81,58 +44,36 @@ async function contrastRatio(locator: Locator) {
       for (const layer of layers.reverse()) result = composite(layer, result);
       return result;
     };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “linear” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
+    // แปลงค่าสีเป็นความสว่างเชิงเส้น ตัวเลขทั้งหมดมาจากสเปก sRGB
     const linear = (value: number) => {
       const normalized = value / 255;
       return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
     };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “luminance” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - color: ค่า “color” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // ถ่วงน้ำหนักสีเขียวมากสุดเพราะตาคนไวต่อสีเขียวกว่าสีอื่น ตามสูตรของ WCAG
     const luminance = (color: number[]) => 0.2126 * linear(color[0]) + 0.7152 * linear(color[1]) + 0.0722 * linear(color[2]);
     const background = backgroundFor(element);
     const foreground = composite(parse(getComputedStyle(element).color), background);
     const light = Math.max(luminance(foreground), luminance(background));
     const dark = Math.min(luminance(foreground), luminance(background));
+    // สูตรอัตราส่วนของ WCAG บวก 0.05 กันการหารด้วยศูนย์ตอนพื้นดำสนิท
     return (light + 0.05) / (dark + 0.05);
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “expect Touch Target” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - locator: ค่า “locator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ปุ่มต้องไม่เล็กกว่า 44x44 พิกเซล เป็นเกณฑ์ขนาดปลายนิ้วตามแนวทางของ WCAG
 async function expectTouchTarget(locator: Locator) {
   const box = await locator.boundingBox();
+  // ไม่มีกรอบแปลว่าไม่ได้ถูกวาดบนจอ วัดต่อไปก็ไม่มีความหมาย
   expect(box, "control must have a rendered bounding box").not.toBeNull();
   expect(box!.width, "touch target width").toBeGreaterThanOrEqual(44);
   expect(box!.height, "touch target height").toBeGreaterThanOrEqual(44);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “expect Visible Focus Indicator” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - locator: ค่า “locator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// กรอบโฟกัสต้องเห็นชัดและเหมือนกันทั้งแอป คนใช้คีย์บอร์ดจะได้รู้ว่าตอนนี้อยู่ตรงไหน
 async function expectVisibleFocusIndicator(locator: Locator) {
   await locator.focus();
-  // Programmatic focus does not always activate :focus-visible for button-like
-  // controls. Move away and back with the keyboard to test the real Tab path.
+  // สั่งโฟกัสด้วยโค้ดไม่ทำให้ :focus-visible ติดเสมอไปกับของที่เป็นปุ่ม
+  // จึงต้องกด Tab ออกแล้ว Shift+Tab กลับ เพื่อจำลองเส้นทางที่คนกดจริง
   await locator.page().keyboard.press("Tab");
   await locator.page().keyboard.press("Shift+Tab");
   await expect(locator).toBeFocused();
@@ -144,34 +85,33 @@ async function expectVisibleFocusIndicator(locator: Locator) {
       outlineWidth: Number.parseFloat(style.outlineWidth),
       shadow: style.boxShadow,
     };
+  // เจาะจงสีและความหนาเลย เพราะต้องเหมือนกันทุกที่ ไม่ใช่แค่มีกรอบอะไรก็ได้
   })).toMatchObject({
     outlineColor: "rgb(70, 81, 199)",
     outlineStyle: "solid",
     outlineWidth: 3,
   });
+  // ต้องมีเงาด้วยอีกชั้น กันกรณีที่กรอบไปทับพื้นหลังสีใกล้กันจนมองไม่ออก
   expect(await locator.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “expect Tooltip On Keyboard Focus” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - locator: ค่า “locator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - text: ค่า “text” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// tooltip ต้องขึ้นตอนกด Tab มาโฟกัสด้วย ไม่ใช่ขึ้นเฉพาะตอนเอาเมาส์ชี้
+// ไม่งั้นคนที่ใช้คีย์บอร์ดอย่างเดียวจะไม่มีทางรู้ว่าปุ่มไอคอนนั้นคือปุ่มอะไร
 async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
   await locator.focus();
   await expect(locator).toBeFocused();
+  // ผูกกันด้วย aria-describedby โปรแกรมอ่านหน้าจอจึงอ่าน tooltip ต่อจากชื่อปุ่มได้
   const tooltipId = await locator.getAttribute("aria-describedby");
   expect(tooltipId).toBeTruthy();
   const tooltip = locator.page().locator(`[role="tooltip"]#${tooltipId}`);
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toHaveText(text);
+  // tooltip ต้องอยู่ในจอทั้งใบ ปุ่มที่อยู่ริมขอบมักดัน tooltip ล้นออกไปจนอ่านไม่ได้
   await expect.poll(() => tooltip.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     return rect.left >= 0 && rect.right <= window.innerWidth && rect.top >= 0 && rect.bottom <= window.innerHeight;
   })).toBe(true);
+  // ย้ายโฟกัสออกแล้ว tooltip ต้องหาย ไม่ค้างเกะกะบนจอ
   await locator.blur();
   await expect(tooltip).toBeHidden();
   await locator.hover();
@@ -181,6 +121,7 @@ async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
 }
 
 test.describe("Owner accessibility controls", () => {
+  // หน้าจอตอนค้นไม่เจอต้องอ่านง่าย ไม่กินพื้นที่ทั้งหน้า และสีแดงต้องยังอ่านออก
   test("empty search results are compact, centered and clearly red", async ({ page }) => {
     await login(page, e2e.ownerEmail);
     await page.goto(`/admin/properties/${e2e.propertyId}/contracts`);
@@ -204,8 +145,10 @@ test.describe("Owner accessibility controls", () => {
     const channels = color.foreground.match(/\d+/g)?.map(Number);
     expect(color.ratio, "empty-state text must meet WCAG AA contrast").toBeGreaterThanOrEqual(4.5);
     expect(channels, "normalized foreground color must expose RGB channels").toHaveLength(3);
+    // เช็คว่าแดงจริงโดยดูว่าค่าสีแดงมากกว่าเขียวและน้ำเงิน ไม่ผูกกับรหัสสีเป๊ะ ๆ ปรับเฉดได้โดยเทสต์ไม่พัง
     expect(channels![0], "empty-state text must remain visually red").toBeGreaterThan(channels![1]);
     expect(channels![0], "empty-state text must remain visually red").toBeGreaterThan(channels![2]);
+    // จำกัดความสูงและความกว้าง กันกล่องว่างบานจนดันเนื้อหาอื่นหายไปจากจอ
     expect(layout.height).toBeLessThan(180);
     expect(layout.iconOffset).not.toBeNull();
     expect(layout.iconOffset!).toBeLessThan(2);
@@ -213,8 +156,10 @@ test.describe("Owner accessibility controls", () => {
     expect(layout.width).toBeLessThanOrEqual(512);
   });
 
+  // แถบเครื่องมือแก้เอกสาร ต้องบอกสถานะเปิดปิดผ่าน aria-pressed และเลื่อนด้วยลูกศรได้
   test("document toolbar exposes toggle state, keyboard navigation and focus tooltips", async ({ page }) => {
     await login(page, e2e.ownerEmail);
+    // ยิงสร้างแม่แบบก่อน หอที่ยังไม่เคยมีแม่แบบจะเปิดหน้าแก้ไขไม่ได้
     const templateStatus = await page.evaluate(async (propertyId) => {
       const response = await fetch(`/api/document-templates/contract?propertyId=${encodeURIComponent(propertyId)}`, {
         body: "{}",
@@ -242,6 +187,7 @@ test.describe("Owner accessibility controls", () => {
     await expect(heading).toBeFocused();
 
     const editor = page.getByRole("textbox", { name: "เนื้อหา template" });
+    // จำลองการลากคลุมข้อความ ปุ่มตัวหนาจะทำงานได้ต้องมีข้อความถูกเลือกอยู่ก่อน
     await editor.evaluate((element) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const textNode = walker.nextNode();
@@ -254,14 +200,17 @@ test.describe("Owner accessibility controls", () => {
       document.dispatchEvent(new Event("selectionchange"));
     });
     await bold.click();
+    // aria-pressed บอกโปรแกรมอ่านหน้าจอว่าปุ่มนี้กำลังเปิดอยู่ ดูแค่สีปุ่มเปลี่ยนไม่พอ
     await expect(bold).toHaveAttribute("aria-pressed", "true");
 
     await editor.click();
     await center.click();
     await expect(center).toHaveAttribute("aria-pressed", "true");
+    // จัดกึ่งกลางแล้วปุ่มชิดซ้ายต้องกลายเป็นปิด เพราะเลือกได้ทีละอย่าง
     await expect(toolbar.getByRole("button", { name: "ชิดซ้าย" })).toHaveAttribute("aria-pressed", "false");
   });
 
+  // ไล่เช็คของหลายชนิด ลิงก์ ช่องกรอก การ์ด และแท็บ ว่ากรอบโฟกัสหน้าตาเหมือนกันหมด
   test("focus indicators are consistent for links, fields, cards and tabs", async ({ page }) => {
     await login(page, e2e.ownerEmail);
 
@@ -278,6 +227,7 @@ test.describe("Owner accessibility controls", () => {
     await expectVisibleFocusIndicator(page.getByRole("button", { name: /จัดการห้อง E101|ดูรายละเอียดห้อง E101/ }));
   });
 
+  // dropdown ต้องครบตามมาตรฐาน ARIA ทั้งลูกศร Home End พิมพ์หาตัวเลือก และ Escape
   test("dropdown supports complete keyboard navigation and type-ahead", async ({ page }) => {
     await login(page, e2e.ownerEmail);
     await page.goto(`/admin/properties/${e2e.propertyId}/invoices`);
@@ -294,6 +244,7 @@ test.describe("Owner accessibility controls", () => {
     await page.keyboard.press("Home");
     await expect(page.getByRole("option", { name: "ทุกสถานะ" })).toBeFocused();
 
+    // พิมพ์ทีละตัวอักษรเพื่อทดสอบการหาตัวเลือกจากสิ่งที่พิมพ์ ต้องกระโดดไปที่ตรงกันได้
     for (const key of Array.from("ค้าง")) {
       await page.locator(":focus").dispatchEvent("keydown", { key });
     }
@@ -304,11 +255,13 @@ test.describe("Owner accessibility controls", () => {
     await trigger.focus();
     await page.keyboard.press("Space");
     await expect(page.getByRole("option", { name: "ค้างชำระ" })).toBeFocused();
+    // Escape ต้องปิดแล้วส่งโฟกัสกลับปุ่มที่กดเปิด ไม่ใช่ปล่อยโฟกัสหายไป
     await page.keyboard.press("Escape");
     await expect(trigger).toBeFocused();
     await expect(page.getByRole("listbox")).toBeHidden();
   });
 
+  // เทสต์รวมของฝั่งเจ้าของหอ เมนู tooltip สี กล่องยืนยัน และขนาดปุ่มบนมือถือ
   test("keyboard menu, tooltip, contrast and mobile targets meet the UI contract", async ({ page }) => {
     await login(page, e2e.ownerEmail);
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
@@ -333,6 +286,7 @@ test.describe("Owner accessibility controls", () => {
     await expect(announcementDialog).toHaveAttribute("aria-describedby", "create-announcement-description");
     await expect(announcementDialog.getByLabel("หัวข้อประกาศ")).toBeFocused();
 
+    // Tab จากปุ่มสุดท้ายต้องวนกลับมาปุ่มแรกในกล่อง ไม่หลุดออกไปหลังกล่อง
     const dialogButtons = announcementDialog.getByRole("button");
     await dialogButtons.last().focus();
     await page.keyboard.press("Tab");
@@ -345,6 +299,7 @@ test.describe("Owner accessibility controls", () => {
     await page.getByRole("menuitem", { name: "ลบ" }).click();
     const confirmation = page.getByRole("alertdialog", { name: /ลบ/ });
     await expect(confirmation).toBeVisible();
+    // ฉากหลังต้องคลุมเต็มจอพอดี มีรูจะกดโดนของข้างหลังทั้งที่กล่องยืนยันยังเปิดอยู่
     const confirmationLayout = await confirmation.evaluate((element) => {
       const dialog = element.getBoundingClientRect();
       const backdrop = element.parentElement?.getBoundingClientRect();
@@ -366,8 +321,10 @@ test.describe("Owner accessibility controls", () => {
     await confirmation.getByRole("button", { name: "ยกเลิก" }).click();
     await expect(confirmation).toBeHidden();
     await expect(menuTrigger).toBeFocused();
+    // ปิดกล่องแล้วโฟกัสต้องไปเกาะอะไรสักอย่าง ไม่หล่นไปที่ body จนกด Tab ต่อไม่ได้
     await expect.poll(() => page.evaluate(() => document.activeElement !== document.body)).toBe(true);
 
+    // ย่อเป็นจอมือถือท้ายสุด ปุ่มเดิมต้องยังใหญ่พอให้นิ้วกด
     await page.setViewportSize({ width: 390, height: 844 });
     await expectTouchTarget(createButton);
     await expectTouchTarget(menuTrigger);
@@ -375,12 +332,14 @@ test.describe("Owner accessibility controls", () => {
 });
 
 test.describe("Tenant accessibility controls", () => {
+  // ฝั่งผู้เช่าเน้นมือถือ จึงตั้งขนาดจอเป็นมือถือตั้งแต่ต้น
   test("keyboard tooltip, contrast and mobile targets meet the UI contract", async ({ page }) => {
     await login(page, e2e.tenantEmail);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/tenant");
 
     const notificationButton = page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ });
+    // อ่านชื่อจากปุ่มจริง เพราะมีจำนวนแจ้งเตือนต่อท้ายซึ่งเปลี่ยนไปตามข้อมูล
     const notificationLabel = await notificationButton.getAttribute("aria-label");
     expect(notificationLabel).toBeTruthy();
     await expectTooltipOnKeyboardFocus(notificationButton, notificationLabel!);
