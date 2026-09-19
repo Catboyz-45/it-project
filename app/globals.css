@@ -700,9 +700,10 @@
   }
   .action-menu-popover .action-menu-danger { @apply text-red-700 hover:bg-red-50; }
   .empty-state { @apply grid min-h-48 place-items-center gap-1 rounded-lg border border-dashed border-[#d4d4d8] p-10 text-center text-[#62646c]; }
-  .empty-state > svg { @apply mb-3 box-content size-5 rounded-full border border-[#e4e4e7] bg-[#fff] p-2.5 text-[#62646c]; }
+  .empty-state > svg { @apply mb-4 box-content size-5 rounded-lg border border-[#e4e4e7] bg-[#fff] p-2.5 text-[#62646c]; }
   .empty-state > strong { @apply text-xl font-semibold text-[#292a30]; }
   .empty-state > p { @apply max-w-[420px] text-sm leading-6 text-[#62646c]; }
+  .empty-state > p:only-of-type { @apply text-base font-medium text-[#292a30]; }
 
   /* ตารางเทียบแพ็กเกจ: ทุกแพ็กเกจอยู่ในกรอบเดียวกันคั่นด้วยเส้น ไม่ใช่การ์ดแยกใบ
      เพื่อให้กวาดสายตาเทียบราคาและสิทธิ์ในแนวนอนได้ */
