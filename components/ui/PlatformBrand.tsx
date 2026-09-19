@@ -1,12 +1,6 @@
 import Image from "next/image";
 import { platformProfile } from "@/lib/platform-profile";
 
-/**
- * โลโก้และชื่อแพลตฟอร์ม ใช้ซ้ำทุกที่ที่ต้องแสดงแบรนด์
- *
- * ชื่อกับโลโก้ไม่ได้รับมาทาง props แต่ดึงจาก platformProfile ที่เดียว
- * เวลาเปลี่ยนชื่อแบรนด์หรือเปลี่ยนรูปจึงแก้ไฟล์เดียวแล้วเปลี่ยนทั้งระบบ
- */
 type PlatformBrandProps = {
   // คลาสเพิ่มเติมของกล่องนอกสุด เผื่อแต่ละที่ต้องการระยะหรือสีต่างกัน
   className?: string;
@@ -18,6 +12,8 @@ type PlatformBrandProps = {
   showTagline?: boolean;
 };
 
+// โลโก้และชื่อแพลตฟอร์ม ใช้ซ้ำทุกที่ที่ต้องแสดงแบรนด์
+// ชื่อกับรูปดึงจาก platformProfile ที่เดียว เปลี่ยนแบรนด์จึงแก้ไฟล์เดียวแล้วเปลี่ยนทั้งระบบ
 export function PlatformBrand({
   className = "",
   context,

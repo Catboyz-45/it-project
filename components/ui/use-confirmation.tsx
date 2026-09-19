@@ -14,26 +14,17 @@ type Confirmation = {
   variant?: "default" | "danger";
 };
 
-/**
- * ทำให้กล่องยืนยันเรียกใช้ง่ายเหมือน window.confirm แต่เป็นกล่องของเราเอง
- *
- * ปัญหาที่แก้: กล่องยืนยันเป็น UI ที่ต้อง render ส่วนโค้ดที่อยากถามเป็นตรรกะ
- * ปกติจะต้องสร้าง state เปิด/ปิด แล้วแยกโค้ดหลังกดยืนยันไปไว้อีกที่ อ่านยาก
- *
- * hook นี้รวบให้เขียนต่อกันเป็นบรรทัดเดียวได้:
- *   if (!(await confirm({ title, description }))) return;
- *   ...โค้ดที่ทำต่อเมื่อผู้ใช้กดยืนยัน
- *
- * วิธีใช้: เอา confirm ไปเรียกตอนต้องการถาม และวาง confirmationDialog ไว้ใน JSX
- * ของหน้า ไม่งั้นกล่องจะไม่ถูก render ออกมา
- */
+// ทำให้กล่องยืนยันเรียกใช้ง่ายเหมือน window.confirm แต่เป็นกล่องของเราเอง
+// เขียนต่อกันเป็นบรรทัดเดียวได้:  if (!(await confirm({ title, description }))) return;
+// วิธีใช้: เรียก confirm ตอนต้องการถาม และวาง confirmationDialog ไว้ใน JSX ของหน้า
+// ไม่งั้นกล่องจะไม่ถูก render ออกมา
 export function useConfirmation() {
   // เก็บคำถามที่ค้างอยู่ พร้อม resolve ของ Promise ที่รอคำตอบ
   // เป็น null แปลว่าตอนนี้ไม่ได้ถามอะไรอยู่ กล่องจึงไม่ถูกแสดง
   const [pending, setPending] = useState<(Confirmation & { resolve: (value: boolean) => void }) | null>(null);
 
-  // คืน Promise ที่ยัง "ค้าง" ไว้ก่อน แล้วเก็บ resolve ไว้ใน state
-  // ตัว Promise จะยังไม่จบจนกว่าผู้ใช้จะกดปุ่ม ทำให้ฝั่งที่เรียกใช้ await รอได้
+  // คืน Promise ที่ยังค้างไว้ก่อน แล้วเก็บ resolve ไว้ใน state
+  // Promise จะยังไม่จบจนกว่าผู้ใช้จะกดปุ่ม ทำให้ฝั่งที่เรียกใช้ await รอได้
   const confirm = useCallback((options: Confirmation) => new Promise<boolean>((resolve) => {
     setPending({ ...options, resolve });
   }), []);
