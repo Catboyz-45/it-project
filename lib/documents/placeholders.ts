@@ -1,22 +1,15 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: ดูแลขั้นตอนสร้างหรือจัดรูปแบบเอกสารในหัวข้อ “placeholders”
- * การทำงาน: รับข้อมูลที่ผ่านการตรวจแล้ว สร้างผลลัพธ์เอกสารอย่างสม่ำเสมอ และส่งต่อให้ storage โดยไม่เปิดเผยตำแหน่งไฟล์จริงแก่ผู้ใช้
- */
-
 import { z } from "zod";
 import type { DocumentKind } from "@/lib/documents/types";
 
+// สามช่องนี้มีในเอกสารทุกชนิด แยกออกมาไม่ให้เขียนซ้ำ
 const commonFields = {
   property_name: z.string().trim().min(1).max(160),
   room_number: z.string().trim().min(1).max(20),
   tenant_name: z.string().trim().min(1).max(160),
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกาศค่าหรือ schema “contract Data Schema” ที่ส่วนอื่นนำไปใช้ร่วมกัน เพื่อให้กฎและรูปแบบมีแหล่งอ้างอิงเดียว
- */
+// ตรวจข้อมูลที่จะถูกแทนลงในช่อง {{...}} ของ Template
+// strict จึงปฏิเสธช่องที่ไม่รู้จัก กันการแอบยัดค่าอื่นเข้าไปในเอกสาร
 export const contractDataSchema = z.object({
   ...commonFields,
   reference_id: z.string().trim().min(1).max(80),
@@ -28,10 +21,6 @@ export const contractDataSchema = z.object({
   deposit_amount: z.number().nonnegative().max(10_000_000),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกาศค่าหรือ schema “invoice Data Schema” ที่ส่วนอื่นนำไปใช้ร่วมกัน เพื่อให้กฎและรูปแบบมีแหล่งอ้างอิงเดียว
- */
 export const invoiceDataSchema = z.object({
   ...commonFields,
   reference_id: z.string().trim().min(1).max(80),
@@ -40,25 +29,15 @@ export const invoiceDataSchema = z.object({
   water_amount: z.number().nonnegative().max(10_000_000),
   electricity_amount: z.number().nonnegative().max(10_000_000),
   service_amount: z.number().nonnegative().max(10_000_000),
+  // ยอดรวมเพดานสูงกว่าช่องอื่น เพราะเป็นผลบวกของทุกช่อง
   total_amount: z.number().nonnegative().max(50_000_000),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Contract Document Data” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type ContractDocumentData = z.infer<typeof contractDataSchema>;
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Invoice Document Data” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type InvoiceDocumentData = z.infer<typeof invoiceDataSchema>;
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Document Data” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type DocumentData = ContractDocumentData | InvoiceDocumentData;
 
+// ชื่อไทยของแต่ละช่อง ใช้แสดงในปุ่มแทรกช่องของตัวแก้ไข Template
 export const placeholderLabels: Record<DocumentKind, Record<string, string>> = {
   contract: {
     property_name: "ชื่อหอพัก", room_number: "เลขห้อง", tenant_name: "ชื่อผู้เช่า",
@@ -74,14 +53,7 @@ export const placeholderLabels: Record<DocumentKind, Record<string, string>> = {
   },
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “parse Document Data” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - kind: ค่า “kind” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด DocumentData ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// เลือกตัวตรวจตามชนิดเอกสาร ต้องตรวจเสมอเพราะข้อมูลมาจากฝั่งเบราว์เซอร์
 export function parseDocumentData(kind: DocumentKind, value: unknown): DocumentData {
   return kind === "contract" ? contractDataSchema.parse(value) : invoiceDataSchema.parse(value);
 }
