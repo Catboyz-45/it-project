@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Tenants Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บคำค้นกับแท็บที่เลือก และโหลดข้อมูลทีละหน้าจากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -18,13 +13,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenants Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { filteredTenants, onChanged, onOpenTenantDetail, propertyId: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าผู้เช่า มีสามแท็บ ผู้เช่าปัจจุบัน คำขอเข้าพัก และประวัติการย้าย
 export function TenantsPage({
   filteredTenants,
   onChanged,
@@ -43,7 +32,9 @@ export function TenantsPage({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // เก็บแท็บไว้ใน URL เพื่อให้กดรีเฟรชหรือแชร์ลิงก์แล้วยังอยู่แท็บเดิม
   const requestedView = searchParams.get("tab");
+  // ค่าที่ไม่รู้จักใน URL ก็ถอยไปแท็บแรก ไม่เชื่อค่าที่ผู้ใช้พิมพ์เอง
   const initialView = requestedView === "pending" || requestedView === "transitions" ? requestedView : "active";
   const [view, setView] = useState<"active" | "pending" | "transitions">(initialView);
   const [query, setQuery] = useState("");
@@ -52,18 +43,11 @@ export function TenantsPage({
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Tenants” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadTenants = useCallback(async (targetPage = 1, signal?: AbortSignal) => {
     setIsLoading(true);
     setLoadError("");
     try {
+      // ส่งคำค้นไปให้เซิร์ฟเวอร์ ไม่ได้กรองในเครื่อง เพราะผู้เช่าทั้งหอมีเยอะเกินจะโหลดมาหมด
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/tenants?page=${targetPage}&pageSize=20&query=${encodeURIComponent(query.trim())}`, {
         cache: "no-store", signal,
       });
@@ -73,10 +57,12 @@ export function TenantsPage({
         requestId?: string;
         pageInfo?: ServerPageInfo;
       };
+      // เช็คทั้งสถานะและตัวข้อมูล เพราะตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้
       if (!response.ok || !payload.data || !payload.pageInfo) throw createApiError(payload, "โหลดข้อมูลผู้เช่าไม่สำเร็จ");
       setTenants(payload.data);
       setPageInfo(payload.pageInfo);
     } catch (error) {
+      // ยกเลิกเองตอนผู้ใช้พิมพ์ต่อ ไม่ใช่ข้อผิดพลาดจริง ไม่ต้องขึ้นเตือนให้ตกใจ
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(formatClientError(error, "โหลดข้อมูลผู้เช่าไม่สำเร็จ"));
     } finally {
@@ -86,36 +72,31 @@ export function TenantsPage({
 
   useEffect(() => {
     const controller = new AbortController();
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timeout” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // หน่วง 250 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
+    // ส่วน abort ยกเลิกคำขอเก่า กันผลเก่ามาถึงทีหลังแล้วทับผลใหม่
     const timeout = window.setTimeout(() => void loadTenants(1, controller.signal), 250);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [loadTenants]);
 
+  // ตามการกดปุ่มย้อนกลับของเบราว์เซอร์ด้วย เพราะ URL เปลี่ยนได้โดยไม่ผ่าน selectView
   useEffect(() => {
     setView(requestedView === "pending" || requestedView === "transitions" ? requestedView : "active");
   }, [requestedView]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “select View” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - nextView: ค่า “next View” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนแท็บพร้อมอัปเดต URL ให้ตรงกัน
   const selectView = (nextView: "active" | "pending" | "transitions") => {
     setView(nextView);
     const params = new URLSearchParams(searchParams.toString());
+    // แท็บแรกไม่ต้องใส่ใน URL ให้ลิงก์สั้นและสะอาด
     if (nextView === "active") params.delete("tab");
     else params.set("tab", nextView);
     const queryString = params.toString();
+    // replace ไม่ใช่ push เพราะสลับแท็บไม่ควรไปสะสมในประวัติของปุ่มย้อนกลับ
+    // scroll: false กันหน้าเด้งกลับไปบนสุดทุกครั้งที่สลับ
     router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false });
   };
 
+  // นับจากข้อมูลของหน้าที่โหลดมาแล้ว จึงเป็นตัวเลขของหน้านี้ ไม่ใช่ทั้งหอ
   const expiring = tenants.filter((tenant) => {
     if (!tenant.contractEnd) return false;
     const remainingDays = daysUntilLeaseExpiry(tenant.contractEnd);
@@ -137,6 +118,7 @@ export function TenantsPage({
         <button className={view === "transitions" ? "active" : ""} onClick={() => selectView("transitions")} type="button">ประวัติย้ายออก/ย้ายห้อง</button>
       </div>
       {view === "pending" ? <PendingTenantApprovals onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : view === "transitions" ? <TransitionHistory propertyId={propertyId} /> : <>
+      {/* ส่งปุ่มส่งออกขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
       <PageHeaderActions><a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a></PageHeaderActions>
       <article className="figma-table-card">
         {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
@@ -146,9 +128,12 @@ export function TenantsPage({
         <div className="figma-table tenant-table">
           <div className="figma-table-head"><span>ผู้เช่า</span><span>ห้อง</span><span>เบอร์โทร</span><span>ค่าเช่า</span><span>สัญญา</span><span>สถานะ</span><span>จัดการ</span></div>
           {tenants.map((tenant) => {
+            // สัญญาที่ยังใช้งานอยู่แต่ใกล้หมดอายุ ต้องแสดงเป็น "ใกล้หมดอายุ" ไม่ใช่ "ใช้งาน"
+            // ฐานข้อมูลยังเก็บเป็น ACTIVE อยู่ จึงต้องคำนวณตอนแสดงผลเอง
             const displayStatus = tenant.leaseStatus && tenant.contractEnd
               ? leaseDisplayStatus(tenant.leaseStatus, tenant.contractEnd)
               : tenant.leaseStatus;
+            // ทั้งแถวเป็นปุ่ม กดตรงไหนก็เปิดรายละเอียดได้ ไม่ต้องเล็งปุ่มเล็ก ๆ ท้ายแถว
             return <button className="figma-table-row" key={tenant.id} onClick={() => {
               setSelectedRoomId(tenant.roomId);
               onOpenTenantDetail(tenant);
@@ -163,6 +148,7 @@ export function TenantsPage({
             </button>;
           })}
         </div>
+        {/* ว่างเพราะค้นไม่เจอ กับว่างเพราะยังไม่มีผู้เช่า ต้องบอกคนละแบบ */}
         {!isLoading && !loadError && tenants.length === 0 && query.trim() ? (
           <SearchEmptyState description="ลองใช้ชื่อ เลขห้อง หรือเบอร์โทรอื่น" title="ไม่พบผู้เช่าที่ค้นหา" />
         ) : !isLoading && !loadError && tenants.length === 0 ? <p className="settings-empty-list">ยังไม่มีผู้เช่า</p> : null}
@@ -173,23 +159,14 @@ export function TenantsPage({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Transition Row” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หนึ่งรายการในประวัติการย้าย ย้ายห้องจะมีห้องปลายทาง ย้ายออกไม่มี
 type TransitionRow = {
   id: string; type: "MOVE_OUT" | "MOVE_ROOM"; tenantName: string; effectiveDate: string; reason: string;
   depositAmount: number; outstandingAmount: number; refundAmount: number; amountDue: number; transferredAmount: number;
   sourceRoom: { number: string }; destinationRoom: { number: string } | null; completedBy: { displayName: string };
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Transition History” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// แท็บประวัติการย้าย โหลดข้อมูลของตัวเองแยกต่างหาก ใช้แค่ในไฟล์นี้
 function TransitionHistory({ propertyId }: { propertyId: string }) {
   const [rows, setRows] = useState<TransitionRow[]>([]);
   const [error, setError] = useState("");
@@ -203,10 +180,12 @@ function TransitionHistory({ propertyId }: { propertyId: string }) {
         if (!response.ok || !payload.data) throw new Error(payload.error || "โหลดประวัติไม่สำเร็จ");
         setRows(payload.data);
       })
+      // ยกเลิกเองตอนออกจากแท็บ ไม่ใช่ข้อผิดพลาดจริง
       .catch((loadError) => { if (!(loadError instanceof DOMException && loadError.name === "AbortError")) setError(loadError instanceof Error ? loadError.message : "โหลดประวัติไม่สำเร็จ"); })
       .finally(() => setLoading(false));
     return () => controller.abort();
   }, [propertyId]);
+  // แยกสามสถานะให้ชัด กำลังโหลด โหลดพลาด และมีข้อมูลแล้ว
   if (loading) return <p className="form-alert">กำลังโหลดประวัติ...</p>;
   if (error) return <p className="form-alert error" role="alert">{error}</p>;
   return <article className="figma-table-card">
@@ -216,6 +195,7 @@ function TransitionHistory({ propertyId }: { propertyId: string }) {
   </article>;
 }
 
+// Record บังคับให้ครอบคลุมทุกสถานะตั้งแต่ตอนคอมไพล์ เพิ่มสถานะใหม่แล้วลืมแปลจะคอมไพล์ไม่ผ่าน
 const leaseStatusText: Record<NonNullable<Tenant["leaseStatus"]>, string> = {
   DRAFT: "ฉบับร่าง",
   PENDING_SIGNATURE: "รอลงนาม",
@@ -225,13 +205,7 @@ const leaseStatusText: Record<NonNullable<Tenant["leaseStatus"]>, string> = {
   CANCELLED: "ยกเลิก",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, label, tone, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function Summary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: string }) {
   return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }
