@@ -1,29 +1,12 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “occupancy transitions” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { z } from "zod";
 import { calculateDepositSettlement, occupancyTransitionSchema } from "@/lib/domain/occupancy-transitions";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Transition Input” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type TransitionInput = z.infer<typeof occupancyTransitionSchema>;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Move Out Readiness” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - effectiveDate: ค่า “effective Date” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตรวจว่าย้ายออกได้หรือยัง ต้องมีมิเตอร์น้ำไฟของเดือนที่ย้ายและบิลสุดท้ายที่พ้นสถานะร่างแล้ว
+// ตรวจฝั่งเซิร์ฟเวอร์ ไม่ให้ฝั่งเบราว์เซอร์เป็นคนตัดสิน
 export async function getMoveOutReadiness(
   propertyId: string,
   tenantProfileId: string,
@@ -47,21 +30,7 @@ export async function getMoveOutReadiness(
       select: { id: true, invoiceNumber: true, status: true, issuedAt: true },
     }),
   ]);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “water” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - reading: ค่า “reading” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const water = readings.find((reading) => reading.type === "WATER");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “electricity” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - reading: ค่า “reading” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const electricity = readings.find((reading) => reading.type === "ELECTRICITY");
   const invoiceReady = Boolean(invoice && ["PENDING", "OVERDUE", "PAID"].includes(invoice.status));
 
@@ -82,27 +51,21 @@ export async function getMoveOutReadiness(
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “complete Occupancy Transition” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - completedByUserId: รหัสภายในของ completed By User
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ทำรายการย้ายออกหรือย้ายห้องให้เสร็จ ปิดสัญญาเดิม สรุปเงินประกัน และย้ายทุกคนในห้อง
 export async function completeOccupancyTransition(
   propertyId: string,
   tenantProfileId: string,
   completedByUserId: string,
   input: TransitionInput,
 ) {
+  // ห้ามตั้งวันในอนาคต เพราะรายการนี้มีผลทันทีที่กด ไม่ได้รอถึงวันนั้น
+  // เทียบกับสิ้นวันของวันนี้ ผู้ใช้จะได้เลือกวันนี้ได้ไม่ว่าจะกดตอนกี่โมง
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
   if (input.effectiveDate > endOfToday) {
     throw new ApiError(400, "วันที่มีผลต้องไม่เป็นวันในอนาคต เพราะรายการนี้จะดำเนินการทันที");
   }
+  // ตรวจความพร้อมก่อนเข้า transaction เพราะถ้าไม่ผ่านก็ไม่ต้องไปล็อกอะไรเลย
   if (input.type === "MOVE_OUT") {
     const readiness = await getMoveOutReadiness(propertyId, tenantProfileId, input.effectiveDate);
     if (!readiness.meters.ready || !readiness.invoice.ready) {
@@ -120,15 +83,19 @@ export async function completeOccupancyTransition(
       },
     });
     if (!primaryOccupancy) throw new ApiError(404, "ไม่พบการเข้าพักหลักที่ใช้งานอยู่");
+    // ย้ายไปห้องเดิมไม่มีความหมาย และจะทำให้ลำดับการปิดกับเปิดการเข้าพักพันกัน
     if (input.destinationRoomId === primaryOccupancy.roomId) throw new ApiError(409, "ห้องปลายทางต้องต่างจากห้องปัจจุบัน");
 
-    // Serialize workflows touching the same rooms so capacity and occupancy
-    // checks remain valid under concurrent move requests.
+    // ล็อกแถวของห้องที่เกี่ยวข้องไว้ก่อน การตรวจความจุกับจำนวนผู้พักจะได้ยังจริงอยู่
+    // ตอนที่มีคำขอย้ายเข้าห้องเดียวกันหลายอันพร้อมกัน
+    // เรียง id ก่อนล็อกเสมอ เพราะสองคำขอที่ล็อกห้องคู่เดียวกันคนละลำดับจะทำให้ติดตายทั้งคู่
     const lockedRoomIds = [primaryOccupancy.roomId, input.destinationRoomId].filter((id): id is string => Boolean(id)).sort();
     for (const roomId of lockedRoomIds) {
+      // FOR UPDATE คือการล็อกแถวไว้จนกว่า transaction จะจบ ไม่ได้ต้องการข้อมูลที่อ่านมา
       await database.$queryRaw`SELECT "id" FROM "Room" WHERE "id" = ${roomId} FOR UPDATE`;
     }
 
+    // ย้ายทั้งห้อง ไม่ใช่แค่ผู้เช่าหลัก ผู้พักร่วมต้องไปด้วยกันหมด
     const household = await database.roomOccupancy.findMany({
       where: { propertyId, roomId: primaryOccupancy.roomId, status: "ACTIVE" },
       select: { id: true, tenantProfileId: true, role: true },
@@ -142,15 +109,18 @@ export async function completeOccupancyTransition(
         lease: { select: { id: true, status: true, depositAmount: true, createdAt: true } },
       },
     });
+    // เอาสัญญาที่ยังใช้งานอยู่ก่อน ไม่มีค่อยถอยไปสัญญาล่าสุดของผู้เช่าหลัก
     const currentLease = leaseLinks.find(({ isPrimary, lease }) => isPrimary && ["ACTIVE", "EXPIRING", "PENDING_SIGNATURE"].includes(lease.status))?.lease
       ?? leaseLinks.find(({ isPrimary }) => isPrimary)?.lease;
     const settlementLeaseIds = [...new Set(leaseLinks.map(({ lease }) => lease.id))];
+    // รวมบิลที่ยังไม่จ่ายของทุกสัญญาในห้องนี้ เอาไปหักจากเงินประกัน
     const outstanding = settlementLeaseIds.length
       ? await database.invoice.aggregate({
         where: { leaseId: { in: settlementLeaseIds }, status: { in: ["PENDING", "OVERDUE"] } },
         _sum: { total: true },
       })
       : null;
+    // เงินประกันเอาจากสัญญาก่อน ไม่มีสัญญาค่อยใช้ค่าที่ตั้งไว้ในห้อง
     const depositAmount = Number(currentLease?.depositAmount ?? primaryOccupancy.room.depositAmount);
     const outstandingAmount = Number(outstanding?._sum.total ?? 0);
     const settlement = calculateDepositSettlement(depositAmount, input.deductions, outstandingAmount);
@@ -171,6 +141,7 @@ export async function completeOccupancyTransition(
           _count: { select: { occupancies: { where: { status: { in: ["PENDING", "ACTIVE"] } } } } },
         },
       });
+      // เช็คห้องปลายทางหลังล็อกแล้ว ผลจึงยังจริงอยู่จนจบ transaction
       if (!destinationRoom) throw new ApiError(404, "ไม่พบห้องปลายทางที่พร้อมใช้งาน");
       if (destinationRoom._count.occupancies + household.length > destinationRoom.capacity) {
         throw new ApiError(409, "จำนวนผู้พักเกินความจุของห้องปลายทาง");
@@ -190,6 +161,7 @@ export async function completeOccupancyTransition(
       where: { id: { in: household.map(({ id }) => id) }, status: "ACTIVE" },
       data: { status: "ENDED", endedAt: input.effectiveDate, endReason },
     });
+    // ปิดการเข้าพักได้ไม่ครบทุกคน แปลว่ามีอะไรเปลี่ยนไประหว่างนั้น ต้องยกเลิกทั้งหมดแล้วให้ลองใหม่
     if (endedOccupancies.count !== household.length) throw new ApiError(409, "ข้อมูลการเข้าพักมีการเปลี่ยนแปลง กรุณาลองใหม่");
     await database.room.update({ where: { id: primaryOccupancy.roomId }, data: { status: "AVAILABLE" } });
 
@@ -245,14 +217,6 @@ export async function completeOccupancyTransition(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Occupancy Transitions” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listOccupancyTransitions(propertyId: string, tenantProfileId: string) {
   const rows = await getDatabase().occupancyTransition.findMany({
     where: { propertyId, primaryOccupancy: { tenantProfileId } },
@@ -272,13 +236,6 @@ export async function listOccupancyTransitions(propertyId: string, tenantProfile
   }));
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Property Occupancy Transitions” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPropertyOccupancyTransitions(propertyId: string) {
   const rows = await getDatabase().occupancyTransition.findMany({
     where: { propertyId }, orderBy: { createdAt: "desc" }, take: 100,
