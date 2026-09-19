@@ -1,19 +1,11 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “maintenance job” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { getDatabase } from "@/lib/server/db";
 import { enforceFileRetention, type FileRetentionResult } from "@/lib/server/file-retention";
 import { recalculateOverdueInvoicesWithDatabase } from "@/lib/server/invoices";
 
+// เลขล็อกที่ตั้งขึ้นเอง ใช้กับ advisory lock ของ Postgres
+// ต้องเป็นค่าคงที่ ทุกเครื่องจะได้ชนกันที่ล็อกเดียวกันและมีแค่เครื่องเดียวที่ได้ทำงาน
 const maintenanceLockId = BigInt("7391540284102271");
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Maintenance Job Result” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type MaintenanceJobResult = {
   status: "completed" | "already_running";
   runAt: string;
@@ -23,12 +15,6 @@ export type MaintenanceJobResult = {
   expiredSubscriptionOrders: number;
 } & FileRetentionResult;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “empty Retention Result” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลชนิด FileRetentionResult ตามสัญญา TypeScript ของฟังก์ชัน
- */
 const emptyRetentionResult = (): FileRetentionResult => ({
   paymentSlipsPurged: 0,
   generatedDocumentsPurged: 0,
@@ -37,18 +23,16 @@ const emptyRetentionResult = (): FileRetentionResult => ({
   failedFiles: 0,
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “run Maintenance Job” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - runAt: ค่า “run At” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<MaintenanceJobResult> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// งานเบื้องหลังที่รันตามเวลา ปรับสถานะที่เปลี่ยนเองตามเวลาและลบไฟล์ที่เลยระยะเก็บ
 export async function runMaintenanceJob(runAt = new Date()): Promise<MaintenanceJobResult> {
   const databaseResult = await getDatabase().$transaction<MaintenanceJobResult>(async (database) => {
+    // ขอล็อกแบบไม่รอ ได้ก็ทำ ไม่ได้ก็ถอยไปเลย
+    // ตัวตั้งเวลาอาจยิงซ้อนกัน หรือมีหลายเครื่องรันพร้อมกัน ต้องกันไม่ให้ทำงานทับกัน
+    // xact แปลว่าล็อกหลุดเองเมื่อ transaction จบ ไม่ว่าจะสำเร็จหรือพัง จึงไม่มีทางค้าง
     const lock = await database.$queryRaw<Array<{ locked: boolean }>>`
       SELECT pg_try_advisory_xact_lock(${maintenanceLockId}) AS "locked"
     `;
+    // มีเครื่องอื่นทำอยู่แล้วก็ตอบไปตรง ๆ ไม่ถือว่าเป็นข้อผิดพลาด
     if (!lock[0]?.locked) {
       return {
         status: "already_running",
@@ -66,6 +50,7 @@ export async function runMaintenanceJob(runAt = new Date()): Promise<Maintenance
         status: { in: ["PENDING", "OVERDUE"] },
         dueDate: { lt: runAt },
       },
+      // เอาแค่รายชื่อหอที่มีบิลเลยกำหนด ไม่ต้องดึงบิลมาทั้งหมด
       select: { propertyId: true },
       distinct: ["propertyId"],
     });
@@ -75,14 +60,17 @@ export async function runMaintenanceJob(runAt = new Date()): Promise<Maintenance
       overdueInvoices += result.updated;
     }
 
+    // ประกาศที่ตั้งเวลาไว้และถึงเวลาแล้ว ก็เปลี่ยนเป็นเผยแพร่
     const announcements = await database.announcement.updateMany({
       where: { status: "SCHEDULED", publishAt: { lte: runAt } },
       data: { status: "PUBLISHED", publishedAt: runAt },
     });
+    // แพ็กเกจที่เลยวันหมดอายุ เปลี่ยนสถานะให้ตรงกับความจริง
     const subscriptions = await database.propertySubscription.updateMany({
       where: { status: { in: ["TRIAL", "ACTIVE"] }, expiresAt: { lte: runAt } },
       data: { status: "EXPIRED" },
     });
+    // คำสั่งซื้อที่รอชำระจนเลยกำหนด ก็ปิดไป เจ้าของหอจะได้สั่งใหม่ได้
     const subscriptionOrders = await database.subscriptionOrder.updateMany({
       where: { status: "PENDING_PAYMENT", expiresAt: { lte: runAt } },
       data: { status: "EXPIRED" },

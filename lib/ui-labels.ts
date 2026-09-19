@@ -1,9 +1,5 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโมดูลกลาง “ui labels” ที่รวม type ค่าคงที่ หรือฟังก์ชันซึ่งหลายส่วนของระบบใช้ร่วมกัน
- * การทำงาน: ช่วยให้กฎและรูปแบบข้อมูลมีแหล่งอ้างอิงเดียว ลดความซ้ำ และทำให้เปลี่ยนพฤติกรรมได้โดยแก้จุดเดียว
- */
-
+// แปลงสถานะจากฐานข้อมูลเป็นคำไทย ผู้ใช้จะได้ไม่เห็นค่าดิบอย่าง PENDING_REVIEW
+// ใช้ Record<string, string> ไม่ใช่ชนิดที่แคบ เพราะรวมสถานะจากหลายตารางไว้ด้วยกัน
 const statusLabels: Record<string, string> = {
   ACCEPTED: "รับแล้ว",
   ACKNOWLEDGED: "รับทราบแล้ว",
@@ -33,6 +29,7 @@ const statusLabels: Record<string, string> = {
   NORMAL: "ปกติ",
 };
 
+// แปลงชื่อเหตุการณ์ใน audit log เป็นคำไทย เพื่อให้ผู้ดูแลระบบอ่านรู้เรื่องโดยไม่ต้องรู้ชื่อภายใน
 const auditActionLabels: Record<string, string> = {
   ACCOUNT_PASSWORD_CHANGE: "เปลี่ยนรหัสผ่านบัญชี",
   ACCOUNT_PROFILE_UPDATE: "แก้ไขข้อมูลบัญชี",
@@ -96,25 +93,14 @@ const auditActionLabels: Record<string, string> = {
   TENANT_UPDATE: "แก้ไขผู้เช่า",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “format Status” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ค่าที่ยังไม่ได้แปลก็ตอบคำกลาง ๆ ไม่ปล่อยค่าดิบหลุดไปให้ผู้ใช้เห็น
 export function formatStatus(value: string | null | undefined) {
   if (!value) return "-";
   return statusLabels[value] ?? "สถานะอื่น";
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “format Audit Action” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - action: ค่า “action” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// audit log มีทั้งเหตุการณ์ที่ตั้งชื่อไว้เอง และเหตุการณ์อัตโนมัติจาก API ที่ชื่อเป็นรูปแบบตายตัว
+// จึงต้องมีทั้งตารางแปลและ regex รองรับ
 export function formatAuditAction(action: string) {
   if (auditActionLabels[action]) return auditActionLabels[action];
   if (/^API_(POST|PUT|PATCH|DELETE)_SUCCESS$/.test(action)) return "ดำเนินการกับข้อมูลสำเร็จ";
@@ -122,13 +108,6 @@ export function formatAuditAction(action: string) {
   return "เหตุการณ์ระบบ";
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “format Audit Result” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - result: ค่า “result” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function formatAuditResult(result: string) {
   return result === "SUCCESS" ? "สำเร็จ" : result === "FAILURE" ? "ไม่สำเร็จ" : "ไม่ทราบผล";
 }
