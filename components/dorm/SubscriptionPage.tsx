@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Subscription Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// โหลดข้อมูลและอัปโหลดไฟล์จากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CalendarDays, CheckCircle2, Clock3, CreditCard, LockKeyhole, RefreshCw, Upload } from "lucide-react";
@@ -12,27 +7,18 @@ import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Plan” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ราคาเป็นสตริงเพราะฝั่งเซิร์ฟเวอร์ใช้ Decimal ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 type Plan = {
   id: string; code: string; name: string; description: string | null;
   monthlyPrice: string; yearlyPrice: string | null; maxRooms: number;
   maxProperties: number; allowPromptPay: boolean; allowFileUploads: boolean;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Payment” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หลักฐานการโอนหนึ่งครั้ง ถูกปฏิเสธก็ส่งใหม่ได้ จึงมีได้หลายรายการต่อหนึ่งคำสั่งซื้อ
 type Payment = {
   id: string; status: "PENDING_REVIEW" | "APPROVED" | "REJECTED";
   submittedAt: string; rejectionNote: string | null;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Order” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// คำสั่งซื้อหนึ่งรายการ NEW คือสมัครใหม่ RENEWAL คือต่ออายุของเดิม
 type Order = {
   id: string; orderNumber: string; planName: string; type: "NEW" | "RENEWAL";
   status: "PENDING_PAYMENT" | "PENDING_REVIEW" | "PAID" | "REJECTED" | "CANCELLED" | "EXPIRED";
@@ -40,27 +26,17 @@ type Order = {
   activatedAt: string | null; payments: Payment[];
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “json” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function json<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
 }
 
+// ตรวจไฟล์ตรงนี้เพื่อบอกผู้ใช้เร็ว ๆ ส่วนการตรวจที่เชื่อถือได้ยังอยู่ที่เซิร์ฟเวอร์
+// ใช้วิธีระบุชนิดที่อนุญาต ไม่ใช่ระบุชนิดที่ห้าม จะได้ไม่มีช่องโหว่จากชนิดที่นึกไม่ถึง
 const maxSlipSize = 5 * 1024 * 1024;
 const allowedSlipTypes = new Set(["image/png", "image/jpeg", "application/pdf"]);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Subscription Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId, subscription }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าแพ็กเกจฝั่งเจ้าของหอ ดูสิทธิ์ปัจจุบัน ซื้อหรือต่ออายุ และส่งหลักฐานการโอน
 export function SubscriptionPage({ propertyId, subscription }: {
   propertyId: string;
   subscription: OwnerDashboardAggregation["subscription"];
@@ -78,12 +54,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [page, setPage] = useState(1);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Plans” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // แยกสถานะโหลดกับข้อผิดพลาดของแพ็กเกจและประวัติออกจากกัน ฝั่งหนึ่งพังอีกฝั่งจะได้ยังใช้ได้
   const loadPlans = useCallback(async () => {
     setPlansLoading(true); setPlansError("");
     try {
@@ -94,19 +65,12 @@ export function SubscriptionPage({ propertyId, subscription }: {
     } finally { setPlansLoading(false); }
   }, []);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Orders” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadOrders = useCallback(async (targetPage = 1, append = false) => {
     setOrdersLoading(true); setOrdersError("");
     try {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/subscription-orders?page=${targetPage}&pageSize=20`, { cache: "no-store" });
       const payload = await readApiPayload<{ data?: Order[]; pageInfo?: { page: number; hasNextPage: boolean }; error?: string; requestId?: string }>(response, "โหลดคำสั่งซื้อไม่สำเร็จ");
+      // ตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้ ต้องดักไว้ก่อน
       if (!payload.data || !payload.pageInfo) throw new Error("ข้อมูลคำสั่งซื้อที่ได้รับไม่ครบถ้วน");
       setOrders((current) => append ? [...current, ...payload.data!] : payload.data!);
       setPage(payload.pageInfo!.page);
@@ -116,15 +80,10 @@ export function SubscriptionPage({ propertyId, subscription }: {
     } finally { setOrdersLoading(false); }
   }, [propertyId]);
 
+  // ยิงสองคำขอพร้อมกันตอนเปิดหน้า ไม่ต้องรอผลของกันและกัน
   useEffect(() => { void loadPlans(); void loadOrders(); }, [loadOrders, loadPlans]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Order” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // สร้างคำสั่งซื้อ แล้วผู้ใช้ค่อยไปอัปโหลดสลิปในรายการข้างล่าง
   async function submitOrder(targetPlanId: string) {
     setSubmitting(true); setActionError(""); setMessage("");
     try {
@@ -139,14 +98,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
     finally { setSubmitting(false); }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “upload” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - orderId: รหัสภายในของ order
-   * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ส่งหลักฐานการโอน ตรวจชนิดกับขนาดก่อนเพื่อไม่ให้เสียเวลาอัปโหลดแล้วโดนปฏิเสธ
   async function upload(orderId: string, file: File | null) {
     if (!file) return;
     if (!allowedSlipTypes.has(file.type)) {
@@ -159,6 +111,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
     }
     setSubmitting(true); setActionError(""); setMessage("");
     try {
+      // FormData เพราะเป็นไฟล์ ไม่ใช่ JSON และปล่อยให้เบราว์เซอร์ตั้ง Content-Type เอง
       const body = new FormData(); body.set("file", file);
       await json(await fetch(`/api/v1/admin/properties/${propertyId}/subscription-orders/${orderId}/payments`, {
         method: "POST", body,
@@ -169,21 +122,9 @@ export function SubscriptionPage({ propertyId, subscription }: {
     finally { setSubmitting(false); }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “selected” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - plan: ค่า “plan” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Order” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - order: ค่า “order” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // มีคำสั่งซื้อค้างอยู่ก็ห้ามสร้างใหม่ กันสั่งซ้อนแล้วจ่ายซ้ำ
   const openOrder = orders.find((order) => ["PENDING_PAYMENT", "PENDING_REVIEW"].includes(order.status));
+  // ปุ่มที่กดไม่ได้ต้องบอกเหตุผลด้วย และสองสถานะนี้ผู้ใช้ต้องทำคนละอย่าง
   const createDisabledReason = openOrder
     ? openOrder.status === "PENDING_PAYMENT"
       ? `คำสั่งซื้อ ${openOrder.orderNumber} รออัปโหลดหลักฐาน จึงยังสร้างรายการใหม่ไม่ได้`
@@ -208,6 +149,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
           </dl>
         </div>
         <p className="plan-current-note">ต่ออายุแล้วระยะเวลาใหม่จะต่อจากสิทธิ์เดิม หากสิทธิ์เดิมหมดไปแล้ว ระยะเวลาใหม่จะเริ่มนับเมื่อการชำระได้รับอนุมัติ</p>
+        {/* ไล่ให้เห็นว่าหมดอายุแล้วจะเกิดอะไรต่อ ผู้ใช้จะได้รู้ว่ายังมีเวลาผ่อนผันอยู่ */}
         <div className="mt-5" aria-label="ลำดับเวลาสถานะแพ็กเกจ">
           <h3 className="text-sm font-semibold text-[#292a30]">ลำดับเวลาการใช้งาน</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -231,6 +173,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
       {plansLoading ? <p aria-atomic="true" className="py-6 text-center" role="status">กำลังโหลดแพ็กเกจ...</p> : plans.length === 0 && !plansError ? <div className="rounded-2xl bg-amber-50 p-4 text-amber-800"><strong>ยังไม่มีแพ็กเกจเปิดขายในขณะนี้</strong><p className="mt-1 text-sm">กรุณาติดต่อแอดมินใหญ่หรือกลับมาลองใหม่ภายหลัง</p></div> : <div className="plan-grid">
         {plans.map((plan) => {
           const yearly = billingInterval === "YEARLY";
+          // ไม่ได้ตั้งราคารายปีไว้ก็คิดจากรายเดือนคูณ 12 ให้เอง
           const price = yearly ? Number(plan.yearlyPrice ?? Number(plan.monthlyPrice) * 12) : Number(plan.monthlyPrice);
           const isCurrent = subscription?.planName === plan.name;
           return <article className={isCurrent ? "plan-column current" : "plan-column"} key={plan.id}>
@@ -240,6 +183,7 @@ export function SubscriptionPage({ propertyId, subscription }: {
             <button
               aria-describedby={createDisabledReason ? "subscription-order-disabled-reason" : undefined}
               className={isCurrent ? "secondary-button plan-action" : "primary-button plan-action"}
+              // ปิดทุกปุ่มเมื่อมีคำสั่งซื้อค้าง ไม่ใช่แค่ปุ่มของแพ็กเกจนั้น
               disabled={submitting || Boolean(openOrder)}
               onClick={() => void submitOrder(plan.id)}
               type="button"
@@ -264,11 +208,12 @@ export function SubscriptionPage({ propertyId, subscription }: {
       <div className="settings-section-head"><div><h2>ประวัติคำสั่งซื้อ</h2><p>ตรวจสอบสถานะการสมัคร การชำระเงิน และการต่ออายุย้อนหลัง</p></div></div>
       {ordersError ? <div className="form-alert error mt-4" role="alert"><span>{ordersError}</span><RetryButton label="ลองโหลดประวัติใหม่" onClick={() => void loadOrders()} /></div> : null}
       {ordersLoading && !orders.length ? <p aria-atomic="true" className="py-8 text-center" role="status">กำลังโหลดประวัติ...</p> : orders.length ? <div className="mt-4 grid gap-3">{orders.map((order) => {
+        // API เรียงใหม่สุดมาก่อน เอาเหตุผลที่ถูกปฏิเสธล่าสุดมาแสดง
         const latestPayment = order.payments[0];
         return <article className={`rounded-2xl border p-4 ${openOrder?.id === order.id ? "border-amber-300 bg-amber-50/50" : "border-[#e3e4e8]"}`} data-testid="subscription-order" key={order.id}>
           <div className="flex flex-wrap items-start justify-between gap-3"><div><strong>{order.orderNumber}</strong><p className="text-sm text-[#73757d]">{order.planName} · {order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"} · {order.billingInterval === "YEARLY" ? "รายปี" : "รายเดือน"}</p>{["PENDING_PAYMENT", "PENDING_REVIEW"].includes(order.status) ? <p className="mt-1 text-xs font-bold text-amber-800">รายการนี้กำลังดำเนินการและป้องกันการสร้างคำสั่งซื้อซ้ำ</p> : null}</div><div className="text-right"><strong className="block text-xl">{Number(order.amount).toLocaleString("th-TH")} บาท</strong><OrderStatus value={order.status} /></div></div>
           {latestPayment?.rejectionNote ? <p className="form-alert error mt-3">ปฏิเสธ: {latestPayment.rejectionNote}</p> : null}
-          {order.status === "PENDING_PAYMENT" ? <div className="mt-4"><label className="secondary-button inline-flex cursor-pointer"><Upload size={17} /> ส่งสลิป<input accept="image/png,image/jpeg,application/pdf" className="sr-only" disabled={submitting} onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ""; void upload(order.id, file); }} type="file" /></label><p className="mt-2 flex items-center gap-1 text-xs text-[#73757d]"><AlertCircle size={13} /> PNG, JPG หรือ PDF ขนาดไม่เกิน 5 MB · คำสั่งซื้อหมดอายุ {new Date(order.expiresAt).toLocaleString("th-TH")}</p></div> : null}
+          {order.status === "PENDING_PAYMENT" ? <div className="mt-4"><label className="secondary-button inline-flex cursor-pointer"><Upload size={17} /> ส่งสลิป<input accept="image/png,image/jpeg,application/pdf" className="sr-only" disabled={submitting} onChange={(event) => { const file = event.target.files?.[0] ?? null; /* ล้างค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้ */ event.target.value = ""; void upload(order.id, file); }} type="file" /></label><p className="mt-2 flex items-center gap-1 text-xs text-[#73757d]"><AlertCircle size={13} /> PNG, JPG หรือ PDF ขนาดไม่เกิน 5 MB · คำสั่งซื้อหมดอายุ {new Date(order.expiresAt).toLocaleString("th-TH")}</p></div> : null}
           {order.status === "PENDING_REVIEW" ? <p className="mt-3 flex items-center gap-2 text-sm text-amber-700"><Clock3 size={16} /> ส่งหลักฐานแล้ว รอ Super Admin ตรวจสอบ ไม่ต้องส่งซ้ำ</p> : null}
           {order.status === "PAID" ? <p className="mt-3 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 size={16} /> เปิดใช้งานแล้ว {order.activatedAt ? new Date(order.activatedAt).toLocaleString("th-TH") : ""}</p> : null}
         </article>;
@@ -278,24 +223,12 @@ export function SubscriptionPage({ propertyId, subscription }: {
   </div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Timeline Step” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { active, icon, label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หนึ่งช่วงบนเส้นเวลา ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function TimelineStep({ active, icon, label, value }: { active: boolean; icon: React.ReactNode; label: string; value: string }) {
   return <div className={`rounded-2xl border p-4 ${active ? "border-brand/30 bg-brand/[.05]" : "border-[#e3e4e8]"}`}><div className="flex items-center gap-2"><span className={active ? "text-brand" : "text-[#9a9ca5]"}>{icon}</span><strong>{label}</strong></div><p className="mt-2 text-sm text-[#73757d]">{value}</p></div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Order Status” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// แปลงสถานะของคำสั่งซื้อเป็นคำไทย Record บังคับให้ครอบคลุมทุกสถานะตั้งแต่ตอนคอมไพล์
 function OrderStatus({ value }: { value: Order["status"] }) {
   const labels: Record<Order["status"], string> = {
     PENDING_PAYMENT: "รอชำระ", PENDING_REVIEW: "รอตรวจสอบ", PAID: "เปิดใช้งานแล้ว",
