@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Tenant Detail Modal” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
@@ -19,34 +14,20 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Tenant } from "@/types/dorm";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Tenant Tab” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
 
+// เรียงตามลำดับที่ปรากฏบนหน้าจอ เพราะใช้หาว่าตอนนี้เลื่อนมาถึงหมวดไหนแล้ว
 const tabs: Array<{ id: TenantTab; label: string }> = [
   { id: "personal", label: "ข้อมูลส่วนตัว" },
   { id: "contact", label: "ที่อยู่และผู้ติดต่อ" },
   { id: "contract", label: "สัญญาและผู้พัก" },
   { id: "vehicle", label: "ข้อมูลรถ" },
 ];
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “tenant Section Id” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - tab: ค่า “tab” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// รวมการตั้งชื่อ id ไว้ที่เดียว ทั้งตอนวางลงหน้าและตอนหาเพื่อเลื่อนไป
 const tenantSectionId = (tab: TenantTab) => `tenant-section-${tab}`;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Tenant Detail Modal” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { onClose, onSave, onTransitionCompleted, propertyId, readOn: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องดูและแก้ไขข้อมูลผู้เช่าแบบเต็ม พร้อมปุ่มย้ายออกหรือย้ายห้อง
 export function TenantDetailModal({
   onClose,
   onSave,
@@ -65,63 +46,39 @@ export function TenantDetailModal({
   tenant: Tenant;
 }) {
   const [activeTab, setActiveTab] = useState<TenantTab>("personal");
+  // แก้บนสำเนา ไม่แตะของเดิม ผู้ใช้จะได้กดยกเลิกแล้วข้อมูลจริงไม่เปลี่ยน
   const [draft, setDraft] = useState<Tenant>(tenant);
   const [error, setError] = useState("");
   const [isTransitionOpen, setIsTransitionOpen] = useState(false);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “initial Snapshot” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เก็บภาพค่าเริ่มต้นไว้เทียบ จะได้รู้ว่าผู้ใช้แก้อะไรไปแล้วหรือยัง
   const initialSnapshot = useMemo(() => JSON.stringify(tenant), [tenant]);
+  // เทียบทั้งก้อนได้เลย เพราะ draft เริ่มจากการคัดลอก tenant มาทั้งอัน คีย์จึงเรียงเหมือนกัน
   const isDirty = !readOnly && JSON.stringify(draft) !== initialSnapshot;
   const { confirm, confirmationDialog } = useConfirmation();
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่กรอกไว้หายหมด
   const requestClose = useCallback(() => { if (!isDirty) return onClose(); void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "ข้อมูลผู้เช่าที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((ok) => { if (ok) onClose(); }); }, [confirm, isDirty, onClose]);
+  // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
   useEffect(() => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “sections” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - section: ค่า “section” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลชนิด section is HTMLElement ตามสัญญา TypeScript ของฟังก์ชัน
-     */
+    // ไฮไลต์หมวดทางซ้ายให้ตรงกับส่วนที่กำลังอ่านอยู่ ทำแบบเดียวกับใน RoomEditModal
     const sections = tabs
       .map((tab) => document.getElementById(tenantSectionId(tab.id)))
       .filter((section): section is HTMLElement => Boolean(section));
     const contentContainer = sections[0]?.closest<HTMLElement>(".tenant-config-scroll");
     const modalContainer = sections[0]?.closest<HTMLElement>(".tenant-config-modal");
+    // ตัวที่เลื่อนจริงเปลี่ยนไปตามขนาดจอ จอกว้างเป็นกล่องเนื้อหา จอแคบเป็นตัวกล่องทั้งใบ
     const scrollContainer =
       contentContainer && window.getComputedStyle(contentContainer).overflowY !== "visible"
         ? contentContainer
         : modalContainer;
     if (!scrollContainer) return;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Active Section” โดยใช้ค่าที่รับเข้ามา
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const updateActiveSection = () => {
+      // เส้นตัดสินอยู่ต่ำกว่าขอบบนนิดหน่อย จอแคบต้องเผื่อมากกว่าเพราะมีหัวกล่องบังอยู่
       const activationOffset = scrollContainer === contentContainer ? 32 : 150;
       const activationLine = scrollContainer.getBoundingClientRect().top + activationOffset;
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “current Section” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า:
-       * - current: ค่า “current” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * - section: ค่า “section” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
+      // เอาหมวดสุดท้ายที่เลื่อนผ่านเส้นไปแล้ว ซึ่งก็คือหมวดที่กำลังอ่านอยู่
       const currentSection = sections.reduce((current, section) => (
         section.getBoundingClientRect().top <= activationLine ? section : current
       ), sections[0]);
@@ -129,61 +86,49 @@ export function TenantDetailModal({
     };
 
     updateActiveSection();
+    // passive บอกเบราว์เซอร์ว่าจะไม่ขัดการเลื่อน การเลื่อนจะได้ลื่นไม่สะดุด
     scrollContainer.addEventListener("scroll", updateActiveSection, { passive: true });
     return () => scrollContainer.removeEventListener("scroll", updateActiveSection);
   }, []);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “go To Tab” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - tab: ค่า “tab” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const goToTab = (tab: TenantTab) => {
+    // ตั้งหมวดที่ไฮไลต์ทันที ไม่รอให้เลื่อนถึง ผู้ใช้จะได้เห็นผลของการกดเลย
     setActiveTab(tab);
     document.getElementById(tenantSectionId(tab))?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - key: ค่า “key” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ตัวช่วยแก้ทีละฟิลด์ ใช้ generic เพื่อให้ค่าที่ส่งเข้ามาต้องตรงชนิดกับฟิลด์นั้น
   const update = <Key extends keyof Tenant>(key: Key, value: Tenant[Key]) => {
     setDraft((current) => ({ ...current, [key]: value }));
+    // ล้างข้อความผิดพลาดทันทีที่เริ่มแก้ ผู้ใช้จะได้ไม่เห็นคำเตือนของสิ่งที่แก้ไปแล้ว
     setError("");
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
+    // กันไว้อีกชั้น เผื่อมีทางกดส่งที่เล็ดลอดจาก fieldset ที่ปิดไว้
     if (readOnly) return;
+    // เลื่อนไปหมวดที่มีปัญหาด้วย ไม่ใช่แค่ขึ้นข้อความ เพราะช่องที่ผิดอาจอยู่นอกจอ
     if (!draft.name.trim() || !draft.phone.trim()) {
       setActiveTab("personal");
       setError("กรุณากรอกชื่อและเบอร์โทรของผู้เช่า");
       return;
     }
+    // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
     if (!draft.startDate || !draft.contractEnd || draft.contractEnd < draft.startDate) {
       setActiveTab("contract");
       setError("กรุณาตรวจสอบวันเริ่มและวันสิ้นสุดสัญญา");
       return;
     }
+    // เลือกว่ามีรถแล้วต้องมีทะเบียน ไม่งั้นข้อมูลที่บันทึกไว้ใช้ทำอะไรต่อไม่ได้
     if (draft.vehicleType !== "ไม่มีรถ" && !draft.vehiclePlate.trim()) {
       setActiveTab("vehicle");
       setError("กรุณากรอกเลขทะเบียนรถ หรือเลือกไม่มีรถ");
       return;
     }
 
+    // ตัดช่องว่างหัวท้ายก่อนบันทึก จะได้ไม่มีชื่อที่ดูเหมือนกันแต่ค้นหาไม่เจอ
     onSave({
       ...draft,
       address: draft.address.trim(),
@@ -203,6 +148,7 @@ export function TenantDetailModal({
             <p className="eyebrow" id="tenant-detail-description">รายละเอียดผู้เช่า</p>
             <h2 id="tenant-detail-title">ห้อง {tenant.roomId} · {tenant.name}</h2>
           </div>
+          {/* บอกกล่องว่าเปิดมาให้โฟกัสปุ่มนี้ก่อน ดีกว่าไปโฟกัสช่องกรอกช่องแรก */}
           <IconButton data-dialog-initial-focus label="ปิดหน้าต่าง" onClick={requestClose}>
             <X aria-hidden="true" size={20} />
           </IconButton>
@@ -214,6 +160,7 @@ export function TenantDetailModal({
             <aside aria-label="หมวดข้อมูลผู้เช่า" className="room-editor-nav tenant-config-tabs">
               <strong>จัดการข้อมูลผู้เช่า</strong>
               <nav>
+                {/* aria-current="location" บอกว่าตอนนี้อ่านอยู่ตรงไหนของหน้า ไม่ใช่ว่าอยู่หน้าไหน */}
                 {tabs.map((tab) => (
                   <button
                     aria-current={activeTab === tab.id ? "location" : undefined}
@@ -228,6 +175,7 @@ export function TenantDetailModal({
               </nav>
             </aside>
 
+          {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
           <fieldset className="tenant-config-scroll room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>
             {error ? <p className="tenant-config-error" role="alert">{error}</p> : null}
 
@@ -326,13 +274,7 @@ export function TenantDetailModal({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Config Section” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, description, id, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กรอบหนึ่งหมวดพร้อมหัวเรื่อง ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function ConfigSection({ children, description, id, title }: { children: ReactNode; description: string; id: string; title: string }) {
   return (
     <section className="tenant-config-section room-editor-section" id={id}>
@@ -342,48 +284,24 @@ function ConfigSection({ children, description, id, title }: { children: ReactNo
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, label }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ห่อป้ายกับตัวควบคุมที่ไม่ใช่ input ปกติ เช่น DropdownField ที่มี label ของตัวเองไม่ได้
 function Field({ children, label }: { children: ReactNode; label: string }) {
   return <div className="tenant-config-field"><span>{label}</span>{children}</div>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Text Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { className = "", disabled = false, inputMode, label, maxLen: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ช่องกรอกข้อความ ห่อ label กับ input ไว้ด้วยกัน กดที่ป้ายแล้วโฟกัสเข้าช่องได้เลย
 function TextField({ className = "", disabled = false, inputMode, label, maxLength, onChange, placeholder, required = false, value }: {
   className?: string; disabled?: boolean; inputMode?: "email" | "tel" | "text"; label: string; maxLength?: number; onChange: (value: string) => void; placeholder?: string; required?: boolean; value: string;
 }) {
   return <label className={className}><span>{label}</span><input disabled={disabled} inputMode={inputMode} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} value={value} /></label>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Number Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, min, onChange, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ช่องกรอกตัวเลข แปลงค่าว่างเป็น 0 เพราะผู้เรียกรับเฉพาะ number
 function NumberField({ label, min, onChange, value }: { label: string; min: number; onChange: (value: number) => void; value: number | "" }) {
   return <label><span>{label}</span><input min={min} onChange={(event) => onChange(event.target.value === "" ? 0 : Number(event.target.value))} type="number" value={value} /></label>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Text Area Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { className = "", disabled = false, label, onChange, placeho: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ช่องกรอกข้อความหลายบรรทัด ใช้กับที่อยู่และหมายเหตุ
 function TextAreaField({ className = "", disabled = false, label, onChange, placeholder, value }: { className?: string; disabled?: boolean; label: string; onChange: (value: string) => void; placeholder?: string; value: string }) {
   return <label className={className}><span>{label}</span><textarea disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} value={value} /></label>;
 }
