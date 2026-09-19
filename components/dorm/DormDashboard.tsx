@@ -279,16 +279,14 @@ export function DormDashboard({
     setIsRefreshing(false);
   }, [propertyId]);
 
-  // layout ดึง read model กับตัวเลขสรุปมาให้ตั้งแต่ฝั่งเซิร์ฟเวอร์แล้ว เปิดหน้ามาครั้งแรกจึงไม่ต้องยิงซ้ำ
-  const skipInitialRefreshRef = useRef(true);
-  // โหลดใหม่เมื่อสลับไปหออื่น เพราะ refreshDashboard ผูกกับ propertyId อยู่แล้ว
+  // จำไว้ว่าข้อมูลในมือเป็นของหอไหน layout ดึงมาให้ตั้งแต่ฝั่งเซิร์ฟเวอร์แล้ว จึงเริ่มที่หอปัจจุบันเลย
+  const [loadedPropertyId, setLoadedPropertyId] = useState(propertyId);
+  // โหลดใหม่เฉพาะตอนสลับไปหออื่น เทียบค่าแทนการนับรอบ เพราะ StrictMode เรียก effect ซ้ำตอน dev
   useEffect(() => {
-    if (skipInitialRefreshRef.current) {
-      skipInitialRefreshRef.current = false;
-      return;
-    }
+    if (loadedPropertyId === propertyId) return;
+    setLoadedPropertyId(propertyId);
     void refreshDashboard();
-  }, [refreshDashboard]);
+  }, [loadedPropertyId, propertyId, refreshDashboard]);
 
   const refreshUnreadTicketReplies = useCallback(async () => {
     try {
