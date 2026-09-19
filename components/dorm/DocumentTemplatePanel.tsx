@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Document Template Panel” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เป็นตัวแก้ไขเอกสาร ต้องแตะ DOM การเลือกข้อความ และวัดขนาดจริงตลอดเวลา
 
 import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Eye, Heading2, ImagePlus, Italic, List, Minus, Plus, Save, Settings2, Table2, Trash2, Underline, ZoomIn, ZoomOut } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -19,13 +14,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { RetryButton } from "@/components/ui/DataNavigation";
 import { IconButton } from "@/components/ui/IconButton";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Document Template Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { editable = false, kind, propertyId, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดสรุปในหน้าตั้งค่า บอกว่ามี Template แล้วหรือยัง พร้อมปุ่มไปหน้าแก้ไข
 export function DocumentTemplatePanel({
   editable = false,
   kind,
@@ -42,12 +31,6 @@ export function DocumentTemplatePanel({
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Template” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadTemplate = useCallback(async () => {
     setIsLoading(true);
     setError("");
@@ -65,12 +48,6 @@ export function DocumentTemplatePanel({
 
   useEffect(() => { void loadTemplate(); }, [loadTemplate]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Template” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const createTemplate = async () => {
     setIsCreating(true);
     setError("");
@@ -90,12 +67,6 @@ export function DocumentTemplatePanel({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “preview” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const preview = async () => {
     const previewWindow = window.open("", "_blank");
     setIsPreviewing(true);
@@ -153,18 +124,15 @@ export function DocumentTemplatePanel({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Template Editor” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { kind, onClose, onSaved, propertyId, template }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตัวแก้ไขเอกสารแบบเห็นผลจริง ใช้ contentEditable ของเบราว์เซอร์แทนการดึงไลบรารีมาทั้งตัว
+// หน้ากระดาษเป็น A4 และแบ่งหน้าให้อัตโนมัติ เพื่อให้สิ่งที่เห็นตรงกับ PDF ที่จะออกมา
 export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }: { kind: DocumentKind; onClose: () => void; onSaved: (template: DocumentTemplateDto) => void; propertyId: string; template: DocumentTemplateDto }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  // กันไม่ให้การแบ่งหน้าเรียกตัวเองซ้ำ เพราะการแทรกตัวคั่นทำให้ DOM เปลี่ยนแล้วไปกระตุ้นรอบใหม่
   const isPaginatingRef = useRef(false);
+  // จำตำแหน่งที่เลือกไว้ เพราะกดปุ่มบนแถบเครื่องมือแล้วโฟกัสจะหลุดออกจากตัวแก้ไข
   const lastRangeRef = useRef<Range | null>(null);
   const pendingPageDeleteRef = useRef<(() => void) | null>(null);
   const paginationScrollRef = useRef<{
@@ -191,12 +159,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     underline: false,
   });
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “paginate Editor” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // แบ่งหน้าเอง โดยวัดว่าเนื้อหาล้นขอบกระดาษ A4 ตรงไหนแล้วแทรกตัวคั่นหน้าเข้าไป
+  // ทำเองเพราะ CSS อย่างเดียวคุมไม่ได้ว่าจะขึ้นหน้าใหม่ตรงไหนขณะพิมพ์อยู่
   const paginateEditor = useCallback(() => {
     const editor = editorRef.current;
     if (!editor || isPaginatingRef.current) return;
@@ -213,17 +177,16 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       ? selection.getRangeAt(0).cloneRange()
       : null;
     isPaginatingRef.current = true;
+    // ล้างตัวคั่นที่ระบบใส่ไว้รอบก่อนทิ้งก่อน แล้วค่อยคำนวณใหม่ทั้งหมด
+    // ตัวคั่นที่ผู้ใช้ใส่เองไม่โดนลบ เพราะคนละคลาสกัน
     editor.querySelectorAll(".editor-auto-page-break").forEach((pageBreak) => pageBreak.remove());
+    // A4 กว้าง 210 มม. สูง 297 มม. เทียบจากความกว้างจริงบนจอเพื่อให้คำนวณได้ทุกระดับการซูม
     const pixelsPerMillimeter = editor.getBoundingClientRect().width / 210;
     const pageHeight = 297 * pixelsPerMillimeter;
+    // ขอบกระดาษ 18 มม. ทั้งบนและล่าง
     const pagePadding = 18 * pixelsPerMillimeter;
     const pageGap = 38;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “fill Page Breaks” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ยืดตัวคั่นให้สูงพอดันเนื้อหาที่เหลือไปเริ่มต้นหน้าถัดไปพอดี เหมือนหน้ากระดาษจริง
     const fillPageBreaks = () => {
       const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break"));
       pageBreaks.forEach((pageBreak) => pageBreak.style.removeProperty("--editor-page-fill"));
@@ -237,14 +200,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
     fillPageBreaks();
     const documentRoot = editor.querySelector<HTMLElement>(".document") ?? editor;
+    // แทรกตัวคั่นทีละอัน แล้ววัดใหม่ เพราะแทรกแล้วตำแหน่งของทุกอย่างข้างล่างเลื่อนหมด
+    // จำกัด 50 รอบกันวนไม่จบ ถ้ามีบล็อกที่สูงเกินหนึ่งหน้าจนแบ่งยังไงก็ยังล้น
     for (let pass = 0; pass < 50; pass += 1) {
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “overflowing Block” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า:
-       * - child: ค่า “child” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-       */
+      // หาบล็อกแรกที่ล้นขอบล่างของหน้าที่มันอยู่ และยังไม่มีตัวคั่นนำหน้าอยู่แล้ว
       const overflowingBlock = Array.from(documentRoot.children).find((child) => {
         if (!(child instanceof HTMLElement) || child.classList.contains("page-break")) return false;
         if (child.previousElementSibling?.classList.contains("page-break")) return false;
@@ -257,22 +216,19 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       if (!(overflowingBlock instanceof HTMLElement)) break;
       const automaticBreak = document.createElement("div");
       automaticBreak.className = "page-break editor-auto-page-break";
+      // contentEditable=false กันผู้ใช้เผลอพิมพ์ลงในตัวคั่นที่ระบบสร้าง
       automaticBreak.contentEditable = "false";
       overflowingBlock.before(automaticBreak);
       fillPageBreaks();
     }
+    // คืนตำแหน่งเคอร์เซอร์ เพราะการแทรกตัวคั่นทำให้การเลือกข้อความหลุด
     if (previousRange && editor.contains(previousRange.commonAncestorContainer)) {
       selection?.removeAllRanges();
       selection?.addRange(previousRange);
       lastRangeRef.current = previousRange.cloneRange();
     }
     if (viewport) {
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “restore Scroll” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-       * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-       */
+      // ตรึงตำแหน่งการเลื่อนไว้ที่ย่อหน้าที่กำลังพิมพ์อยู่ ไม่ให้หน้ากระโดดหลังแบ่งหน้าใหม่
       const restoreScroll = () => {
         viewport.scrollLeft = previousScrollLeft;
         if (scrollAnchor && scrollAnchorTop !== null && scrollAnchor.isConnected) {
@@ -281,6 +237,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
           viewport.scrollTop = previousScrollTop;
         }
       };
+      // เรียกซ้ำหลายจังหวะ เพราะรูปกับฟอนต์ทยอยโหลดเสร็จแล้วทำให้ความสูงเปลี่ยนอีกหลังจากนี้
       restoreScroll();
       window.requestAnimationFrame(restoreScroll);
       window.setTimeout(restoreScroll, 50);
@@ -291,29 +248,20 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     isPaginatingRef.current = false;
   }, []);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “editor Html” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ดึง HTML ที่จะบันทึก ทำบนสำเนาเพื่อไม่ให้กระทบสิ่งที่ผู้ใช้กำลังแก้อยู่
   const editorHtml = () => {
     const editor = editorRef.current;
     if (!editor) return "";
     const clone = editor.cloneNode(true) as HTMLElement;
+    // ตัดตัวคั่นกับค่าความสูงที่ระบบใส่ไว้ออก เพราะเป็นของชั่วคราวสำหรับการแสดงผลเท่านั้น
     clone.querySelectorAll(".editor-auto-page-break").forEach((pageBreak) => pageBreak.remove());
     clone.querySelectorAll<HTMLElement>(".page-break").forEach((pageBreak) => {
       pageBreak.style.removeProperty("--editor-page-fill");
       if (!pageBreak.getAttribute("style")) pageBreak.removeAttribute("style");
     });
     const documentRoot = clone.querySelector<HTMLElement>(".document") ?? clone;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ตอบว่าเงื่อนไข “is Empty Trailing Block” เป็นจริงหรือไม่ เพื่อใช้ตัดสินใจในขั้นตอนถัดไป
-     * รับค่า:
-     * - element: ค่า “element” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
+    // ย่อหน้าว่างท้ายเอกสารเกิดจากการกด Enter ค้างไว้ ไม่ต้องเก็บ
+    // แต่ต้องไม่ตัดรูป เส้นคั่น หรือตารางทิ้ง แม้จะไม่มีข้อความอยู่ข้างใน
     const isEmptyTrailingBlock = (element: HTMLElement) => {
       if (element.matches("img,hr,table") || element.querySelector("img,hr,table")) return false;
       return element.textContent?.replaceAll("\u00a0", " ").trim() === "";
@@ -327,16 +275,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   };
 
   const isDirty = name !== template.name || isContentDirty;
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่พิมพ์ไว้หายหมด
   const requestClose = useCallback(() => {
     if (!isDirty) return onClose();
     void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "เนื้อหาเอกสารที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((ok) => { if (ok) onClose(); });
   }, [confirm, isDirty, onClose]);
+  // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
   useEffect(() => {
@@ -362,12 +306,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     return () => observer.disconnect();
   }, [template.html]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “remember Selection” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const rememberSelection = () => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
@@ -376,12 +314,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     lastRangeRef.current = range.cloneRange();
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “remember Pagination Position” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // จำย่อหน้าที่เคอร์เซอร์อยู่ไว้ก่อนแบ่งหน้าใหม่ จะได้เลื่อนกลับมาที่เดิมได้แม้ความสูงเปลี่ยน
   const rememberPaginationPosition = () => {
     const editor = editorRef.current;
     const viewport = editor?.closest<HTMLElement>(".document-editor-canvas");
@@ -400,16 +333,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       anchorTop: anchor?.getBoundingClientRect().top ?? null,
       left: viewport.scrollLeft,
       top: viewport.scrollTop,
+      // หมดอายุใน 1.5 วินาที เลยจากนั้นถือว่าผู้ใช้เลื่อนเองแล้ว อย่าไปดึงกลับ
       validUntil: Date.now() + 1_500,
     };
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “selected Range” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // เอาช่วงที่เลือกอยู่ ถ้าโฟกัสหลุดไปที่แถบเครื่องมือแล้วก็ใช้ช่วงที่จำไว้ล่าสุดแทน
   const selectedRange = () => {
     const editor = editorRef.current;
     const selection = window.getSelection();
@@ -418,12 +347,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     return null;
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Active Formats” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const updateActiveFormats = useCallback(() => {
     const editor = editorRef.current;
     const selection = window.getSelection();
@@ -447,12 +370,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   }, []);
 
   useEffect(() => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รับเหตุการณ์ “on Selection Change” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ฟังการเลือกข้อความที่ระดับ document เพราะ selection ไม่ได้ส่ง event ที่ตัว element
     const onSelectionChange = () => {
       const selection = window.getSelection();
       if (selection?.rangeCount && editorRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) {
@@ -464,22 +382,9 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     return () => document.removeEventListener("selectionchange", onSelectionChange);
   }, [updateActiveFormats]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รับเหตุการณ์ “handle Toolbar Key Down” จากผู้ใช้หรือระบบ แล้วเรียกขั้นตอนที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // แถบเครื่องมือเป็น toolbar ตามมาตรฐาน ARIA ต้องเลื่อนด้วยลูกศร ไม่ใช่ Tab ทีละปุ่ม
   const handleToolbarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “controls” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - control: ค่า “control” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const controls = Array.from(toolbarRef.current?.querySelectorAll<HTMLElement>(
       "button:not(:disabled), input:not(:disabled), [role='button']:not([aria-disabled='true'])",
     ) ?? []).filter((control) => control.getClientRects().length > 0);
@@ -497,15 +402,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     controls[nextIndex]?.focus();
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “wrap Selection” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - tagName: ค่า “tag Name” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - className: ค่า “class Name” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - style: ค่า “style” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ครอบข้อความที่เลือกด้วยแท็บที่ต้องการ ใช้แทน document.execCommand ที่เลิกใช้แล้ว
   const wrapSelection = (tagName: "strong" | "em" | "u" | "span", className?: string, style?: Partial<CSSStyleDeclaration>) => {
     const range = selectedRange();
     if (!range || range.collapsed) return;
@@ -522,13 +419,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     if (tagName === "u") setActiveFormats((current) => ({ ...current, underline: true }));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Node At Selection” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - node: ค่า “node” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertNodeAtSelection = (node: Node) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -548,13 +438,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     editor.append(node);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “apply Alignment” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - className: ค่า “class Name” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const applyAlignment = (className: "text-left" | "text-center" | "text-right") => {
     const editor = editorRef.current;
     const selection = window.getSelection();
@@ -568,12 +451,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setActiveFormats((current) => ({ ...current, alignment: className }));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Heading” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertHeading = () => {
     const selection = window.getSelection();
     const heading = document.createElement("h2");
@@ -588,12 +465,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     insertNodeAtSelection(heading);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert List” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertList = () => {
     const list = document.createElement("ul");
     const item = document.createElement("li");
@@ -602,12 +473,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     insertNodeAtSelection(list);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Table” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertTable = () => {
     const table = document.createElement("table");
     const body = document.createElement("tbody");
@@ -624,12 +489,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     insertNodeAtSelection(table);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Page Break” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertPageBreak = () => {
     const pageBreak = document.createElement("div");
     pageBreak.className = "page-break";
@@ -637,12 +496,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     window.requestAnimationFrame(paginateEditor);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “merge With Previous Page” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const mergeWithPreviousPage = () => {
     const editor = editorRef.current;
     const range = selectedRange();
@@ -664,12 +517,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     window.requestAnimationFrame(paginateEditor);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “delete Current Page” ตามกฎของระบบ
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const deleteCurrentPage = () => {
     const editor = editorRef.current;
     const range = selectedRange();
@@ -681,13 +528,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const previousPageBreak = pageBreaks
       .filter((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING)
       .at(-1);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “next Page Break” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - pageBreak: ค่า “page Break” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const nextPageBreak = pageBreaks.find((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_PRECEDING);
     const pageContainer = previousPageBreak?.parentElement ?? nextPageBreak?.parentElement;
     if (!pageContainer || (previousPageBreak && previousPageBreak.parentElement !== pageContainer) || (nextPageBreak && nextPageBreak.parentElement !== pageContainer)) {
@@ -714,12 +554,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setIsDeletePageConfirmOpen(true);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “active Table Cell” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const activeTableCell = () => {
     const range = selectedRange();
     const container = range?.commonAncestorContainer;
@@ -728,13 +562,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     return cell instanceof HTMLTableCellElement && editorRef.current?.contains(cell) ? cell : null;
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “edit Table” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - action: ค่า “action” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const editTable = (action: "add-row" | "remove-row" | "add-column" | "remove-column") => {
     const cell = activeTableCell();
     const row = cell?.parentElement;
@@ -763,13 +590,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     lastRangeRef.current = null;
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “confirm Table Deletion” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - action: ค่า “action” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const confirmTableDeletion = async (action: "remove-row" | "remove-column") => {
     const target = action === "remove-row" ? "แถว" : "คอลัมน์";
     if (!activeTableCell()) {
@@ -785,13 +605,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     editTable(action);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Image” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const insertImage = (file: File) => {
     setError("");
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -815,13 +628,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     reader.readAsDataURL(file);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “insert Placeholder” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - key: ค่า “key” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // แทรกช่องว่างแบบ {{key}} ตอนสร้างเอกสารจริงจะถูกแทนที่ด้วยข้อมูลของห้องหรือผู้เช่า
   const insertPlaceholder = (key: string) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -829,6 +636,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const selection = window.getSelection();
     const node = document.createTextNode(`{{${key}}}`);
     if (selection && selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer)) {
+      // วางตรงตำแหน่งเคอร์เซอร์ ทับข้อความที่เลือกไว้ถ้ามี
       const range = selection.getRangeAt(0);
       range.deleteContents();
       range.insertNode(node);
@@ -837,20 +645,17 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       selection.removeAllRanges();
       selection.addRange(range);
     } else {
+      // ไม่ได้วางเคอร์เซอร์ไว้ในเอกสาร ก็ต่อท้ายไปเลย
       editor.append(node);
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const save = async () => {
     setError("");
     setIsSaving(true);
     try {
+      // PUT เพราะส่ง HTML ทั้งก้อนไปแทนที่ของเดิม ไม่ได้แก้เฉพาะบางส่วน
+      // ฝั่งเซิร์ฟเวอร์ต้องล้าง HTML ก่อนเก็บอยู่แล้ว ตรงนี้จึงส่งไปตามที่ผู้ใช้แก้
       const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, html: editorHtml() }) });
       const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
       if (!response.ok || !result.template) throw new Error(result.error || "บันทึก template ไม่สำเร็จ");
@@ -863,12 +668,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “preview” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const preview = async () => {
     const previewWindow = window.open("", "_blank");
     setError("");
