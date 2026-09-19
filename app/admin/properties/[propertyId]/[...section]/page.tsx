@@ -3,7 +3,9 @@ import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
+import { listRooms } from "@/lib/server/property-structure";
 import { listPropertyTenants } from "@/lib/server/property-management";
+import { listInvitations } from "@/lib/server/tenant-onboarding";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
@@ -28,15 +30,17 @@ export default async function PropertyWorkspaceSectionPage({
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
   const auth = ["repairHistory", "complaints"].includes(activePage) ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints] = await Promise.all([
+  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints, initialInvitations] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
     auth ? loadRepairHistory(propertyId, auth.userId) : null,
     activePage === "tenants" ? listPropertyTenants(propertyId, { page: 1, pageSize: 20 }) : null,
     auth && activePage === "complaints" ? loadComplaints(propertyId, auth.userId) : null,
+    activePage === "invitations" ? loadInvitations(propertyId) : null,
   ]);
   return <OwnerSectionPanel
+    initialInvitations={initialInvitations}
     initialComplaints={initialComplaints}
     initialTenants={initialTenants ? JSON.parse(JSON.stringify(initialTenants)) : null}
     initialRepairHistory={initialRepairHistory}
@@ -100,5 +104,19 @@ async function loadComplaints(propertyId: string, userId: string) {
       : item.status === "CANCELLED" ? "ยกเลิกแล้ว" as const
       : item.status === "ACKNOWLEDGED" || item.status === "IN_PROGRESS" ? "กำลังตรวจสอบ" as const
       : "รับเรื่องแล้ว" as const,
+  }));
+}
+
+// หน้าคำเชิญต้องใช้ทั้งรายการห้องและรายการคำเชิญ ดึงพร้อมกันเพราะไม่ต้องรอผลของกันและกัน
+async function loadInvitations(propertyId: string) {
+  const [rooms, invitations] = await Promise.all([
+    // listRooms คืนอาร์เรย์ตรง ๆ ไม่ได้แบ่งหน้า
+    listRooms(propertyId),
+    listInvitations(propertyId, { page: 1, pageSize: 20 }),
+  ]);
+  return JSON.parse(JSON.stringify({
+    invitations: invitations.data,
+    pageInfo: invitations.pageInfo,
+    rooms,
   }));
 }

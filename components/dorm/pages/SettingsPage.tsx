@@ -52,6 +52,7 @@ const systemSettingSectionKeys = systemSettingSections.map(({ key }) => key);
 export function SettingsPage({
   accountEmail,
   accountName,
+  initialInvitations = null,
   initialSection,
   initialSettings,
   onAccountNameChange,
@@ -63,6 +64,8 @@ export function SettingsPage({
 }: {
   accountEmail: string;
   accountName: string;
+  // ส่งต่อให้หัวข้อคำเชิญ ซึ่ง Server Component ของหน้าดึงมาให้แล้ว
+  initialInvitations?: Parameters<typeof InvitationsPage>[0]["initialData"];
   initialSection: "account" | "general" | "invitations" | "subscription";
   initialSettings: PropertySettingsReadModel;
   onAccountNameChange: (name: string) => void;
@@ -578,7 +581,7 @@ export function SettingsPage({
           </>
         ) : null}
 
-        {activeSection === "invitations" ? <InvitationsPage propertyId={propertyId} readOnly={readOnly} /> : null}
+        {activeSection === "invitations" ? <InvitationsPage initialData={initialInvitations} propertyId={propertyId} readOnly={readOnly} /> : null}
 
         {activeSection === "subscription" ? <SubscriptionPage propertyId={propertyId} subscription={subscription} /> : null}
 

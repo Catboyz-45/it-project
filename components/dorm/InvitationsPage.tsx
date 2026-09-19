@@ -1,7 +1,7 @@
 "use client";
 // โหลดข้อมูล ส่งคำขอ และคัดลอกรหัสจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
   Clipboard,
@@ -57,10 +57,17 @@ async function readData<T>(response: Response): Promise<T> {
 }
 
 // หน้าสร้างและติดตามคำเชิญผู้เช่า ผู้เช่าเอารหัสไปใช้ตอนสมัครเพื่อผูกกับห้อง
-export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: string; readOnly?: boolean }) {
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
+// initialData ส่งมาจาก Server Component ของหน้านี้ ห้องกับคำเชิญจึงมาพร้อม HTML
+// ไม่ต้องยิงสองคำขอหลัง hydrate เสร็จ
+export function InvitationsPage({ initialData = null, propertyId, readOnly = false }: {
+  initialData?: { invitations: Invitation[]; pageInfo: PageInfo; rooms: RoomOption[] } | null;
+  propertyId: string;
+  readOnly?: boolean;
+}) {
+  const [rooms, setRooms] = useState<RoomOption[]>(initialData?.rooms ?? []);
+  const [invitations, setInvitations] = useState<Invitation[]>(initialData?.invitations ?? []);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(initialData?.pageInfo ?? null);
+  const skipInitialLoadRef = useRef(initialData !== null);
   const [roomId, setRoomId] = useState("");
   const [intendedRole, setIntendedRole] = useState<"PRIMARY" | "CO_OCCUPANT">("PRIMARY");
   const [expiresInDays, setExpiresInDays] = useState(7);
@@ -116,6 +123,11 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
   }, [propertyId]);
 
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งมาให้แล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     void load();
   }, [load]);
 

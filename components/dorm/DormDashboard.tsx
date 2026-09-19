@@ -766,6 +766,7 @@ export function OwnerSectionPanel({
   initialRepairHistory = null,
   initialTenants = null,
   initialComplaints = null,
+  initialInvitations = null,
   invoiceView = "invoices",
   page,
 }: {
@@ -774,6 +775,7 @@ export function OwnerSectionPanel({
   initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
   initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
   initialComplaints?: Complaint[] | null;
+  initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 }) {
@@ -896,6 +898,7 @@ export function OwnerSectionPanel({
     return <SettingsPage
       accountEmail={accountEmail}
       accountName={accountName}
+      initialInvitations={initialInvitations}
       initialSection={page === "account" ? "account" : page === "invitations" ? "invitations" : page === "subscription" ? "subscription" : "general"}
       initialSettings={dashboardData.settings}
       onAccountNameChange={onAccountNameChange}
