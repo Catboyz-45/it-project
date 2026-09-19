@@ -1,21 +1,13 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “api rate limit” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { createHash } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { getRequestActorContext } from "@/lib/server/request-context";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Rate Limit Policy” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type RateLimitPolicy = { limit: number; windowSeconds: number };
 
+// เพดานของแต่ละกลุ่มงาน ตั้งต่างกันตามความหนักและความเสี่ยง
+// สมัครสมาชิกกับขอรีเซ็ตรหัสผ่านตั้งไว้ต่ำสุด เพราะเป็นช่องที่ถูกยิงถล่มบ่อย
 export const rateLimits = {
   chat: { limit: 60, windowSeconds: 60 },
   upload: { limit: 20, windowSeconds: 60 * 10 },
@@ -24,43 +16,35 @@ export const rateLimits = {
   passwordReset: { limit: 5, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimitPolicy>;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “request Identity” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ระบุว่าคำขอนี้เป็นของใคร ไล่จากแม่นที่สุดไปหยาบที่สุด
+// รู้ตัวผู้ใช้ก็นับรายคน ไม่รู้ก็นับราย session และถ้ายังไม่มีเลยค่อยนับราย IP
 function requestIdentity(request: NextRequest) {
   const context = getRequestActorContext(request);
   if (context.userId) return `actor:${context.userId}:property:${context.propertyId ?? "platform"}`;
   const session = request.cookies.get("dorm_session")?.value;
+  // x-forwarded-for อาจมีหลาย IP ต่อกัน เอาตัวแรกซึ่งเป็นของผู้ใช้จริง
   const ip = request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim()
     || request.headers.get("x-real-ip")
     || "unknown";
   return session ? `session:${session}` : `ip:${ip}`;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Api Rate Limit” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - scope: ค่า “scope” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - discriminator: ค่า “discriminator” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
 export async function assertApiRateLimit(
   request: NextRequest,
   scope: keyof typeof rateLimits,
   discriminator = "",
 ) {
   const policy = rateLimits[scope];
+  // เก็บเป็น hash ไม่ใช่ตัวระบุตรง ๆ เพราะตารางนี้ไม่จำเป็นต้องรู้ว่าใครเป็นใคร
   const key = createHash("sha256")
     .update(`${scope}:${discriminator}:${requestIdentity(request)}`)
     .digest("hex");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + policy.windowSeconds * 1000);
+  // ใช้ SQL ดิบเพราะต้องนับและเช็คในคำสั่งเดียว ไม่งั้นคำขอที่มาพร้อมกันจะนับตกหล่น
+  // เป็น parameterized query ทุกค่า จึงไม่มีช่องให้ SQL injection
+  // ON CONFLICT ทำให้เพิ่มค่าเดิมหรือสร้างใหม่ได้ในคำสั่งเดียวโดยไม่ต้องอ่านก่อน
+  // CASE คือการเริ่มนับรอบใหม่เมื่อรอบเดิมหมดอายุแล้ว
   const rows = await getDatabase().$queryRaw<Array<{ count: number; expiresAt: Date }>>`
     INSERT INTO "ApiRateLimit" ("key", "count", "windowStart", "expiresAt", "updatedAt")
     VALUES (${key}, 1, ${now}, ${expiresAt}, ${now})
@@ -80,19 +64,13 @@ export async function assertApiRateLimit(
       "updatedAt" = ${now}
     RETURNING "count", "expiresAt"
   `;
+  // 429 คือรหัสมาตรฐานของการส่งคำขอถี่เกินไป ข้อความเป็นแบบกลาง ๆ ไม่บอกว่าเหลืออีกกี่ครั้ง
   if ((rows[0]?.count ?? 1) > policy.limit) {
     throw new ApiError(429, "ส่งคำขอบ่อยเกินไป กรุณาลองใหม่ภายหลัง");
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Upload Rate Limit” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - uploadType: ค่า “upload Type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// อัปโหลดนับแยกตามชนิดไฟล์และตามหอ หอหนึ่งอัปโหลดเยอะจะได้ไม่ไปกินโควตาของหออื่น
 export async function assertUploadRateLimit(request: NextRequest, uploadType: string) {
   const { propertyId } = getRequestActorContext(request);
   return assertApiRateLimit(
