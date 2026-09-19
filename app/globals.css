@@ -111,8 +111,8 @@
   label { @apply grid gap-2 text-sm font-semibold text-[#454750]; }
   a { @apply text-brand-cyan underline-offset-4 hover:underline; }
   table { @apply w-full border-collapse; }
-  th { @apply bg-brand/[.06] px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#62646c]; }
-  td { @apply border-t border-[#8b8d96] px-4 py-3 text-sm text-[#292a30]; }
+  th { @apply bg-transparent px-6 py-3 text-left text-[13px] font-medium normal-case tracking-normal text-[#62646c]; }
+  td { @apply border-t border-[#e4e4e7] px-6 py-3 text-sm text-[#292a30]; }
   code { @apply rounded-md bg-brand/[.08] px-2 py-1 font-mono text-brand; }
 
   /* A two-tone indicator stays visible on both light and dark surfaces. Keep
@@ -608,14 +608,16 @@
     @apply bg-[#fafafa];
   }
   .figma-table-card table th, .meter-table-card table th, .panel.overflow-hidden table th {
-    @apply h-16 border-b border-[#e4e4e7] bg-transparent px-6 py-4 text-sm font-bold normal-case tracking-normal text-[#4d4f58];
+    @apply h-12 border-b border-[#e4e4e7] bg-transparent px-6 py-3 text-[13px] font-medium normal-case tracking-normal text-[#62646c];
   }
   .figma-table-card table td, .meter-table-card table td, .panel.overflow-hidden table td {
-    @apply h-22 border-t border-[#e4e4e7] bg-[#fff] px-6 py-4 text-sm text-[#292a30];
+    @apply h-20 border-t border-[#e4e4e7] bg-[#fff] px-6 py-3 text-sm text-[#292a30];
   }
   .figma-table-card table tbody tr:nth-child(even) td,
   .meter-table-card table tbody tr:nth-child(even) td,
   .panel.overflow-hidden table tbody tr:nth-child(even) td { @apply bg-[#fff]; }
+  tbody tr { @apply transition-colors duration-150; }
+  tbody tr:hover > td { background-color: #fafafa; }
   .figma-table-card table tbody tr:hover td,
   .meter-table-card table tbody tr:hover td,
   .panel.overflow-hidden table tbody tr:hover td { @apply bg-[#fafafa]; }
