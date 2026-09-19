@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “property management” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { z } from "zod";
 import type {
   endOccupancySchema,
@@ -17,51 +11,21 @@ import { tenantRepository } from "@/lib/repositories/tenant-repository";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Property Workspace” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getPropertyWorkspace(propertyId: string) {
   const property = await propertyRepository.findWorkspace(propertyId);
   if (!property) throw new ApiError(404, "ไม่พบหอพัก");
   return property;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Property Identity” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function updatePropertyIdentity(propertyId: string, input: z.infer<typeof updatePropertySchema>) {
   return propertyRepository.updateIdentity(propertyId, input);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Property Settings” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export function savePropertySettings(propertyId: string, input: z.infer<typeof updatePropertySettingsSchema>) {
   return propertyRepository.upsertSettings(propertyId, { propertyId, ...input });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “super Admin Update Property” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบเปิดปิดหอ และตั้งว่าใครดูแลหอนี้
 export async function superAdminUpdateProperty(
   propertyId: string,
   input: z.infer<typeof superAdminPropertyUpdateSchema>,
@@ -84,9 +48,11 @@ export async function superAdminUpdateProperty(
         select: { id: true },
       });
       if (members.length !== memberUserIds.length) {
+      // บัญชีที่ยังไม่อนุมัติหรือถูกระงับ มอบหมายให้ดูแลหอไม่ได้
         throw new ApiError(400, "มีบัญชีผู้ดูแลหอที่ไม่พร้อมใช้งาน");
       }
       if (!property.subscription && memberUserIds.length > 0) {
+      // ต้องมีแพ็กเกจก่อน เพราะโควตาจำนวนหอที่คนหนึ่งดูแลได้มาจากแพ็กเกจ
         throw new ApiError(409, "กรุณากำหนดแพ็กเกจก่อนมอบหมายผู้ดูแลหอ");
       }
       for (const userId of memberUserIds) {
@@ -94,6 +60,7 @@ export async function superAdminUpdateProperty(
           where: { userId, propertyId: { not: propertyId }, property: { isActive: true } },
         });
         if (managedCount >= (property.subscription?.maxProperties ?? 0)) {
+        // นับหอที่คนนั้นดูแลอยู่แล้ว โควตาผูกกับตัวบุคคล ไม่ใช่ผูกกับหอ
           throw new ApiError(409, "จำนวนหอที่ผู้ดูแลรับผิดชอบถึงขีดจำกัดแพ็กเกจแล้ว");
         }
       }
@@ -130,15 +97,6 @@ export async function superAdminUpdateProperty(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Property Tenants” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPropertyTenants(
   propertyId: string,
   pagination: import("@/lib/server/pagination").PaginationInput,
@@ -190,29 +148,12 @@ export async function listPropertyTenants(
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Property Tenant” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getPropertyTenant(propertyId: string, tenantProfileId: string) {
   const tenant = await tenantRepository.find(propertyId, tenantProfileId);
   if (!tenant) throw new ApiError(404, "ไม่พบผู้เช่า");
   return tenant;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Property Tenant” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updatePropertyTenant(
   propertyId: string,
   tenantProfileId: string,
@@ -249,15 +190,6 @@ export async function updatePropertyTenant(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “end Property Occupancy” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - occupancyId: รหัสภายในของ occupancy
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function endPropertyOccupancy(
   propertyId: string,
   occupancyId: string,
@@ -272,6 +204,7 @@ export async function endPropertyOccupancy(
     const activeLease = await database.lease.count({
       where: { roomId: occupancy.roomId, status: { in: ["ACTIVE", "EXPIRING", "PENDING_SIGNATURE"] } },
     });
+    // ปิดการเข้าพักทั้งที่สัญญายังอยู่ไม่ได้ ไม่งั้นจะมีสัญญาที่ไม่มีคนอยู่ในห้อง
     if (activeLease > 0) throw new ApiError(409, "ต้องสิ้นสุดสัญญาที่ใช้งานอยู่ก่อน");
     const updated = await database.roomOccupancy.update({
       where: { id: occupancy.id },
@@ -288,18 +221,11 @@ export async function endPropertyOccupancy(
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “revoke Invitation” ตามกฎของระบบ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - invitationId: รหัสภายในของ invitation
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
 export async function revokeInvitation(propertyId: string, invitationId: string) {
   const result = await getDatabase().tenantInvitation.updateMany({
     where: { id: invitationId, propertyId, status: "PENDING" },
     data: { status: "REVOKED" },
   });
+  // ใส่เงื่อนไขไว้ใน where แล้วนับจำนวนแถวที่แก้ได้ ยกเลิกรหัสที่ถูกใช้ไปแล้วจึงไม่ได้
   if (result.count !== 1) throw new ApiError(404, "ไม่พบรหัสเชิญที่ยกเลิกได้");
 }
