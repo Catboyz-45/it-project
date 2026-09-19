@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “saas” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import type { AssignSubscriptionInput, CreateSaasPlanInput, UpdateSaasPlanInput } from "@/lib/domain/saas";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
@@ -18,13 +12,6 @@ const planSelect = {
   _count: { select: { subscriptions: true } },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “serialize Plan” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - plan: ค่า “plan” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const serializePlan = <T extends {
   monthlyPrice: { toString(): string };
   yearlyPrice: { toString(): string } | null;
@@ -34,13 +21,7 @@ const serializePlan = <T extends {
   yearlyPrice: plan.yearlyPrice?.toString() ?? null,
 });
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Saas Plans” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - includeInactive: ค่า “include Inactive” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รายการแพ็กเกจ ฝั่งผู้ใช้เห็นเฉพาะที่เปิดขาย ส่วนผู้ดูแลระบบเห็นทั้งหมด
 export async function listSaasPlans(includeInactive = false) {
   const plans = await getDatabase().saasPlan.findMany({
     where: includeInactive ? {} : { isActive: true },
@@ -50,15 +31,6 @@ export async function listSaasPlans(includeInactive = false) {
   return plans.map(serializePlan);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Saas Plans Page” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - includeInactive: ค่า “include Inactive” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listSaasPlansPage(
   includeInactive: boolean,
   pagination: PaginationInput,
@@ -84,43 +56,23 @@ export async function listSaasPlansPage(
   return { ...result, data: result.data.map(serializePlan) };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Saas Plan” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function createSaasPlan(input: CreateSaasPlanInput) {
   try {
     return serializePlan(await getDatabase().saasPlan.create({ data: input, select: planSelect }));
   } catch (error) {
+    // แปลง error ของฐานข้อมูลเป็นข้อความที่ผู้ใช้อ่านรู้เรื่อง ไม่ปล่อยรายละเอียดภายในออกไป
+    // ดักที่ error แทนการเช็คก่อนสร้าง จึงไม่มีช่องว่างระหว่างเช็คกับเขียน
     if (error instanceof Error && error.message.includes("Unique constraint")) throw new ApiError(409, "รหัสแพ็กเกจนี้ถูกใช้งานแล้ว");
     throw error;
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Saas Plan” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - planId: รหัสภายในของ plan
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function updateSaasPlan(planId: string, input: UpdateSaasPlanInput) {
   if (!await getDatabase().saasPlan.count({ where: { id: planId } })) throw new ApiError(404, "ไม่พบแพ็กเกจ");
   return serializePlan(await getDatabase().saasPlan.update({ where: { id: planId }, data: input, select: planSelect }));
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “assign Property Subscription” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ผู้ดูแลระบบกำหนดแพ็กเกจให้หอโดยตรง ต่างจากการที่เจ้าของหอสั่งซื้อเอง
 export async function assignPropertySubscription(propertyId: string, input: AssignSubscriptionInput) {
   return getDatabase().$transaction(async (database) => {
     const property = await database.property.findUnique({
@@ -131,7 +83,9 @@ export async function assignPropertySubscription(propertyId: string, input: Assi
     const roomCount = await database.room.count({ where: { propertyId, status: { not: "INACTIVE" } } });
     if (!property) throw new ApiError(404, "ไม่พบหอพัก");
     if (!plan) throw new ApiError(400, "แพ็กเกจไม่พร้อมใช้งาน");
+    // ห้ามลดแพ็กเกจลงต่ำกว่าที่ใช้อยู่จริง ไม่งั้นหอจะอยู่ในสภาพที่เกินสิทธิ์ตั้งแต่วันแรก
     if (roomCount > plan.maxRooms) throw new ApiError(409, "จำนวนห้องปัจจุบันเกินขีดจำกัดของแพ็กเกจนี้");
+    // เช็คทุกคนที่ดูแลหอนี้ด้วย เพราะโควตาจำนวนหอผูกกับตัวบุคคล ไม่ใช่ผูกกับหอ
     for (const membership of property.memberships) {
       const managedCount = await database.propertyMembership.count({
         where: { userId: membership.userId, property: { isActive: true } },
@@ -140,11 +94,14 @@ export async function assignPropertySubscription(propertyId: string, input: Assi
         throw new ApiError(409, "จำนวนหอที่ผู้ดูแลรับผิดชอบเกินขีดจำกัดของแพ็กเกจนี้");
       }
     }
+    // ไม่ได้ตั้งราคารายปีไว้ก็คิดจากรายเดือนคูณ 12 ใช้ mul ของ Decimal ไม่ใช่คูณแบบตัวเลขปกติ
     const priceAmount = input.billingInterval === "YEARLY"
       ? plan.yearlyPrice ?? plan.monthlyPrice.mul(12)
       : plan.monthlyPrice;
     return database.propertySubscription.upsert({
       where: { propertyId },
+      // คัดลอกชื่อแพ็กเกจ ราคา และโควตามาเก็บไว้ในแถวนี้ด้วย
+      // แก้แพ็กเกจทีหลังแล้วหอที่ซื้อไปก่อนจะได้ยังใช้เงื่อนไขเดิม
       create: {
         propertyId, planId: plan.id, planName: plan.name, status: input.status,
         billingInterval: input.billingInterval, priceAmount,
