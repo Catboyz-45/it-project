@@ -193,13 +193,18 @@ type PaginatedResource<T> = {
 };
 
 // แบบเดียวกันแต่โหลดทีละหน้า และต่อท้ายเมื่อกดโหลดเพิ่ม
-function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<T> {
-  const [data, setData] = useState<T[]>([]);
+// initialPage มาจาก Server Component ของหน้านั้น หน้าแรกจึงมาพร้อม HTML
+// ไม่ต้องขึ้น skeleton และไม่ต้องยิงซ้ำตอน mount
+export type InitialPage<T> = { data: T[]; hasNextPage: boolean; total: number | null };
+// enabled=false ใช้กับแท็บที่ยังไม่ได้เปิด จะได้ไม่โหลดข้อมูลที่ผู้ใช้ยังไม่ได้ขอดู
+function usePaginatedResource<T>(url: string, pageSize = 20, initialPage: InitialPage<T> | null = null, enabled = true): PaginatedResource<T> {
+  const [data, setData] = useState<T[]>(initialPage?.data ?? []);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [total, setTotal] = useState<number | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(initialPage?.hasNextPage ?? false);
+  const [total, setTotal] = useState<number | null>(initialPage?.total ?? null);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled && initialPage === null);
+  const skipInitialPageRef = useRef(initialPage !== null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const requestPage = useCallback(async (targetPage: number, replace: boolean, signal?: AbortSignal) => {
@@ -240,10 +245,17 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
   const reload = useCallback(() => requestPage(1, true), [requestPage]);
   const loadMore = useCallback(() => requestPage(page + 1, false), [page, requestPage]);
   useEffect(() => {
+    // ยังไม่เปิดแท็บนี้ก็ยังไม่ต้องโหลด รอจนกดค่อยยิง
+    if (!enabled) return;
+    // หน้าแรกมาพร้อม HTML แล้ว ยิงซ้ำตอน mount คือทำงานเดิมสองรอบ
+    if (skipInitialPageRef.current) {
+      skipInitialPageRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void requestPage(1, true, controller.signal);
     return () => controller.abort();
-  }, [requestPage]);
+  }, [enabled, requestPage]);
   return { data, error, hasNextPage, isLoading, isLoadingMore, loadMore, reload, total };
 }
 
@@ -491,7 +503,17 @@ export function TenantPortal({
 
 // เนื้อของแท็บหนึ่งแท็บ page ของแต่ละ route เรียกตัวนี้พร้อมบอกว่าเป็นแท็บอะไร
 // ข้อมูลร่วมหยิบจาก context ที่เปลือกเตรียมไว้ จึงไม่ต้องโหลดซ้ำตอนเปลี่ยนแท็บ
-export function TenantSectionPanel({ initialSummary = null, tab }: { initialSummary?: TenantHomeSummary | null; tab: TenantTab }) {
+export function TenantSectionPanel({
+  initialInvoices = null,
+  initialSummary = null,
+  initialTickets = null,
+  tab,
+}: {
+  initialInvoices?: TenantInitialViews<Invoice> | null;
+  initialSummary?: TenantHomeSummary | null;
+  initialTickets?: TenantInitialViews<Ticket> | null;
+  tab: TenantTab;
+}) {
   // เรียก context ครั้งเดียวบนสุด hook ห้ามอยู่หลัง early return
   const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
   // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
@@ -508,11 +530,11 @@ export function TenantSectionPanel({ initialSummary = null, tab }: { initialSumm
     />;
   }
   // บิลกับสัญญาเป็นเรื่องของผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทน
-  if (tab === "invoices") return isPrimary ? <InvoicesPanel readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" />;
+  if (tab === "invoices") return isPrimary ? <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" />;
   if (tab === "lease") return isPrimary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" />;
   if (tab === "announcements") return <AnnouncementsPanel />;
   if (tab === "parcels") return <ParcelsPanel />;
-  if (tab === "tickets") return <TicketsPanel onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
+  if (tab === "tickets") return <TicketsPanel initialViews={initialTickets} onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
   if (tab === "chat") {
     // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
     if (roomResource.isLoading) return <Loading />;
@@ -750,6 +772,9 @@ function PendingState({ account }: { account: Account }) {
 // แท็บหน้าหลัก ดึงเฉพาะ 5 รายการล่าสุดของแต่ละอย่างมาแสดงพอให้เห็นภาพรวม
 // initialSummary มาจาก Server Component ของหน้าแรก สามรายการนี้จึงมาพร้อม HTML
 // ส่วนห้องกับยอดแจ้งเตือนยังมาจาก context เพราะเปลือกโหลดไว้แล้วและใช้ร่วมกับแถบเมนู
+// หน้าบิลกับหน้าแจ้งเรื่องมีสองมุมมอง ส่งมาได้ทั้งคู่หรือจะส่งแค่มุมมองที่เปิดอยู่ก็ได้
+export type TenantInitialViews<T> = { current?: InitialPage<T> | null; history?: InitialPage<T> | null };
+
 export type TenantHomeSummary = {
   invoices: Invoice[] | null;
   parcels: Parcel[] | null;
@@ -970,10 +995,10 @@ function TenantHistoryTable({ children, title, total }: { children: ReactNode; t
   </section>;
 }
 
-function InvoicesPanel({ readOnly }: { readOnly: boolean }) {
+function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }) {
   const [view, setView] = useState<TenantRecordView>("current");
-  const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current");
-  const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history");
+  const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current", 20, initialViews?.current ?? null);
+  const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history", 20, initialViews?.history ?? null, view === "history");
   const reloadCurrentInvoices = currentResource.reload;
   const reloadInvoiceHistory = historyResource.reload;
   const resource = view === "current" ? currentResource : historyResource;
@@ -1135,10 +1160,10 @@ type Ticket = {
     fromValue: string | null; toValue: string | null; createdAt: string;
   }>;
 };
-function TicketsPanel({ onUnreadChanged, readOnly }: { onUnreadChanged: () => Promise<void>; readOnly: boolean }) {
+function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialViews?: TenantInitialViews<Ticket> | null; onUnreadChanged: () => Promise<void>; readOnly: boolean }) {
   const [view, setView] = useState<TenantRecordView>("current");
-  const currentResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=current");
-  const historyResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=history");
+  const currentResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=current", 20, initialViews?.current ?? null);
+  const historyResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=history", 20, initialViews?.history ?? null, view === "history");
   const resource = view === "current" ? currentResource : historyResource;
   const reloadCurrentTickets = currentResource.reload;
   const reloadTicketHistory = historyResource.reload;
