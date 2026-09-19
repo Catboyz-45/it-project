@@ -762,11 +762,13 @@ export type OwnerInitialParcels = {
 export function OwnerSectionPanel({
   initialLeases = null,
   initialParcels = null,
+  initialRepairHistory = null,
   invoiceView = "invoices",
   page,
 }: {
   initialLeases?: { data: unknown[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
   initialParcels?: OwnerInitialParcels | null;
+  initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 }) {
@@ -837,7 +839,13 @@ export function OwnerSectionPanel({
     />;
   }
   if (page === "invoices") return <InvoicesPage initialView={invoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />;
-  if (page === "repairHistory") return <RepairHistoryPage propertyId={propertyId} tickets={repairTickets} />;
+  if (page === "repairHistory") {
+    return <RepairHistoryPage
+      initialPageInfo={initialRepairHistory?.pageInfo ?? null}
+      propertyId={propertyId}
+      tickets={initialRepairHistory?.tickets ?? repairTickets}
+    />;
+  }
   if (page === "complaints") {
     return <ComplaintsPage
       complaints={dashboardData.complaints}

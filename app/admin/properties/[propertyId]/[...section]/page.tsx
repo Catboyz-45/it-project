@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
+import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
-import { listParcels } from "@/lib/server/property-operations";
+import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
 export default async function PropertyWorkspaceSectionPage({
@@ -22,13 +23,18 @@ export default async function PropertyWorkspaceSectionPage({
   const invoiceView = activePage === "invoices" && tab === "payments" ? "payments" : "invoices";
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้จึงดึงข้อมูลของหน้าได้เลย
   // ดึงเฉพาะหน้าที่ต้องใช้ หน้าอื่นได้ข้อมูลจาก read model ใน layout อยู่แล้ว
+  // ประวัติซ่อมต้องรู้ว่าใครเปิดดู เพราะจำนวนที่ยังไม่อ่านนับแยกตามคน
+  // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
+  const auth = activePage === "repairHistory" ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases] = await Promise.all([
+  const [initialParcels, initialLeases, initialRepairHistory] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
+    auth ? loadRepairHistory(propertyId, auth.userId) : null,
   ]);
   return <OwnerSectionPanel
+    initialRepairHistory={initialRepairHistory}
     initialLeases={initialLeases ? JSON.parse(JSON.stringify(initialLeases)) : null}
     initialParcels={initialParcels}
     invoiceView={invoiceView}
@@ -53,5 +59,24 @@ async function loadParcels(propertyId: string) {
       updatedAt: item.updatedAt.toISOString(),
     })),
     summary: result.summary,
+  };
+}
+
+// ประวัติซ่อมคือ ticket ชนิด REPAIR ที่ปิดเรื่องแล้ว แปลงให้เป็นรูปที่หน้าจอใช้
+async function loadRepairHistory(propertyId: string, userId: string) {
+  const result = await listAdminTickets(propertyId, userId, { page: 1, pageSize: 20 }, "REPAIR", "RESOLVED");
+  return {
+    pageInfo: result.pageInfo,
+    tickets: result.data.map((item) => ({
+      id: item.id,
+      category: item.room ? `ห้อง ${item.room.number}` : "ส่วนกลาง",
+      detail: item.detail,
+      priority: item.priority === "URGENT" ? "ด่วน" as const : "ปกติ" as const,
+      roomId: item.room?.number ?? "-",
+      status: "done" as const,
+      title: item.title,
+      updatedAt: new Date(item.updatedAt).toLocaleString("th-TH"),
+      completedAt: item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("th-TH") : undefined,
+    })),
   };
 }

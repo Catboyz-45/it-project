@@ -1,7 +1,7 @@
 "use client";
 // โหลดรายการและส่งผลตรวจสอบจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, Search, X } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createApiError, formatClientError } from "@/lib/client/api-error";
@@ -12,16 +12,25 @@ import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 
 // หลักฐานการโอนค่าสมาชิกที่เจ้าของหอส่งมา คนละเรื่องกับค่าเช่าที่ผู้เช่าจ่าย
-type Payment = {
+export type Payment = {
   id: string; amount: string; mimeType: string; sizeBytes: number; submittedAt: string;
   order: { orderNumber: string; propertyId: string; planName: string; billingInterval: "MONTHLY" | "YEARLY"; type: "NEW" | "RENEWAL"; property: { name: string } };
 };
 
 // หน้าตรวจค่าสมาชิกของผู้ดูแลระบบ อนุมัติแล้วระบบเปิดใช้หรือต่ออายุแพ็กเกจให้อัตโนมัติ
-export function SubscriptionPaymentReview() {
-  const [payments, setPayments] = useState<Payment[]>([]);
+// initialPayments ส่งมาจาก Server Component ของหน้านี้ คิวรอตรวจจึงมาพร้อม HTML
+// ค้นหาและโหลดเพิ่มยังยิง API เหมือนเดิม
+export function SubscriptionPaymentReview({
+  initialHasNextPage = false,
+  initialPayments = null,
+}: {
+  initialHasNextPage?: boolean;
+  initialPayments?: Payment[] | null;
+} = {}) {
+  const [payments, setPayments] = useState<Payment[]>(initialPayments ?? []);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
+  const skipInitialLoadRef = useRef(initialPayments !== null);
   const [error, setError] = useState("");
   const [pendingId, setPendingId] = useState("");
   const [rejecting, setRejecting] = useState<Payment | null>(null);
@@ -43,7 +52,15 @@ export function SubscriptionPaymentReview() {
     finally { setIsLoading(false); }
   }, [query]);
   // หน่วง 300 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
-  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 300); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => {
+    // เซิร์ฟเวอร์ส่งคิวหน้าแรกมาแล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => { void load(); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function review(payment: Payment, status: "APPROVED" | "REJECTED", note?: string) {
     setPendingId(payment.id); setError("");

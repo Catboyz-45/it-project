@@ -2,7 +2,7 @@
 // เก็บตัวกรองและโหลดข้อมูลทีละหน้าจากเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { repairStatusClass, repairStatusLabel, type OwnerRepairTicket } from "@/types/repairs";
@@ -15,12 +15,16 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 type RepairHistoryPageProps = {
   propertyId: string;
   tickets: OwnerRepairTicket[];
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องโหลดซ้ำ
+  initialPageInfo?: ServerPageInfo | null;
 };
 
 // หน้าประวัติงานซ่อมที่ปิดเรื่องแล้ว แยกจากหน้าเรื่องร้องเรียนที่ยังทำอยู่
-export function RepairHistoryPage({ propertyId, tickets: initialTickets }: RepairHistoryPageProps) {
+export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets: initialTickets }: RepairHistoryPageProps) {
   const [tickets, setTickets] = useState(initialTickets);
-  const [pageInfo, setPageInfo] = useState<ServerPageInfo>({ page: 1, pageSize: 20, hasNextPage: false });
+  const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
+  // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  const skipInitialLoadRef = useRef(initialPageInfo !== null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const loadTickets = useCallback(async (targetPage = 1) => {
@@ -61,7 +65,13 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
     }
   }, [propertyId]);
   // โหลดใหม่ตั้งแต่เปิดหน้า เพื่อให้ได้ pageInfo มาใช้กับแถบแบ่งหน้า
-  useEffect(() => { void loadTickets(); }, [loadTickets]);
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadTickets();
+  }, [loadTickets]);
   // กรองซ้ำอีกชั้น เผื่อข้อมูลชุดแรกจากเซิร์ฟเวอร์มีงานที่ยังไม่ปิดปนมา
   const completedTickets = useMemo(() => tickets.filter((ticket) => ticket.status === "done"), [tickets]);
   // ตัวแรกของเลขห้องคือชั้น เช่นห้อง 301 อยู่ชั้น 3 Set ตัดชั้นที่ซ้ำกันออก

@@ -18,7 +18,33 @@ export async function measureContrast(locator: Locator, kind: ContrastKind = "fo
 
     // ยืมมือ canvas แปลงสี CSS ทุกรูปแบบเป็นตัวเลข rgba ไม่ต้องเขียนตัวแปลงเอง
     // รองรับได้หมดทั้ง hex, rgb(), hsl() และชื่อสี เพราะเบราว์เซอร์แปลงให้
+    // Tailwind v4 ปล่อยสีบางตัวออกมาเป็น lab() ซึ่ง canvas ของ Chromium ยังไม่รองรับ
+    // ใส่ค่าที่ canvas ไม่รู้จักแล้ว fillStyle จะค้างเป็นสีดำ ทำให้วัดได้ดำบนดำ
+    // จึงแปลง lab() เป็น sRGB เองก่อน สูตรตาม CSS Color 4 จุดขาวอ้างอิง D50
+    const labToRgb = (value: string): [number, number, number] | null => {
+      const match = /^lab\(\s*([\d.+-]+)%?\s+([\d.+-]+)\s+([\d.+-]+)/i.exec(value.trim());
+      if (!match) return null;
+      const [lightness, aStar, bStar] = [Number(match[1]), Number(match[2]), Number(match[3])];
+      const fy = (lightness + 16) / 116;
+      const fx = fy + aStar / 500;
+      const fz = fy - bStar / 200;
+      // ช่วงมืดใช้สูตรเชิงเส้นแทนยกกำลังสาม ตามนิยามของ CIELAB
+      const invert = (t: number) => t ** 3 > 216 / 24389 ? t ** 3 : (116 * t - 16) / 24389 * 27;
+      const [x, y, z] = [invert(fx) * 0.9642956, invert(fy), invert(fz) * 0.8251046];
+      // เมทริกซ์ XYZ(D50) -> linear sRGB รวมการปรับจุดขาวแบบ Bradford ไว้แล้ว
+      const linear = [
+        3.1341359569958707 * x - 1.6173863321612538 * y - 0.4906154211573698 * z,
+        -0.978795502912089 * x + 1.916254567259524 * y + 0.03344273116131949 * z,
+        0.07195537988411677 * x - 0.2289768264158322 * y + 1.4053400777233343 * z,
+      ];
+      return linear.map((channel) => {
+        const encoded = channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055;
+        return Math.max(0, Math.min(255, Math.round(encoded * 255)));
+      }) as [number, number, number];
+    };
     const parseColor = (value: string): Rgba => {
+      const fromLab = labToRgb(value);
+      if (fromLab) return [...fromLab, 1];
       const canvas = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
@@ -84,7 +110,19 @@ export async function expectContrast(
 ) {
   // ต้องมองเห็นก่อนถึงวัดได้ ของที่ซ่อนอยู่จะวัดได้ค่าที่ไม่มีความหมาย
   await expect(locator, `${options.name} must be visible before measuring contrast`).toBeVisible();
-  const measurement = await measureContrast(locator, options.kind);
+  // วัดซ้ำจนกว่าจะได้ค่าที่อ่านได้จริง เพิ่งเปิดหน้ามา getComputedStyle อาจยังคืนค่าตั้งต้น
+  // ซึ่งทำให้ทั้งตัวอักษรและพื้นหลังออกมาเป็นดำเท่ากัน ได้อัตราส่วน 1 ทั้งที่สีจริงผ่านเกณฑ์
+  let measurement = await measureContrast(locator, options.kind);
+  await expect
+    .poll(async () => {
+      measurement = await measureContrast(locator, options.kind);
+      // ดำสนิททั้งคู่คือยังอ่านไม่ได้ ไม่ใช่ผลวัดจริง รอรอบถัดไป
+      return measurement.foreground === measurement.background ? null : measurement.ratio;
+    }, {
+      message: `${options.name} (${options.state}, ${options.kind ?? "foreground"}) did not reach the required contrast`,
+    })
+    .toBeGreaterThanOrEqual(options.minimum);
+  // ทิ้งค่าสีที่วัดได้ไว้ในรายงาน เวลาพังจะได้รู้ว่าเป็นสีอะไรบนอะไร
   expect(
     measurement.ratio,
     `${options.name} (${options.state}, ${options.kind ?? "foreground"}) uses ${measurement.foreground} on ${measurement.background}`,
