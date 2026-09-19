@@ -887,9 +887,11 @@
   .admin-table-filter .dropdown-trigger { width: 100%; }
   .admin-table-filter .dropdown-popover { z-index: 40; }
   .admin-table-export { @apply shrink-0 justify-center; }
+  .admin-table-actions { @apply flex shrink-0 items-center gap-2; }
   @media (max-width: 47.999rem) {
     .admin-table-toolbar,
     .admin-table-toolbar.has-filter { grid-template-columns: minmax(0, 1fr); }
+    .admin-table-actions { display: grid; gap: 0.5rem; width: 100%; }
     .admin-table-export { width: 100%; }
   }
 

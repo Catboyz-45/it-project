@@ -9,15 +9,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Activity,
-  Building2,
-  Crown,
   Download,
   LoaderCircle,
   Pencil,
   Plus,
   Search,
-  UsersRound,
   X,
 } from "lucide-react";
 import { AccountApprovalActions } from "@/components/admin/AccountApprovalActions";
@@ -98,10 +94,12 @@ type AuditLog = {
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
 function PaginatedTable<T>({
+  action,
   children,
   empty,
   endpoint,
 }: {
+  action?: React.ReactNode;
   children: (rows: T[]) => React.ReactNode;
   empty: string;
   endpoint: string;
@@ -226,6 +224,7 @@ function PaginatedTable<T>({
             />
           </div>
         ) : null}
+        <div className="admin-table-actions">
         <a
           className="secondary-button admin-table-export"
           download
@@ -233,6 +232,8 @@ function PaginatedTable<T>({
         >
           <Download size={16} /> CSV
         </a>
+          {action}
+        </div>
       </div>
       {isLoading ? (
         <div className="document-editor-state">
@@ -325,21 +326,17 @@ export function SuperAdminResourceTables({
   return (
     <>
       {resources.includes("plans") ? (
-        <ResourceSection
-          action={
-            <button
-              className="primary-button"
-              onClick={() => setEditingPlan("new")}
-              type="button"
-            >
-              <Plus size={16} /> สร้างแพ็กเกจ
-            </button>
-          }
-          icon={<Crown className="text-brand-green" />}
-          subtitle="ราคา ขีดจำกัด และจำนวนสมาชิก"
-          title="แพ็กเกจ SaaS"
-        >
+        <ResourceSection>
           <PaginatedTable<Plan>
+            action={
+              <button
+                className="primary-button"
+                onClick={() => setEditingPlan("new")}
+                type="button"
+              >
+                <Plus size={16} /> สร้างแพ็กเกจ
+              </button>
+            }
             empty="ยังไม่มีแพ็กเกจ"
             endpoint="/api/v1/super-admin/plans"
           >
@@ -399,13 +396,9 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("properties") ? (
-        <ResourceSection
-          action={propertyAction}
-          icon={<Building2 className="text-brand-green" />}
-          subtitle="พื้นที่ในแพลตฟอร์ม"
-          title="หอพักทั้งหมด"
-        >
+        <ResourceSection>
           <PaginatedTable<Property>
+            action={propertyAction}
             empty="ยังไม่มีหอพัก"
             endpoint="/api/v1/super-admin/properties"
           >
@@ -450,13 +443,9 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("accounts") ? (
-        <ResourceSection
-          action={accountAction}
-          icon={<UsersRound className="text-brand-cyan" />}
-          subtitle="บัญชีและขอบเขตที่รับผิดชอบ"
-          title="แอดมินประจำหอ"
-        >
+        <ResourceSection>
           <PaginatedTable<Admin>
+            action={accountAction}
             empty="ยังไม่มีบัญชี"
             endpoint="/api/v1/super-admin/users"
           >
@@ -520,11 +509,7 @@ export function SuperAdminResourceTables({
         </ResourceSection>
       ) : null}
       {resources.includes("audit-logs") ? (
-        <ResourceSection
-          icon={<Activity className="text-brand-magenta" />}
-          subtitle="ติดตามเหตุการณ์สำคัญทั้งหมด"
-          title="Audit Log"
-        >
+        <ResourceSection>
           <PaginatedTable<AuditLog>
             empty="ยังไม่มีรายการ"
             endpoint="/api/v1/super-admin/audit-logs"
@@ -738,30 +723,8 @@ function PlanEditor({
  * - { action, children, icon, subtitle, title, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-function ResourceSection({
-  action,
-  children,
-  icon,
-  subtitle,
-  title,
-}: {
-  action?: React.ReactNode;
-  children: React.ReactNode;
-  icon: React.ReactNode;
-  subtitle: string;
-  title: string;
-}) {
+function ResourceSection({ children }: { children: React.ReactNode }) {
   return (
-    <section className="panel overflow-hidden p-0">
-      <div className="flex items-center gap-3 border-b border-[#e4e4e7] p-5">
-        {icon}
-        <div className="flex-1">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm text-[#62646c]">{subtitle}</p>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
+    <section className="panel overflow-hidden p-0">{children}</section>
   );
 }
