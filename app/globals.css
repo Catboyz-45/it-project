@@ -18,10 +18,19 @@
   --color-line-strong: #d4d4d8;
   --color-subtle: #fafafa;
   --color-hover: #f4f4f5;
-  /* จังหวะการเคลื่อนไหวชุดเดียวทั้งแอป: เร็ว สั้น และไม่มีอะไรขยับตอน hover */
+  /* จังหวะการเคลื่อนไหวชุดเดียวทั้งแอป: เร็ว สั้น และไม่มีอะไรขยับตำแหน่งตอน hover */
   --ease-out-quint: cubic-bezier(.16, 1, .3, 1);
   --motion-fast: 100ms;
   --motion-base: 150ms;
+  /* เงาของปุ่ม ค่ามาจาก packages/config/theme/tokens.css ของ Cal.com
+     ปุ่มทึบมีเงาลอยอยู่แล้วตั้งแต่ยังไม่แตะ hover แล้วเข้มขึ้น ส่วนตอนกดกลับเป็นเงาข้างใน
+     ทำให้รู้สึกว่าปุ่มยุบลงไปจริงโดยที่ไม่มีอะไรขยับตำแหน่ง */
+  --shadow-button-solid-rested: 0 2px 3px 0 rgb(0 0 0 / .06), 0 1px 1px 0 rgb(0 0 0 / .08), 1px 4px 8px 0 rgb(0 0 0 / .12), inset 0 2px .4px 0 rgb(255 255 255 / .12), inset 0 -3px 2px 0 rgb(0 0 0 / .04);
+  --shadow-button-solid-hover: 0 1px 1px 0 rgb(0 0 0 / .10), 0 2px 3px 0 rgb(0 0 0 / .08), 1px 4px 8px 0 rgb(0 0 0 / .12), inset 0 -3px 2px 0 rgb(0 0 0 / .10), inset 0 2px .4px 0 rgb(255 255 255 / .24);
+  --shadow-button-solid-active: inset 0 3px 1px 0 rgb(0 0 0 / .10), inset 0 0 2px 0 rgb(0 0 0 / .10);
+  /* ปุ่มขอบ: Cal ตั้งค่า rested กับ hover ไว้เท่ากันเป๊ะ เงาจึงเปลี่ยนเฉพาะตอนกด */
+  --shadow-button-outline-rested: 0 2px 3px 0 rgb(0 0 0 / .03), 0 2px 2px -1px rgb(0 0 0 / .03);
+  --shadow-button-outline-active: inset 0 2px 1px 0 rgb(0 0 0 / .05);
   --color-surface: #f7f7f8;
   --color-onyx: #ffffff;
   --color-white: #ffffff;
@@ -156,9 +165,27 @@
      ของเดิมเขียน keyframe เองที่ 1.35s ซึ่งกระพริบเร็วจนสะดุดตา */
   .loading-skeleton [aria-hidden="true"] > span,
   .loading-skeleton [aria-hidden="true"] > div > span { @apply animate-pulse; }
+  /* เปลี่ยนทั้งสีและเงา ต้องระบุ property เอง เพราะ transition-shadow ของ Tailwind
+     จะไปทับ transition-colors จนเหลือแค่เงาอย่างเดียว */
   .app-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#4651c7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] lg:min-h-9;
+    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent px-4 py-2 text-sm font-semibold transition-[background-color,border-color,color,box-shadow] ease-out focus-visible:ring-2 focus-visible:ring-[#4651c7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] disabled:shadow-none lg:min-h-9;
+    transition-duration: var(--motion-base);
   }
+  /* ปุ่มทึบไวกว่าปุ่มขอบ 100ms เทียบกับ 200ms ตามที่ Cal แยกไว้ */
+  .app-button--primary,
+  .app-button--danger {
+    box-shadow: var(--shadow-button-solid-rested);
+    transition-duration: var(--motion-fast);
+  }
+  .app-button--primary:not(:disabled):hover,
+  .app-button--danger:not(:disabled):hover { box-shadow: var(--shadow-button-solid-hover); }
+  .app-button--primary:not(:disabled):active,
+  .app-button--danger:not(:disabled):active { box-shadow: var(--shadow-button-solid-active); }
+  .app-button--secondary,
+  .app-button--tertiary { transition-duration: 200ms; }
+  .app-button--secondary { box-shadow: var(--shadow-button-outline-rested); }
+  .app-button--secondary:not(:disabled):active,
+  .app-button--tertiary:not(:disabled):active { box-shadow: var(--shadow-button-outline-active); }
   .app-button--primary { @apply bg-brand text-[#fff] hover:bg-[#4651c7]; }
   .app-button--secondary { @apply border-[#8b8d96] bg-[#fff] text-[#292a30] hover:bg-[#f4f4f5]; }
   .app-button--tertiary { @apply bg-transparent text-[#4651c7] hover:bg-brand/[.08]; }
@@ -175,11 +202,17 @@
     @apply cursor-pointer transition duration-150 hover:border-brand/40 active:shadow-sm focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
   }
   .primary-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-[#fff] transition-colors duration-150 ease-out hover:bg-[#4651c7] disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] lg:min-h-9;
+    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-[#fff] transition-[background-color,border-color,color,box-shadow] duration-100 ease-out hover:bg-[#4651c7] disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] disabled:shadow-none lg:min-h-9;
+    box-shadow: var(--shadow-button-solid-rested);
   }
+  .primary-button:not(:disabled):hover { box-shadow: var(--shadow-button-solid-hover); }
+  .primary-button:not(:disabled):active { box-shadow: var(--shadow-button-solid-active); }
   .secondary-button, .mini-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-[#8b8d96] bg-[#fff] px-4 py-2 text-sm font-semibold text-[#292a30] transition-colors duration-150 ease-out hover:bg-[#f4f4f5] disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] lg:min-h-9;
+    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-[#8b8d96] bg-[#fff] px-4 py-2 text-sm font-semibold text-[#292a30] transition-[background-color,border-color,color,box-shadow] duration-200 ease-out hover:bg-[#f4f4f5] disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] disabled:shadow-none lg:min-h-9;
+    box-shadow: var(--shadow-button-outline-rested);
   }
+  .secondary-button:not(:disabled):active,
+  .mini-button:not(:disabled):active { box-shadow: var(--shadow-button-outline-active); }
   .data-action { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition disabled:pointer-events-none; }
   .data-action-retry { @apply border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .data-load-more { @apply flex justify-center border-t border-[#e4e4e7] px-4 py-4; }
