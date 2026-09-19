@@ -1,7 +1,7 @@
 "use client";
 // เก็บฟอร์ม อัปโหลดไฟล์ และโหลดข้อมูลจากเบราว์เซอร์
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Ban, CheckCircle2, ImageUp, PackageCheck, Pencil, Plus } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -42,14 +42,19 @@ export type ParcelRecord = {
 // หน้าพัสดุ ลงทะเบียนพัสดุเข้า และบันทึกตอนผู้เช่ามารับ
 export function ParcelsPage({
   activeView,
+  initialHasNextPage = false,
   initialParcels,
+  initialSummary,
   onChanged,
   propertyId,
   readOnly = false,
   rooms,
 }: {
   activeView: ParcelView;
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  initialHasNextPage?: boolean;
   initialParcels: ParcelRecord[];
+  initialSummary?: { today: number; waiting: number; received: number; olderThanThreeDays: number } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
@@ -64,14 +69,14 @@ export function ParcelsPage({
   const [editingParcel, setEditingParcel] = useState<ParcelRecord | null>(null);
   const [editNote, setEditNote] = useState("");
   const [parcels, setParcels] = useState(initialParcels);
-  const [summary, setSummary] = useState({ today: 0, waiting: 0, received: 0, olderThanThreeDays: 0 });
+  const [summary, setSummary] = useState(initialSummary ?? { today: 0, waiting: 0, received: 0, olderThanThreeDays: 0 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requestError, setRequestError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
   const [selectedFloor, setSelectedFloor] = useState(floors[0] ?? 1);
   const [form, setForm] = useState({
     imageUrl: "",
@@ -126,8 +131,16 @@ export function ParcelsPage({
       setIsLoadingMore(false);
     }
   }, [propertyId]);
-  // โหลดใหม่ตั้งแต่เปิดหน้า เพื่อให้ได้ตัวเลขสรุปกับข้อมูลหน้าแรกที่เป็นปัจจุบัน
-  useEffect(() => { void loadParcels(); }, [loadParcels]);
+  // เซิร์ฟเวอร์ส่งรายการกับตัวเลขสรุปมาให้แล้วตั้งแต่เปิดหน้า จึงไม่ต้องยิงซ้ำ
+  // ไม่ได้ส่งมา (เช่นถูกเรียกจากที่อื่น) ค่อยโหลดเองเหมือนเดิม
+  const skipInitialLoadRef = useRef(initialSummary != null);
+  useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
+    void loadParcels();
+  }, [loadParcels]);
 
   const registerParcel = async () => {
     setIsSaving(true);

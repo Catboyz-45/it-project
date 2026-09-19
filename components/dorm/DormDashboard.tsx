@@ -42,7 +42,7 @@ import { ChatWidget } from "@/components/dorm/ChatWidget";
 import { InvoicesPage } from "@/components/dorm/pages/InvoicesPage";
 import { MetersPage } from "@/components/dorm/pages/MetersPage";
 import { OverviewPage } from "@/components/dorm/pages/OverviewPage";
-import { ParcelsPage, type ParcelView } from "@/components/dorm/pages/ParcelsPage";
+import { ParcelsPage, type ParcelRecord, type ParcelView } from "@/components/dorm/pages/ParcelsPage";
 import { RepairHistoryPage } from "@/components/dorm/pages/RepairHistoryPage";
 import { RoomsPage } from "@/components/dorm/pages/RoomsPage";
 import { SettingsPage } from "@/components/dorm/pages/SettingsPage";
@@ -752,10 +752,19 @@ export function DormDashboard({
 
 // เนื้อของหน้าหนึ่งหน้า page ของแต่ละ route เรียกตัวนี้พร้อมบอกว่าเป็นหน้าอะไร
 // ข้อมูลร่วมหยิบจาก context ที่เปลือกเตรียมไว้ จึงไม่ต้องโหลดซ้ำตอนเปลี่ยนหน้า
+// ข้อมูลตั้งต้นที่ Server Component ของแต่ละหน้าดึงมาให้ หน้าไหนไม่ได้ส่งมาก็โหลดเองเหมือนเดิม
+export type OwnerInitialParcels = {
+  hasNextPage: boolean;
+  items: ParcelRecord[];
+  summary: { today: number; waiting: number; received: number; olderThanThreeDays: number };
+};
+
 export function OwnerSectionPanel({
+  initialParcels = null,
   invoiceView = "invoices",
   page,
 }: {
+  initialParcels?: OwnerInitialParcels | null;
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 }) {
@@ -832,7 +841,9 @@ export function OwnerSectionPanel({
   if (page === "parcels") {
     return <ParcelsPage
       activeView={parcelView}
-      initialParcels={dashboardData.parcels}
+      initialHasNextPage={initialParcels?.hasNextPage ?? false}
+      initialParcels={initialParcels?.items ?? dashboardData.parcels}
+      initialSummary={initialParcels?.summary ?? null}
       onChanged={refreshDashboard}
       propertyId={propertyId}
       readOnly={isReadOnly}
