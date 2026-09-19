@@ -574,7 +574,9 @@
     min-width: 1160px;
   }
   .contract-table .contract-actions { @apply flex-nowrap justify-center; }
-  .contract-renew-button { @apply min-h-10 whitespace-nowrap px-3 py-2 text-sm; }
+  /* ต้องคง 44px ไว้ต่ำกว่า 1024px ตามสัญญา touch target ของเดิมตั้ง min-h-10 (40px)
+     ทับค่าของ .primary-button จนเตี้ยกว่าเกณฑ์ */
+  .contract-renew-button { @apply min-h-11 whitespace-nowrap px-3 py-2 text-sm lg:min-h-9; }
   .approval-table .figma-table-head, .approval-table .figma-table-row {
     grid-template-columns: minmax(150px,1fr) minmax(70px,.5fr) minmax(90px,.65fr) minmax(180px,1.2fr) minmax(120px,.8fr) minmax(125px,.85fr) minmax(110px,.75fr) 110px;
     min-width: 1120px;

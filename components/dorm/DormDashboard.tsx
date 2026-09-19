@@ -760,10 +760,12 @@ export type OwnerInitialParcels = {
 };
 
 export function OwnerSectionPanel({
+  initialLeases = null,
   initialParcels = null,
   invoiceView = "invoices",
   page,
 }: {
+  initialLeases?: { data: unknown[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
   initialParcels?: OwnerInitialParcels | null;
   invoiceView?: "invoices" | "payments";
   page: PageKey;
@@ -816,7 +818,16 @@ export function OwnerSectionPanel({
       setSelectedRoomId={setSelectedRoomId}
     />;
   }
-  if (page === "contracts") return <ContractsPage propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />;
+  if (page === "contracts") {
+    return <ContractsPage
+      initialLeases={initialLeases?.data as Parameters<typeof ContractsPage>[0]["initialLeases"] ?? null}
+      initialPageInfo={initialLeases?.pageInfo ?? null}
+      propertyId={propertyId}
+      propertyName={activeProperty.name}
+      readOnly={isReadOnly}
+      rooms={rooms}
+    />;
+  }
   if (page === "waterMeter" || page === "electricMeter") {
     return <MetersPage
       mode={page === "waterMeter" ? "water" : "electric"}

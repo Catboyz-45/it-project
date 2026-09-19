@@ -136,16 +136,19 @@ async function responseData<T>(response: Response): Promise<T> {
 }
 
 // หน้าสัญญาเช่า สร้าง แก้ไข ต่ออายุ เปลี่ยนสถานะ และแนบไฟล์ที่ลงนามแล้ว
-export function ContractsPage({ propertyId, propertyName, readOnly = false, rooms }: { propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }) {
+// initialLeases กับ initialPageInfo ส่งมาจาก Server Component ของหน้านี้
+// มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า ส่วนการค้นหาและเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
+export function ContractsPage({ initialLeases = null, initialPageInfo = null, propertyId, propertyName, readOnly = false, rooms }: { initialLeases?: Lease[] | null; initialPageInfo?: ServerPageInfo | null; propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }) {
   const searchParams = useSearchParams();
   // กันเปิดฟอร์มซ้ำ เพราะ effect ที่อ่านค่าจาก URL อาจทำงานหลายรอบ
   const moveRoomDraftHandled = useRef(false);
   const signedDocumentInputs = useRef(new Map<string, HTMLInputElement>());
-  const [leases, setLeases] = useState<Lease[]>([]);
+  const [leases, setLeases] = useState<Lease[]>(initialLeases ?? []);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [pageInfo, setPageInfo] = useState<ServerPageInfo>({ page: 1, pageSize: 20, hasNextPage: false });
+  const [isLoading, setIsLoading] = useState(initialLeases === null);
+  const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
+  const skipInitialLoadRef = useRef(initialLeases !== null);
   const [isSaving, setIsSaving] = useState(false);
   const actionFeedback = useActionFeedback();
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
@@ -181,6 +184,11 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
   }, [propertyId, query]);
 
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้ว รอบแรกจึงข้ามไป ไม่ใช่ยิงทับของที่มีอยู่
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     // หน่วง 250 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
     // ส่วน abort ยกเลิกคำขอเก่า กันผลเก่ามาถึงทีหลังแล้วทับผลใหม่

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
+import { listLeases } from "@/lib/server/leases";
 import { listParcels } from "@/lib/server/property-operations";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
@@ -21,8 +22,18 @@ export default async function PropertyWorkspaceSectionPage({
   const invoiceView = activePage === "invoices" && tab === "payments" ? "payments" : "invoices";
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้จึงดึงข้อมูลของหน้าได้เลย
   // ดึงเฉพาะหน้าที่ต้องใช้ หน้าอื่นได้ข้อมูลจาก read model ใน layout อยู่แล้ว
-  const initialParcels = activePage === "parcels" ? await loadParcels(propertyId) : null;
-  return <OwnerSectionPanel initialParcels={initialParcels} invoiceView={invoiceView} page={activePage} />;
+  // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
+  const [initialParcels, initialLeases] = await Promise.all([
+    activePage === "parcels" ? loadParcels(propertyId) : null,
+    // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
+    activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
+  ]);
+  return <OwnerSectionPanel
+    initialLeases={initialLeases ? JSON.parse(JSON.stringify(initialLeases)) : null}
+    initialParcels={initialParcels}
+    invoiceView={invoiceView}
+    page={activePage}
+  />;
 }
 
 // แปลงให้เป็นรูปเดียวกับที่หน้าจอใช้ ซึ่งปกติได้มาจาก API หลัง hydrate เสร็จ
