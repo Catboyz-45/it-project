@@ -706,44 +706,6 @@ function HomePanel({
   const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary);
   const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5");
   const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5");
-  const heroRef = useRef<HTMLElement>(null);
-  const heroCopyRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (roomResource.isLoading || !heroRef.current || !heroCopyRef.current) return;
-    const hero = heroRef.current;
-    const copy = heroCopyRef.current;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let animationFrame = 0;
-
-    const updateHero = () => {
-      animationFrame = 0;
-      const bounds = hero.getBoundingClientRect();
-      const heroTop = bounds.top + window.scrollY;
-      const fadeStart = Math.max(0, heroTop - 96);
-      const fadeDistance = Math.max(180, bounds.height * 0.7);
-      const progress = reduceMotion.matches
-        ? 0
-        : Math.min(1, Math.max(0, (window.scrollY - fadeStart) / fadeDistance));
-      copy.style.setProperty("--tenant-hero-progress", progress.toFixed(3));
-      hero.style.setProperty("--tenant-hero-progress", progress.toFixed(3));
-    };
-    const requestUpdate = () => {
-      if (!animationFrame) animationFrame = window.requestAnimationFrame(updateHero);
-    };
-
-    updateHero();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-    reduceMotion.addEventListener("change", requestUpdate);
-    return () => {
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      reduceMotion.removeEventListener("change", requestUpdate);
-    };
-  }, [roomResource.isLoading]);
-
   if (roomResource.isLoading) return <Loading />;
   if (roomResource.error || !roomResource.data) {
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
@@ -758,8 +720,8 @@ function HomePanel({
   const hasOverviewError = notificationResource.error || invoices.error || parcels.error || tickets.error;
 
   return <div className="tenant-home">
-    <section className="tenant-home-hero" ref={heroRef}>
-      <div className="tenant-home-hero-copy" ref={heroCopyRef}>
+    <section className="tenant-home-hero">
+      <div className="tenant-home-hero-copy">
         <p className="tenant-home-eyebrow">{room.property.name}</p>
         <h1>
           <span className="tenant-home-title-line">สวัสดี</span>

@@ -336,30 +336,16 @@
   .tenant-home-hero::after {
     content: "";
     @apply pointer-events-none absolute rounded-full border border-white/15;
-    transform: translateY(calc(var(--tenant-hero-progress, 0) * 48px));
   }
   .tenant-home-hero::before { @apply -right-16 -bottom-40 size-[22rem]; }
   .tenant-home-hero::after { @apply -right-4 -bottom-24 size-[15rem]; }
   .tenant-home-hero-copy {
     @apply relative z-10 max-w-4xl;
   }
-  .tenant-home-eyebrow,
-  .tenant-home-room {
-    opacity: calc(1 - var(--tenant-hero-progress, 0));
-    transform: translateY(calc(var(--tenant-hero-progress, 0) * -24px));
-    transition: opacity 90ms linear, transform 90ms linear;
-  }
   .tenant-home-eyebrow { @apply mb-3 text-sm font-semibold text-white/75; }
   .tenant-home-hero h1 { @apply m-0 font-display text-[clamp(1.75rem,3.2vw,2.75rem)] leading-tight font-bold tracking-[-.02em]; }
-  .tenant-home-title-line {
-    @apply block w-fit will-change-[clip-path];
-    clip-path: inset(0 calc(var(--tenant-hero-progress, 0) * 100%) 0 0);
-    filter: blur(calc(var(--tenant-hero-progress, 0) * 1.5px));
-  }
-  .tenant-home-title-line-secondary {
-    @apply text-white/85;
-    clip-path: inset(0 calc(min(1, var(--tenant-hero-progress, 0) * 1.18) * 100%) 0 0);
-  }
+  .tenant-home-title-line { @apply block w-fit; }
+  .tenant-home-title-line-secondary { @apply text-white/85; }
   .tenant-home-room { @apply mt-3 max-w-2xl text-sm leading-6 font-medium text-white/80; }
   .tenant-home-surface {
     @apply relative z-20 -mt-4 grid gap-5 rounded-t-xl bg-[#fff] p-[clamp(1rem,2.5vw,1.5rem)];
