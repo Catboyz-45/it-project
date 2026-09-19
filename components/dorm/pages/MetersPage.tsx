@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Meters Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บร่างที่ยังไม่บันทึกไว้ใน localStorage และจัดการโฟกัสของช่องกรอกเอง
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, LoaderCircle, Save, Search } from "lucide-react";
@@ -18,10 +13,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Meter Worksheet Row” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หนึ่งแถวของใบจดมิเตอร์ ห้องหนึ่งห้องในรอบเดือนหนึ่ง
 type MeterWorksheetRow = {
   room: {
     id: string;
@@ -30,24 +22,18 @@ type MeterWorksheetRow = {
     floor: { id: string; number: number; label: string | null };
   };
   tenantName: string | null;
+  // มีค่าแล้วแปลว่าบันทึกไปแล้ว แถวนั้นจะถูกล็อกไม่ให้แก้ซ้ำ
   readingId: string | null;
   previousReading: string | null;
   currentReading: string | null;
   unitRate: string;
   recordedAt: string | null;
+  // หน่วยที่ใช้ในรอบก่อน ใช้เทียบว่ารอบนี้พุ่งผิดปกติหรือเปล่า
   previousUsage: number | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Page Info” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PageInfo = { hasNextPage: boolean };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Meter Reading Draft” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type MeterReadingDraft = {
   roomId: string;
   type: "WATER" | "ELECTRICITY";
@@ -56,13 +42,7 @@ type MeterReadingDraft = {
   currentReading: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Meters Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { mode, onSaveMeters, propertyId, readOnly = false, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ใบจดมิเตอร์ กรอกทั้งหอแล้วบันทึกทีเดียว จึงต้องเก็บร่างไว้กันกรอกค้างแล้วหาย
 export function MetersPage({
   mode,
   onSaveMeters,
@@ -88,6 +68,7 @@ export function MetersPage({
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  // แยก key ตามหอ ชนิดมิเตอร์ และเดือน ร่างของแต่ละรอบจะได้ไม่ปนกัน
   const draftKey = `meter-draft:${propertyId}:${mode}:${billingMonth}`;
   const hasUnsavedDrafts = Object.keys(currentDrafts).length > 0 || Object.keys(previousDrafts).length > 0;
   useUnsavedChanges(
@@ -95,18 +76,14 @@ export function MetersPage({
     "มีเลขมิเตอร์ฉบับร่างที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?",
   );
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Worksheet” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // โหลดทุกห้องมาให้ครบ ไม่แบ่งหน้าจากเซิร์ฟเวอร์ เพราะคนจดต้องกรอกทั้งหอในรอบเดียว
+  // แล้วค่อยมาแบ่งหน้าแสดงผลในเครื่องแทน
   const loadWorksheet = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setLoadError("");
     try {
       const collected: MeterWorksheetRow[] = [];
+      // วนขอทีละ 100 ห้องจนหมด เพราะ API จำกัดจำนวนต่อครั้ง
       let page = 1;
       let hasNextPage = true;
       while (hasNextPage) {
@@ -133,12 +110,14 @@ export function MetersPage({
         page += 1;
       }
       setRows(collected);
+      // มีร่างค้างอยู่ก็เอากลับมาใส่ให้ เผื่อปิดหน้าไปตอนจดยังไม่เสร็จ
       const saved = localStorage.getItem(draftKey);
       if (saved) {
         try {
           const draft = JSON.parse(saved) as { current?: Record<string, string>; previous?: Record<string, string> };
           setCurrentDrafts(draft.current ?? {});
           setPreviousDrafts(draft.previous ?? {});
+        // ค่าที่เก็บไว้เสียก็ลบทิ้ง ดีกว่าปล่อยให้พังทุกครั้งที่เปิดหน้า
         } catch { localStorage.removeItem(draftKey); }
       } else {
         setCurrentDrafts({});
@@ -152,17 +131,13 @@ export function MetersPage({
     }
   }, [billingMonth, draftKey, mode, propertyId]);
 
+  // บันทึกร่างลง localStorage อัตโนมัติ หน่วงไว้ 250 มิลลิวินาทีจะได้ไม่เขียนทุกครั้งที่กดแป้น
   useEffect(() => {
     if (readOnly) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timer” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const timer = window.setTimeout(() => {
       if (Object.keys(currentDrafts).length || Object.keys(previousDrafts).length) {
         localStorage.setItem(draftKey, JSON.stringify({ current: currentDrafts, previous: previousDrafts }));
+      // ลบร่างที่ว่างทิ้ง ไม่ให้ค้างอยู่เปล่า ๆ
       } else localStorage.removeItem(draftKey);
     }, 250);
     return () => window.clearTimeout(timer);
@@ -174,12 +149,6 @@ export function MetersPage({
     return () => controller.abort();
   }, [loadWorksheet]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ประกอบหรือคำนวณผลลัพธ์ของ “buildings” จากข้อมูลที่ได้รับ
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const buildings = useMemo(
     () => Array.from(new Map(rows.map(({ room }) => [
       room.building.id,
@@ -187,12 +156,6 @@ export function MetersPage({
     ])).entries()),
     [rows],
   );
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “floors” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const floors = useMemo(
     () => Array.from(new Set(rows
       .filter(({ room }) => building === "all" || room.building.id === building)
@@ -200,12 +163,6 @@ export function MetersPage({
       .sort((left, right) => left - right),
     [building, rows],
   );
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “visible Rows” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const visibleRows = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("th");
     return rows.filter(({ room, tenantName }) => (
@@ -216,24 +173,13 @@ export function MetersPage({
   }, [building, floor, query, rows]);
   const { page, pageItems, setPage, totalPages } = useTablePagination(visibleRows);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: แปลงข้อมูลในขั้นตอน “touched Rows” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-   * รับค่า:
-   * - row: ค่า “row” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // แถวที่ผู้ใช้แตะแล้วและยังไม่เคยบันทึก มีเฉพาะแถวเหล่านี้ที่จะถูกส่งขึ้นเซิร์ฟเวอร์
   const touchedRows = rows.filter((row) => (
     !row.readingId
     && (Object.hasOwn(currentDrafts, row.room.id) || Object.hasOwn(previousDrafts, row.room.id))
   ));
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “collect Readings” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ตรวจและรวบรวมค่าที่กรอกไว้ เจอค่าไม่ถูกต้องก็โยน error พร้อมบอกว่าห้องไหน
   function collectReadings() {
     const readings: MeterReadingDraft[] = [];
     for (const row of touchedRows) {
@@ -245,6 +191,7 @@ export function MetersPage({
         currentText === ""
         || !Number.isFinite(current)
         || current < 0
+        // เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน เพราะมิเตอร์เดินหน้าอย่างเดียว
         || (previous !== undefined && (!Number.isFinite(previous) || previous < 0 || current < previous))
       ) {
         throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน`);
@@ -253,6 +200,7 @@ export function MetersPage({
         roomId: row.room.id,
         type: mode === "water" ? "WATER" : "ELECTRICITY",
         billingMonth,
+        // ส่งเลขตั้งต้นไปเฉพาะห้องที่ยังไม่เคยมีในระบบ ห้องเดิมใช้เลขจากรอบก่อนที่เซิร์ฟเวอร์มีอยู่แล้ว
         ...(row.previousReading === null && previous !== undefined ? { previousReading: previous } : {}),
         currentReading: current,
       });
@@ -260,12 +208,7 @@ export function MetersPage({
     return readings;
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Confirmation” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ตรวจให้ครบก่อนเปิดกล่องยืนยัน ผู้ใช้จะได้ไม่กดยืนยันแล้วเจอปฏิเสธทีหลัง
   function requestConfirmation() {
     setLoadError("");
     if (touchedRows.length === 0) {
@@ -280,17 +223,12 @@ export function MetersPage({
     }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save All” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function saveAll() {
     setIsSaving(true);
     setLoadError("");
     try {
       await onSaveMeters(collectReadings());
+      // บันทึกขึ้นเซิร์ฟเวอร์แล้วจึงลบร่างทิ้ง ถ้าพลาดร่างจะยังอยู่ให้กดบันทึกใหม่ได้
       localStorage.removeItem(draftKey);
       setIsConfirming(false);
       await loadWorksheet();
@@ -308,6 +246,7 @@ export function MetersPage({
       <div className="meter-filter-bar">
         <DropdownField
           label="อาคาร"
+          // เปลี่ยนอาคารแล้วรีเซ็ตชั้นกับหน้าด้วย ไม่งั้นจะค้างชั้นของอาคารเดิมแล้วผลลัพธ์ว่าง
           onChange={(value) => { setBuilding(value); setFloor("all"); setPage(1); }}
           options={[
             { value: "all", label: "ทุกอาคาร" },
@@ -396,16 +335,12 @@ export function MetersPage({
                   const units = validReadings ? latest - previous : 0;
                   const unitRate = Number(row.unitRate);
                   const amount = units * unitRate;
+                  // เตือนเมื่อใช้เกินสองเท่าของรอบก่อน หรือเกินรอบก่อน 10 หน่วย เอาเกณฑ์ที่สูงกว่า
+                  // เงื่อนไข +10 กันเตือนพร่ำเพรื่อกับห้องที่ใช้น้อยมาก เช่นจาก 1 เป็น 3 หน่วย
                   const abnormal = validReadings && row.previousUsage !== null && row.previousUsage > 0
                     && units > Math.max(row.previousUsage * 2, row.previousUsage + 10);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “row Index” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
-    const rowIndex = pageItems.findIndex((item) => item.room.id === row.room.id);
+                  // ใช้หาแถวถัดไป เพื่อให้กด Enter แล้วกระโดดไปกรอกห้องต่อไปได้เลย
+                  const rowIndex = pageItems.findIndex((item) => item.room.id === row.room.id);
                   return (
                     <tr key={row.room.id}>
                       <td>
@@ -417,6 +352,7 @@ export function MetersPage({
                         {row.previousReading !== null ? previous.toLocaleString("th-TH") : readOnly ? "-" : (
                           <input
                             aria-label={`เลขมิเตอร์ตั้งต้นห้อง ${row.room.number}`}
+                            // ล็อกแถวที่บันทึกไปแล้ว ต้องไปแก้ที่หน้าประวัติแทน
                             disabled={Boolean(row.readingId)}
                             min={0}
                             onChange={(event) => setPreviousDrafts((current) => ({
@@ -438,6 +374,7 @@ export function MetersPage({
                             ...current,
                             [row.room.id]: event.target.value,
                           }))}
+                          // Enter กระโดดไปห้องถัดไป คนจดมิเตอร์จะได้ไม่ต้องละมือไปจับเมาส์
                           onKeyDown={(event) => {
                             if (event.key !== "Enter") return;
                             event.preventDefault();
