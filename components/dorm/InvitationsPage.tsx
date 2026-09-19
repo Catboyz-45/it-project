@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Invitations Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// โหลดข้อมูล ส่งคำขอ และคัดลอกรหัสจากเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
@@ -21,10 +16,7 @@ import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Room Option” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ห้องที่เลือกได้ตอนสร้างคำเชิญ
 type RoomOption = {
   id: string;
   number: string;
@@ -34,13 +26,11 @@ type RoomOption = {
   floor: { number: number; label: string | null };
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Invitation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// คำเชิญหนึ่งใบ ตัวรหัสจริงไม่ได้อยู่ในนี้ เพราะฐานข้อมูลเก็บแค่ค่า hash
 type Invitation = {
   id: string;
   status: "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
+  // กำหนดไว้ตั้งแต่ตอนสร้าง ผู้รับคำเชิญเปลี่ยนสิทธิ์ของตัวเองไม่ได้
   intendedRole: "PRIMARY" | "CO_OCCUPANT";
   expiresAt: string;
   acceptedAt: string | null;
@@ -49,43 +39,24 @@ type Invitation = {
   acceptedBy: { user: { displayName: string; email: string } } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Page Info” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type PageInfo = {
   page: number;
   pageSize: number;
   hasNextPage: boolean;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Created Invitation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// รหัสจริงมากับตอบกลับครั้งนี้ครั้งเดียว ไม่มีทางขอดูย้อนหลังได้อีก
 type CreatedInvitation = {
   invitation: Invitation;
   invitationCode: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “read Data” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function readData<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invitations Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId, readOnly = false }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าสร้างและติดตามคำเชิญผู้เช่า ผู้เช่าเอารหัสไปใช้ตอนสมัครเพื่อผูกกับห้อง
 export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: string; readOnly?: boolean }) {
   const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -101,14 +72,7 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
   const { confirm, confirmationDialog } = useConfirmation();
   const [message, setMessage] = useState("");
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - append: ค่า “append” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // โหลดทั้งรายการห้องและประวัติคำเชิญ ใช้ Promise.all เพราะไม่ต้องรอผลของกันและกัน
   const load = useCallback(async (targetPage = 1, append = false) => {
     setLoading(true);
     setError("");
@@ -128,11 +92,13 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
             error?: string;
             requestId?: string;
           }>(response, "โหลดรายการคำเชิญไม่สำเร็จ");
+          // ตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้ ต้องดักไว้ก่อน
           if (!payload.data || !payload.pageInfo) throw new Error("ข้อมูลคำเชิญที่ได้รับไม่ครบถ้วน");
           return { data: payload.data, pageInfo: payload.pageInfo };
         }),
       ]);
       setRooms(availableRooms);
+      // คงห้องที่เลือกไว้ถ้ายังมีอยู่ ไม่งั้นเด้งไปห้องแรก กันช่องเลือกว่างเปล่า
       setRoomId((current) => (
         availableRooms.some((room) => room.id === current)
           ? current
@@ -153,18 +119,13 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
     void load();
   }, [load]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Invitation” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function createInvitation(event: FormEvent<HTMLFormElement>) {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ ถ้ารีเฟรชรหัสที่เพิ่งได้จะหายไปเลย
     event.preventDefault();
     setSubmitting(true);
     setError("");
     setMessage("");
+    // ล้างรหัสเก่าทิ้งก่อน กันเข้าใจผิดว่ารหัสที่ค้างอยู่คือของใบใหม่
     setCreatedCode("");
     setCopied(false);
     try {
@@ -187,14 +148,9 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
     }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “copy Code” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   async function copyCode() {
     try {
+      // คลิปบอร์ดใช้ไม่ได้ถ้าไม่ได้อยู่บน HTTPS หรือผู้ใช้ไม่อนุญาต จึงต้องมีทางสำรองให้เลือกเอง
       await navigator.clipboard.writeText(createdCode);
       setCopied(true);
       setMessage("คัดลอกรหัสคำเชิญแล้ว");
@@ -203,14 +159,9 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
     }
   }
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “revoke” ตามกฎของระบบ
-   * รับค่า:
-   * - invitationId: รหัสภายในของ invitation
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ยกเลิกคำเชิญที่ยังไม่มีใครใช้ ทำแล้วรหัสเดิมใช้ไม่ได้อีก
   async function revoke(invitationId: string) {
+    // ถามยืนยันก่อน เพราะย้อนกลับไม่ได้ ต้องสร้างใบใหม่แล้วส่งรหัสใหม่ให้ผู้เช่า
     if (!await confirm({ title: "ยกเลิกคำเชิญ?", description: "ผู้เช่าจะไม่สามารถใช้รหัสนี้ได้อีก การดำเนินการนี้ย้อนกลับไม่ได้", confirmLabel: "ยกเลิกคำเชิญ", variant: "danger" })) return;
     setSubmitting(true);
     setError("");
@@ -273,6 +224,7 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
               <Link2 className="mt-1 shrink-0 text-emerald-700" size={20} />
               <div className="min-w-0 flex-1">
                 <strong className="text-emerald-900">รหัสคำเชิญที่สร้างใหม่</strong>
+                {/* บอกตรง ๆ ว่ารหัสแสดงครั้งเดียว ผู้ใช้จะได้คัดลอกก่อนปิดหน้า */}
                 <p className="mt-1 text-sm text-emerald-800">
                   รหัสจะแสดงครั้งนี้ครั้งเดียว ระบบจัดเก็บเฉพาะค่า hash และไม่สามารถเปิดดูย้อนหลังได้
                 </p>
@@ -280,6 +232,7 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
                   <input
                     aria-label="รหัสคำเชิญที่สร้างใหม่"
                     className="min-w-0 flex-1 font-mono text-sm"
+                    // โฟกัสแล้วเลือกทั้งหมดให้เลย เผื่อคัดลอกอัตโนมัติไม่ได้จะได้กด Ctrl+C เองง่าย ๆ
                     onFocus={(event) => event.currentTarget.select()}
                     readOnly
                     value={createdCode}
@@ -339,6 +292,7 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
                       </p>
                     ) : null}
                   </div>
+                  {/* ยกเลิกได้เฉพาะใบที่ยังรออยู่จริง ใบที่หมดอายุหรือถูกใช้ไปแล้วไม่ต้องมีปุ่ม */}
                   {effectiveStatus(invitation) === "PENDING" && !readOnly ? (
                     <button
                       className="secondary-button text-red-700"
@@ -363,13 +317,8 @@ export function InvitationsPage({ propertyId, readOnly = false }: { propertyId: 
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “effective Status” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - invitation: ค่า “invitation” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด Invitation["status"] ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ฐานข้อมูลยังเก็บเป็น PENDING อยู่จนกว่าจะมีคนมาใช้ จึงต้องเทียบเวลาเองตอนแสดงผล
+// ไม่งั้นใบที่หมดอายุไปแล้วจะยังโชว์ว่ารออยู่ และมีปุ่มยกเลิกที่กดไปก็ไม่มีความหมาย
 function effectiveStatus(invitation: Invitation): Invitation["status"] {
   if (invitation.status === "PENDING" && new Date(invitation.expiresAt).getTime() <= Date.now()) {
     return "EXPIRED";
@@ -377,15 +326,10 @@ function effectiveStatus(invitation: Invitation): Invitation["status"] {
   return invitation.status;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invitation Status” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { invitation }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ป้ายสถานะ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function InvitationStatus({ invitation }: { invitation: Invitation }) {
   const status = effectiveStatus(invitation);
+  // Record บังคับให้ครอบคลุมทุกสถานะตั้งแต่ตอนคอมไพล์ เพิ่มสถานะใหม่แล้วลืมแปลจะคอมไพล์ไม่ผ่าน
   const labels: Record<Invitation["status"], string> = {
     PENDING: "รอรับคำเชิญ",
     ACCEPTED: "รับแล้ว",
@@ -401,13 +345,7 @@ function InvitationStatus({ invitation }: { invitation: Invitation }) {
   return <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${styles[status]}`}>{labels[status]}</span>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “format Date Time” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// จัดรูปแบบวันเวลาแบบไทยไว้ที่เดียว ทุกที่ในหน้านี้จะได้แสดงเหมือนกัน
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("th-TH", {
     dateStyle: "medium",
