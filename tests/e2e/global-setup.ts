@@ -15,6 +15,37 @@ async function passwordHash(value: string) {
   return `scrypt-v1$${salt.toString("base64")}$${key.toString("base64")}`;
 }
 
+// ลบข้อมูลทั้งหมดของหอหนึ่งหอ ไล่จากตารางลูกขึ้นไปหาตารางแม่ ลบแม่ก่อนจะติด foreign key
+// ทุกคำสั่งส่งค่าผ่าน $1 ไม่ต่อสตริงเข้าไปใน SQL ตรง ๆ
+async function clearProperty(client: pg.PoolClient, propertyId: string) {
+  const property = [propertyId];
+  await client.query(`DELETE FROM "PaymentSubmission" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "InvoiceItem" WHERE "invoiceId" IN (SELECT "id" FROM "Invoice" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "Invoice" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "MeterReading" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "LeaseTenant" WHERE "leaseId" IN (SELECT "id" FROM "Lease" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "LeaseVersion" WHERE "leaseId" IN (SELECT "id" FROM "Lease" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "Lease" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "TicketAttachment" WHERE "ticketId" IN (SELECT "id" FROM "ServiceTicket" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "ServiceTicket" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "Parcel" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "AnnouncementRoom" WHERE "announcementId" IN (SELECT "id" FROM "Announcement" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "Announcement" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "ChatMessage" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "ChatConversation" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "RoomOccupancy" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "TenantInvitation" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "Room" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "Floor" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "Building" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "SubscriptionPayment" WHERE "orderId" IN (SELECT "id" FROM "SubscriptionOrder" WHERE "propertyId" = $1)`, property);
+  await client.query(`DELETE FROM "SubscriptionOrder" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "PropertySubscription" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "PropertySettings" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "PropertyMembership" WHERE "propertyId" = $1`, property);
+  await client.query(`DELETE FROM "Property" WHERE "id" = $1`, property);
+}
+
 // รันครั้งเดียวก่อนเริ่มเทสต์ทุกไฟล์ ล้างของเก่าแล้วใส่ข้อมูลตั้งต้นชุดใหม่
 export default async function globalSetup() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -34,6 +65,8 @@ export default async function globalSetup() {
   const leaseId = "cm000000000000000000013";
   const invoiceId = "cm000000000000000000014";
   const planId = "cm000000000000000000015";
+  const secondBuildingId = "cm000000000000000000025";
+  const secondFloorId = "cm000000000000000000026";
 
   try {
     // ห่อทั้งหมดใน transaction เดียว พลาดกลางทางจะย้อนคืนหมด ไม่เหลือข้อมูลเตรียมไปครึ่งเดียว
@@ -43,32 +76,8 @@ export default async function globalSetup() {
     await client.query(`DELETE FROM "LoginThrottle"`);
     // ลบจากตารางลูกไล่ขึ้นไปหาตารางแม่ ลบแม่ก่อนจะติด foreign key
     // ทุกคำสั่งส่งค่าผ่าน $1 ไม่ต่อสตริงเข้าไปใน SQL ตรง ๆ
-    const property = [e2e.propertyId];
-    await client.query(`DELETE FROM "PaymentSubmission" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "InvoiceItem" WHERE "invoiceId" IN (SELECT "id" FROM "Invoice" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "Invoice" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "MeterReading" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "LeaseTenant" WHERE "leaseId" IN (SELECT "id" FROM "Lease" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "LeaseVersion" WHERE "leaseId" IN (SELECT "id" FROM "Lease" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "Lease" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "TicketAttachment" WHERE "ticketId" IN (SELECT "id" FROM "ServiceTicket" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "ServiceTicket" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "Parcel" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "AnnouncementRoom" WHERE "announcementId" IN (SELECT "id" FROM "Announcement" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "Announcement" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "ChatMessage" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "ChatConversation" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "RoomOccupancy" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "TenantInvitation" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "Room" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "Floor" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "Building" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "SubscriptionPayment" WHERE "orderId" IN (SELECT "id" FROM "SubscriptionOrder" WHERE "propertyId" = $1)`, property);
-    await client.query(`DELETE FROM "SubscriptionOrder" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "PropertySubscription" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "PropertySettings" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "PropertyMembership" WHERE "propertyId" = $1`, property);
-    await client.query(`DELETE FROM "Property" WHERE "id" = $1`, property);
+    await clearProperty(client, e2e.propertyId);
+    await clearProperty(client, e2e.secondPropertyId);
     await client.query(`DELETE FROM "TenantProfile" WHERE "userId" = ANY($1::text[])`, [[e2e.tenantUserId, e2e.pendingUserId]]);
     await client.query(`DELETE FROM "User" WHERE "id" = ANY($1::text[])`, [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.superAdminId]]);
 
@@ -126,6 +135,33 @@ export default async function globalSetup() {
        VALUES ($1,'99 ถนนทดสอบ กรุงเทพมหานคร','0800000000',$2,'0812345678',18,7,1,5,20,200,'E2E','ห้ามส่งเสียงดังหลัง 22:00 น.','0800000001',NOW(),NOW())`,
       [e2e.propertyId, e2e.ownerEmail],
     );
+    // หอที่สองของเจ้าของหอคนเดียวกัน มีแค่โครงสร้างพื้นฐานกับห้องเดียว พอให้แยกออกว่าไม่ใช่หอแรก
+    // ชื่อขึ้นต้นด้วย ฮ จึงเรียงหลังหอแรกเสมอ หน้า /admin ที่พาไปหอแรกสุดตามตัวอักษรจึงไม่เปลี่ยนปลายทาง
+    await client.query(
+      `INSERT INTO "Property" ("id","name","shortName","isActive","createdAt","updatedAt")
+       VALUES ($1,'หอ E2E ฮาเฮ','E2E ฮาเฮ',true,NOW(),NOW())`,
+      [e2e.secondPropertyId],
+    );
+    await client.query(`INSERT INTO "PropertyMembership" ("userId","propertyId","createdAt") VALUES ($1,$2,NOW())`, [e2e.ownerId, e2e.secondPropertyId]);
+    await client.query(
+      `INSERT INTO "PropertySubscription" ("propertyId","planId","planName","billingInterval","priceAmount","status","maxProperties","maxRooms","startsAt","expiresAt","createdAt","updatedAt")
+       VALUES ($1,$2,'E2E Standard','MONTHLY',990,'ACTIVE',2,100,'2026-01-01','2030-01-01',NOW(),NOW())`,
+      [e2e.secondPropertyId, plan.rows[0].id],
+    );
+    await client.query(
+      `INSERT INTO "PropertySettings" ("propertyId","address","contactPhone","contactEmail","promptPayId","waterUnitRate","electricityUnitRate","billingDay","dueDay","lateFeePerDay","lateFeeCap","invoicePrefix","houseRules","emergencyContact","createdAt","updatedAt")
+       VALUES ($1,'88 ถนนทดสอบสอง กรุงเทพมหานคร','0800000002',$2,'0812345679',18,7,1,5,20,200,'E2E2','ห้ามส่งเสียงดังหลัง 22:00 น.','0800000003',NOW(),NOW())`,
+      [e2e.secondPropertyId, e2e.ownerEmail],
+    );
+    await client.query(`INSERT INTO "Building" ("id","propertyId","name","code","isActive","createdAt","updatedAt") VALUES ($1,$2,'อาคาร E2E สอง','E2E-B',true,NOW(),NOW())`, [secondBuildingId, e2e.secondPropertyId]);
+    await client.query(`INSERT INTO "Floor" ("id","propertyId","buildingId","number","label","createdAt","updatedAt") VALUES ($1,$2,$3,1,'ชั้นทดสอบสอง',NOW(),NOW())`, [secondFloorId, e2e.secondPropertyId, secondBuildingId]);
+    // เลขห้องต้องไม่ซ้ำกับหอแรก เทสต์จะได้ดูออกว่าหน้าจอกำลังแสดงข้อมูลของหอไหน
+    await client.query(
+      `INSERT INTO "Room" ("id","propertyId","buildingId","floorId","number","roomType","monthlyRent","depositAmount","capacity","status","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,'F201','Standard',4200,8400,2,'AVAILABLE',NOW(),NOW())`,
+      [e2e.secondPropertyRoomId, e2e.secondPropertyId, secondBuildingId, secondFloorId],
+    );
+
     await client.query(`INSERT INTO "Building" ("id","propertyId","name","code","isActive","createdAt","updatedAt") VALUES ($1,$2,'อาคาร E2E','E2E-A',true,NOW(),NOW())`, [buildingId, e2e.propertyId]);
     await client.query(`INSERT INTO "Floor" ("id","propertyId","buildingId","number","label","createdAt","updatedAt") VALUES ($1,$2,$3,1,'ชั้นทดสอบ',NOW(),NOW())`, [floorId, e2e.propertyId, buildingId]);
     // สองห้อง ห้องหนึ่งมีคนอยู่แล้ว อีกห้องว่าง ไว้ทดสอบทั้งสองสถานการณ์

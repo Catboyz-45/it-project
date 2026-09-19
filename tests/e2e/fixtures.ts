@@ -3,6 +3,9 @@
 // ใช้โดเมน .test ซึ่งสงวนไว้ไม่มีอยู่จริง เผลอส่งอีเมลออกไปก็ไม่ถึงใคร
 export const e2e = {
   propertyId: "cm000000000000000000001",
+  // หอที่สองของเจ้าของหอคนเดียวกัน ไว้ทดสอบการสลับหอและขอบเขตข้อมูลที่ต้องไม่ปนกัน
+  // ตั้งชื่อให้เรียงหลังหอแรกตามตัวอักษรไทย หน้า /admin จะได้ยังพาไปหอแรกเหมือนเดิม
+  secondPropertyId: "cm000000000000000000024",
   ownerId: "cm000000000000000000002",
   tenantUserId: "cm000000000000000000003",
   tenantProfileId: "cm000000000000000000004",
@@ -10,6 +13,7 @@ export const e2e = {
   pendingProfileId: "cm000000000000000000006",
   superAdminId: "cm000000000000000000023",
   activeRoomId: "cm000000000000000000007",
+  secondPropertyRoomId: "cm000000000000000000027",
   pendingRoomId: "cm000000000000000000008",
   ownerEmail: "e2e-owner@example.test",
   tenantEmail: "e2e-tenant@example.test",
