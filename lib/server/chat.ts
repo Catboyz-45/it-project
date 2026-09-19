@@ -1,18 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “chat” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 import { ApiError } from "@/lib/server/api";
 import type { ChatConversationType, ChatSenderRole } from "@/generated/prisma/client";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Chat Message Dto” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type ChatMessageDto = {
   id: string;
   tenantId: string;
@@ -23,6 +13,7 @@ export type ChatMessageDto = {
   attachment: { name: string; mimeType: string; size: number; url: string } | null;
 };
 
+// เลือกเฉพาะฟิลด์ที่ใช้จริง ไม่มี attachmentKey เพราะที่อยู่ไฟล์ไม่ควรหลุดไปฝั่งเบราว์เซอร์
 const messageSelect = {
   id: true,
   body: true,
@@ -35,10 +26,6 @@ const messageSelect = {
   senderUser: { select: { displayName: true } },
 } as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Selected Message” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type SelectedMessage = Awaited<ReturnType<typeof getDatabase>>["chatMessage"] extends never ? never : {
   id: string;
   body: string;
@@ -51,19 +38,14 @@ type SelectedMessage = Awaited<ReturnType<typeof getDatabase>>["chatMessage"] ex
   senderUser: { displayName: string } | null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “to Chat Message Dto” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - message: ค่า “message” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด ChatMessageDto ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// แปลงแถวจากฐานข้อมูลเป็นรูปแบบที่ส่งออกไป ทุก endpoint ใช้ตัวนี้ รูปแบบจะได้เหมือนกันหมด
 export function toChatMessageDto(message: SelectedMessage): ChatMessageDto {
   return {
     id: message.id,
     tenantId: message.conversation.tenantExternalId ?? "",
     body: message.body,
     senderRole: message.senderRole,
+    // บัญชีคนส่งถูกลบไปแล้วก็ยังแสดงบทบาทได้ ข้อความจะได้ไม่กลายเป็นของคนไม่มีชื่อ
     senderName: message.senderUser?.displayName ?? (
       message.senderRole === "TENANT" ? "ผู้เช่า"
         : message.senderRole === "SUPER_ADMIN" ? "Super Admin" : "ผู้ดูแล"
@@ -74,21 +56,13 @@ export function toChatMessageDto(message: SelectedMessage): ChatMessageDto {
           name: message.attachmentName,
           mimeType: message.attachmentMime,
           size: message.attachmentSize,
+          // ไฟล์ผ่าน API ที่ตรวจสิทธิ์ก่อน ไม่ได้ส่งที่อยู่จริงในที่เก็บออกไป
           url: `/api/v1/chat/messages/${message.id}/attachment?propertyId=${encodeURIComponent(message.conversation.propertyId)}`,
         }
       : null,
   };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Messages” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - tenantId: รหัสภายในของ tenant
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listTenantMessages(
   propertyId: string,
   tenantId: string,
@@ -100,18 +74,12 @@ export async function listTenantMessages(
     ...paginationQuery(pagination),
     select: messageSelect,
   });
+  // ดึงใหม่สุดก่อนเพื่อให้แบ่งหน้าได้ถูก แล้วค่อยกลับลำดับตอนส่งออก
+  // เพราะหน้าจอต้องเรียงเก่าไปใหม่แบบห้องสนทนาทั่วไป
   const page = toPaginatedResult(messages.map(toChatMessageDto), pagination);
   return { ...page, data: page.data.reverse() };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Property Messages After” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - after: ค่า “after” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPropertyMessagesAfter(propertyId: string, after: Date) {
   const messages = await getDatabase().chatMessage.findMany({
     where: { propertyId, createdAt: { gt: after }, conversation: { type: "TENANT_PROPERTY" } },
@@ -122,13 +90,7 @@ export async function listPropertyMessagesAfter(propertyId: string, after: Date)
   return messages.map(toChatMessageDto);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send Admin Message” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ทางเดิมที่ยังมีของเก่าใช้อยู่ อ้างผู้เช่าด้วย id ภายนอก ไม่ใช่ id ของโปรไฟล์
 export async function sendAdminMessage(input: {
   propertyId: string;
   userId: string;
@@ -157,6 +119,8 @@ export async function sendAdminMessage(input: {
       where: { conversationId_clientId: { conversationId: conversation.id, clientId: input.clientId } },
       select: messageSelect,
     });
+    // clientId ที่ฝั่งเบราว์เซอร์สร้าง ใช้กันบันทึกซ้ำ ส่งคำขอเดิมมาอีกรอบจะได้ข้อความเดิมกลับไป
+    // จำเป็นเพราะเน็ตหลุดแล้วกดส่งใหม่ ไม่ควรกลายเป็นสองข้อความ
     if (existing) return toChatMessageDto(existing);
     const message = await database.chatMessage.create({
       data: {
@@ -178,10 +142,6 @@ export async function sendAdminMessage(input: {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Conversation Actor” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type ConversationActor = {
   userId: string;
   role: "PROPERTY_ADMIN" | "TENANT" | "SUPER_ADMIN";
@@ -189,10 +149,6 @@ export type ConversationActor = {
   tenantProfileId?: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Conversation Dto” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 export type ConversationDto = {
   id: string;
   type: ChatConversationType;
@@ -203,54 +159,38 @@ export type ConversationDto = {
   unreadCount: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “sender Role For” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด ChatSenderRole ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// บทบาทของผู้ส่งมาจากฝั่งเซิร์ฟเวอร์เสมอ ไม่เอาที่ฝั่งเบราว์เซอร์ส่งมา
 function senderRoleFor(actor: ConversationActor): ChatSenderRole {
   if (actor.role === "TENANT") return "TENANT";
   if (actor.role === "SUPER_ADMIN") return "SUPER_ADMIN";
   return "ADMIN";
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “assert Conversation Access” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - conversation: ค่า “conversation” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ด่านตรวจสิทธิ์ของแชท ทุกทางเข้าต้องผ่านตัวนี้ ไม่ว่าจะอ่าน ส่ง หรือโหลดไฟล์แนบ
+// ทุกกรณีที่ไม่ผ่านตอบว่าไม่พบ ไม่บอกว่ามีบทสนทนาอยู่แต่เข้าไม่ได้
 function assertConversationAccess(
   conversation: { propertyId: string; type: ChatConversationType; tenantProfileId: string | null },
   actor: ConversationActor,
 ) {
   if (conversation.propertyId !== actor.propertyId) throw new ApiError(404, "ไม่พบบทสนทนา");
+  // ผู้เช่าเข้าได้เฉพาะห้องสนทนาของตัวเอง และต้องเป็นชนิดคุยกับหอเท่านั้น
   if (actor.role === "TENANT" && (
     conversation.type !== "TENANT_PROPERTY" ||
     conversation.tenantProfileId !== actor.tenantProfileId
   )) throw new ApiError(404, "ไม่พบบทสนทนา");
+  // ผู้ดูแลระบบเข้าได้เฉพาะห้องช่วยเหลือ ไม่เห็นบทสนทนาระหว่างเจ้าของหอกับผู้เช่า
   if (actor.role === "SUPER_ADMIN" && conversation.type !== "PROPERTY_SUPPORT") {
     throw new ApiError(404, "ไม่พบบทสนทนา");
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “ensure Tenant Conversation” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function ensureTenantConversation(input: {
   propertyId: string;
   tenantProfileId: string;
   tenantName: string;
   roomNumber: string;
 }) {
+  // คีย์ที่ประกอบขึ้นเอง ใช้คู่กับ propertyId เป็นตัวระบุห้องสนทนา ผู้เช่าหนึ่งคนต่อหนึ่งหอมีห้องเดียว
   const conversationKey = `TENANT:${input.tenantProfileId}`;
   return getDatabase().chatConversation.upsert({
     where: { propertyId_conversationKey: { propertyId: input.propertyId, conversationKey } },
@@ -267,13 +207,6 @@ export async function ensureTenantConversation(input: {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “ensure Support Conversation” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function ensureSupportConversation(propertyId: string) {
   return getDatabase().chatConversation.upsert({
     where: { propertyId_conversationKey: { propertyId, conversationKey: "PROPERTY_SUPPORT" } },
@@ -283,15 +216,6 @@ export async function ensureSupportConversation(propertyId: string) {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Conversations” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listConversations(
   actor: ConversationActor,
   type: ChatConversationType,
@@ -343,13 +267,6 @@ export async function listConversations(
   return { data, pageInfo: page.pageInfo };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Super Admin Support Conversations” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listSuperAdminSupportConversations(pagination: PaginationInput) {
   const rows = await getDatabase().chatConversation.findMany({
     where: { type: "PROPERTY_SUPPORT" },
@@ -389,15 +306,6 @@ export async function listSuperAdminSupportConversations(pagination: PaginationI
   return { data, pageInfo: page.pageInfo };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Conversation Messages” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - conversationId: รหัสภายในของ conversation
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - options: ตัวเลือกเพิ่มเติมที่ปรับพฤติกรรมของฟังก์ชัน
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listConversationMessages(
   conversationId: string,
   actor: ConversationActor,
@@ -424,15 +332,6 @@ export async function listConversationMessages(
   return { messages: page.reverse().map(toChatMessageDto), hasMore };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Conversation Messages After” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - conversationId: รหัสภายในของ conversation
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - after: ค่า “after” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listConversationMessagesAfter(
   conversationId: string,
   actor: ConversationActor,
@@ -453,13 +352,7 @@ export async function listConversationMessagesAfter(
   return messages.map(toChatMessageDto);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send Conversation Message” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ส่งข้อความ ทำใน transaction เพราะต้องสร้างข้อความและอัปเดตเวลาข้อความล่าสุดไปด้วยกัน
 export async function sendConversationMessage(input: {
   conversationId: string;
   actor: ConversationActor;
@@ -478,6 +371,8 @@ export async function sendConversationMessage(input: {
       where: { conversationId_clientId: { conversationId: conversation.id, clientId: input.clientId } },
       select: messageSelect,
     });
+    // clientId ที่ฝั่งเบราว์เซอร์สร้าง ใช้กันบันทึกซ้ำ ส่งคำขอเดิมมาอีกรอบจะได้ข้อความเดิมกลับไป
+    // จำเป็นเพราะเน็ตหลุดแล้วกดส่งใหม่ ไม่ควรกลายเป็นสองข้อความ
     if (existing) return toChatMessageDto(existing);
     const message = await database.chatMessage.create({
       data: {
@@ -502,14 +397,6 @@ export async function sendConversationMessage(input: {
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “mark Conversation Read” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - conversationId: รหัสภายในของ conversation
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
 export async function markConversationRead(conversationId: string, actor: ConversationActor) {
   const conversation = await getDatabase().chatConversation.findUnique({
     where: { id: conversationId },
@@ -517,6 +404,7 @@ export async function markConversationRead(conversationId: string, actor: Conver
   });
   if (!conversation) throw new ApiError(404, "ไม่พบบทสนทนา");
   assertConversationAccess(conversation, actor);
+  // แต่ละฝ่ายมีเวลาที่อ่านล่าสุดของตัวเอง จำนวนที่ยังไม่ได้อ่านจึงคิดแยกกันได้
   const field = actor.role === "TENANT" ? "lastTenantReadAt"
     : actor.role === "SUPER_ADMIN" ? "lastSuperAdminReadAt" : "lastAdminReadAt";
   await getDatabase().chatConversation.update({
@@ -525,14 +413,8 @@ export async function markConversationRead(conversationId: string, actor: Conver
   });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Authorized Chat Attachment” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - messageId: รหัสภายในของ message
- * - actor: ค่า “actor” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตรวจสิทธิ์ก่อนคืนที่อยู่ไฟล์ ผู้เรียกจึงจะเอาไปอ่านไฟล์ได้
+// ตรวจจากห้องสนทนาที่ข้อความนั้นอยู่ ไม่ใช่เชื่อ id ที่ส่งมา
 export async function getAuthorizedChatAttachment(messageId: string, actor: ConversationActor) {
   const message = await getDatabase().chatMessage.findUnique({
     where: { id: messageId },
@@ -543,6 +425,7 @@ export async function getAuthorizedChatAttachment(messageId: string, actor: Conv
   });
   if (!message) throw new ApiError(404, "ไม่พบไฟล์");
   assertConversationAccess(message.conversation, actor);
+  // ข้อความที่ไม่มีไฟล์แนบก็ตอบว่าไม่พบ ข้อความเดียวกับตอนไม่มีสิทธิ์ ไม่แยกให้เดาได้
   if (!message.attachmentKey || !message.attachmentMime || !message.attachmentName) {
     throw new ApiError(404, "ไม่พบไฟล์");
   }
