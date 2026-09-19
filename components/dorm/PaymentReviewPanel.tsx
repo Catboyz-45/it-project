@@ -1,7 +1,7 @@
 "use client";
 // โหลดรายการและส่งผลตรวจสอบจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ExternalLink, FileWarning, LoaderCircle, ReceiptText, RefreshCw, Search, X, XCircle } from "lucide-react";
 import type { PaymentSubmissionStatus } from "@/lib/domain/enums";
 import { currency } from "@/lib/dorm-utils";
@@ -50,23 +50,28 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 // หน้าตรวจหลักฐานการชำระ ซ้ายเป็นคิวรายการ ขวาเป็นสลิปกับปุ่มอนุมัติหรือปฏิเสธ
 export function PaymentReviewPanel({
+  initialPayments = null,
   onChanged,
   propertyId,
   readOnly = false,
 }: {
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดแท็บ
+  initialPayments?: { data: PaymentSubmission[]; hasNextPage: boolean } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
 }) {
-  const [payments, setPayments] = useState<PaymentSubmission[]>([]);
+  const [payments, setPayments] = useState<PaymentSubmission[]>(initialPayments?.data ?? []);
+  // ข้อมูลที่ส่งมาเป็นชุดของสถานะรอตรวจสอบหน้าแรก ตรงกับที่ effect จะยิงรอบแรกพอดี จึงข้ามรอบนั้นได้
+  const skipInitialLoadRef = useRef(initialPayments !== null);
   // เปิดมาที่รอตรวจสอบก่อน เพราะเป็นงานที่ต้องทำ ส่วนที่ตรวจไปแล้วไว้ดูย้อนหลัง
   const [status, setStatus] = useState<PaymentSubmissionStatus | "ALL">("PENDING_REVIEW");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialPayments === null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialPayments?.hasNextPage ?? false);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const actionFeedback = useActionFeedback();
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
@@ -112,6 +117,10 @@ export function PaymentReviewPanel({
 
   // เปลี่ยนสถานะที่กรองก็โหลดใหม่ พร้อมยกเลิกคำขอเก่าที่ยังค้าง
   useEffect(() => {
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void loadPayments(1, false, controller.signal);
     return () => controller.abort();

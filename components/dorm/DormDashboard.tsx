@@ -765,6 +765,8 @@ export function OwnerSectionPanel({
   initialParcels = null,
   initialRepairHistory = null,
   initialTenants = null,
+  initialPendingRequests = null,
+  initialPayments = null,
   initialComplaints = null,
   initialInvitations = null,
   initialSubscriptionData = null,
@@ -775,6 +777,8 @@ export function OwnerSectionPanel({
   initialParcels?: OwnerInitialParcels | null;
   initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
   initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
+  initialPendingRequests?: Parameters<typeof TenantsPage>[0]["initialPendingRequests"];
+  initialPayments?: Parameters<typeof InvoicesPage>[0]["initialPayments"];
   initialComplaints?: Complaint[] | null;
   initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
   initialSubscriptionData?: Parameters<typeof SettingsPage>[0]["initialSubscriptionData"];
@@ -823,6 +827,7 @@ export function OwnerSectionPanel({
     return <TenantsPage
       filteredTenants={initialTenants?.data ?? tenants}
       initialPageInfo={initialTenants?.pageInfo ?? null}
+      initialPendingRequests={initialPendingRequests}
       onChanged={refreshDashboard}
       onOpenTenantDetail={onOpenTenantDetail}
       propertyId={propertyId}
@@ -848,7 +853,7 @@ export function OwnerSectionPanel({
       readOnly={isReadOnly}
     />;
   }
-  if (page === "invoices") return <InvoicesPage initialView={invoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />;
+  if (page === "invoices") return <InvoicesPage initialPayments={initialPayments} initialView={invoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />;
   if (page === "repairHistory") {
     return <RepairHistoryPage
       initialPageInfo={initialRepairHistory?.pageInfo ?? null}

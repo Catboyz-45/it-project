@@ -7,8 +7,9 @@ import { listRooms } from "@/lib/server/property-structure";
 import { listSaasPlans } from "@/lib/server/saas";
 import { listPropertySubscriptionOrders } from "@/lib/server/subscription-orders";
 import { listPropertyTenants } from "@/lib/server/property-management";
-import { listInvitations } from "@/lib/server/tenant-onboarding";
+import { listInvitations, listPendingOccupancies } from "@/lib/server/tenant-onboarding";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
+import { listPaymentSubmissions } from "@/lib/server/payments";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
 export default async function PropertyWorkspaceSectionPage({
@@ -32,12 +33,16 @@ export default async function PropertyWorkspaceSectionPage({
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
   const auth = ["repairHistory", "complaints"].includes(activePage) ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialComplaints, initialInvitations, initialSubscriptionData] = await Promise.all([
+  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialPendingRequests, initialPayments, initialComplaints, initialInvitations, initialSubscriptionData] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
     auth ? loadRepairHistory(propertyId, auth.userId) : null,
     activePage === "tenants" ? listPropertyTenants(propertyId, { page: 1, pageSize: 20 }) : null,
+    // แท็บคำขอเข้าพักอยู่ในหน้าเดียวกัน ดึงให้เฉพาะตอนลิงก์พามาที่แท็บนั้นจริง ๆ
+    activePage === "tenants" && tab === "pending" ? loadPendingOccupancies(propertyId) : null,
+    // แท็บตรวจหลักฐานการชำระก็อยู่ในหน้าบิล เปิดมาที่แท็บไหนก็ดึงของแท็บนั้น
+    invoiceView === "payments" ? loadPaymentSubmissions(propertyId) : null,
     auth && activePage === "complaints" ? loadComplaints(propertyId, auth.userId) : null,
     activePage === "invitations" ? loadInvitations(propertyId) : null,
     activePage === "subscription" ? loadSubscription(propertyId) : null,
@@ -47,6 +52,8 @@ export default async function PropertyWorkspaceSectionPage({
     initialInvitations={initialInvitations}
     initialComplaints={initialComplaints}
     initialTenants={initialTenants ? JSON.parse(JSON.stringify(initialTenants)) : null}
+    initialPendingRequests={initialPendingRequests}
+    initialPayments={initialPayments}
     initialRepairHistory={initialRepairHistory}
     initialLeases={initialLeases ? JSON.parse(JSON.stringify(initialLeases)) : null}
     initialParcels={initialParcels}
@@ -136,4 +143,16 @@ async function loadSubscription(propertyId: string) {
     ordersHasNextPage: orders.pageInfo.hasNextPage,
     plans,
   }));
+}
+
+// คำขอเข้าพักที่รออนุมัติ ขนาดหน้าเท่ากับที่แผงยิงเองตอนเปิดแท็บ
+async function loadPendingOccupancies(propertyId: string) {
+  const result = await listPendingOccupancies(propertyId, { page: 1, pageSize: 50 });
+  return JSON.parse(JSON.stringify({ data: result.data, hasNextPage: result.pageInfo.hasNextPage }));
+}
+
+// คิวหลักฐานการชำระ เปิดมาที่สถานะรอตรวจสอบเหมือนที่แผงตั้งค่าเริ่มต้นไว้
+async function loadPaymentSubmissions(propertyId: string) {
+  const result = await listPaymentSubmissions(propertyId, { page: 1, pageSize: 50 }, "PENDING_REVIEW");
+  return JSON.parse(JSON.stringify({ data: result.data, hasNextPage: result.pageInfo.hasNextPage }));
 }

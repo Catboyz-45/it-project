@@ -17,6 +17,7 @@ import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } fr
 export function TenantsPage({
   filteredTenants,
   initialPageInfo = null,
+  initialPendingRequests = null,
   onChanged,
   onOpenTenantDetail,
   propertyId,
@@ -26,6 +27,8 @@ export function TenantsPage({
   filteredTenants: Tenant[];
   // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
   initialPageInfo?: ServerPageInfo | null;
+  // ส่งต่อให้แท็บคำขอเข้าพัก
+  initialPendingRequests?: Parameters<typeof PendingTenantApprovals>[0]["initialRequests"];
   onChanged: () => Promise<void>;
   onOpenTenantDetail: (tenant: Tenant) => void;
   propertyId: string;
@@ -40,6 +43,8 @@ export function TenantsPage({
   // ค่าที่ไม่รู้จักใน URL ก็ถอยไปแท็บแรก ไม่เชื่อค่าที่ผู้ใช้พิมพ์เอง
   const initialView = requestedView === "pending" || requestedView === "transitions" ? requestedView : "active";
   const [view, setView] = useState<"active" | "pending" | "transitions">(initialView);
+  // ข้อมูลจากเซิร์ฟเวอร์ใช้ได้แค่ตอนเปิดหน้าครั้งแรก ออกจากแท็บแล้วกลับมาให้โหลดใหม่ กันข้อมูลค้าง
+  const [pendingSeed, setPendingSeed] = useState(initialView === "pending" ? initialPendingRequests : null);
   const [query, setQuery] = useState("");
   const [tenants, setTenants] = useState(filteredTenants);
   const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
@@ -92,6 +97,10 @@ export function TenantsPage({
     setView(requestedView === "pending" || requestedView === "transitions" ? requestedView : "active");
   }, [requestedView]);
 
+  useEffect(() => {
+    if (view !== "pending") setPendingSeed(null);
+  }, [view]);
+
   // เปลี่ยนแท็บพร้อมอัปเดต URL ให้ตรงกัน
   const selectView = (nextView: "active" | "pending" | "transitions") => {
     setView(nextView);
@@ -126,7 +135,7 @@ export function TenantsPage({
         <button className={view === "pending" ? "active" : ""} onClick={() => selectView("pending")} type="button">คำขอเข้าพัก</button>
         <button className={view === "transitions" ? "active" : ""} onClick={() => selectView("transitions")} type="button">ประวัติย้ายออก/ย้ายห้อง</button>
       </div>
-      {view === "pending" ? <PendingTenantApprovals onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : view === "transitions" ? <TransitionHistory propertyId={propertyId} /> : <>
+      {view === "pending" ? <PendingTenantApprovals initialRequests={pendingSeed} onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : view === "transitions" ? <TransitionHistory propertyId={propertyId} /> : <>
       {/* ส่งปุ่มส่งออกขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
       <PageHeaderActions><a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a></PageHeaderActions>
       <article className="figma-table-card">

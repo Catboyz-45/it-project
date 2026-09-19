@@ -1,7 +1,7 @@
 "use client";
 // โหลดคำขอและส่งผลตรวจสอบจากเบราว์เซอร์
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, LoaderCircle, RefreshCw, Search, UserCheck, UserX } from "lucide-react";
 import { TablePagination, useTablePagination } from "@/components/dorm/TablePagination";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
@@ -34,22 +34,26 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 // ตารางคำขอเข้าพักที่รออนุมัติ พร้อมปุ่มอนุมัติและปฏิเสธ
 export function PendingTenantApprovals({
+  initialRequests = null,
   // เรียกหลังอนุมัติหรือปฏิเสธ ให้หน้าแม่โหลดตัวเลขสรุปใหม่
   onChanged,
   propertyId,
   readOnly = false,
 }: {
+  // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดแท็บ
+  initialRequests?: { data: PendingOccupancy[]; hasNextPage: boolean } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
 }) {
-  const [requests, setRequests] = useState<PendingOccupancy[]>([]);
+  const [requests, setRequests] = useState<PendingOccupancy[]>(initialRequests?.data ?? []);
+  const skipInitialLoadRef = useRef(initialRequests !== null);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialRequests === null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(initialRequests?.hasNextPage ?? false);
   // เก็บ id ของแถวที่กำลังตรวจอยู่ ไม่ใช่แค่ true/false เพราะต้องรู้ว่าแถวไหน
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const actionFeedback = useActionFeedback();
@@ -90,6 +94,11 @@ export function PendingTenantApprovals({
 
   // ยกเลิกคำขอตอนออกจากหน้า กันไปตั้ง state ของคอมโพเนนต์ที่ถูกถอดไปแล้ว
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งมาให้แล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void loadRequests(1, false, controller.signal);
     return () => controller.abort();

@@ -23,6 +23,7 @@ import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
 // หน้าบิล มีสองแท็บ รายการบิลของห้อง กับการตรวจหลักฐานการชำระ
 export function InvoicesPage({
+  initialPayments = null,
   initialView = "invoices",
   invoices,
   onChanged,
@@ -31,6 +32,8 @@ export function InvoicesPage({
   readOnly = false,
   rooms,
 }: {
+  // ส่งต่อให้แท็บตรวจหลักฐานการชำระ
+  initialPayments?: Parameters<typeof PaymentReviewPanel>[0]["initialPayments"];
   initialView?: "invoices" | "payments";
   invoices: Invoice[];
   onChanged: () => Promise<void>;
@@ -40,6 +43,8 @@ export function InvoicesPage({
   rooms: Room[];
 }) {
   const [view, setView] = useState<"invoices" | "payments">(initialView);
+  // ข้อมูลจากเซิร์ฟเวอร์ใช้ได้แค่ตอนเปิดหน้าครั้งแรก ออกจากแท็บแล้วกลับมาให้โหลดใหม่ กันข้อมูลค้าง
+  const [paymentSeed, setPaymentSeed] = useState(initialView === "payments" ? initialPayments : null);
   const [generationMode, setGenerationMode] = useState<"single" | "bulk" | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -61,6 +66,8 @@ export function InvoicesPage({
     else url.searchParams.delete("tab");
     // ใช้ replaceState ไม่ใช่ router เพราะแค่เปลี่ยน URL ไม่ต้องให้ Next โหลดหน้าใหม่
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    // ออกจากแท็บแล้วชุดที่เซิร์ฟเวอร์ส่งมาถือว่าเก่า กลับเข้ามาอีกครั้งให้โหลดใหม่
+    if (nextView !== "payments") setPaymentSeed(null);
   };
 
   const loadInvoices = useCallback(async (targetPage = 1, signal?: AbortSignal) => {
@@ -221,7 +228,7 @@ export function InvoicesPage({
         <button className={view === "invoices" ? "active" : ""} onClick={() => changeView("invoices")} type="button">บิลห้องพัก</button>
         <button className={view === "payments" ? "active" : ""} onClick={() => changeView("payments")} type="button">ตรวจสอบการชำระ</button>
       </div>
-      {view === "payments" ? <PaymentReviewPanel onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <>
+      {view === "payments" ? <PaymentReviewPanel initialPayments={paymentSeed} onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <>
       <article className="figma-table-card">
         {/* ส่งปุ่มสร้างร่างขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
         <PageHeaderActions>
