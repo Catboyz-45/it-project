@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Room Edit Modal” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
@@ -18,31 +13,25 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, RoomStatus, Tenant } from "@/types/dorm";
 
+// สามสถานะนี้คุมว่าห้องออกบิลได้ไหมและรับผู้เช่าใหม่ได้ไหม
 const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "available", label: "ว่าง" },
   { value: "occupied", label: "มีผู้เช่า" },
   { value: "maintenance", label: "ซ่อมบำรุง" },
 ];
 
+// as const ทำให้ TypeScript รู้ว่ามีแค่สี่ค่านี้ ไม่ใช่ string อะไรก็ได้
+// เรียงตามลำดับที่ปรากฏบนหน้าจอ เพราะใช้หาว่าตอนนี้เลื่อนมาถึงหัวข้อไหนแล้ว
 const roomSectionIds = ["room-section-general", "room-section-billing", "room-section-furniture", "room-section-tenant"] as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: interface “Room Edit Payload” ระบุว่าข้อมูลต้องมีฟิลด์อะไร เพื่อให้หลายส่วนส่งข้อมูลตรงรูปแบบกัน
- */
+// removeTenant แยกออกมาต่างหาก เพราะ tenant เป็น undefined บอกไม่ได้ว่าตั้งใจลบหรือไม่มีตั้งแต่แรก
 export interface RoomEditPayload {
   removeTenant: boolean;
   room: Room;
   tenant?: Tenant;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Room Edit Modal” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { room, tenant, floorOptions, furnitureOptions, onClose, onS: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องแก้ไขห้อง รวมข้อมูลห้อง ค่าเช่า มิเตอร์ เฟอร์นิเจอร์ และผู้เช่าไว้ในที่เดียว
 export function RoomEditModal({
   room,
   tenant,
@@ -74,17 +63,14 @@ export function RoomEditModal({
   const [startDate, setStartDate] = useState(tenant?.startDate ?? "");
   const [contractEnd, setContractEnd] = useState(tenant?.contractEnd ?? "");
   const [deposit, setDeposit] = useState(String(tenant?.deposit ?? room.rent));
+  // ฐานข้อมูลเก็บ "-" แทนค่าว่าง แต่ในช่องกรอกต้องเป็นว่างจริง ๆ ไม่งั้นผู้ใช้ต้องมาลบขีดเอง
   const [address, setAddress] = useState(tenant?.address === "-" ? "" : tenant?.address ?? "");
   const [guardianName, setGuardianName] = useState(tenant?.guardianName === "-" ? "" : tenant?.guardianName ?? "");
   const [guardianPhone, setGuardianPhone] = useState(tenant?.guardianPhone === "-" ? "" : tenant?.guardianPhone ?? "");
   const [formError, setFormError] = useState("");
+  // สถานะห้องเป็นตัวตัดสินว่าต้องกรอกข้อมูลผู้เช่าไหม เปลี่ยนเป็นว่างแล้วบันทึกคือถอดผู้เช่าออก
   const hasTenant = status === "occupied";
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “initial Snapshot” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // เก็บภาพค่าเริ่มต้นไว้เทียบ จะได้รู้ว่าผู้ใช้แก้อะไรไปแล้วหรือยัง
   const initialSnapshot = useMemo(() => JSON.stringify({
     address: tenant?.address === "-" ? "" : tenant?.address ?? "",
     contractEnd: tenant?.contractEnd ?? "",
@@ -94,18 +80,17 @@ export function RoomEditModal({
     nationalId: tenant?.nationalId ?? "", phone: tenant?.phone ?? "", rent: String(room.rent), roomType: room.roomType,
     startDate: tenant?.startDate ?? "", status: room.status, waterMeter: String(room.waterMeter),
   }), [room, tenant]);
+  // คีย์ต้องเรียงเหมือนกับของเดิมเป๊ะ ๆ เพราะเทียบเป็นสตริง ไม่ได้เทียบทีละฟิลด์
   const currentSnapshot = JSON.stringify({ address, contractEnd, deposit, electricMeter, floorId, furniture, guardianName, guardianPhone, name, nationalId, phone, rent, roomType, startDate, status, waterMeter });
+  // โหมดอ่านอย่างเดียวแก้อะไรไม่ได้อยู่แล้ว จึงไม่ต้องถามตอนปิด
   const isDirty = !readOnly && currentSnapshot !== initialSnapshot;
   const { confirm, confirmationDialog } = useConfirmation();
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่กรอกไว้หายหมด
   const requestClose = useCallback(() => { if (!isDirty) return onClose(); void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "ข้อมูลห้องที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((ok) => { if (ok) onClose(); }); }, [confirm, isDirty, onClose]);
+  // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
+  // เปิดกล่องให้ห้องอื่น ต้องล้างค่าที่ค้างจากห้องก่อนหน้าทิ้งให้หมด
   useEffect(() => {
     setStatus(room.status);
     setRent(String(room.rent));
@@ -127,42 +112,26 @@ export function RoomEditModal({
   }, [room, tenant]);
 
   useEffect(() => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “sections” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - section: ค่า “section” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลชนิด section is HTMLElement ตามสัญญา TypeScript ของฟังก์ชัน
-     */
+    // ไฮไลต์หัวข้อทางซ้ายให้ตรงกับส่วนที่กำลังอ่านอยู่
     const sections = roomSectionIds
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section));
     const contentContainer = sections[0]?.closest<HTMLElement>(".room-editor-content");
     const modalContainer = sections[0]?.closest<HTMLElement>(".room-edit-modal");
+    // ตัวที่เลื่อนจริงเปลี่ยนไปตามขนาดจอ จอกว้างเป็นกล่องเนื้อหา จอแคบเป็นตัวกล่องทั้งใบ
     const scrollContainer =
       contentContainer && window.getComputedStyle(contentContainer).overflowY !== "visible"
         ? contentContainer
         : modalContainer;
     if (!scrollContainer) return;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Active Section” โดยใช้ค่าที่รับเข้ามา
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const updateActiveSection = () => {
       const containerTop = scrollContainer.getBoundingClientRect().top;
+      // เส้นตัดสินอยู่ต่ำกว่าขอบบนนิดหน่อย ไม่งั้นหัวข้อจะสลับตั้งแต่ยังเห็นไม่ถึงครึ่ง
+      // จอแคบต้องเผื่อมากกว่า เพราะมีหัวกล่องกับปุ่มปิดบังอยู่ข้างบน
       const activationOffset = scrollContainer === contentContainer ? 32 : 150;
       const activationLine = containerTop + activationOffset;
-      /**
-       * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-       * หน้าที่: รวมขั้นตอนย่อยของ “current Section” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-       * รับค่า:
-       * - current: ค่า “current” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * - section: ค่า “section” ที่จำเป็นต่อการทำงานของก้อนนี้
-       * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-       */
+      // เอาหัวข้อสุดท้ายที่เลื่อนผ่านเส้นไปแล้ว ซึ่งก็คือหัวข้อที่กำลังอ่านอยู่
       const currentSection = sections.reduce((current, section) => (
         section.getBoundingClientRect().top <= activationLine ? section : current
       ), sections[0]);
@@ -170,57 +139,45 @@ export function RoomEditModal({
     };
 
     updateActiveSection();
+    // passive บอกเบราว์เซอร์ว่าจะไม่ขัดการเลื่อน การเลื่อนจะได้ลื่นไม่สะดุด
     scrollContainer.addEventListener("scroll", updateActiveSection, { passive: true });
     return () => scrollContainer.removeEventListener("scroll", updateActiveSection);
   }, []);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: แปลงข้อมูลในขั้นตอน “toggle Furniture” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
-   * รับค่า:
-   * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ติ๊กเพิ่ม ติ๊กซ้ำเอาออก เก็บเป็นรายการชื่อ ไม่ใช่ค่าจริงเท็จทีละชิ้น
   const toggleFurniture = (item: string) => {
     setFurniture((current) => (current.includes(item) ? current.filter((value) => value !== item) : [...current, item]));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “go To Section” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - sectionId: รหัสภายในของ section
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const goToSection = (sectionId: string) => {
+    // ตั้งหัวข้อที่ไฮไลต์ทันที ไม่รอให้เลื่อนถึง ผู้ใช้จะได้เห็นผลของการกดเลย
     setActiveSection(sectionId as (typeof roomSectionIds)[number]);
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit Form” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submitForm = (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
+    // กันไว้อีกชั้น เผื่อมีทางกดส่งที่เล็ดลอดจาก fieldset ที่ปิดไว้
     if (readOnly) return;
 
     if (hasTenant && (!name.trim() || !phone.trim() || !startDate || !contractEnd)) {
       setFormError("กรุณากรอกชื่อ เบอร์โทร และช่วงสัญญาของผู้เช่าให้ครบ");
       return;
     }
+    // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
     if (hasTenant && contractEnd < startDate) {
       setFormError("วันสิ้นสุดสัญญาต้องอยู่หลังวันเริ่มสัญญา");
       return;
     }
 
+    // ผู้เช่าใหม่ยังไม่มี id จริงจากฐานข้อมูล จึงตั้งชั่วคราวไว้ก่อน
     const tenantId = tenant?.id ?? `t-${room.id}`;
     const nextTenant: Tenant | undefined = hasTenant
       ? {
+          // กระจายของเดิมมาก่อน แล้วทับด้วยค่าที่แก้ ฟิลด์ที่กล่องนี้ไม่ได้แตะจะได้ไม่หาย
           ...tenant,
+          // แปลงค่าว่างกลับเป็น "-" ให้ตรงกับที่ฐานข้อมูลเก็บ
           address: address.trim() || "-",
           contractEnd,
           deposit: Number(deposit) || 0,
@@ -246,6 +203,7 @@ export function RoomEditModal({
         floor: floorOptions.find((item) => item.id === floorId)?.number ?? room.floor,
         floorId,
         furniture,
+        // || room.rent กันกรอกไม่เป็นตัวเลขแล้วค่าเช่ากลายเป็น 0
         rent: Number(rent) || room.rent,
         roomType,
         status,
@@ -274,12 +232,14 @@ export function RoomEditModal({
             <aside aria-label="หัวข้อจัดการข้อมูลห้อง" className="room-editor-nav">
               <strong>จัดการข้อมูลห้อง</strong>
               <nav>
+                {/* aria-current="location" บอกว่าตอนนี้อ่านอยู่ตรงไหนของหน้า ไม่ใช่ว่าอยู่หน้าไหน */}
                 <button aria-current={activeSection === "room-section-general" ? "location" : undefined} className={activeSection === "room-section-general" ? "active" : ""} onClick={() => goToSection("room-section-general")} type="button">ข้อมูลห้อง</button>
                 <button aria-current={activeSection === "room-section-billing" ? "location" : undefined} className={activeSection === "room-section-billing" ? "active" : ""} onClick={() => goToSection("room-section-billing")} type="button">ค่าเช่าและมิเตอร์</button>
                 <button aria-current={activeSection === "room-section-furniture" ? "location" : undefined} className={activeSection === "room-section-furniture" ? "active" : ""} onClick={() => goToSection("room-section-furniture")} type="button">เฟอร์นิเจอร์และอุปกรณ์</button>
                 <button aria-current={activeSection === "room-section-tenant" ? "location" : undefined} className={activeSection === "room-section-tenant" ? "active" : ""} onClick={() => goToSection("room-section-tenant")} type="button">ข้อมูลผู้เช่า</button>
               </nav>
             </aside>
+            {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
             <fieldset className="room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>
           <section className="room-editor-section" id="room-section-general">
             <header><div><h3>ข้อมูลห้อง</h3><p>สถานะ ประเภท และตำแหน่งของห้อง</p></div></header>
@@ -335,9 +295,11 @@ export function RoomEditModal({
               <div className="room-editor-section-body modal-grid">
                 <label><span>ชื่อ-นามสกุล *</span><input required value={name} onChange={(event) => setName(event.target.value)} /></label>
                 <label><span>เบอร์โทร *</span><input inputMode="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
+                {/* ตัดทุกอย่างที่ไม่ใช่ตัวเลขทิ้งตั้งแต่ตอนพิมพ์ ผู้ใช้จะได้ไม่ต้องมาลบขีดเอง */}
                 <label><span>เลขบัตรประชาชน</span><input inputMode="numeric" maxLength={13} value={nationalId} onChange={(event) => setNationalId(event.target.value.replace(/\D/g, ""))} /></label>
                 <label><span>เงินประกัน</span><input min={0} type="number" value={deposit} onChange={(event) => setDeposit(event.target.value)} /></label>
                 <DatePickerField label="วันเริ่มสัญญา *" value={startDate} onChange={setStartDate} />
+                {/* จำกัดไม่ให้เลือกวันก่อนวันเริ่มสัญญา ตั้งแต่ในปฏิทินเลย */}
                 <DatePickerField label="วันสิ้นสุดสัญญา *" minDate={startDate ? new Date(`${startDate}T00:00:00`) : new Date()} value={contractEnd} onChange={setContractEnd} />
                 <label className="full-width"><span>ที่อยู่ตามทะเบียนบ้าน</span><textarea value={address} onChange={(event) => setAddress(event.target.value)} /></label>
                 <label><span>ชื่อผู้ติดต่อฉุกเฉิน/ผู้ปกครอง</span><input value={guardianName} onChange={(event) => setGuardianName(event.target.value)} /></label>
