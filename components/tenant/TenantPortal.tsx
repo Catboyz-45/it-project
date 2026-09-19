@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { useRouter } from "next/navigation";
-import { FormEvent, Fragment, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { FormEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -48,7 +48,7 @@ import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
 import { formatStatus } from "@/lib/ui-labels";
-import { tenantPagePath, type TenantTab } from "@/lib/navigation-routes";
+import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
@@ -237,17 +237,43 @@ function usePaginatedResource<T>(url: string, pageSize = 20): PaginatedResource<
   return { data, error, hasNextPage, isLoading, isLoadingMore, loadMore, reload, total };
 }
 
-// โครงของทั้งพื้นที่ผู้เช่า ถือข้อมูลร่วมไว้ที่เดียวแล้วส่งลงไปให้แต่ละแท็บ
+// สิ่งที่แท็บต้องใช้ร่วมกัน ส่งผ่าน context เพราะเปลือกอยู่ใน layout ส่วนแท็บมาทาง children
+// จึงเป็นพี่น้องกันในต้นไม้ React ส่งเป็น prop ตรง ๆ ไม่ได้
+type TenantPortalValue = {
+  account: Account;
+  accessState: ReturnType<typeof resolveSubscriptionUiAccessState>;
+  active: Account["occupancies"][number] | undefined;
+  isPrimary: boolean;
+  isReadOnly: boolean;
+  notificationResource: ReturnType<typeof useApiResource<TenantNotificationSummary>>;
+  roomResource: ReturnType<typeof useApiResource<RoomData>>;
+  setAccount: (account: Account) => void;
+  refreshAccount: () => Promise<void>;
+};
+const TenantPortalContext = createContext<TenantPortalValue | null>(null);
+
+// แท็บทุกอันอยู่ใต้เปลือกเสมอ ไม่เจอ context แปลว่าประกอบหน้าผิดที่ ต้องรู้ทันทีไม่ใช่ปล่อยให้พังเงียบ
+function useTenantPortal() {
+  const value = useContext(TenantPortalContext);
+  if (!value) throw new Error("ต้องใช้ภายใน TenantPortal เท่านั้น");
+  return value;
+}
+
+// เปลือกของทั้งพื้นที่ผู้เช่า อยู่ใน layout จึงไม่ถูกถอดตอนเปลี่ยนแท็บ
+// ข้อมูลร่วมอย่างห้องและยอดแจ้งเตือนจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
 export function TenantPortal({
-  activeTab,
+  children,
   initialAccount,
   initialSelectedOccupancyId,
 }: {
-  activeTab: TenantTab;
+  children: ReactNode;
   initialAccount: Account;
   initialSelectedOccupancyId: string | null;
 }) {
   const router = useRouter();
+  // อ่านแท็บจาก URL แทนการรับเป็น prop เพราะ layout ไม่รู้พารามิเตอร์ของ route ลูก
+  const pathname = usePathname();
+  const activeTab = tenantTabFromSegments(pathname.replace(/^\/tenant\/?/, "").split("/").filter(Boolean)) ?? "home";
   const [account, setAccount] = useState(initialAccount);
   const [selectedOccupancyId, setSelectedOccupancyId] = useState(initialSelectedOccupancyId);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -322,7 +348,12 @@ export function TenantPortal({
 
   const activeTabItem = tabs.find(({ id }) => id === activeTab) ?? tabs[0];
 
-  return <PageHeaderSlotProvider>
+  const portalValue: TenantPortalValue = {
+    account, accessState, active, isPrimary: primary, isReadOnly,
+    notificationResource, roomResource, setAccount, refreshAccount,
+  };
+
+  return <TenantPortalContext.Provider value={portalValue}><PageHeaderSlotProvider>
     <main className="tenant-portal tenant-shell shell text-[#292a30]">
     <LiveAnnouncement message={`เปิดหน้า ${tabs.find(({ id }) => id === activeTab)?.label ?? "พื้นที่ผู้เช่า"}`} />
     <aside className="sidebar tenant-sidebar">
@@ -387,29 +418,9 @@ export function TenantPortal({
         <p>คุณยังดูห้อง บิล สัญญา ประกาศ พัสดุ และประวัติเดิมได้ แต่ยังส่งสลิป แจ้งเรื่อง หรือส่งข้อความใหม่ไม่ได้</p>
       </div>
     </div> : null}
+    {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
     <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6">
-      <section className="view-transition min-w-0" key={activeTab}>
-        {activeTab === "account" ? (
-          <AccountPanel account={account} onUpdated={setAccount} refreshAccount={refreshAccount} />
-        ) : !active ? <PendingState account={account} /> : <>
-          {activeTab === "home" ? (
-            <HomePanel
-              account={account}
-              isPrimary={primary}
-              notificationResource={notificationResource}
-              roomResource={roomResource}
-            />
-          ) : null}
-          {activeTab === "invoices" ? primary ? <InvoicesPanel readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" /> : null}
-          {activeTab === "lease" ? primary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" /> : null}
-          {activeTab === "announcements" ? <AnnouncementsPanel /> : null}
-          {activeTab === "parcels" ? <ParcelsPanel /> : null}
-          {activeTab === "tickets" ? <TicketsPanel onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} /> : null}
-          {activeTab === "chat" ? roomResource.isLoading ? <Loading /> : roomResource.error || !roomResource.data
-            ? <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />
-            : <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} /> : null}
-        </>}
-      </section>
+      <section className="min-w-0">{children}</section>
     </div>
     </section>
     <nav aria-label="เมนูผู้เช่าบนมือถือ" className="tenant-mobile-navigation">
@@ -465,7 +476,41 @@ export function TenantPortal({
       />
     ) : null}
   </main>
-  </PageHeaderSlotProvider>;
+  </PageHeaderSlotProvider></TenantPortalContext.Provider>;
+}
+
+// เนื้อของแท็บหนึ่งแท็บ page ของแต่ละ route เรียกตัวนี้พร้อมบอกว่าเป็นแท็บอะไร
+// ข้อมูลร่วมหยิบจาก context ที่เปลือกเตรียมไว้ จึงไม่ต้องโหลดซ้ำตอนเปลี่ยนแท็บ
+export function TenantSectionPanel({ tab }: { tab: TenantTab }) {
+  // เรียก context ครั้งเดียวบนสุด hook ห้ามอยู่หลัง early return
+  const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
+  // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
+  if (tab === "account") return <AccountPanel account={account} onUpdated={setAccount} refreshAccount={refreshAccount} />;
+  // ยังไม่มีห้องที่ใช้งานอยู่ ทุกแท็บที่เหลือจึงไม่มีข้อมูลให้แสดง
+  if (!active) return <PendingState account={account} />;
+  if (tab === "home") {
+    return <HomePanel
+      account={account}
+      isPrimary={isPrimary}
+      notificationResource={notificationResource}
+      roomResource={roomResource}
+    />;
+  }
+  // บิลกับสัญญาเป็นเรื่องของผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทน
+  if (tab === "invoices") return isPrimary ? <InvoicesPanel readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" />;
+  if (tab === "lease") return isPrimary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" />;
+  if (tab === "announcements") return <AnnouncementsPanel />;
+  if (tab === "parcels") return <ParcelsPanel />;
+  if (tab === "tickets") return <TicketsPanel onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
+  if (tab === "chat") {
+    // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
+    if (roomResource.isLoading) return <Loading />;
+    if (roomResource.error || !roomResource.data) {
+      return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
+    }
+    return <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
+  }
+  return null;
 }
 
 // แท็บบัญชีของฉัน แก้ข้อมูลติดต่อและเปลี่ยนรหัสผ่าน

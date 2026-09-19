@@ -1,7 +1,6 @@
+import { TenantSectionPanel } from "@/components/tenant/TenantPortal";
 
-import { TenantPortalRoute } from "@/components/tenant/TenantPortalRoute";
-
-// /tenant คือหน้าแรกของผู้เช่า ตัวจริงอยู่ใน TenantPortalRoute ไฟล์นี้แค่บอกว่าให้เปิดแท็บไหน
-export default async function TenantPage() {
-  return <TenantPortalRoute activeTab="home" />;
+// /tenant คือหน้าแรกของผู้เช่า เปลือกทั้งหมดอยู่ใน layout หน้านี้จึงเหลือแค่เนื้อของแท็บ
+export default function TenantPage() {
+  return <TenantSectionPanel tab="home" />;
 }

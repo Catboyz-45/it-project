@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { TenantPortalRoute } from "@/components/tenant/TenantPortalRoute";
+import { TenantSectionPanel } from "@/components/tenant/TenantPortal";
 import { tenantTabFromSegments } from "@/lib/navigation-routes";
 
-// [...section] รับได้ทุกเส้นทางย่อยของผู้เช่า ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
+// [...section] รับได้ทุกเส้นทางย่อยของผู้เช่า ทำให้ทุกแท็บใช้ไฟล์เดียวกัน
 export default async function TenantSectionPage({
   params,
 }: {
@@ -12,5 +12,5 @@ export default async function TenantSectionPage({
   const activeTab = tenantTabFromSegments(section);
   // เส้นทางที่ไม่รู้จักตอบว่าไม่พบ ส่วน home มีไฟล์ของตัวเองที่ระดับบน
   if (!activeTab || activeTab === "home") notFound();
-  return <TenantPortalRoute activeTab={activeTab} />;
+  return <TenantSectionPanel tab={activeTab} />;
 }

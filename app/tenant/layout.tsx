@@ -1,13 +1,15 @@
-// Server Component ที่ตรวจสิทธิ์และดึงข้อมูลตั้งต้น ก่อนส่งให้หน้าจอฝั่งเบราว์เซอร์
+// Server Component ที่ตรวจสิทธิ์และดึงข้อมูลตั้งต้นให้ทั้งพื้นที่ผู้เช่า
+// อยู่ที่ layout ไม่ใช่ page เพราะ Next คง layout ไว้ตอนเปลี่ยนหน้าลูก
+// ข้อมูลร่วมอย่างห้องและยอดแจ้งเตือนจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
+import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { TenantPortal } from "@/components/tenant/TenantPortal";
-import type { TenantTab } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
 import { getTenantAccount } from "@/lib/server/tenant-portal";
 
-export async function TenantPortalRoute({ activeTab }: { activeTab: TenantTab }) {
+export default async function TenantLayout({ children }: { children: ReactNode }) {
   // ตรวจสิทธิ์บนเซิร์ฟเวอร์ก่อนแตะข้อมูลใด ๆ ไม่เชื่อค่าที่ส่งมาจากฝั่งผู้ใช้
   const auth = await requirePageAuth();
   // ไม่ใช่ผู้เช่าก็ส่งกลับหน้าแรก ให้ระบบพาไปยังพื้นที่ของบทบาทตัวเอง
@@ -22,10 +24,8 @@ export async function TenantPortalRoute({ activeTab }: { activeTab: TenantTab })
     ?? profile.occupancies.find(({ status }) => status === "ACTIVE");
 
   return (
-    <TenantPortal
-      activeTab={activeTab}
-      initialAccount={profile}
-      initialSelectedOccupancyId={selected?.id ?? null}
-    />
+    <TenantPortal initialAccount={profile} initialSelectedOccupancyId={selected?.id ?? null}>
+      {children}
+    </TenantPortal>
   );
 }

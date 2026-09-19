@@ -329,9 +329,15 @@ test.describe.serial("subscription access UX", () => {
     // รอให้หน้านิ่งก่อนค่อยเอาเมาส์ไปชี้ หลังเปิดหน้าใหม่ ๆ หน้าจะเลื่อนกลับบนสุดเองอีกรอบ
     // เลื่อนตอนนั้นทำให้ปุ่มขยับหนีเคอร์เซอร์ที่อยู่กับที่ เบราว์เซอร์จึงยิง mouseleave แล้ว tooltip ก็หาย
     await trigger.scrollIntoViewIfNeeded();
-    await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(
-      await page.evaluate(() => window.scrollY),
-    );
+    // นิ่งจริงคืออ่านตำแหน่งสองรอบติดกันแล้วได้ค่าเท่ากัน เทียบกับค่าที่อ่านไว้ก่อนหน้าใช้ไม่ได้
+    // เพราะถ้าหน้าเลื่อนหลังอ่านค่านั้นไปแล้ว มันจะไม่มีวันตรงกันอีกเลย
+    let previousScroll = Number.NaN;
+    await expect.poll(async () => {
+      const current = await page.evaluate(() => window.scrollY);
+      const settled = current === previousScroll;
+      previousScroll = current;
+      return settled;
+    }).toBe(true);
 
     await trigger.hover();
     await expect(tooltip).toBeVisible();
