@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API GET, PATCH ที่ URL /api/v1/super-admin/properties/[propertyId] สำหรับผู้ดูแลแพลตฟอร์ม (Super Admin)
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { superAdminPropertyUpdateSchema } from "@/lib/domain/property-management";
@@ -12,19 +6,9 @@ import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { superAdminUpdateProperty } from "@/lib/server/property-management";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขออ่านข้อมูลของ API เส้นทางนี้ หลังตรวจสิทธิ์และข้อมูลใน URL
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ข้อมูลหอพักหนึ่งแห่งสำหรับผู้ดูแลระบบ รวมแพ็กเกจและรายชื่อผู้ดูแล
 export async function GET(request: NextRequest, context: Context) {
   try {
     const auth = await requireRequestAuth(request); requireRole(auth, "SUPER_ADMIN");
@@ -40,16 +24,10 @@ export async function GET(request: NextRequest, context: Context) {
     return apiSuccessResponse(request, { data: { ...data, subscriptionOrders: data.subscriptionOrders.map((order) => ({ ...order, amount: order.amount.toString() })) } });
   } catch (error) { return apiErrorResponse(error, request); }
 }
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอแก้ข้อมูลบางส่วนหรือเปลี่ยนสถานะของ API เส้นทางนี้
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เปิดปิดหอ และตั้งว่าใครดูแลหอนี้
 export async function PATCH(request: NextRequest, context: Context) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");

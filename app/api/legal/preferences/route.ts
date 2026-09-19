@@ -8,6 +8,7 @@ import { getPolicyPreferences, recordMarketingPreference, recordRequiredPolicies
 import { setRequestActorContext } from "@/lib/server/request-context";
 
 /** คืนสถานะปัจจุบันเพื่อให้หน้าบัญชีแสดงได้ โดยไม่คืนประวัติภายในที่ไม่จำเป็น */
+// อ่านสถานะการยอมรับข้อกำหนดของบัญชีตัวเอง
 export async function GET(request: NextRequest) {
   try {
     const auth = await getRequestAuth(request);
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
 }
 
 /** รับเฉพาะ action ที่กำหนดไว้ ป้องกันผู้ใช้ส่งชนิดเอกสารหรือเวอร์ชันปลอมจากเบราว์เซอร์ */
+// บันทึกการยอมรับข้อกำหนดและความยินยอมรับข่าวสาร
 export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);

@@ -1,32 +1,18 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API POST ที่ URL /api/v1/admin/properties/[propertyId]/invoices/bulk สำหรับเจ้าของหอหรือผู้ดูแลหอ
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { generateBulkInvoicesSchema } from "@/lib/domain/billing";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { generateBulkInvoices } from "@/lib/server/invoices";
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างร่างบิลทั้งหอในคำขอเดียว ห้องที่ติดปัญหาจะถูกข้ามพร้อมเหตุผล
 export async function POST(request: NextRequest, context: Context) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const { auth, propertyId } = await requireAdminProperty(request, (await context.params).propertyId);
     const data = await generateBulkInvoices(propertyId, generateBulkInvoicesSchema.parse(await request.json()));
     return apiSuccessResponse(request, { data }, { status: 201 }, { userId: auth.userId, propertyId, action: "INVOICE_BULK_CREATE", targetType: "Invoice", targetId: `count:${data.created.length}` });
+  // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
   } catch (error) { return apiErrorResponse(error, request); }
 }

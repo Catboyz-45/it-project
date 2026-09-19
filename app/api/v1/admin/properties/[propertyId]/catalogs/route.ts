@@ -1,31 +1,16 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API PUT ที่ URL /api/v1/admin/properties/[propertyId]/catalogs สำหรับเจ้าของหอหรือผู้ดูแลหอ
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest } from "next/server";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { propertyCatalogSchema } from "@/lib/domain/property-catalogs";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { getDatabase } from "@/lib/server/db";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Context” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอแทนค่าข้อมูลทั้งชุดของ API เส้นทางนี้ โดยรักษากฎธุรกิจของระบบ
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// บันทึกรายการตั้งต้นทั้งชุด
 export async function PUT(request: NextRequest, context: Context) {
   try {
+    // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const { auth, propertyId } = await requireAdminProperty(request, (await context.params).propertyId);
     const input = propertyCatalogSchema.parse(await request.json());
@@ -57,6 +42,7 @@ export async function PUT(request: NextRequest, context: Context) {
     });
     return apiSuccessResponse(request, { success: true }, undefined, { userId: auth.userId, propertyId, action: "PROPERTY_CATALOGS_REPLACE", targetType: "Property", targetId: propertyId });
   } catch (error) {
+    // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
     return apiErrorResponse(error, request);
   }
 }

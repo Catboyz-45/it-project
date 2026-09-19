@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็น API GET, POST, PUT ที่ URL /api/document-templates/[kind] สำหรับส่วนกลางของระบบ
- * การทำงาน: รับคำขอจากหน้าเว็บ ตรวจข้อมูลและสิทธิ์บนเซิร์ฟเวอร์ เรียก business service ที่เกี่ยวข้อง แล้วคืนผลลัพธ์หรือข้อผิดพลาดรูปแบบมาตรฐาน
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { defaultTemplates } from "@/lib/documents/default-templates";
@@ -20,26 +14,12 @@ const templateSchema = z.object({
   html: z.string().trim().min(20).max(2_000_000),
 }).strict();
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “parse Kind” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลชนิด DocumentKind ตามสัญญา TypeScript ของฟังก์ชัน
- */
 function parseKind(value: string): DocumentKind {
   if (!documentKinds.includes(value as DocumentKind)) throw new ApiError(404, "ไม่พบประเภทเอกสาร");
   return value as DocumentKind;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขออ่านข้อมูลของ API เส้นทางนี้ หลังตรวจสิทธิ์และข้อมูลใน URL
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// อ่าน Template เอกสารของหอ ไม่มีก็คืนของกลางที่มากับระบบ
 export async function GET(request: NextRequest, context: { params: Promise<{ kind: string }> }) {
   try {
     const { propertyId } = await requireRequestProperty(request);
@@ -51,14 +31,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ kin
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอสร้างข้อมูลหรือสั่งทำงานของ API เส้นทางนี้ หลังตรวจข้อมูลและสิทธิ์
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รีเซ็ต Template กลับเป็นของกลางที่มากับระบบ
 export async function POST(request: NextRequest, context: { params: Promise<{ kind: string }> }) {
   try {
     assertSameOrigin(request);
@@ -77,14 +50,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ki
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตอบคำขอแทนค่าข้อมูลทั้งชุดของ API เส้นทางนี้ โดยรักษากฎธุรกิจของระบบ
- * รับค่า:
- * - request: คำขอ HTTP ซึ่งมี URL, header, cookie และข้อมูลจากผู้ใช้
- * - context: ข้อมูลประกอบของ route เช่นค่าจาก URL
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// บันทึก Template ที่แก้แล้ว ล้าง HTML ก่อนเก็บเสมอ
 export async function PUT(request: NextRequest, context: { params: Promise<{ kind: string }> }) {
   try {
     assertSameOrigin(request);
