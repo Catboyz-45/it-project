@@ -2,7 +2,7 @@
 // โหลดข้อมูลทีละหน้าและเก็บตัวกรองไว้ฝั่งเบราว์เซอร์
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Download,
   Inbox,
@@ -70,6 +70,8 @@ function PaginatedTable<T>({
   empty,
   emptyDescription,
   endpoint,
+  initialPageInfo = null,
+  initialRows = null,
 }: {
   action?: React.ReactNode;
   // รับเป็นฟังก์ชัน เพื่อให้ผู้เรียกเป็นคนตัดสินใจว่าจะวาดแต่ละแถวยังไง
@@ -77,10 +79,15 @@ function PaginatedTable<T>({
   empty: string;
   emptyDescription?: string;
   endpoint: string;
+  // ส่งมาจาก Server Component ของหน้านั้น มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
+  // ค้นหา กรอง และเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
+  initialPageInfo?: PageInfo | null;
+  initialRows?: T[] | null;
 }) {
-  const [rows, setRows] = useState<T[]>([]);
-  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [rows, setRows] = useState<T[]>(initialRows ?? []);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(initialPageInfo ?? null);
+  const [isLoading, setIsLoading] = useState(initialRows === null);
+  const skipInitialLoadRef = useRef(initialRows !== null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -139,6 +146,11 @@ function PaginatedTable<T>({
 
   // เปลี่ยนคำค้นหรือตัวกรองก็กลับไปหน้า 1 เสมอ พร้อมยกเลิกคำขอเก่าที่ยังค้าง
   useEffect(() => {
+    // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้ว รอบแรกจึงข้ามไป
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void load(1, false, controller.signal);
     return () => controller.abort();
@@ -274,12 +286,17 @@ export type SuperAdminResource =
 
 // ตารางข้อมูลหลักของผู้ดูแลระบบ แพ็กเกจ หอพัก บัญชี และ audit log
 // แต่ละหน้าเลือกเอาเฉพาะตารางที่ต้องการผ่าน resources
+// ข้อมูลตั้งต้นของแต่ละตาราง ส่งมาเฉพาะตารางที่หน้านั้นแสดงจริง
+export type SuperAdminInitialTable = { pageInfo: PageInfo; rows: unknown[] };
+
 export function SuperAdminResourceTables({
   accountAction,
+  initialTables,
   propertyAction,
   resources = ["plans", "properties", "accounts", "audit-logs"],
 }: {
   accountAction?: React.ReactNode;
+  initialTables?: Partial<Record<SuperAdminResource, SuperAdminInitialTable>> | null;
   propertyAction?: React.ReactNode;
   resources?: SuperAdminResource[];
 }) {
@@ -289,6 +306,8 @@ export function SuperAdminResourceTables({
       {resources.includes("plans") ? (
         <ResourceSection>
           <PaginatedTable<Plan>
+            initialPageInfo={initialTables?.["plans"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["plans"]?.rows as Plan[] | undefined) ?? null}
             action={
               <button
                 className="primary-button"
@@ -359,6 +378,8 @@ export function SuperAdminResourceTables({
       {resources.includes("properties") ? (
         <ResourceSection>
           <PaginatedTable<Property>
+            initialPageInfo={initialTables?.["properties"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["properties"]?.rows as Property[] | undefined) ?? null}
             action={propertyAction}
             empty="ยังไม่มีหอพัก" emptyDescription="หอพักที่เพิ่มเข้าระบบแล้วจะแสดงที่นี่"
             endpoint="/api/v1/super-admin/properties"
@@ -406,6 +427,8 @@ export function SuperAdminResourceTables({
       {resources.includes("accounts") ? (
         <ResourceSection>
           <PaginatedTable<Admin>
+            initialPageInfo={initialTables?.["accounts"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["accounts"]?.rows as Admin[] | undefined) ?? null}
             action={accountAction}
             empty="ยังไม่มีบัญชี" emptyDescription="บัญชีเจ้าของหอที่สร้างไว้จะแสดงที่นี่"
             endpoint="/api/v1/super-admin/users"
@@ -472,6 +495,8 @@ export function SuperAdminResourceTables({
       {resources.includes("audit-logs") ? (
         <ResourceSection>
           <PaginatedTable<AuditLog>
+            initialPageInfo={initialTables?.["audit-logs"]?.pageInfo ?? null}
+            initialRows={(initialTables?.["audit-logs"]?.rows as AuditLog[] | undefined) ?? null}
             empty="ยังไม่มีรายการ" emptyDescription="เหตุการณ์สำคัญในระบบจะถูกบันทึกมาที่นี่"
             endpoint="/api/v1/super-admin/audit-logs"
           >
