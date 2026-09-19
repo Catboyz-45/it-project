@@ -1,13 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: ดูแลขั้นตอนสร้างหรือจัดรูปแบบเอกสารในหัวข้อ “templates.test”
- * การทำงาน: รับข้อมูลที่ผ่านการตรวจแล้ว สร้างผลลัพธ์เอกสารอย่างสม่ำเสมอ และส่งต่อให้ storage โดยไม่เปิดเผยตำแหน่งไฟล์จริงแก่ผู้ใช้
- */
-
 import { describe, expect, it } from "vitest";
 import { getDocumentContentCss } from "@/lib/documents/document-styles";
 import { renderTemplate, sanitizeTemplate, validateTemplatePlaceholders, wrapPrintableHtml } from "@/lib/documents/templates";
 
+// ชื่อผู้เช่าตั้งใจใส่ script tag เข้าไป เพื่อพิสูจน์ว่าข้อมูลถูก escape ก่อนลง HTML
 const contractData = {
   reference_id: "CONTRACT-1",
   property_name: "บ้านอยู่สบาย",
@@ -22,17 +17,21 @@ const contractData = {
 };
 
 describe("document templates", () => {
+  // เคสสำคัญด้านความปลอดภัย ข้อมูลที่แทนลงช่อง {{...}} ต้องกลายเป็นข้อความ ไม่ใช่โค้ดที่รันได้
   it("escapes mapped values before inserting them into HTML", () => {
     const rendered = renderTemplate("contract", "<p>{{tenant_name}}</p>", contractData);
     expect(rendered).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(rendered).not.toContain("<script>");
   });
 
+  // script กับ onclick ต้องหายไปทั้งคู่ เพราะ Template มาจากที่ผู้ใช้แก้เองได้
   it("removes scripts and event handlers", () => {
     const sanitized = sanitizeTemplate('<p onclick="alert(1)">ข้อความ</p><script>alert(1)</script>');
     expect(sanitized).toBe("<p>ข้อความ</p>");
   });
 
+  // สไตล์ที่อนุญาตต้องคงอยู่ ส่วน position กับค่าที่ผิดรูปแบบต้องถูกตัดทิ้ง
+  // position ใช้วางทับปุ่มจริงเพื่อหลอกผู้ใช้ได้ จึงไม่อยู่ในรายการที่อนุญาต
   it("keeps only allowlisted rich-text styles", () => {
     const sanitized = sanitizeTemplate('<p style="color:#175cd3;background-color:#fff2a8;font-size:18px;font-family:Tahoma;position:fixed">ข้อความ</p>');
     expect(sanitized).toContain("color:#175cd3");
