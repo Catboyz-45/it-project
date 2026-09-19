@@ -1,44 +1,32 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นการทดสอบอัตโนมัติของ “global setup” เพื่อป้องกันพฤติกรรมสำคัญย้อนกลับไปเสีย
- * การทำงาน: เตรียมสถานการณ์ เรียกโค้ดเหมือนผู้ใช้หรือระบบจริง แล้วตรวจผลลัพธ์ทั้งกรณีสำเร็จและกรณีที่ต้องปฏิเสธ
- */
-
 import { randomBytes, scrypt as nodeScrypt } from "node:crypto";
 import { promisify } from "node:util";
 import pg from "pg";
 import { e2e } from "./fixtures";
 
+// scrypt ของ node ใช้ callback แปลงเป็น Promise ก่อนจะได้เขียน await ได้
 const scrypt = promisify(nodeScrypt);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “password Hash” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ทำแฮชรหัสผ่านให้รูปแบบตรงกับที่ lib/server/password.ts ใช้ เทสต์จึงล็อกอินผ่าน API จริงได้
+// เขียนซ้ำที่นี่เพราะไฟล์นี้รันด้วย pg ตรง ๆ ไม่ผ่าน Prisma และไม่ได้โหลดโค้ดของแอป
 async function passwordHash(value: string) {
+  // สุ่ม salt ใหม่ทุกครั้ง รหัสเดียวกันจะได้แฮชออกมาไม่ซ้ำกัน
   const salt = randomBytes(16);
   const key = await scrypt(value, salt, 64) as Buffer;
   return `scrypt-v1$${salt.toString("base64")}$${key.toString("base64")}`;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “global Setup” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// รันครั้งเดียวก่อนเริ่มเทสต์ทุกไฟล์ ล้างของเก่าแล้วใส่ข้อมูลตั้งต้นชุดใหม่
 export default async function globalSetup() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required for E2E tests");
   const url = new URL(databaseUrl);
+  // ด่านกันพลาดที่สำคัญที่สุด ไฟล์นี้ลบข้อมูลจริง ชื่อฐานต้องมีคำว่า test เท่านั้น
   if (!/test/i.test(url.pathname)) throw new Error("E2E tests require a dedicated database whose name contains 'test'");
 
   const pool = new pg.Pool({ connectionString: databaseUrl });
   const client = await pool.connect();
   const hash = await passwordHash(e2e.password);
+  // ตั้งรหัสเป็นค่าตายตัว รันซ้ำจะได้ทับของเดิมพอดี ไม่เหลือข้อมูลค้างสะสม
   const buildingId = "cm000000000000000000009";
   const floorId = "cm000000000000000000010";
   const occupancyId = "cm000000000000000000011";
@@ -48,11 +36,13 @@ export default async function globalSetup() {
   const planId = "cm000000000000000000015";
 
   try {
+    // ห่อทั้งหมดใน transaction เดียว พลาดกลางทางจะย้อนคืนหมด ไม่เหลือข้อมูลเตรียมไปครึ่งเดียว
     await client.query("BEGIN");
-    // The E2E database is dedicated and ephemeral. Reset throttle state so
-    // repeated local/CI journeys do not influence one another by source IP.
+    // ล้างตัวนับการจำกัดจำนวนคำขอด้วย ไม่งั้นรันหลายรอบติดกันจะโดนบล็อกจาก IP เดิม
     await client.query(`DELETE FROM "ApiRateLimit"`);
     await client.query(`DELETE FROM "LoginThrottle"`);
+    // ลบจากตารางลูกไล่ขึ้นไปหาตารางแม่ ลบแม่ก่อนจะติด foreign key
+    // ทุกคำสั่งส่งค่าผ่าน $1 ไม่ต่อสตริงเข้าไปใน SQL ตรง ๆ
     const property = [e2e.propertyId];
     await client.query(`DELETE FROM "PaymentSubmission" WHERE "propertyId" = $1`, property);
     await client.query(`DELETE FROM "InvoiceItem" WHERE "invoiceId" IN (SELECT "id" FROM "Invoice" WHERE "propertyId" = $1)`, property);
@@ -90,6 +80,7 @@ export default async function globalSetup() {
        ($7,$8,$3,'E2E Super Admin','SUPER_ADMIN',true,'APPROVED',NOW(),NOW())`,
       [e2e.ownerId, e2e.ownerEmail, hash, e2e.tenantUserId, e2e.tenantEmail, e2e.pendingUserId, e2e.superAdminId, e2e.superAdminEmail],
     );
+    // บัญชีทดสอบต้องผ่านด่านยอมรับนโยบายมาแล้ว ไม่งั้นจะติดอยู่ที่หน้า /legal/accept
     await client.query(
       `INSERT INTO "PolicyAction" ("id","userId","policyType","action","documentVersion","source","occurredAt")
        SELECT md5("id" || '-terms'), "id", 'TERMS_OF_SERVICE'::"PolicyType", 'ACCEPTED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])
@@ -97,10 +88,9 @@ export default async function globalSetup() {
        SELECT md5("id" || '-privacy'), "id", 'PRIVACY_NOTICE'::"PolicyType", 'ACKNOWLEDGED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])`,
       [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.superAdminId]],
     );
-    // The bootstrap super admin is created outside this fixture by
-    // `npm run admin:bootstrap` (CI does this) and is never deleted here, so it
-    // needs the same acceptance or every suite that signs in with it stops at
-    // the /legal/accept gate. ON CONFLICT keeps repeat runs idempotent.
+    // บัญชีแอดมินตั้งต้นถูกสร้างจาก npm run admin:bootstrap คนละที่กับไฟล์นี้ และไม่ถูกลบตรงนี้
+    // แต่ก็ต้องกดยอมรับนโยบายเหมือนกัน ไม่งั้นทุกเทสต์ที่ใช้บัญชีนี้จะไปติดที่หน้ายอมรับ
+    // ON CONFLICT DO NOTHING ทำให้รันซ้ำกี่รอบก็ไม่พัง
     const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
     if (bootstrapEmail) {
       await client.query(
@@ -118,6 +108,7 @@ export default async function globalSetup() {
        ON CONFLICT ("code") DO UPDATE SET "allowPromptPay"=true,"allowFileUploads"=true,"isActive"=true,"updatedAt"=NOW()`,
       [planId],
     );
+    // อ่านรหัสกลับมาอีกที เพราะถ้าเจอ conflict แถวเดิมจะถูกอัปเดต รหัสจึงอาจไม่ใช่ planId ที่ส่งไป
     const plan = await client.query<{ id: string }>(`SELECT "id" FROM "SaasPlan" WHERE "code"='E2E_STANDARD'`);
     await client.query(
       `INSERT INTO "Property" ("id","name","shortName","isActive","createdAt","updatedAt")
@@ -137,6 +128,7 @@ export default async function globalSetup() {
     );
     await client.query(`INSERT INTO "Building" ("id","propertyId","name","code","isActive","createdAt","updatedAt") VALUES ($1,$2,'อาคาร E2E','E2E-A',true,NOW(),NOW())`, [buildingId, e2e.propertyId]);
     await client.query(`INSERT INTO "Floor" ("id","propertyId","buildingId","number","label","createdAt","updatedAt") VALUES ($1,$2,$3,1,'ชั้นทดสอบ',NOW(),NOW())`, [floorId, e2e.propertyId, buildingId]);
+    // สองห้อง ห้องหนึ่งมีคนอยู่แล้ว อีกห้องว่าง ไว้ทดสอบทั้งสองสถานการณ์
     await client.query(
       `INSERT INTO "Room" ("id","propertyId","buildingId","floorId","number","roomType","monthlyRent","depositAmount","capacity","status","createdAt","updatedAt") VALUES
        ($1,$3,$4,$5,'E101','Standard',3600,7200,2,'OCCUPIED',NOW(),NOW()),
@@ -148,6 +140,7 @@ export default async function globalSetup() {
        ($1,$2,'0811111111',NOW(),NOW()),($3,$4,'0822222222',NOW(),NOW())`,
       [e2e.tenantProfileId, e2e.tenantUserId, e2e.pendingProfileId, e2e.pendingUserId],
     );
+    // การเข้าพักสองแบบ อันหนึ่งอนุมัติแล้ว อีกอันยังรออนุมัติ ไว้ทดสอบหน้าคิวอนุมัติ
     await client.query(
       `INSERT INTO "RoomOccupancy" ("id","propertyId","roomId","tenantProfileId","role","status","startedAt","approvedAt","approvedByUserId","createdAt","updatedAt") VALUES
        ($1,$3,$4,$5,'PRIMARY','ACTIVE','2026-01-01','2026-01-01',$6,NOW(),NOW()),
@@ -161,6 +154,7 @@ export default async function globalSetup() {
     );
     await client.query(`INSERT INTO "LeaseVersion" ("id","leaseId","version","snapshot","signedStorageKey","createdByUserId","createdAt") VALUES ('cm000000000000000000019',$1,1,'{"leaseNumber":"CTR-E2E-E101","roomNumber":"E101","tenantName":"E2E Tenant"}'::jsonb,'e2e/contracts/e101.pdf',$2,NOW())`, [leaseId, e2e.ownerId]);
     await client.query(`INSERT INTO "LeaseTenant" ("leaseId","occupancyId","isPrimary","createdAt") VALUES ($1,$2,true,NOW())`, [leaseId, occupancyId]);
+    // บิลหนึ่งใบสถานะรอชำระ พร้อมรายการย่อยค่าห้อง ค่าน้ำ ค่าไฟ ให้ครบเหมือนของจริง
     await client.query(
       `INSERT INTO "Invoice" ("id","propertyId","roomId","leaseId","invoiceNumber","billingMonth","status","issuedAt","dueDate","subtotal","lateFee","total","version","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,'E2E-202607-E101','2026-07-01','PENDING','2026-07-01','2026-07-05',4200,0,4200,1,NOW(),NOW())`,
@@ -190,9 +184,11 @@ export default async function globalSetup() {
     );
     await client.query("COMMIT");
   } catch (error) {
+    // พลาดตรงไหนก็ย้อนคืนทั้งหมด แล้วโยนต่อให้ Playwright หยุดก่อนเริ่มเทสต์
     await client.query("ROLLBACK");
     throw error;
   } finally {
+    // คืนการเชื่อมต่อและปิด pool ทุกกรณี ไม่งั้นโปรเซสจะค้างไม่ยอมจบ
     client.release();
     await pool.end();
   }
