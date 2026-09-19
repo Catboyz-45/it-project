@@ -1,13 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโมดูลกลาง “ui labels.test” ที่รวม type ค่าคงที่ หรือฟังก์ชันซึ่งหลายส่วนของระบบใช้ร่วมกัน
- * การทำงาน: ช่วยให้กฎและรูปแบบข้อมูลมีแหล่งอ้างอิงเดียว ลดความซ้ำ และทำให้เปลี่ยนพฤติกรรมได้โดยแก้จุดเดียว
- */
-
 import { describe, expect, it } from "vitest";
 import { formatAuditAction, formatAuditResult, formatStatus } from "@/lib/ui-labels";
 
 describe("UI labels", () => {
+  // ผู้ใช้ต้องไม่เห็นค่าดิบอย่าง PENDING_REVIEW และค่าที่ยังไม่ได้แปลก็ต้องมีคำสำรองรองรับ
   it("does not expose raw status enums", () => {
     expect(formatStatus("PENDING_REVIEW")).toBe("รอตรวจสอบ");
     expect(formatStatus("STATUS_NOT_YET_SUPPORTED")).toBe("สถานะอื่น");

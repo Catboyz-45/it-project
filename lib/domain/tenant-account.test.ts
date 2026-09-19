@@ -1,13 +1,8 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “tenant account.test” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { describe, expect, it } from "vitest";
 import { updateOwnTenantProfileSchema } from "@/lib/domain/tenant-account";
 
 describe("tenant account validation", () => {
+  // ช่องที่ไม่บังคับและกรอกว่างมา ต้องเก็บเป็น null ไม่ใช่สตริงว่าง จะได้เช็คที่เดียวทั้งระบบ
   it("normalizes optional empty profile fields to null", () => {
     const result = updateOwnTenantProfileSchema.parse({
       displayName: "สุดา สุขใจ",
@@ -23,6 +18,7 @@ describe("tenant account validation", () => {
     });
   });
 
+  // ฟิลด์แปลกปลอมอย่าง role ต้องไม่ผ่าน ไม่งั้นผู้เช่าจะยกระดับสิทธิ์ตัวเองผ่านหน้าแก้โปรไฟล์ได้
   it("rejects unknown and invalid fields", () => {
     expect(updateOwnTenantProfileSchema.safeParse({
       displayName: "ส",

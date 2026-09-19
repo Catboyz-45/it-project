@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เก็บกฎธุรกิจและการตรวจข้อมูลของเรื่อง “leases.test” โดยไม่ผูกกับหน้าจอ
- * การทำงาน: ฟังก์ชันในชั้นนี้ควรให้ผลลัพธ์เดิมเมื่อรับข้อมูลเดิม จึงทดสอบแยกและนำกลับมาใช้ใน API หลายเส้นได้
- */
-
 import { describe, expect, it } from "vitest";
 import { createLeaseSchema, renewLeaseSchema, updateLeaseSchema } from "@/lib/domain/leases";
 import { leaseStatusTransitions } from "@/lib/domain/enums";
@@ -18,11 +12,13 @@ describe("lease lifecycle", () => {
     }).success).toBe(false);
   });
 
+  // แก้สัญญาต้องส่ง version มาด้วย เซิร์ฟเวอร์จะได้ปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว
   it("requires optimistic version for edits", () => {
     expect(updateLeaseSchema.safeParse({ monthlyRent: 3500 }).success).toBe(false);
     expect(updateLeaseSchema.safeParse({ expectedVersion: 1, monthlyRent: 3500 }).success).toBe(true);
   });
 
+  // ร่างข้ามไปใช้งานเลยไม่ได้ ต้องผ่านขั้นรอลงนามก่อน เพื่อให้มีจังหวะตรวจก่อนสัญญามีผล
   it("requires signature review before activation", () => {
     expect(leaseStatusTransitions.DRAFT).not.toContain("ACTIVE");
     expect(leaseStatusTransitions.PENDING_SIGNATURE).toContain("ACTIVE");

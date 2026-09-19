@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโมดูลกลาง “tenant invoice view.test” ที่รวม type ค่าคงที่ หรือฟังก์ชันซึ่งหลายส่วนของระบบใช้ร่วมกัน
- * การทำงาน: ช่วยให้กฎและรูปแบบข้อมูลมีแหล่งอ้างอิงเดียว ลดความซ้ำ และทำให้เปลี่ยนพฤติกรรมได้โดยแก้จุดเดียว
- */
-
 import { describe, expect, it } from "vitest";
 import {
   TENANT_INVOICE_VIEW_STATUSES,
@@ -17,6 +11,7 @@ describe("tenant invoice views", () => {
     expect(TENANT_INVOICE_VIEW_STATUSES.history).toEqual(["PAID", "CANCELLED"]);
   });
 
+  // ร่างบิลต้องไม่หลุดไปถึงผู้เช่า เพราะยอดยังแก้ได้และเจ้าของหอยังไม่ได้ตรวจ
   it("does not expose invoice drafts to tenants", () => {
     const tenantVisibleStatuses = Object.values(TENANT_INVOICE_VIEW_STATUSES).flat();
 
