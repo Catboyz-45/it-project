@@ -1,9 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: ดูแลขั้นตอนสร้างหรือจัดรูปแบบเอกสารในหัวข้อ “service”
- * การทำงาน: รับข้อมูลที่ผ่านการตรวจแล้ว สร้างผลลัพธ์เอกสารอย่างสม่ำเสมอ และส่งต่อให้ storage โดยไม่เปิดเผยตำแหน่งไฟล์จริงแก่ผู้ใช้
- */
-
 import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { generatePdf } from "@/lib/documents/pdf";
@@ -15,43 +9,32 @@ import type { DocumentKind } from "@/lib/documents/types";
 import { getDatabase } from "@/lib/server/db";
 import { getServerEnv } from "@/lib/server/env";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างผลลัพธ์สำหรับแสดงส่วน “render Document Pdf” บนหน้าจอ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - kind: ค่า “kind” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - data: ข้อมูลที่ฟังก์ชันนำไปประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้าง PDF จาก Template ของหอนั้น ใช้ทั้งตอนดูตัวอย่างและตอนสร้างจริง
 export async function renderDocumentPdf(propertyId: string, kind: DocumentKind, data: DocumentData) {
   const template = await getTemplate(propertyId, kind);
   if (!template) throw new Error(`No active ${kind} template`);
+  // แทนช่อง {{...}} ด้วยข้อมูลจริง แล้วห่อด้วย HTML ที่มีสไตล์สำหรับพิมพ์
   const body = renderTemplate(kind, template.html, data);
   const html = wrapPrintableHtml(body, `${template.name} ${data.reference_id}`);
   return { pdf: await generatePdf(html), template };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ประกอบหรือคำนวณผลลัพธ์ของ “generate And Store Document” จากข้อมูลที่ได้รับ
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - kind: ค่า “kind” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - data: ข้อมูลที่ฟังก์ชันนำไปประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้างแล้วเก็บไฟล์ไว้ด้วย ต่างจากดูตัวอย่างที่สร้างแล้วทิ้ง
 export async function generateAndStoreDocument(propertyId: string, kind: DocumentKind, data: DocumentData) {
   const { pdf, template } = await renderDocumentPdf(propertyId, kind, data);
   const env = getServerEnv();
   const datePrefix = new Date().toISOString().slice(0, 10);
+  // ชื่อไฟล์สุ่มจากฝั่งเซิร์ฟเวอร์ ไม่เอาชื่อที่ผู้ใช้กำหนด กันเดาที่อยู่ไฟล์ของคนอื่น
+  // แบ่งโฟลเดอร์ตามวันเพื่อให้งานลบไฟล์เก่าตามระยะเก็บทำได้ง่าย
   const key = `${env.AWS_S3_PREFIX}/${kind}/${datePrefix}/${randomUUID()}.pdf`;
   await getStorageAdapter().put(key, pdf, "application/pdf");
+  // เก็บ checksum ไว้ตรวจว่าไฟล์ที่ดาวน์โหลดมาเหมือนตอนสร้างจริง ไม่ถูกแก้ระหว่างทาง
   const checksum = createHash("sha256").update(pdf).digest("hex");
   const metadata = { roomNumber: data.room_number, tenantName: data.tenant_name, templateVersion: template.version } satisfies Prisma.InputJsonValue;
   const document = await getDatabase().generatedDocument.create({
     data: { propertyId, checksum, kind: toDatabaseKind(kind), metadata, referenceId: data.reference_id, sizeBytes: pdf.byteLength, storageKey: key, templateId: template.id },
     select: { id: true },
   });
+  // คืนเป็น URL ของ API ที่ตรวจสิทธิ์ก่อน ไม่ใช่ที่อยู่ไฟล์จริงในที่เก็บ
   return { documentId: document.id, downloadUrl: `/api/documents/${document.id}/download` };
 }
