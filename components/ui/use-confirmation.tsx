@@ -1,54 +1,50 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “use confirmation” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ต้องเป็น Client Component เพราะเก็บ state และ render กล่องโต้ตอบ
 
 import { useCallback, useState } from "react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Confirmation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ข้อความและรูปแบบของกล่องยืนยันแต่ละครั้ง
 type Confirmation = {
   title: string;
   description: string;
+  // ข้อความบนปุ่มยืนยัน ถ้าไม่ส่งมากล่องจะใช้คำเริ่มต้นของมันเอง
   confirmLabel?: string;
+  // danger ใช้กับการกระทำที่ย้อนกลับไม่ได้ เช่น ลบข้อมูล
   variant?: "default" | "danger";
 };
 
 /**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Confirmation” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
+ * ทำให้กล่องยืนยันเรียกใช้ง่ายเหมือน window.confirm แต่เป็นกล่องของเราเอง
+ *
+ * ปัญหาที่แก้: กล่องยืนยันเป็น UI ที่ต้อง render ส่วนโค้ดที่อยากถามเป็นตรรกะ
+ * ปกติจะต้องสร้าง state เปิด/ปิด แล้วแยกโค้ดหลังกดยืนยันไปไว้อีกที่ อ่านยาก
+ *
+ * hook นี้รวบให้เขียนต่อกันเป็นบรรทัดเดียวได้:
+ *   if (!(await confirm({ title, description }))) return;
+ *   ...โค้ดที่ทำต่อเมื่อผู้ใช้กดยืนยัน
+ *
+ * วิธีใช้: เอา confirm ไปเรียกตอนต้องการถาม และวาง confirmationDialog ไว้ใน JSX
+ * ของหน้า ไม่งั้นกล่องจะไม่ถูก render ออกมา
  */
 export function useConfirmation() {
+  // เก็บคำถามที่ค้างอยู่ พร้อม resolve ของ Promise ที่รอคำตอบ
+  // เป็น null แปลว่าตอนนี้ไม่ได้ถามอะไรอยู่ กล่องจึงไม่ถูกแสดง
   const [pending, setPending] = useState<(Confirmation & { resolve: (value: boolean) => void }) | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “confirm” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - options: ตัวเลือกเพิ่มเติมที่ปรับพฤติกรรมของฟังก์ชัน
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+
+  // คืน Promise ที่ยัง "ค้าง" ไว้ก่อน แล้วเก็บ resolve ไว้ใน state
+  // ตัว Promise จะยังไม่จบจนกว่าผู้ใช้จะกดปุ่ม ทำให้ฝั่งที่เรียกใช้ await รอได้
   const confirm = useCallback((options: Confirmation) => new Promise<boolean>((resolve) => {
     setPending({ ...options, resolve });
   }), []);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close” ตามกฎของระบบ
-   * รับค่า:
-   * - result: ค่า “result” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+
+  // เรียกเมื่อผู้ใช้ตอบแล้ว: ส่งคำตอบกลับไปให้ Promise ที่รออยู่ แล้วล้าง state เพื่อปิดกล่อง
   const close = (result: boolean) => {
     pending?.resolve(result);
     setPending(null);
   };
+
+  // มีคำถามค้างอยู่จึงสร้างกล่อง ถ้าไม่มีก็เป็น null คือไม่ render อะไรเลย
   const confirmationDialog = pending ? <ConfirmationDialog
     confirmLabel={pending.confirmLabel}
     description={pending.description}
@@ -57,5 +53,6 @@ export function useConfirmation() {
     title={pending.title}
     variant={pending.variant}
   /> : null;
+
   return { confirm, confirmationDialog };
 }
