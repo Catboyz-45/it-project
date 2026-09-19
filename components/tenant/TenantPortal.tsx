@@ -48,6 +48,7 @@ import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
 import { formatStatus } from "@/lib/ui-labels";
+import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
@@ -1417,13 +1418,6 @@ function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) 
     {resource.isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}
   </button>;
 }
-function Panel({ children, title }: { children: ReactNode; title: string }) { return <section className="panel"><h2 className="mb-4 text-base font-semibold">{title}</h2>{children}</section>; }
-function InfoCard({ label, value }: { label: string; value: string }) { return <article className="panel"><small>{label}</small><strong className="mt-2 block text-2xl">{value}</strong></article>; }
-function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm text-[#62646c]">{label}</dt><dd className="font-bold">{value}</dd></div>; }
 function Loading() { return <LoadingSkeleton count={3} label="กำลังโหลดข้อมูล" variant="list" />; }
 function ErrorState({ error, retry }: { error: string; retry: () => void }) { return <div className="form-alert error" role="alert"><span>{error || "โหลดข้อมูลไม่สำเร็จ"}</span><RetryButton onClick={retry} /></div>; }
-function Empty({ description, icon, text }: { description?: string; icon: ReactNode; text: string }) { return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}</div>; }
 function RestrictedPanel({ message }: { message: string }) { return <Empty icon={<QrCode />} text={message} />; }
-function Status({ value }: { value: string }) {
-  return <span className={`badge ${["PAID", "APPROVED", "RESOLVED"].includes(value) ? "badge-paid" : ""}`}>{formatStatus(value)}</span>;
-}

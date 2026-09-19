@@ -19,6 +19,23 @@ export async function requireTenantAuth(request: NextRequest) {
 }
 
 // ด่านที่สอง ต้องมีการเข้าพักที่ใช้งานอยู่จริง ใช้กับทุก API ของฝั่งผู้เช่า
+// รุ่นสำหรับ Server Component ซึ่งอ่านคุกกี้จาก cookies() ไม่ใช่จาก NextRequest
+// ใช้เงื่อนไขค้นหาชุดเดียวกับ requireActiveTenant กติกาความปลอดภัยจึงอยู่ที่เดียว
+// ไม่เชื่อคุกกี้อย่างเดียว ยังบังคับว่าต้องเป็นของผู้เช่าคนนี้ สถานะใช้งานอยู่ และหอยังเปิด
+export async function findActiveOccupancyForPage(tenantProfileId: string, selectedOccupancyId?: string) {
+  return getDatabase().roomOccupancy.findFirst({
+    where: {
+      ...(selectedOccupancyId ? { id: selectedOccupancyId } : {}),
+      tenantProfileId,
+      status: "ACTIVE",
+      property: { isActive: true },
+    },
+    // ไม่มีคุกกี้หรือคุกกี้ใช้ไม่ได้ ก็ตกไปที่ห้องที่เข้าล่าสุด
+    orderBy: { startedAt: "desc" },
+    select: { id: true, propertyId: true, roomId: true, role: true },
+  });
+}
+
 export async function requireActiveTenant(request: NextRequest) {
   const auth = await requireTenantAuth(request);
   const selectedOccupancyId = request.cookies.get(tenantOccupancyCookieName)?.value;
