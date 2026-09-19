@@ -435,7 +435,7 @@ export function TenantPortal({
     <LiveAnnouncement message={`เปิดหน้า ${tabs.find(({ id }) => id === activeTab)?.label ?? "พื้นที่ผู้เช่า"}`} />
     <aside className="sidebar tenant-sidebar">
       <div className="brand tenant-brand">
-        <PlatformBrand className="[&_small]:text-[#73757d] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
+        <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
@@ -723,7 +723,7 @@ function AccountPanel({
         {account.occupancies.length ? account.occupancies.map((occupancy) => <article className="account-occupancy-row" key={occupancy.id}>
           <div>
             <strong>{occupancy.property.name} · ห้อง {occupancy.room.number}</strong>
-            <p className="text-sm text-[#73757d]">
+            <p className="text-sm text-[#62646c]">
               {occupancy.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}
               {occupancy.startedAt ? ` · เริ่ม ${new Date(occupancy.startedAt).toLocaleDateString("th-TH")}` : ""}
               {occupancy.endedAt ? ` · สิ้นสุด ${new Date(occupancy.endedAt).toLocaleDateString("th-TH")}` : ""}
@@ -732,7 +732,7 @@ function AccountPanel({
           <span className="badge">{occupancyLabels[occupancy.status]}</span>
         </article>) : <Empty icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
         </div>
-        <div className="mt-5 border-t border-[#e3e4e8] pt-5">
+        <div className="mt-5 border-t border-[#e4e4e7] pt-5">
         <AcceptInvitationForm onAccepted={refreshAccount} />
         </div>
       </section>
@@ -973,8 +973,8 @@ function HomePanel({
 
     <section aria-labelledby="tenant-priority-heading">
       <div className="mb-3">
-        <h2 className="text-2xl font-black" id="tenant-priority-heading">ภาพรวมที่ต้องรู้</h2>
-        <p className="text-sm text-[#73757d]">บิล พัสดุ และเรื่องที่กำลังติดตาม</p>
+        <h2 className="text-base font-semibold" id="tenant-priority-heading">ภาพรวมที่ต้องรู้</h2>
+        <p className="text-sm text-[#62646c]">บิล พัสดุ และเรื่องที่กำลังติดตาม</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <HomePriorityCard
@@ -1051,7 +1051,7 @@ function HomePanel({
     </div>
 
     <details className="panel group">
-      <summary className="cursor-pointer list-none text-lg font-black">ข้อมูลห้องและช่องทางติดต่อ</summary>
+      <summary className="cursor-pointer list-none text-sm font-semibold">ข้อมูลห้องและช่องทางติดต่อ</summary>
       <dl className="mt-5 grid gap-4 sm:grid-cols-2">
         <Info label="ที่อยู่" value={room.property.settings?.address ?? "-"} />
         <Info label="โทรศัพท์" value={room.property.settings?.contactPhone ?? "-"} />
@@ -1060,7 +1060,7 @@ function HomePanel({
         <Info label="อุปกรณ์ในห้อง" value={furniture.join(", ") || "-"} />
         <Info label="เบอร์ผู้เช่า" value={account.phone} />
       </dl>
-      {room.property.settings?.houseRules ? <div className="mt-5 rounded-2xl bg-brand/[.06] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
+      {room.property.settings?.houseRules ? <div className="mt-5 rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
     </details>
     </div>
   </div>;
@@ -1081,14 +1081,14 @@ function HomePriorityCard({ accent, detail, href, icon, label, value }: {
   label: string;
   value: string;
 }) {
-  return <Link className={`rounded-3xl border p-5 transition hover:-translate-y-0.5 hover:shadow-lg ${accent}`} href={href}>
+  return <Link className={`rounded-xl border p-5 transition-colors duration-150 ${accent}`} href={href}>
     <div className="flex items-start justify-between gap-3">
-      <span className="grid size-11 place-items-center rounded-2xl bg-white text-brand shadow-sm">{icon}</span>
+      <span className="grid size-9 place-items-center rounded-md bg-white text-[#4651c7]">{icon}</span>
       <ArrowRight size={19} />
     </div>
-    <p className="mt-5 text-sm font-bold text-[#73757d]">{label}</p>
-    <strong className="mt-1 block text-2xl font-black">{value}</strong>
-    <small className="mt-2 block text-[#73757d]">{detail}</small>
+    <p className="mt-5 text-sm font-bold text-[#62646c]">{label}</p>
+    <strong className="mt-1 block text-2xl font-bold">{value}</strong>
+    <small className="mt-2 block text-[#62646c]">{detail}</small>
   </Link>;
 }
 
@@ -1105,13 +1105,13 @@ function HomeTask({ detail, href, label, tone }: {
   label: string;
   tone: string;
 }) {
-  return <Link className="flex items-center gap-4 rounded-2xl border border-[#e3e4e8] p-4 transition hover:border-brand hover:bg-brand/[.03]" href={href}>
+  return <Link className="flex items-center gap-4 rounded-xl border border-[#e4e4e7] p-4 transition hover:border-brand hover:bg-brand/[.03]" href={href}>
     <AlertCircle className={tone} size={23} />
     <span className="min-w-0 flex-1">
       <strong className="block">{label}</strong>
-      <small className="block truncate text-[#73757d]">{detail}</small>
+      <small className="block truncate text-[#62646c]">{detail}</small>
     </span>
-    <ArrowRight className="shrink-0 text-[#73757d]" size={18} />
+    <ArrowRight className="shrink-0 text-[#62646c]" size={18} />
   </Link>;
 }
 
@@ -1290,16 +1290,16 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: { id: string; invo
     } catch (uploadError) { setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ"); }
     finally { setIsSending(false); }
   };
-  return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e3e4e8] bg-[#fcfcfe] p-5" id={id}>
+  return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e4e4e7] bg-[#fcfcfe] p-5" id={id}>
     {detail.isLoading ? <Loading /> : detail.data ? <div className="grid gap-2">{detail.data.items.map((item) => <div className="flex justify-between gap-3 rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{item.description} × {item.quantity}</span><strong>{currency.format(Number(item.amount))}</strong></div>)}<div className="flex justify-between p-3 text-lg"><span>ค่าปรับ</span><strong>{currency.format(Number(detail.data.lateFee))}</strong></div></div> : <ErrorState error={detail.error} retry={() => void detail.reload()} />}
-    {payable && !readOnly ? <div className="mt-5 grid gap-4 rounded-2xl border border-brand/20 p-4">
+    {payable && !readOnly ? <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
       <PromptPayQr invoice={invoice} />
       <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
       {error ? <p className="form-alert error" role="alert">{error}</p> : null}
       <button aria-describedby={!file && !isSending ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button"><Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}</button>
       {!file && !isSending ? <p className="disabled-reason" id="payment-slip-disabled-reason">เลือกไฟล์สลิปก่อนส่งหลักฐานการชำระเงิน</p> : null}
     </div> : payable && readOnly ? <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice> : null}
-    <div className="mt-5"><strong>ประวัติหลักฐาน</strong>{submissions.data?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span><span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span></div>)}{submissions.data?.length === 0 ? <p className="mt-2 text-[#73757d]">ยังไม่เคยส่งหลักฐาน</p> : null}</div>
+    <div className="mt-5"><strong>ประวัติหลักฐาน</strong>{submissions.data?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span><span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span></div>)}{submissions.data?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}</div>
   </section>;
 }
 
@@ -1316,8 +1316,8 @@ function PromptPayQr({ invoice }: { invoice: Invoice }) {
   if (promptPay.error || !promptPay.data) return <div className="form-alert error">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
   return <div className="text-center">
     <strong className="block text-lg">สแกน PromptPay</strong>
-    <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-2xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
-    <p className="mt-2 text-sm text-[#73757d]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
+    <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
+    <p className="mt-2 text-sm text-[#62646c]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
   </div>;
 }
 
@@ -1352,7 +1352,7 @@ function LeasePanel() {
  */
 function TenantLeaseCard({ lease, title }: { lease: Lease; title: string }) {
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
-    <h2 className="text-lg font-black text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
+    <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>
     <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="Version" value={`v${lease.currentVersion}`} /><Info label="วันเริ่มต้น" value={new Date(lease.startDate).toLocaleDateString("th-TH")} /><Info label="วันสิ้นสุด" value={new Date(lease.endDate).toLocaleDateString("th-TH")} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
     <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
@@ -1373,7 +1373,7 @@ type Announcement = { id: string; title: string; content: string; publishedAt: s
  */
 function AnnouncementsPanel() {
   const resource = usePaginatedResource<Announcement>("/api/v1/tenant/announcements");
-  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#73757d]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
+  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
 }
 
 /**
@@ -1399,14 +1399,14 @@ function ParcelsPanel() {
         <table>
           <thead><tr><th scope="col">พัสดุ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่รับเข้าระบบ</th><th scope="col">วันที่รับพัสดุ</th><th scope="col">สถานะ</th></tr></thead>
           <tbody>{resource.data.map((item) => <tr key={item.id}>
-            <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#73757d]">ไม่มีรูป</span>}</td>
+            <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#62646c]">ไม่มีรูป</span>}</td>
             <td>{item.note || "ไม่มีหมายเหตุ"}</td>
             <td>{new Date(item.registeredAt).toLocaleString("th-TH")}</td>
             <td>{item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : "—"}</td>
             <td><Status value={item.status} /></td>
           </tr>)}</tbody>
         </table>
-      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#73757d]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#73757d]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
+      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
     </div>
   </div>;
 }
@@ -1508,7 +1508,7 @@ function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggl
     <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticket.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#73757d]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {event.type === "CREATED" ? "สร้างรายการ" : event.type === "STATUS_CHANGED" ? `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "PRIORITY_CHANGED" ? `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "REPLY_ADDED" ? "มีข้อความตอบกลับ" : "แนบไฟล์"}</li>)}</ol>
+    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {event.type === "CREATED" ? "สร้างรายการ" : event.type === "STATUS_CHANGED" ? `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "PRIORITY_CHANGED" ? `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "REPLY_ADDED" ? "มีข้อความตอบกลับ" : "แนบไฟล์"}</li>)}</ol>
     {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
   </>;
@@ -1671,9 +1671,9 @@ function TenantChat({
     } finally { setSending(false); }
   };
   const messageList = (
-    <div className={variant === "widget" ? "tenant-quick-chat-messages" : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-2xl bg-[#f3f3f5] p-4"} ref={scrollRef}>
+    <div className={variant === "widget" ? "tenant-quick-chat-messages" : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-xl bg-[#f3f3f5] p-4"} ref={scrollRef}>
       {loading ? <Loading /> : messages.length === 0 ? (
-        <p className="m-auto text-center text-sm text-[#73757d]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p>
+        <p className="m-auto text-center text-sm text-[#62646c]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p>
       ) : <>
         {hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={loadingOlder} label="โหลดข้อความก่อนหน้า" onClick={() => void loadOlder()} /> : null}
         {messages.map((message) => (
@@ -1756,7 +1756,7 @@ function TenantChat({
           <span className="chat-person-avatar support"><MessageSquare aria-hidden="true" size={19} /></span>
           <span>
             <strong className="block">ติดต่อหอ</strong>
-            <small className="block text-[#73757d]">ข้อความถึงผู้ดูแลหอพัก</small>
+            <small className="block text-[#62646c]">ข้อความถึงผู้ดูแลหอพัก</small>
           </span>
         </div>
         <div className="chat-header-actions">
@@ -1820,7 +1820,7 @@ function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) 
  * - { children, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-function Panel({ children, title }: { children: ReactNode; title: string }) { return <section className="panel"><h2 className="mb-4 text-xl font-black">{title}</h2>{children}</section>; }
+function Panel({ children, title }: { children: ReactNode; title: string }) { return <section className="panel"><h2 className="mb-4 text-base font-semibold">{title}</h2>{children}</section>; }
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
  * หน้าที่: คอมโพเนนต์ React “Info Card” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
@@ -1836,7 +1836,7 @@ function InfoCard({ label, value }: { label: string; value: string }) { return <
  * - { label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm text-[#73757d]">{label}</dt><dd className="font-bold">{value}</dd></div>; }
+function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm text-[#62646c]">{label}</dt><dd className="font-bold">{value}</dd></div>; }
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
  * หน้าที่: คอมโพเนนต์ React “Loading” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น

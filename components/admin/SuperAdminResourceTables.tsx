@@ -187,7 +187,7 @@ function PaginatedTable<T>({
         <label className="admin-table-search">
           <span className="sr-only">ค้นหา</span>
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#73757d]"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#62646c]"
             size={17}
           />
           <input
@@ -753,10 +753,10 @@ function ResourceSection({
 }) {
   return (
     <section className="panel overflow-hidden p-0">
-      <div className="flex items-center gap-3 border-b border-[#e3e4e8] p-5">
+      <div className="flex items-center gap-3 border-b border-[#e4e4e7] p-5">
         {icon}
         <div className="flex-1">
-          <h2 className="text-xl font-black">{title}</h2>
+          <h2 className="text-base font-semibold">{title}</h2>
           <p className="text-sm text-[#62646c]">{subtitle}</p>
         </div>
         {action}

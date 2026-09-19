@@ -29,7 +29,7 @@ export default async function SuperAdminLayout({
   return <main className="shell super-admin-shell text-[#292a30]">
     <aside className="sidebar super-admin-sidebar">
       <div className="brand mb-5">
-        <PlatformBrand className="[&_small]:text-[#73757d] [&_strong]:text-base" context="Control" imageClassName="size-11" showTagline />
+        <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Control" imageClassName="size-11" showTagline />
       </div>
       <SuperAdminNavigation />
       <SidebarAccountMenu displayName={auth.displayName} email={auth.email} role="SUPER_ADMIN" />

@@ -99,7 +99,7 @@ export default async function PropertyDetailPage({
         ))}
       </section>
       <section className="panel">
-        <h2 className="mb-4 text-xl font-black">แพ็กเกจปัจจุบัน</h2>
+        <h2 className="mb-4 text-base font-semibold">แพ็กเกจปัจจุบัน</h2>
         {property.subscription ? (
           <div className="grid gap-3 md:grid-cols-4">
             <p>
@@ -127,7 +127,7 @@ export default async function PropertyDetailPage({
       </section>
       <section className="panel overflow-hidden p-0">
         <div className="p-5">
-          <h2 className="text-xl font-black">ประวัติ Subscription</h2>
+          <h2 className="text-base font-semibold">ประวัติ Subscription</h2>
           <p className="text-sm text-[#62646c]">คำสั่งซื้อและการต่ออายุล่าสุด</p>
         </div>
         <div className="overflow-x-auto">
@@ -161,7 +161,7 @@ export default async function PropertyDetailPage({
         </div>
       </section>
       <section className="panel">
-        <h2 className="mb-4 text-xl font-black">บัญชีผู้ดูแล</h2>
+        <h2 className="mb-4 text-base font-semibold">บัญชีผู้ดูแล</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {property.memberships.map(({ user }) => (
             <div

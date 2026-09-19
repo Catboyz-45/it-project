@@ -275,7 +275,7 @@ export function SuperAdminForms({
     {showSubscription ? <div className="grid gap-5">
       {message ? <p className="form-alert error" role="alert">{message}</p> : null}
       <section className="panel">
-      <div className="mb-5"><h2 className="text-xl font-black">Admin override แพ็กเกจ SaaS</h2><p className="text-sm text-[#62646c]">ใช้เฉพาะกรณีช่วยเหลือลูกค้าหรือแก้สถานะด้วย Super Admin; การซื้อปกติทำผ่านคำสั่งซื้อของเจ้าของหอ</p></div>
+      <div className="mb-5"><h2 className="text-base font-semibold">Admin override แพ็กเกจ SaaS</h2><p className="text-sm text-[#62646c]">ใช้เฉพาะกรณีช่วยเหลือลูกค้าหรือแก้สถานะด้วย Super Admin; การซื้อปกติทำผ่านคำสั่งซื้อของเจ้าของหอ</p></div>
       <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={submitSubscription}>
         <label>ค้นหาหอพัก<input onChange={(event) => setPropertyQuery(event.target.value)} placeholder="ชื่อหรือชื่อย่อ" value={propertyQuery} /></label>
         <div><DropdownField label="หอพัก" onChange={setSubscriptionPropertyId} options={properties.map((property) => ({ label: property.name, value: property.id }))} value={subscriptionPropertyId} />{hasMoreProperties ? <button onClick={() => void loadProperties(propertyPage + 1, true)} type="button">โหลดเพิ่ม</button> : null}</div>
