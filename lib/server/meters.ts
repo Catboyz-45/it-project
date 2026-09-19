@@ -122,6 +122,7 @@ export async function getMeterWorksheet(
   return toPaginatedResult(rows, pagination);
 }
 
+// บันทึกมิเตอร์หนึ่งรายการ แยกออกมาเพราะทั้งแบบเดี่ยวและแบบทั้งชุดใช้ตัวเดียวกัน
 async function recordWithDatabase(
   database: Prisma.TransactionClient,
   propertyId: string,
@@ -129,6 +130,7 @@ async function recordWithDatabase(
   input: MeterReadingInput,
 ) {
   const month = billingMonthToDate(input.billingMonth);
+  // ถามสี่อย่างพร้อมกัน ห้องมีจริงไหม เดือนนี้จดไปหรือยัง เลขรอบก่อนคืออะไร และมีเดือนถัดไปแล้วหรือยัง
   const [room, existing, previous, later] = await Promise.all([
     database.room.findFirst({
       where: { id: input.roomId, propertyId, status: { not: "INACTIVE" } },
@@ -149,12 +151,17 @@ async function recordWithDatabase(
     }),
   ]);
   if (!room) throw new ApiError(404, "ไม่พบห้องพัก");
+  // จดซ้ำเดือนเดิมไม่ได้ ต้องไปแก้ที่รายการเดิมแทน
   if (existing) throw new ApiError(409, "บันทึกมิเตอร์ประเภทนี้ของเดือนนี้แล้ว");
+  // ห้ามแทรกย้อนหลัง เพราะเลขของเดือนถัดไปคำนวณต่อจากเดือนนี้ แทรกแล้วยอดของเดือนหลังจะผิดหมด
   if (later) throw new ApiError(409, "ไม่สามารถเพิ่มเลขมิเตอร์ย้อนหลังหลังจากมีข้อมูลเดือนถัดไป");
+  // ครั้งแรกของห้องนั้นไม่มีเลขรอบก่อนในระบบ ผู้ใช้ต้องกรอกเลขตั้งต้นมาเอง
   if (!previous && input.previousReading === undefined) {
     throw new ApiError(400, "การบันทึกครั้งแรกต้องระบุเลขมิเตอร์ครั้งก่อน");
   }
+  // มีของเดิมในระบบก็ใช้ของเดิมเสมอ ไม่เอาที่ผู้ใช้ส่งมา กันแก้เลขตั้งต้นย้อนหลังจนยอดเพี้ยน
   const previousReading = previous ? Number(previous.currentReading) : input.previousReading!;
+  // ตรวจซ้ำที่นี่ด้วย ถึงตัวตรวจข้อมูลจะเช็คไปแล้ว เพราะตรงนี้เทียบกับเลขจริงในฐานข้อมูล
   if (input.currentReading < previousReading) {
     throw new ApiError(400, "เลขมิเตอร์ล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน");
   }
@@ -164,6 +171,7 @@ async function recordWithDatabase(
   });
   // ยังไม่ได้ตั้งอัตราก็จดมิเตอร์ไปก็คำนวณเงินไม่ได้ จึงหยุดพร้อมบอกให้ไปตั้งค่าก่อน
   if (!settings) throw new ApiError(409, "กรุณาตั้งค่าอัตราค่าน้ำและค่าไฟก่อน");
+  // เก็บอัตราลงในแถวด้วย ขึ้นราคาทีหลังแล้วบิลเก่าจะได้ยังคิดด้วยอัตราตอนนั้น
   const unitRate = input.type === "WATER" ? settings.waterUnitRate : settings.electricityUnitRate;
   return database.meterReading.create({
     data: {
@@ -174,6 +182,7 @@ async function recordWithDatabase(
   });
 }
 
+// Serializable เพราะอ่านแล้วเขียน สองคนจดห้องเดียวกันพร้อมกันจะได้ไม่ผ่านทั้งคู่
 export async function recordMeterReading(propertyId: string, userId: string, input: MeterReadingInput) {
   const row = await getDatabase().$transaction(
     (database) => recordWithDatabase(database, propertyId, userId, input),

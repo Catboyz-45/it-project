@@ -1,27 +1,16 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “payments” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { createPromptPayPayload } from "@/lib/domain/payments";
 import type { PaymentSubmissionStatus } from "@/lib/domain/enums";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Tenant Prompt Pay” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - invoiceId: รหัสภายในของบิล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// สร้าง QR พร้อมเพย์ให้ผู้เช่าจ่ายบิลใบหนึ่ง
 export async function getTenantPromptPay(tenantProfileId: string, invoiceId: string) {
   const invoice = await getDatabase().invoice.findFirst({
     where: {
       id: invoiceId, status: { in: ["PENDING", "OVERDUE"] },
+      // ตรวจความเป็นเจ้าของในคำสั่งฐานข้อมูลเลย ไม่ใช่ดึงมาแล้วค่อยเช็คในโค้ด
+      // ผู้เช่าหลักที่ยังอยู่จริงเท่านั้นที่เห็นบิลใบนี้ได้
       room: { occupancies: { some: { tenantProfileId, role: "PRIMARY", status: "ACTIVE" } } },
     },
     select: {
@@ -29,6 +18,7 @@ export async function getTenantPromptPay(tenantProfileId: string, invoiceId: str
       property: { select: { settings: { select: { promptPayId: true } } } },
     },
   });
+  // ไม่เจอตอบว่าไม่พบ ไม่แยกว่าไม่มีบิลจริงหรือมีแต่ไม่ใช่ของคนนี้
   if (!invoice) throw new ApiError(404, "ไม่พบบิลที่ชำระได้");
   const promptPayId = invoice.property.settings?.promptPayId;
   if (!promptPayId) throw new ApiError(409, "หอพักยังไม่ได้ตั้งค่า PromptPay");
@@ -36,18 +26,13 @@ export async function getTenantPromptPay(tenantProfileId: string, invoiceId: str
   try {
     payload = createPromptPayPayload(promptPayId, Number(invoice.total));
   } catch {
+    // แปลงเป็นข้อความที่ผู้ใช้เข้าใจ ไม่ปล่อยรายละเอียดของตัวสร้าง QR ออกไป
     throw new ApiError(409, "การตั้งค่า PromptPay ของหอพักไม่ถูกต้อง");
   }
   return { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.total.toString(), payload };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “create Payment Submission” หลังผ่านการตรวจที่เกี่ยวข้อง
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// รับหลักฐานการโอนจากผู้เช่า
 export async function createPaymentSubmission(input: {
   tenantProfileId: string;
   invoiceId: string;
@@ -67,27 +52,21 @@ export async function createPaymentSubmission(input: {
     const pending = await database.paymentSubmission.count({
       where: { invoiceId: invoice.id, tenantProfileId: input.tenantProfileId, status: "PENDING_REVIEW" },
     });
+    // ส่งซ้ำระหว่างรอตรวจไม่ได้ กันคิวของเจ้าของหอเต็มไปด้วยรายการเดียวกันหลายใบ
     if (pending > 0) throw new ApiError(409, "มีหลักฐานการชำระที่รอตรวจสอบอยู่แล้ว");
     return database.paymentSubmission.create({
       data: {
         propertyId: invoice.propertyId, invoiceId: invoice.id,
+        // เอายอดจากบิลในฐานข้อมูล ไม่เอาที่ผู้เช่าส่งมา กันแจ้งยอดไม่ตรงกับที่ต้องจ่ายจริง
         tenantProfileId: input.tenantProfileId, amount: invoice.total,
         slipStorageKey: input.storageKey, slipMime: input.mimeType, slipSize: input.size,
       },
       select: { id: true, invoiceId: true, amount: true, status: true, submittedAt: true },
     });
+  // Serializable เพราะเช็คว่ามีใบค้างอยู่ไหมแล้วค่อยสร้าง กดสองครั้งพร้อมกันจะได้ไม่ผ่านทั้งคู่
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Payment Submissions” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - pagination: ค่า “pagination” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - status: ค่า “status” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function listPaymentSubmissions(
   propertyId: string,
   pagination: PaginationInput,
@@ -104,20 +83,15 @@ export async function listPaymentSubmissions(
       tenantProfile: { select: { user: { select: { displayName: true } } } },
     },
   });
+  // ตัด slipStorageKey ออกก่อนส่งไปฝั่งเบราว์เซอร์ ส่งแค่ว่ามีไฟล์อยู่ไหม
+  // ที่อยู่จริงของไฟล์ไม่ควรหลุดออกไป ต้องเข้าผ่าน API ที่ตรวจสิทธิ์เท่านั้น
   return toPaginatedResult(rows.map(({ slipStorageKey, ...row }) => ({
     ...row, amount: row.amount.toString(), slipAvailable: slipStorageKey !== null,
     invoice: { ...row.invoice, total: row.invoice.total.toString() },
   })), pagination);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “list Tenant Payment Submissions” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - tenantProfileId: รหัสโปรไฟล์ผู้เช่า
- * - invoiceId: รหัสภายในของบิล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ประวัติการส่งหลักฐานของผู้เช่าเอง ตรวจความเป็นเจ้าของซ้ำในเงื่อนไข ถึงจะรู้ tenantProfileId อยู่แล้ว
 export async function listTenantPaymentSubmissions(tenantProfileId: string, invoiceId: string) {
   const rows = await getDatabase().paymentSubmission.findMany({
     where: {
@@ -130,13 +104,6 @@ export async function listTenantPaymentSubmissions(tenantProfileId: string, invo
   return rows.map((row) => ({ ...row, amount: row.amount.toString() }));
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “review Payment Submission” โดยใช้ค่าที่รับเข้ามา
- * รับค่า:
- * - input: ข้อมูลขาเข้าที่ต้องนำไปตรวจและประมวลผล
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function reviewPaymentSubmission(input: {
   propertyId: string;
   paymentId: string;
@@ -180,14 +147,6 @@ export async function reviewPaymentSubmission(input: {
   }, { isolationLevel: "Serializable" });
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “get Admin Slip” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - paymentId: รหัสภายในของ payment
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function getAdminSlip(propertyId: string, paymentId: string) {
   const payment = await getDatabase().paymentSubmission.findFirst({
     where: { id: paymentId, propertyId },
