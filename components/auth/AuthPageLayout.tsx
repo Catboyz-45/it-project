@@ -1,18 +1,10 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Auth Page Layout” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
-
+// โครงหน้าที่ใช้ร่วมกันทุกหน้าก่อนเข้าสู่ระบบ ซ้ายเป็นภาพแนะนำ ขวาเป็นฟอร์ม
 import type { ReactNode } from "react";
 import { Check, ShieldCheck, Sparkles } from "lucide-react";
 import { GradientWaves } from "@/components/ui/GradientWaves";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Auth Page Layout Props” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// footer ไว้ใส่ลิงก์ท้ายฟอร์ม เช่น "ยังไม่มีบัญชี?" ที่แต่ละหน้าต่างกัน
 type AuthPageLayoutProps = {
   children: ReactNode;
   description: string;
@@ -20,17 +12,11 @@ type AuthPageLayoutProps = {
   title: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Auth Page Layout” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { children, description, footer, title }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 export function AuthPageLayout({ children, description, footer, title }: AuthPageLayoutProps) {
   return (
     <main className="login-page-shell">
       <section className="login-story" aria-labelledby="login-story-title">
+        {/* ภาพประดับอย่างเดียว ค่าทั้งหมดปรับเพื่อความสวย ไม่มีผลกับข้อมูลหรือการทำงาน */}
         <GradientWaves
           amplitude={2.5}
           brightness={1.12}
@@ -41,6 +27,7 @@ export function AuthPageLayout({ children, description, footer, title }: AuthPag
           grain={false}
           height={5.5}
           horizonColor="#4f46e5"
+          // ปิดการตอบสนองเมาส์ เพราะช่องกรอกอยู่ติดกัน ไม่อยากให้พื้นหลังขยับกวนสายตา
           mouseInteraction={false}
           opacity={0.78}
           speed={0.5}

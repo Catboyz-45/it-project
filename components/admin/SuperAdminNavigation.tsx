@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Super Admin Navigation” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ต้องรู้ว่าตอนนี้อยู่หน้าไหน เพื่อไฮไลต์เมนูให้ถูก
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +12,8 @@ import {
   UsersRound,
 } from "lucide-react";
 
+// เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหน้าใหม่โดยไม่ต้องแก้ JSX
+// exact: true เฉพาะแดชบอร์ด เพราะ /super-admin เป็นคำนำหน้าของทุกหน้าที่เหลือ
 const items = [
   { href: "/super-admin", label: "แดชบอร์ด", icon: LayoutDashboard, exact: true },
   { href: "/super-admin/accounts", label: "บัญชีเจ้าของหอ", icon: UsersRound, exact: false },
@@ -26,18 +23,13 @@ const items = [
   { href: "/super-admin/audit-logs", label: "Audit Log", icon: Activity, exact: false },
 ] as const;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Super Admin Navigation” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 export function SuperAdminNavigation() {
   const pathname = usePathname();
 
   return <nav aria-label="เมนู Super Admin" className="super-admin-navigation grid gap-1">
     {items.map(({ exact, href, icon: Icon, label }) => {
       const active = exact ? pathname === href : pathname.startsWith(href);
+      // aria-current บอกโปรแกรมอ่านหน้าจอว่าอยู่หน้านี้ ไม่ใช่แค่ทำให้สีเข้ม
       return <Link
         aria-current={active ? "page" : undefined}
         className={`flex min-h-11 items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150 lg:min-h-9 ${
