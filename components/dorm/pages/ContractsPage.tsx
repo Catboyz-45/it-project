@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Contracts Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บฟอร์ม โหลดข้อมูล และอัปโหลดไฟล์จากเบราว์เซอร์
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -43,10 +38,7 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Lease” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สัญญาหนึ่งฉบับ
 type Lease = {
   id: string;
   leaseNumber: string;
@@ -55,6 +47,7 @@ type Lease = {
   endDate: string;
   monthlyRent: string;
   depositAmount: string;
+  // ส่งกลับไปตอนแก้ไข เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว กันแก้ทับกัน
   currentVersion: number;
   signedStorageKey: string | null;
   activatedAt: string | null;
@@ -69,6 +62,7 @@ type Lease = {
       };
     };
   }>;
+  // แก้สัญญาแต่ละครั้งเก็บเป็นเวอร์ชันใหม่ ไม่ทับของเดิม เพื่อให้ตรวจย้อนหลังได้
   versions: Array<{
     id: string;
     version: number;
@@ -78,10 +72,6 @@ type Lease = {
   }>;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Lease Form” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type LeaseForm = {
   roomId: string;
   startDate: string;
@@ -90,6 +80,7 @@ type LeaseForm = {
   depositAmount: string;
 };
 
+// Record บังคับให้ครอบคลุมทุกสถานะตั้งแต่ตอนคอมไพล์ เพิ่มสถานะใหม่แล้วลืมแปลจะคอมไพล์ไม่ผ่าน
 const statusLabels: Record<LeaseStatus, string> = {
   DRAFT: "ฉบับร่าง",
   PENDING_SIGNATURE: "รอลงนาม",
@@ -99,6 +90,7 @@ const statusLabels: Record<LeaseStatus, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+// Partial เพราะบางสถานะเปลี่ยนเข้าไปเองไม่ได้ เช่น EXPIRING ที่ระบบคำนวณจากวันหมดอายุ
 const transitionLabels: Partial<Record<LeaseStatus, string>> = {
   DRAFT: "กลับเป็นฉบับร่าง",
   PENDING_SIGNATURE: "ส่งไปรอลงนาม",
@@ -115,64 +107,38 @@ const emptyForm: LeaseForm = {
   depositAmount: "",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “date Input” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลงเป็น "YYYY-MM-DD" ซึ่งเป็นรูปแบบเดียวที่ input type="date" ยอมรับ
 function dateInput(value: string) {
   return value ? new Date(value).toISOString().slice(0, 10) : "";
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “date Display” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// แปลงเป็นข้อความแบบไทยไว้แสดงในตาราง
 function dateDisplay(value: string) {
   return new Date(value).toLocaleDateString("th-TH");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “renewal Dates” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - endDate: ค่า “end Date” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คำนวณช่วงของสัญญาใหม่ให้ต่อจากฉบับเดิมพอดี ไม่ทับและไม่เว้นช่อง
+// ใช้ UTC ทั้งหมดกันวันเลื่อนตามเขตเวลาของเครื่องที่เปิด
 function renewalDates(endDate: string) {
+  // เริ่มวันถัดจากวันสิ้นสุดของฉบับเดิม
   const start = new Date(endDate);
   start.setUTCDate(start.getUTCDate() + 1);
+  // ยาวหนึ่งปี ลบหนึ่งวัน เช่น 1 ม.ค. 2569 ถึง 31 ธ.ค. 2569
   const end = new Date(start);
   end.setUTCFullYear(end.getUTCFullYear() + 1);
   end.setUTCDate(end.getUTCDate() - 1);
   return { startDate: dateInput(start.toISOString()), endDate: dateInput(end.toISOString()) };
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “response Data” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function responseData<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Contracts Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId, readOnly = false, rooms }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าสัญญาเช่า สร้าง แก้ไข ต่ออายุ เปลี่ยนสถานะ และแนบไฟล์ที่ลงนามแล้ว
 export function ContractsPage({ propertyId, propertyName, readOnly = false, rooms }: { propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }) {
   const searchParams = useSearchParams();
+  // กันเปิดฟอร์มซ้ำ เพราะ effect ที่อ่านค่าจาก URL อาจทำงานหลายรอบ
   const moveRoomDraftHandled = useRef(false);
   const signedDocumentInputs = useRef(new Map<string, HTMLInputElement>());
   const [leases, setLeases] = useState<Lease[]>([]);
@@ -188,14 +154,6 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
   const [form, setForm] = useState<LeaseForm>(emptyForm);
   const { confirm, confirmationDialog } = useConfirmation();
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Leases” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า:
-   * - targetPage: ค่า “target Page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - signal: ค่า “signal” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadLeases = useCallback(async (targetPage = 1, signal?: AbortSignal) => {
     setIsLoading(true);
     setError("");
@@ -224,49 +182,28 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
 
   useEffect(() => {
     const controller = new AbortController();
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “timeout” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // หน่วง 250 มิลลิวินาทีหลังหยุดพิมพ์ จะได้ไม่ยิงทุกครั้งที่กดแป้น
+    // ส่วน abort ยกเลิกคำขอเก่า กันผลเก่ามาถึงทีหลังแล้วทับผลใหม่
     const timeout = window.setTimeout(() => void loadLeases(1, controller.signal), 250);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [loadLeases]);
 
-
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “counts” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // นับจากข้อมูลของหน้าที่โหลดมาแล้ว จึงเป็นตัวเลขของหน้านี้ ไม่ใช่ทั้งหอ
+  // ใช้ leaseDisplayStatus เพราะ EXPIRING คำนวณจากวันหมดอายุ ไม่ได้เก็บในฐานข้อมูล
   const counts = useMemo(() => ({
     active: leases.filter((lease) => leaseDisplayStatus(lease.status, lease.endDate) === "ACTIVE").length,
     pending: leases.filter((lease) => ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status)).length,
     expiring: leases.filter((lease) => leaseDisplayStatus(lease.status, lease.endDate) === "EXPIRING").length,
   }), [leases]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “occupied Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ทำสัญญาได้เฉพาะห้องที่มีคนอยู่ และต้องมีอยู่ในฐานข้อมูลจริง
   const occupiedRooms = rooms.filter((room) => room.status === "occupied" && room.databaseId);
 
+  // มาจากการย้ายห้อง กล่องย้ายห้องส่งข้อมูลมาทาง URL เพื่อเปิดฟอร์มสัญญาใหม่ที่กรอกไว้ให้แล้ว
   useEffect(() => {
     if (readOnly || moveRoomDraftHandled.current) return;
     const roomId = searchParams.get("createLeaseForRoom");
     if (!roomId) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const room = occupiedRooms.find((item) => item.databaseId === roomId);
     if (!room) return;
 
@@ -286,15 +223,11 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     });
     setError("");
     setIsCreateOpen(true);
+    // ล้างค่าออกจาก URL หลังใช้แล้ว กันกดรีเฟรชแล้วฟอร์มเด้งขึ้นมาอีก
     window.history.replaceState(window.history.state, "", window.location.pathname);
   }, [occupiedRooms, readOnly, searchParams]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Create” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปิดฟอร์มสัญญาใหม่ กรอกห้องแรกกับค่าเช่าของห้องนั้นไว้ให้ก่อน
   const openCreate = () => {
     const room = occupiedRooms[0];
     setEditingLease(null);
@@ -309,13 +242,6 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     setIsCreateOpen(true);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Edit” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const openEdit = (lease: Lease) => {
     setRenewingLease(null);
     setEditingLease(lease);
@@ -329,13 +255,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     setError("");
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Renew” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ต่อสัญญา ใช้เงื่อนไขเดิมแล้วเลื่อนช่วงวันที่ไปอีกปี
   const openRenew = (lease: Lease) => {
     setEditingLease(null);
     setRenewingLease(lease);
@@ -348,13 +268,8 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     setError("");
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close Form” ตามกฎของระบบ
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const closeForm = () => {
+    // ห้ามปิดตอนกำลังบันทึก จะได้ไม่ค้างว่าบันทึกไปแล้วหรือยัง
     if (isSaving) return;
     setEditingLease(null);
     setRenewingLease(null);
@@ -362,14 +277,9 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     setForm(emptyForm);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Lease” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ใช้ตัวเดียวกันทั้งสร้าง แก้ไข และต่ออายุ ต่างกันที่ URL กับข้อมูลที่ส่ง
   const saveLease = async (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     if (isSaving || actionFeedback.isPending) return;
     if (!editingLease && !renewingLease && !form.roomId) {
@@ -390,6 +300,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
         method: editingLease ? "PATCH" : "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
+        // แก้ไขต้องส่ง expectedVersion ไปด้วย ส่วนต่ออายุกับสร้างใหม่ไม่ต้อง เพราะไม่ได้แตะของเดิม
         body: JSON.stringify(editingLease ? {
           expectedVersion: editingLease.currentVersion,
           startDate: form.startDate,
@@ -415,6 +326,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
       setIsCreateOpen(false);
       setForm(emptyForm);
       await loadLeases();
+      // ไม่คืนโฟกัส เพราะกล่องฟอร์มปิดตัวเองและจัดการโฟกัสอยู่แล้ว
       }, { pending: `กำลัง${operation}...`, success: `${operation}แล้ว`, error: `${operation}ไม่สำเร็จ` }, { restoreFocus: false });
     } catch (saveError) {
       setError(formatClientError(saveError, "บันทึกสัญญาไม่สำเร็จ"));
@@ -423,15 +335,9 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “transition” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - status: ค่า “status” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนสถานะสัญญา ร่าง > รอลงนาม > ใช้งาน หรือปิดเป็นหมดอายุหรือยกเลิก
   const transition = async (lease: Lease, status: LeaseStatus) => {
+    // ถามยืนยันเฉพาะตอนยกเลิก เพราะเป็นทางเดียวที่ย้อนกลับจากหน้านี้ไม่ได้
     if (status === "CANCELLED" && !await confirm({ title: "ยกเลิกสัญญา?", description: `สัญญา ${lease.leaseNumber} จะถูกยกเลิกและเก็บไว้ในประวัติ สถานะนี้ไม่สามารถย้อนกลับจากหน้านี้ได้`, confirmLabel: "ยกเลิกสัญญา", variant: "danger" })) return;
     if (isSaving || actionFeedback.isPending) return;
     setIsSaving(true);
@@ -455,14 +361,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “upload Signed Document” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - lease: ค่า “lease” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // แนบไฟล์สัญญาที่ลงนามจริงแล้ว เก็บไว้เป็นหลักฐานคู่กับข้อมูลในระบบ
   const uploadSignedDocument = async (lease: Lease, file: File | undefined) => {
     if (!file) return;
     if (isSaving || actionFeedback.isPending) return;
@@ -470,6 +369,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     setError("");
     try {
       await actionFeedback.runAction(async () => {
+      // FormData เพราะเป็นไฟล์ ไม่ใช่ JSON และปล่อยให้เบราว์เซอร์ตั้ง Content-Type เอง
       const body = new FormData();
       body.set("file", file);
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/leases/${lease.id}/signed-document`, {
@@ -487,15 +387,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Contract Pdf” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - lease: สัญญาที่จะสร้างเอกสาร PDF ให้
-   * - tenantName: ชื่อผู้เช่าหลักของสัญญานี้
-   * - action: ดูตัวอย่าง หรือสร้างและดาวน์โหลดไฟล์จริง
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // สร้างเอกสารสัญญา ดูตัวอย่างหรือดาวน์โหลดจริง
   const requestContractPdf = async (lease: Lease, tenantName: string, action: "preview" | "generate") => {
     if (actionFeedback.isPending) return;
     const data: ContractDocumentData = {
@@ -638,13 +530,6 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
             <form className="modal-form" onSubmit={saveLease}>
               <div className="modal-grid">
                 <DropdownField disabled={Boolean(editingLease || renewingLease) || isSaving} label="ห้อง" onChange={(value) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const room = occupiedRooms.find((item) => item.databaseId === value);
                   setForm((current) => ({ ...current, roomId: value, monthlyRent: room ? String(room.rent) : current.monthlyRent }));
                 }} options={[{ label: "เลือกห้อง", value: "" }, ...occupiedRooms.flatMap((room) => room.databaseId ? [{ label: `ห้อง ${room.id}`, value: room.databaseId }] : [])]} value={form.roomId} />
@@ -665,13 +550,7 @@ export function ContractsPage({ propertyId, propertyName, readOnly = false, room
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Contract Summary” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { icon, label, tone, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function ContractSummary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: string }) {
   return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }
