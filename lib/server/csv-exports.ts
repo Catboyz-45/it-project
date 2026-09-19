@@ -1,36 +1,23 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นโค้ดฝั่งเซิร์ฟเวอร์สำหรับ “csv exports” ซึ่งอาจแตะฐานข้อมูล session ไฟล์ หรือความลับของระบบ
- * การทำงาน: ถูกเรียกจาก Server Component หรือ API route เพื่อทำ use case จริง ตรวจสิทธิ์และกฎธุรกิจก่อนอ่านหรือเปลี่ยนข้อมูล และไม่ควรถูก import ไปยัง Client Component
- */
-
 import { createCsv } from "@/lib/csv";
 import { ApiError } from "@/lib/server/api";
 import { listInvoices } from "@/lib/server/invoices";
 import { listPropertyTenants } from "@/lib/server/property-management";
 
+// ดึงทีละ 100 แถวจนครบ แล้วจำกัดที่หมื่นแถว เพราะไฟล์ที่ใหญ่กว่านั้นกินหน่วยความจำจนเซิร์ฟเวอร์ล้ม
 const PAGE_SIZE = 100;
 const MAX_EXPORT_ROWS = 10_000;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Invoice Status” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type InvoiceStatus = "DRAFT" | "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “collect Pages” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - load: ค่า “load” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// วนขอทีละหน้าจนหมด ใช้ฟังก์ชันเดิมที่หน้าจอใช้ ข้อมูลในไฟล์จะได้ตรงกับที่เห็นบนหน้าจอ
 async function collectPages<T>(load: (page: number) => Promise<{ data: T[]; pageInfo: { hasNextPage: boolean } }>) {
   const rows: T[] = [];
   for (let page = 1; ; page += 1) {
     const result = await load(page);
     rows.push(...result.data);
     if (!result.pageInfo.hasNextPage) return rows;
+    // เกินเพดานก็หยุดแล้วบอกให้ไปเพิ่มตัวกรอง ดีกว่าปล่อยจนเซิร์ฟเวอร์ล้ม
+    // 413 คือรหัสที่แปลว่าสิ่งที่ขอมาใหญ่เกินไป
     if (rows.length >= MAX_EXPORT_ROWS) {
       throw new ApiError(413, `ส่งออกได้สูงสุด ${MAX_EXPORT_ROWS.toLocaleString("th-TH")} รายการ กรุณาเพิ่มตัวกรอง`);
     }
@@ -45,14 +32,6 @@ const invoiceStatusText: Record<InvoiceStatus, string> = {
   CANCELLED: "ยกเลิก",
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “export Invoices Csv” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - filters: ค่า “filters” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function exportInvoicesCsv(propertyId: string, filters: {
   billingMonth?: string;
   query?: string;
@@ -67,22 +46,8 @@ export async function exportInvoicesCsv(propertyId: string, filters: {
   return createCsv([
     ["เลขที่บิล", "รอบบิล", "ห้อง", "ผู้เช่า", "ค่าเช่า", "ค่าน้ำ", "ค่าไฟ", "ค่าบริการ/อื่น ๆ", "ค่าปรับ", "ยอดรวม", "สถานะ", "วันออกบิล", "วันครบกำหนด", "วันที่ชำระ"],
     ...invoices.map((invoice) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “amount” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // API ส่งรายการค่าใช้จ่ายมาเป็นอาเรย์ ตัวช่วยนี้ดึงยอดของประเภทที่ต้องการออกมา
     const amount = (type: string) => Number(invoice.items.find((item) => item.type === type)?.amount ?? 0);
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “other” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - sum: ค่า “sum” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const other = invoice.items
         .filter((item) => !["RENT", "WATER", "ELECTRICITY", "LATE_FEE"].includes(item.type))
         .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -106,14 +71,6 @@ export async function exportInvoicesCsv(propertyId: string, filters: {
   ]);
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “export Tenants Csv” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - propertyId: รหัสภายในของหอพักที่ใช้จำกัดขอบเขตข้อมูล
- * - query: ค่า “query” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
 export async function exportTenantsCsv(propertyId: string, query?: string) {
   const tenants = await collectPages((page) => listPropertyTenants(
     propertyId,
