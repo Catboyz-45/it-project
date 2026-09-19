@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   Download,
+  Inbox,
   LoaderCircle,
   Pencil,
   Plus,
@@ -97,11 +98,13 @@ function PaginatedTable<T>({
   action,
   children,
   empty,
+  emptyDescription,
   endpoint,
 }: {
   action?: React.ReactNode;
   children: (rows: T[]) => React.ReactNode;
   empty: string;
+  emptyDescription?: string;
   endpoint: string;
 }) {
   const [rows, setRows] = useState<T[]>([]);
@@ -251,7 +254,11 @@ function PaginatedTable<T>({
         ) : debouncedQuery || filter ? (
           <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรอง" title="ไม่พบรายการตามเงื่อนไข" />
         ) : (
-          <p className="p-8 text-center text-[#62646c]">{empty}</p>
+          <div className="empty-state m-6">
+            <Inbox aria-hidden={true} size={20} />
+            <strong>{empty}</strong>
+            {emptyDescription ? <p>{emptyDescription}</p> : null}
+          </div>
         ))}
       {pageInfo ? (
         <>
@@ -337,7 +344,7 @@ export function SuperAdminResourceTables({
                 <Plus size={16} /> สร้างแพ็กเกจ
               </button>
             }
-            empty="ยังไม่มีแพ็กเกจ"
+            empty="ยังไม่มีแพ็กเกจ" emptyDescription="สร้างแพ็กเกจแรกเพื่อเปิดให้หอพักสมัครใช้งาน"
             endpoint="/api/v1/super-admin/plans"
           >
             {(plans) => (
@@ -399,7 +406,7 @@ export function SuperAdminResourceTables({
         <ResourceSection>
           <PaginatedTable<Property>
             action={propertyAction}
-            empty="ยังไม่มีหอพัก"
+            empty="ยังไม่มีหอพัก" emptyDescription="หอพักที่เพิ่มเข้าระบบแล้วจะแสดงที่นี่"
             endpoint="/api/v1/super-admin/properties"
           >
             {(properties) => (
@@ -446,7 +453,7 @@ export function SuperAdminResourceTables({
         <ResourceSection>
           <PaginatedTable<Admin>
             action={accountAction}
-            empty="ยังไม่มีบัญชี"
+            empty="ยังไม่มีบัญชี" emptyDescription="บัญชีเจ้าของหอที่สร้างไว้จะแสดงที่นี่"
             endpoint="/api/v1/super-admin/users"
           >
             {(admins) => (
@@ -511,7 +518,7 @@ export function SuperAdminResourceTables({
       {resources.includes("audit-logs") ? (
         <ResourceSection>
           <PaginatedTable<AuditLog>
-            empty="ยังไม่มีรายการ"
+            empty="ยังไม่มีรายการ" emptyDescription="เหตุการณ์สำคัญในระบบจะถูกบันทึกมาที่นี่"
             endpoint="/api/v1/super-admin/audit-logs"
           >
             {(logs) => (

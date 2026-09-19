@@ -221,7 +221,7 @@ export function RepairHistoryPage({ propertyId, tickets: initialTickets }: Repai
           ) : query.trim() || selectedFloor !== "all" || selectedRoom !== "all" ? (
             <SearchEmptyState description="ลองเปลี่ยนคำค้นหา ชั้น หรือห้องที่ต้องการดู" title="ไม่พบประวัติการซ่อม" />
           ) : (
-            <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong></div>
+            <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong><p>งานซ่อมที่ปิดเรื่องแล้วจะมาเก็บไว้ที่นี่</p></div>
           )}
         </div>
         <ServerTablePagination currentItemCount={tickets.length} disabled={isLoading} onPageChange={(nextPage) => void loadTickets(nextPage)} pageInfo={pageInfo} />

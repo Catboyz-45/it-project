@@ -730,7 +730,7 @@ function AccountPanel({
             </p>
           </div>
           <span className="badge">{occupancyLabels[occupancy.status]}</span>
-        </article>) : <Empty icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
+        </article>) : <Empty description="เมื่อเจ้าของหอเพิ่มคุณเข้าห้องแล้ว ข้อมูลห้องและบริการจะแสดงที่นี่" icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
         </div>
         <div className="mt-5 border-t border-[#e4e4e7] pt-5">
         <AcceptInvitationForm onAccepted={refreshAccount} />
@@ -1217,7 +1217,7 @@ function InvoicesPanel({ readOnly }: { readOnly: boolean }) {
   return <div className="grid gap-5">
     <TenantHistoryTabs currentLabel="บิลปัจจุบัน" historyLabel="ประวัติบิล" id="tenant-invoices" onChange={changeView} view={view} />
     <div aria-labelledby={`tenant-invoices-tab-${view}`} aria-live="polite" id="tenant-invoices-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
+    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((invoice) => {
@@ -1336,9 +1336,9 @@ function LeasePanel() {
   const resource = useApiResource<{ current: Lease | null; upcoming: Lease | null }>("/api/v1/tenant/lease");
   if (resource.isLoading) return <Loading />;
   if (resource.error) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  if (!resource.data?.current && !resource.data?.upcoming) return <Empty icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
+  if (!resource.data?.current && !resource.data?.upcoming) return <Empty description="เมื่อเจ้าของหอออกสัญญาให้แล้ว เอกสารจะมาแสดงที่นี่" icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
   return <div className="grid gap-5">
-    {resource.data.current ? <TenantLeaseCard lease={resource.data.current} title="สัญญาปัจจุบัน" /> : <Empty icon={<FileText />} text="ไม่มีสัญญาที่กำลังใช้งานในขณะนี้" />}
+    {resource.data.current ? <TenantLeaseCard lease={resource.data.current} title="สัญญาปัจจุบัน" /> : <Empty icon={<FileText />} description="สัญญาที่สิ้นสุดแล้วยังเปิดดูได้จากประวัติด้านล่าง" text="ไม่มีสัญญาที่กำลังใช้งานในขณะนี้" />}
     {resource.data.upcoming ? <TenantLeaseCard lease={resource.data.upcoming} title="สัญญารอบถัดไป" /> : null}
   </div>;
 }
@@ -1373,7 +1373,7 @@ type Announcement = { id: string; title: string; content: string; publishedAt: s
  */
 function AnnouncementsPanel() {
   const resource = usePaginatedResource<Announcement>("/api/v1/tenant/announcements");
-  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
+  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ" emptyDescription="ประกาศจากหอพักจะมาแสดงที่นี่">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
 }
 
 /**
@@ -1796,9 +1796,9 @@ function TenantChat({
  * - { children, empty, resource }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-function ResourceList<T extends { id: string }>({ children, empty, resource }: { children: (item: T) => ReactNode; empty: string; resource: PaginatedResource<T>; subtitle: string; title: string }) {
+function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, resource }: { children: (item: T) => ReactNode; empty: string; emptyDescription?: string; resource: PaginatedResource<T>; subtitle: string; title: string }) {
   if (resource.isLoading) return <Loading />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
+  return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
 }
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
@@ -1859,7 +1859,7 @@ function ErrorState({ error, retry }: { error: string; retry: () => void }) { re
  * - { icon, text }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
  * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
  */
-function Empty({ icon, text }: { icon: ReactNode; text: string }) { return <div className="empty-state">{icon}<p>{text}</p></div>; }
+function Empty({ description, icon, text }: { description?: string; icon: ReactNode; text: string }) { return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}</div>; }
 /**
  * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
  * หน้าที่: คอมโพเนนต์ React “Restricted Panel” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น

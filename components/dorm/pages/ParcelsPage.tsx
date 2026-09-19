@@ -389,7 +389,7 @@ export function ParcelsPage({
           </div>
         ) : !isLoading ? (
           <div className="repair-empty">
-            <strong>{activeView === "waiting" ? "ยังไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติรับพัสดุ"}</strong>
+            <strong>{activeView === "waiting" ? "ยังไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติรับพัสดุ"}</strong><p>{activeView === "waiting" ? "พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ" : "พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่"}</p>
             <span>{activeView === "waiting" ? "กดเพิ่มพัสดุเพื่อบันทึกรายการใหม่" : "รายการจะย้ายมาที่นี่หลังจากกดรับแล้ว"}</span>
           </div>
         ) : <LoadingSkeleton count={4} label="กำลังโหลดรายการพัสดุ" variant="table" />}
