@@ -1,8 +1,3 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Property Workspace Route” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
 
 import { notFound, redirect } from "next/navigation";
 import { DormDashboard } from "@/components/dorm/DormDashboard";
@@ -12,13 +7,7 @@ import { getDashboardReadModel } from "@/lib/server/dashboard-read-model";
 import { getOwnerDashboardAggregation } from "@/lib/server/dashboard-aggregation";
 import type { PageKey } from "@/types/navigation";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Property Workspace Route” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { activePage, initialInvoiceView = "invoices", propertyId, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// Server Component ที่ตรวจสิทธิ์และดึงข้อมูลตั้งต้น ก่อนส่งให้หน้าจอฝั่งเบราว์เซอร์
 export async function PropertyWorkspaceRoute({
   activePage,
   initialInvoiceView = "invoices",
@@ -28,20 +17,26 @@ export async function PropertyWorkspaceRoute({
   initialInvoiceView?: "invoices" | "payments";
   propertyId: string;
 }) {
+  // ตรวจสิทธิ์บนเซิร์ฟเวอร์ก่อนแตะข้อมูลใด ๆ ไม่เชื่อค่าที่ส่งมาจากฝั่งผู้ใช้
   const auth = await requirePageAuth();
+  // ผู้ดูแลระบบมีหน้าของตัวเอง ไม่ใช่หน้าทำงานของหอพัก
   if (auth.role === "SUPER_ADMIN") redirect("/super-admin");
+  // ไม่มีสิทธิ์ในหอนี้ก็ตอบว่าไม่พบ ไม่บอกว่ามีอยู่จริงแต่เข้าไม่ได้
   if (!auth.propertyIds.includes(propertyId)) notFound();
 
+  // เช็คว่าหอยังเปิดใช้งานอยู่ เลือกมาแค่ id เพราะต้องการรู้แค่ว่ามีหรือไม่มี
   const property = await getDatabase().property.findFirst({
     where: { id: propertyId, isActive: true },
     select: { id: true },
   });
   if (!property) notFound();
 
+  // ยิงสามคำสั่งพร้อมกัน เพราะไม่มีตัวไหนต้องรอผลของอีกตัว
   const [availableProperties, initialData, initialAggregation] = await Promise.all([
     getDatabase().property.findMany({
       where: { id: { in: auth.propertyIds }, isActive: true },
       orderBy: { name: "asc" },
+      // เลือกเฉพาะฟิลด์ที่ตัวสลับหอพักใช้จริง ไม่ดึงข้อมูลหอมาทั้งก้อน
       select: { id: true, name: true, shortName: true },
     }),
     getDashboardReadModel(propertyId),

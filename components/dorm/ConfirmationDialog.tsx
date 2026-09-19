@@ -1,30 +1,20 @@
 "use client";
 
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Confirmation Dialog” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
-
 import { useCallback } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Confirmation Dialog” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { confirmLabel = "ยืนยัน", confirmDisabled = false, descript: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// กล่องถามยืนยันที่ใช้ร่วมกันทั้งระบบ ใช้ผ่าน useConfirmation จะสะดวกกว่าเรียกตรง ๆ
 export function ConfirmationDialog({
   confirmLabel = "ยืนยัน",
+  // ปิดปุ่มทั้งหมดระหว่างกำลังทำงาน กันกดยืนยันซ้ำหรือปิดกล่องทิ้งกลางคัน
   confirmDisabled = false,
   description,
   onCancel,
   onConfirm,
   title,
+  // danger ทำให้เป็นสีแดงพร้อมไอคอนเตือน ใช้กับการลบหรือสิ่งที่ย้อนกลับไม่ได้
   variant = "default",
 }: {
   confirmLabel?: string;
@@ -35,19 +25,16 @@ export function ConfirmationDialog({
   title: string;
   variant?: "default" | "danger";
 }) {
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “request Close” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // Esc กับคลิกพื้นหลังวิ่งมาที่นี่ ต้องไม่ยอมให้ปิดตอนกำลังทำงานอยู่
   const requestClose = useCallback(() => { if (!confirmDisabled) onCancel(); }, [confirmDisabled, onCancel]);
   return <Dialog
     ariaDescribedBy="confirmation-dialog-description"
     ariaLabelledBy="confirmation-dialog-title"
+    // ยกให้สูงกว่ากล่องอื่น เพราะมักถูกเปิดซ้อนบนกล่องที่เปิดอยู่แล้ว
     backdropClassName="z-[110]"
     className="confirmation-modal confirmation-alert-modal"
     onClose={requestClose}
+    // alertdialog ไม่ใช่ dialog เพราะเป็นเรื่องที่ต้องตอบก่อนไปต่อ
     role="alertdialog"
   >
       <header className={`modal-header confirmation-dialog-header ${variant === "danger" ? "danger" : ""}`}>
