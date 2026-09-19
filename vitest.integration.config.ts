@@ -1,19 +1,16 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นไฟล์ตั้งค่าหรือจุดเชื่อมระบบ “vitest.integration.config” ของโปรเจกต์ Nestly
- * การทำงาน: กำหนดวิธีที่เครื่องมือ build, test หรือ runtime ทำงานร่วมกับโค้ดหลัก โดยไม่เก็บข้อมูลผู้ใช้งานจริง
- */
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+// import.meta.url คือพาธของไฟล์นี้ แปลงเป็นพาธจริงเพื่อใช้เป็นรากของโปรเจกต์
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: projectRoot,
   resolve: { alias: { "@": projectRoot } },
   test: {
+    // แยกไฟล์ตั้งค่าจากชุดเร็ว เพราะชุดนี้ต้องมีฐานข้อมูลทดสอบจริงถึงจะรันได้
     include: ["tests/integration/**/*.test.ts"],
     exclude: [
       "**/node_modules/**",
@@ -26,7 +23,9 @@ export default defineConfig({
       "**/playwright-report/**",
       "**/test-results/**",
     ],
+    // ใช้ฐานข้อมูลเดียวกันทุกไฟล์ รันพร้อมกันข้อมูลจะทับกัน จึงรันทีละไฟล์
     fileParallelism: false,
+    // ยืดเวลารอเป็น 30 วินาที เพราะแต่ละเทสต์ต้องรอฐานข้อมูลจริงตอบ
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

@@ -1,16 +1,7 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: รวม TypeScript type ของ “dashboard” เพื่อบอกโครงสร้างข้อมูลที่ส่วนต่าง ๆ ต้องใช้ร่วมกัน
- * การทำงาน: ไม่มีข้อมูลจริงอยู่ในไฟล์นี้ แต่ช่วยให้ compiler แจ้งเตือนเมื่อส่งข้อมูลผิดรูปแบบก่อนนำระบบไปรัน
- */
-
 import type { Invoice, Room, Tenant } from "@/types/dorm";
 import type { OwnerRepairTicket } from "@/types/repairs";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Parcel Record” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// พัสดุหนึ่งชิ้น receivedAt ว่างแปลว่ายังไม่มีคนมารับ จึงเป็น optional
 export type ParcelRecord = {
   id: string;
   imageUrl?: string;
@@ -22,10 +13,7 @@ export type ParcelRecord = {
   status: "waiting" | "received";
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Announcement Record” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ประกาศหนึ่งเรื่อง สถานะเก็บเป็นข้อความไทยตรง ๆ เพราะใช้แสดงบนป้ายโดยไม่ต้องแปลอีกรอบ
 export type AnnouncementRecord = {
   audience: string;
   content: string;
@@ -36,10 +24,7 @@ export type AnnouncementRecord = {
   updatedAt?: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Complaint Record” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// เรื่องร้องเรียนหนึ่งเรื่อง owner คือคนที่รับผิดชอบติดตาม ไม่ใช่คนที่ร้องเรียน
 export type ComplaintRecord = {
   id: string;
   title: string;
@@ -49,10 +34,7 @@ export type ComplaintRecord = {
   status: "รับเรื่องแล้ว" | "กำลังตรวจสอบ" | "แก้ไขแล้ว";
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Room Type Setting” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ประเภทห้องที่หอตั้งเอง ใช้เป็นค่าตั้งต้นของค่าเช่าและค่ามัดจำตอนสร้างห้องใหม่
 export type RoomTypeSetting = {
   id: string;
   name: string;
@@ -61,10 +43,7 @@ export type RoomTypeSetting = {
   capacity: number;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Service Charge Setting” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ค่าบริการเพิ่มเติม calculation บอกว่าคิดต่อห้องหรือต่อคน ทำให้ห้องที่อยู่หลายคนคิดเงินต่างกันได้
 export type ServiceChargeSetting = {
   id: string;
   name: string;
@@ -73,10 +52,7 @@ export type ServiceChargeSetting = {
   calculation: "room" | "person";
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Floor Directory Setting” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ชั้นหนึ่งชั้น พ่วงชื่อตึกมาด้วยเพื่อให้ dropdown แสดงได้เลยโดยไม่ต้องไปหาชื่อตึกอีกรอบ
 export type FloorDirectorySetting = {
   id: string;
   number: number;
@@ -84,10 +60,8 @@ export type FloorDirectorySetting = {
   buildingName: string;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Property Settings Read Model” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ค่าตั้งของหอทั้งหมดที่หน้าตั้งค่าใช้ รวมมาเป็นก้อนเดียวเพื่อยิงขอครั้งเดียวจบ
+// lateFeeCap เป็น null ได้ หมายถึงไม่จำกัดเพดานค่าปรับ ต่างจาก undefined ที่แปลว่ายังไม่ได้ตั้ง
 export type PropertySettingsReadModel = {
   propertyName: string;
   legalName?: string;
@@ -110,14 +84,8 @@ export type PropertySettingsReadModel = {
   defaultFurniture: string[];
 };
 
-/**
- * Owner-facing projection assembled exclusively from normalized relational
- * tables. This is a response DTO and is never persisted as a JSON document.
- */
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Owner Workspace Read Model” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ข้อมูลทั้งพื้นที่ทำงานของเจ้าของหอในก้อนเดียว ประกอบจากตารางปกติทุกครั้งที่ขอ
+// เป็นแค่รูปของคำตอบ ไม่เคยถูกเก็บเป็น JSON ลงฐานข้อมูล
 export type OwnerWorkspaceReadModel = {
   rooms: Room[];
   tenants: Tenant[];
@@ -129,10 +97,7 @@ export type OwnerWorkspaceReadModel = {
   settings: PropertySettingsReadModel;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Owner Dashboard Aggregation” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ตัวเลขสรุปของแดชบอร์ดเจ้าของหอ นับมาจากฝั่งเซิร์ฟเวอร์ทั้งหมด
 export type OwnerDashboardAggregation = {
   property: { id: string; name: string };
   rooms: {
@@ -157,6 +122,7 @@ export type OwnerDashboardAggregation = {
     unreadTenantMessages: number;
     expiringLeases: number;
   };
+  // เป็น null ได้ หอที่ยังไม่ซื้อแพ็กเกจจะไม่มีข้อมูลส่วนนี้
   subscription: {
     accessMode: "FULL" | "GRACE" | "READ_ONLY";
     graceEndsAt: string | Date | null;
@@ -172,6 +138,7 @@ export type OwnerDashboardAggregation = {
     usedRooms: number;
     roomUsagePercent: number;
   } | null;
+  // ข้อมูลกราฟย้อนหลังรายเดือน ให้เห็นว่าเก็บเงินได้ตามที่ออกบิลไปหรือไม่
   trends: Array<{
     month: string;
     billed: number;
