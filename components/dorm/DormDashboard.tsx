@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Dorm Dashboard” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ถือ state ของทั้งพื้นที่เจ้าของหอ และโหลดข้อมูลใหม่จากเบราว์เซอร์
 
 import Link from "next/link";
 import Image from "next/image";
@@ -66,12 +61,8 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Menu Page Key” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สามหน้านี้ไม่มีในเมนูหลัก มิเตอร์อยู่ในเมนูย่อย ส่วนประวัติซ่อมเข้าจากหน้าเรื่องร้องเรียน
 type MenuPageKey = Exclude<PageKey, "repairHistory" | "waterMeter" | "electricMeter">;
-/** สีประจำหมวดของไอคอนเมนู (ดู .sidebar nav [data-accent] ใน globals.css) */
 type MenuAccent = "green" | "magenta" | "cyan";
 const menuItems: Array<{ accent?: MenuAccent; key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
   { key: "overview", label: "แดชบอร์ด", icon: Home },
@@ -86,6 +77,7 @@ const secondaryMenuItems: Array<{ accent?: MenuAccent; key: MenuPageKey; label: 
   { accent: "cyan", key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
 ];
 
+// Record บังคับให้ทุกหน้ามีชื่อกำกับตั้งแต่ตอนคอมไพล์ เพิ่มหน้าใหม่แล้วลืมตั้งชื่อจะคอมไพล์ไม่ผ่าน
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
   rooms: { title: "ผังห้องพัก", subtitle: "ผังห้องแบบ Visual Floor Plan พร้อมสถานะและข้อมูลผู้เช่า" },
@@ -106,30 +98,15 @@ const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   settings: { title: "ตั้งค่า", subtitle: "ตั้งค่าข้อมูลหอ ค่าใช้จ่าย โครงเอกสาร และข้อมูลสำหรับระบบ" },
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Dashboard Property” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
 type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “optional Tenant Text” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ฐานข้อมูลเก็บ "-" แทนค่าว่างในบางฟิลด์ แปลงกลับเป็น null ก่อนส่งขึ้นเซิร์ฟเวอร์
 const optionalTenantText = (value: string) => {
   const normalized = value.trim();
   return normalized && normalized !== "-" ? normalized : null;
 };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Dorm Dashboard” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { activePage, authenticatedEmail, authenticatedUser, availab: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// โครงของทั้งพื้นที่เจ้าของหอ ถือข้อมูลร่วมไว้ที่เดียวแล้วส่งลงไปให้แต่ละหน้า
+// เพราะหลายหน้าใช้ข้อมูลชุดเดียวกัน และการแก้จากหน้าหนึ่งต้องสะท้อนไปอีกหน้าทันที
 export function DormDashboard({
   activePage,
   authenticatedEmail,
@@ -173,11 +150,14 @@ export function DormDashboard({
   const [detailTenantId, setDetailTenantId] = useState<string | null>(null);
   const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  // หาไม่เจอก็ใช้หอแรกแทน กันหัวข้อว่างเปล่าตอนข้อมูลยังมาไม่ครบ
   const activeProperty = availableProperties.find((property) => property.id === propertyId) ?? availableProperties[0];
 
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
   const selectedTenant = selectedRoom ? tenants.find((tenant) => tenant.roomId === selectedRoom.id) : undefined;
   const detailTenant = detailTenantId ? tenants.find((tenant) => tenant.id === detailTenantId) : undefined;
+  // สิทธิ์การใช้งานขึ้นกับสถานะแพ็กเกจ ใช้งานเต็ม ช่วงผ่อนผัน หรืออ่านอย่างเดียว
+  // ตัวนี้เป็นแค่การซ่อนปุ่มให้ผู้ใช้รู้ตัว ส่วนการบังคับจริงอยู่ที่เซิร์ฟเวอร์ทุกครั้ง
   const accessState = resolveSubscriptionUiAccessState({
     accessMode: aggregation ? aggregation.subscription?.accessMode ?? "READ_ONLY" : null,
     error: accessError,
@@ -185,17 +165,13 @@ export function DormDashboard({
   });
   const isReadOnly = blocksSubscriptionMutations(accessState);
   const isInGracePeriod = accessState === "grace";
+  // เตือนล่วงหน้า 30 วัน 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน
   const isSubscriptionExpiringSoon = Boolean(aggregation?.subscription)
     && new Date(aggregation!.subscription!.expiresAt).getTime() > Date.now()
     && new Date(aggregation!.subscription!.expiresAt).getTime() - Date.now() <= 30 * 86_400_000;
   const readOnlyMessage = "แพ็กเกจหมดอายุแล้ว พื้นที่นี้เปิดให้อ่านข้อมูลเท่านั้น กรุณาต่ออายุแพ็กเกจ";
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ตรวจเงื่อนไขของ “ensure Writable” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // เรียกก่อนทุกการกระทำที่เปลี่ยนข้อมูล คืน false พร้อมขึ้นข้อความบอกเหตุผล
   const ensureWritable = () => {
     if (!isReadOnly) return true;
     setDataError(accessState === "loading" || accessState === "error"
@@ -204,35 +180,16 @@ export function DormDashboard({
     return false;
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “navigate To” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ทุกหน้ามี URL ของตัวเอง เปลี่ยนหน้าจึงเป็นการเปลี่ยนเส้นทางจริง ไม่ใช่แค่สลับ state
   const navigateTo = useCallback((page: PageKey) => {
     router.push(ownerPagePath(propertyId, page));
   }, [propertyId, router]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “refresh Dashboard” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // โหลดข้อมูลร่วมใหม่ทั้งชุด เรียกหลังทุกการแก้ไข เพื่อให้ทุกหน้าเห็นข้อมูลตรงกัน
   const refreshDashboard = useCallback(async () => {
     setIsRefreshing(true);
     setDataError("");
     setAccessError("");
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Json” แล้วส่งผลที่เหมาะสมกลับไป
-     * รับค่า:
-     * - url: ค่า “url” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * - fallbackMessage: ค่า “fallback Message” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-     */
     const loadJson = async <T,>(url: string, fallbackMessage: string) => {
       const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
       const payload = await response.json() as { data?: T; error?: string };
@@ -278,17 +235,11 @@ export function DormDashboard({
     setIsRefreshing(false);
   }, [propertyId]);
 
+  // โหลดใหม่เมื่อสลับไปหออื่น เพราะ refreshDashboard ผูกกับ propertyId อยู่แล้ว
   useEffect(() => {
     void refreshDashboard();
-  // Refresh whenever the workspace changes.
   }, [refreshDashboard]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “refresh Unread Ticket Replies” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const refreshUnreadTicketReplies = useCallback(async () => {
     try {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/notifications/unread`, {
@@ -298,7 +249,8 @@ export function DormDashboard({
       const payload = await response.json() as { data?: { ticketReplies: number } };
       if (response.ok && payload.data) setUnreadTicketReplies(payload.data.ticketReplies);
     } catch {
-      // The main dashboard error state remains independent from a badge refresh.
+      // ตัวเลขบนป้ายโหลดไม่ได้ก็ไม่เป็นไร ไม่ควรไปขึ้นข้อความผิดพลาดใหญ่ของทั้งหน้า
+      // แต่ต้องดักไว้ ไม่งั้นเป็น unhandled rejection
     }
   }, [propertyId]);
 
@@ -306,23 +258,9 @@ export function DormDashboard({
 
   useEffect(() => {
     if (!isAccountMenuOpen) return;
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close On Outside Click” ตามกฎของระบบ
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!accountMenuRef.current?.contains(event.target as Node)) setIsAccountMenuOpen(false);
     };
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “close On Escape” ตามกฎของระบบ
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setIsAccountMenuOpen(false);
     };
@@ -365,13 +303,7 @@ export function DormDashboard({
     parcels: aggregation.operations.waitingParcels,
   } : {};
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “menu Badge” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - page: ค่า “page” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
+  // ป้ายตัวเลขบนเมนู ซ่อนไปเลยเมื่อไม่มีอะไรค้าง
   const menuBadge = (page: PageKey) => {
     const count = notificationCounts[page] ?? 0;
     return count > 0
@@ -379,6 +311,7 @@ export function DormDashboard({
       : null;
   };
 
+  // รายการในกระดิ่งแจ้งเตือน ข้อความต่างกันตามสิทธิ์ เพราะโหมดอ่านอย่างเดียวทำอะไรต่อไม่ได้
   const ownerNotifications: NotificationCenterItem[] = aggregation ? [
     { id: "pending-occupancies", count: aggregation.pendingOccupancies, title: "คำขอเข้าพักที่ยังรอดำเนินการ", description: isReadOnly ? "เปิดดูรายละเอียดได้ การอนุมัติจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "ตรวจสอบข้อมูลผู้เช่าก่อนอนุมัติเข้าพัก", href: `${ownerPagePath(propertyId, "tenants")}?tab=pending`, icon: <UserRound size={19} /> },
     { id: "pending-payments", count: aggregation.finance.pendingPayments, title: "หลักฐานชำระเงินที่ยังรอตรวจสอบ", description: isReadOnly ? "เปิดดูหลักฐานได้ การยืนยันรับชำระจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "ตรวจสอบสลิปและยืนยันการรับชำระ", href: `${ownerPagePath(propertyId, "invoices")}?tab=payments`, icon: <Banknote size={19} /> },
@@ -400,14 +333,9 @@ export function DormDashboard({
     },
   ] : [];
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Meters” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - readings: ค่า “readings” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // บันทึกมิเตอร์ทั้งชุดในคำขอเดียว ห้องเยอะจะได้ไม่ต้องยิงทีละห้อง
   const saveMeters = async (readings: Array<{ roomId: string; type: "WATER" | "ELECTRICITY"; billingMonth: string; previousReading?: number; currentReading: number }>) => {
+    // โยน error แทนการคืนค่า เพราะหน้าที่เรียกต้องรู้ว่าไม่สำเร็จเพื่อคงร่างไว้ให้ผู้ใช้
     if (!ensureWritable()) throw new Error(readOnlyMessage);
     const response = await fetch(`/api/v1/admin/properties/${propertyId}/meter-readings/bulk`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -419,13 +347,6 @@ export function DormDashboard({
     await refreshDashboard();
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Room Edit” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - { room }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveRoomEdit = ({ room }: RoomEditPayload) => {
     if (!ensureWritable()) return;
     if (!room.databaseId) {
@@ -447,13 +368,6 @@ export function DormDashboard({
     }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกห้องไม่สำเร็จ"));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Tenant Edit” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - { tenant }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveTenantEdit = ({ tenant }: TenantEditPayload) => {
     if (!ensureWritable()) return;
     if (tenantModalMode === "add") {
@@ -476,13 +390,6 @@ export function DormDashboard({
     }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกผู้เช่าไม่สำเร็จ"));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Tenant Detail” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - tenant: ค่า “tenant” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const saveTenantDetail = (tenant: Tenant) => {
     if (!ensureWritable()) return;
     const vehicleType = tenant.vehicleType === "รถจักรยานยนต์" ? "MOTORCYCLE"
@@ -514,10 +421,11 @@ export function DormDashboard({
     }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกผู้เช่าไม่สำเร็จ"));
   };
 
-  /* สามหน้านี้ใช้ SettingsPage ร่วมกัน จึงถือเป็นพื้นที่ตั้งค่าเดียวกันทั้งหมด
-     ไม่ว่าจะเข้าจากเมนูตั้งค่าหรือเปิด URL ตรง */
+  // สามหน้านี้ใช้ SettingsPage ร่วมกัน จึงถือเป็นพื้นที่ตั้งค่าเดียวกันทั้งหมด
+  // ไม่ว่าจะเข้าจากเมนูตั้งค่าหรือเปิด URL ตรง และใช้โครงหน้าคนละแบบกับหน้าอื่น
   const isSettingsArea = ["settings", "invitations", "subscription"].includes(activePage);
 
+  // PageHeaderSlotProvider เปิดช่องให้หน้าย่อยส่งปุ่มของตัวเองขึ้นมาแสดงบนแถบหัวเรื่อง
   return (
     <PageHeaderSlotProvider>
     <main className={isSettingsArea ? "shell shell-settings" : "shell"}>

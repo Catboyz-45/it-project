@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Settings Page” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บค่าที่กรอกในฟอร์มทั้งหมดไว้ฝั่งเบราว์เซอร์ก่อนกดบันทึก
 
 import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
@@ -33,12 +28,10 @@ import type {
 } from "@/types/dashboard";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Settings Section” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// เก้าหมวดของหน้าตั้งค่า แปดหมวดแรกเป็นของหอพัก ส่วน account เป็นของบัญชีผู้ใช้
 type SettingsSection = "general" | "billing" | "cycles" | "rooms" | "assets" | "documents" | "invitations" | "subscription" | "account";
 
+// เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหมวดใหม่โดยไม่ต้องแก้ JSX
 const settingSections: Array<{ key: SettingsSection; label: string; icon: ComponentType<{ "aria-hidden"?: boolean; size?: number }> }> = [
   { key: "general", label: "ข้อมูลหอ", icon: Building2 },
   { key: "billing", label: "ค่าใช้จ่าย", icon: Banknote },
@@ -50,30 +43,12 @@ const settingSections: Array<{ key: SettingsSection; label: string; icon: Compon
   { key: "subscription", label: "แพ็กเกจและการต่ออายุ", icon: CreditCard },
   { key: "account", label: "บัญชีและความปลอดภัย", icon: UserRound },
 ];
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “system Setting Sections” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - section: ค่า “section” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// แยก account ออก เพราะเป็นเรื่องของบัญชีผู้ใช้ ไม่ใช่การตั้งค่าหอ และมีหน้าตาคนละแบบ
 const systemSettingSections = settingSections.filter((section) => section.key !== "account");
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “system Setting Section Keys” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - { key }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
+// เมนูตั้งค่าเป็น tablist ต้องเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA จึงต้องมีรายการคีย์ตามลำดับ
 const systemSettingSectionKeys = systemSettingSections.map(({ key }) => key);
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Settings Page” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { accountEmail, accountName, initialSection, initialSettings: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าตั้งค่าของหอพัก เมนูซ้ายกับเนื้อหาขวา บนมือถือสลับกันทีละอย่าง
 export function SettingsPage({
   accountEmail,
   accountName,
@@ -98,10 +73,11 @@ export function SettingsPage({
   subscription: OwnerDashboardAggregation["subscription"];
 }) {
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
-  /* จอแคบวางสองคอลัมน์ไม่ไหว จึงสลับทีละอย่างแทนการวางเมนูกองทับเนื้อหา
-     เข้ามาแบบ deep link (เช่น /subscription) ให้ไปที่เนื้อหาเลย ไม่ต้องผ่านรายการ */
+  // จอแคบวางสองคอลัมน์ไม่ไหว จึงสลับทีละอย่างแทนการวางเมนูกองทับเนื้อหา
+  // เข้ามาแบบลิงก์ตรง เช่น /subscription ให้ไปที่เนื้อหาเลย ไม่ต้องผ่านรายการ
   const [mobileView, setMobileView] = useState<"list" | "section">(initialSection === "general" ? "list" : "section");
   const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, setActiveSection);
+  // เก็บทุกค่าเป็นสตริง เพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนส่งขึ้นเซิร์ฟเวอร์
   const [settings, setSettings] = useState({
     businessName: initialSettings.legalName ?? "",
     contactPhone: initialSettings.contactPhone ?? "",
@@ -124,14 +100,6 @@ export function SettingsPage({
   const [defaultFurniture, setDefaultFurniture] = useState<string[]>(initialSettings.defaultFurniture);
   const [furnitureOptions, setFurnitureOptions] = useState<string[]>(initialSettings.furnitureOptions);
   const [newFurniture, setNewFurniture] = useState("");
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “[configured Floors, set Configured Floors]” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - a: ค่า “a” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - b: ค่า “b” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const [configuredFloors, setConfiguredFloors] = useState<number[]>(
     Array.from(new Set(initialSettings.floorDirectory.map((item) => item.number)))
       .sort((a, b) => a - b),
@@ -154,21 +122,19 @@ export function SettingsPage({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const notify = useToast();
   const { confirm, confirmationDialog } = useConfirmation();
+  // เทียบภาพปัจจุบันกับภาพที่บันทึกไว้ล่าสุด จะได้รู้ว่ายังมีอะไรค้างไม่ได้บันทึก
   const currentSettingsSnapshot = JSON.stringify({
     settings, roomTypes, serviceCharges, defaultFurniture, furnitureOptions,
   });
   const [savedSettingsSnapshot, setSavedSettingsSnapshot] = useState(currentSettingsSnapshot);
+  // เตือนตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับทั้งที่ยังไม่ได้บันทึก
   useUnsavedChanges(currentSettingsSnapshot !== savedSettingsSnapshot);
   const floors = configuredFloors;
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “add Floor” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เพิ่มชั้นก่อนถึงจะสร้างห้องในชั้นนั้นได้
   const addFloor = async () => {
     const floor = Number(newFloor);
+    // จำกัด 1-99 เพราะเลขห้องในระบบใช้ตัวแรกเป็นเลขชั้น
     if (!Number.isInteger(floor) || floor < 1 || floor > 99) {
       setRoomManagementError("กรุณาระบุชั้นเป็นเลข 1–99");
       return;
@@ -198,12 +164,6 @@ export function SettingsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “add Room” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const addRoom = async () => {
     const floor = Number(newRoomFloor || floors[0]);
     const roomId = newRoomNumber.trim();
@@ -220,13 +180,6 @@ export function SettingsPage({
       setRoomManagementError(`มีห้อง ${roomId} อยู่แล้ว`);
       return;
     }
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “target Floor” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const targetFloor = floorDirectory.find((item) => item.number === floor);
     if (!targetFloor) {
       setRoomManagementError("ไม่พบชั้นในฐานข้อมูล กรุณาเพิ่มชั้นก่อน");
@@ -253,13 +206,6 @@ export function SettingsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “remove Room” ตามกฎของระบบ
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const removeRoom = async (room: Room) => {
     if (room.status !== "available") {
       setRoomManagementError(`ลบห้อง ${room.id} ไม่ได้ เพราะห้องไม่ได้ว่าง`);
@@ -288,12 +234,6 @@ export function SettingsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “add Furniture” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const addFurniture = () => {
     const name = newFurniture.trim();
     if (!name) {
@@ -310,13 +250,6 @@ export function SettingsPage({
     setRoomManagementError("");
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “remove Furniture” ตามกฎของระบบ
-   * รับค่า:
-   * - name: ค่า “name” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const removeFurniture = async (name: string) => {
     if (!await confirm({
       title: `ลบ “${name}”?`,
@@ -328,13 +261,6 @@ export function SettingsPage({
     setDefaultFurniture((current) => current.filter((item) => item !== name));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “remove Floor” ตามกฎของระบบ
-   * รับค่า:
-   * - floor: ค่า “floor” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const removeFloor = async (floor: number) => {
     if (rooms.some((room) => room.floor === floor)) return;
     if (!await confirm({
@@ -346,21 +272,7 @@ export function SettingsPage({
     setConfiguredFloors((current) => current.filter((item) => item !== floor));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: ลบ ยกเลิก หรือปิดข้อมูลในขั้นตอน “remove Room Type” ตามกฎของระบบ
-   * รับค่า:
-   * - id: ค่า “id” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const removeRoomType = async (id: string) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “room Type” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - item: ค่า “item” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const roomType = roomTypes.find((item) => item.id === id);
     if (!roomType) return;
     if (rooms.some((room) => room.roomType === id)) {
@@ -376,12 +288,6 @@ export function SettingsPage({
     setRoomTypes((current) => current.filter((item) => item.id !== id));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “add Room Type” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const addRoomType = () => {
     const name = newRoomType.name.trim();
     if (!name || roomTypes.some((item) => item.id !== editingRoomTypeId && item.name.toLocaleLowerCase("th-TH") === name.toLocaleLowerCase("th-TH"))) {
@@ -401,17 +307,13 @@ export function SettingsPage({
     setRoomManagementError("");
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Property Settings” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // บันทึกการตั้งค่าของหอทั้งหมดในครั้งเดียว ไม่ได้บันทึกทีละหมวด
   const savePropertySettings = async () => {
     setIsSavingSettings(true);
     setSaveState(null);
     try {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/settings`, {
+        // PUT ไม่ใช่ PATCH เพราะส่งค่าทั้งชุดไปแทนที่ของเดิม ไม่ได้แก้เฉพาะบางฟิลด์
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -459,24 +361,12 @@ export function SettingsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “update Setting” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า:
-   * - key: ค่า “key” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ตัวช่วยแก้ทีละช่อง keyof บังคับให้ชื่อฟิลด์ต้องมีอยู่จริงตั้งแต่ตอนคอมไพล์
   const updateSetting = (key: keyof typeof settings, value: string) => {
     setSettings((current) => ({ ...current, [key]: value }));
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “save Profile” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // บันทึกชื่อที่แสดงของบัญชี แยกจากการตั้งค่าหอ เพราะเป็นข้อมูลของผู้ใช้ไม่ใช่ของหอ
   const saveProfile = async () => {
     const displayName = profileName.trim();
     if (displayName.length < 2) {
@@ -494,6 +384,7 @@ export function SettingsPage({
       const result = await response.json() as { error?: string; user?: { displayName: string } };
       if (!response.ok || !result.user) throw new Error(result.error ?? "บันทึกโปรไฟล์ไม่สำเร็จ");
       setProfileName(result.user.displayName);
+      // บอกหน้าแม่ด้วย ชื่อบนแถบข้างจะได้เปลี่ยนตามทันทีโดยไม่ต้องรีเฟรช
       onAccountNameChange(result.user.displayName);
       setProfileState({ message: "บันทึกข้อมูลโปรไฟล์แล้ว", tone: "success" });
       setIsProfileEditorOpen(false);
@@ -504,13 +395,9 @@ export function SettingsPage({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: เปลี่ยนข้อมูลหรือสถานะในขั้นตอน “change Password” โดยใช้ค่าที่รับเข้ามา
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เปลี่ยนรหัสผ่าน เซิร์ฟเวอร์จะยกเลิก session ทั้งหมดแล้วบังคับให้เข้าใหม่
   const changePassword = async () => {
+    // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ครหัสเดิมด้วย
     if (passwords.newPassword !== passwords.confirmPassword) {
       setPasswordState({ message: "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน", tone: "error" });
       return;
@@ -526,13 +413,16 @@ export function SettingsPage({
       const result = await response.json() as { error?: string; redirectTo?: string };
       if (!response.ok) throw new Error(result.error ?? "เปลี่ยนรหัสผ่านไม่สำเร็จ");
       setPasswordState({ message: "เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่", tone: "success" });
+      // assign ไม่ใช่ router.push เพื่อให้โหลดหน้าใหม่ทั้งหมด ข้อมูลเดิมจะได้ไม่ค้างในหน่วยความจำ
       window.location.assign(result.redirectTo ?? "/login");
     } catch (error) {
+      // ปลดล็อกปุ่มเฉพาะตอนพลาด สำเร็จแล้วกำลังจะเปลี่ยนหน้าอยู่ ไม่ต้องปลด
       setPasswordState({ message: error instanceof Error ? error.message : "เปลี่ยนรหัสผ่านไม่สำเร็จ", tone: "error" });
       setIsSavingPassword(false);
     }
   };
 
+  // ตามการเปลี่ยน URL ด้วย เพราะหน้าตั้งค่าแต่ละหมวดมีที่อยู่ของตัวเอง
   useEffect(() => {
     setActiveSection(initialSection);
     setMobileView(initialSection === "general" ? "list" : "section");
@@ -540,6 +430,7 @@ export function SettingsPage({
 
   return (
     <section className={activeSection === "account" ? "account-page" : "settings-page"} data-mobile-view={mobileView}>
+      {/* บอกโปรแกรมอ่านหน้าจอว่าเปลี่ยนหมวดแล้ว เพราะเนื้อหาเปลี่ยนโดยหน้าไม่ได้โหลดใหม่ */}
       <LiveAnnouncement message={`เปิดแท็บ ${settingSections.find(({ key }) => key === activeSection)?.label ?? "ตั้งค่า"}`} />
       {activeSection !== "account" ? <aside className="settings-nav">
         <Link className="settings-back" href={ownerPagePath(propertyId, "overview")}>
@@ -592,13 +483,6 @@ export function SettingsPage({
                 emptyText="ยังไม่มีประเภทห้อง"
                 items={roomTypes.map((item) => ({ id: item.id, title: item.name, detail: `${item.rent.toLocaleString("th-TH")} บาท/เดือน · ประกัน ${item.deposit.toLocaleString("th-TH")} บาท · สูงสุด ${item.capacity} คน` }))}
                 onEdit={(id) => {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “item” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - type: ค่า “type” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const item = roomTypes.find((type) => type.id === id);
                   if (!item) return;
                   setEditingRoomTypeId(id);
@@ -769,13 +653,7 @@ export function SettingsPage({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Settings Card” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { actions, children, description, isSaving = false, onSave, : ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตัวช่วยจัดหน้าที่ใช้ซ้ำในไฟล์นี้ กรอบหมวด ช่องกรอก และรายการที่แก้ไขได้
 function SettingsCard({
   actions,
   children,
@@ -807,13 +685,7 @@ function SettingsCard({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Password Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, onChange, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ช่องรหัสผ่านพร้อมปุ่มสลับดูหรือซ่อน
 function PasswordField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="settings-field">
@@ -823,13 +695,6 @@ function PasswordField({ label, onChange, value }: { label: string; onChange: (v
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Text Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, onChange, suffix, type = "text", value, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TextField({
   label,
   onChange,
@@ -854,13 +719,6 @@ function TextField({
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Text Area Field” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, onChange, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
 function TextAreaField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="settings-field full">
@@ -870,13 +728,7 @@ function TextAreaField({ label, onChange, value }: { label: string; onChange: (v
   );
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Editable List” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { emptyText, items, onEdit, onRemove, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// รายการที่เพิ่มและลบรายการย่อยได้ ใช้กับเฟอร์นิเจอร์และรายการคล้ายกัน
 function EditableList({
   emptyText,
   items,
