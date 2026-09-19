@@ -280,7 +280,7 @@ export function PaymentReviewPanel({
 
     {confirmationDialog}
     {rejecting ? (
-      <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" onClose={() => setRejecting(null)}>
+      <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" className="modal-sm" onClose={() => setRejecting(null)}>
           <header className="modal-header">
             <div><h2 id="reject-payment-title">ปฏิเสธหลักฐานการชำระ</h2><p id="reject-payment-description">บิล {rejecting.invoice.invoiceNumber} · ห้อง {rejecting.invoice.room.number}</p></div>
             <IconButton disabled={reviewingId !== null} label="ปิด" onClick={() => setRejecting(null)} tooltip="ปิดหน้าต่างปฏิเสธหลักฐาน"><X /></IconButton>

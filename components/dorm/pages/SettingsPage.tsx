@@ -747,7 +747,7 @@ export function SettingsPage({
             ) : null}
 
             {isPasswordEditorOpen ? (
-              <Dialog ariaDescribedBy="password-editor-description" ariaLabelledBy="password-editor-title" onClose={() => setIsPasswordEditorOpen(false)}>
+              <Dialog ariaDescribedBy="password-editor-description" ariaLabelledBy="password-editor-title" className="modal-md" onClose={() => setIsPasswordEditorOpen(false)}>
                 <form className="modal-form" onSubmit={(event) => { event.preventDefault(); void changePassword(); }}>
                   <header className="modal-header"><div><h2 id="password-editor-title">เปลี่ยนรหัสผ่าน</h2><p id="password-editor-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton label="ปิด" onClick={() => setIsPasswordEditorOpen(false)} tooltip="ปิดหน้าต่างเปลี่ยนรหัสผ่าน"><X /></IconButton></header>
                   <div className="account-password-fields">

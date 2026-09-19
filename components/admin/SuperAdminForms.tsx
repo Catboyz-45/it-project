@@ -242,7 +242,7 @@ export function SuperAdminForms({
   return <>
     {showProperty ? <>
       <button className="primary-button" onClick={() => { setMessage(""); setOpenDialog("property"); }} type="button"><Plus size={18} /> เพิ่มหอพัก</button>
-      {openDialog === "property" ? <Dialog ariaDescribedBy="property-create-description" ariaLabelledBy="property-create-title" onClose={closeDialog}>
+      {openDialog === "property" ? <Dialog ariaDescribedBy="property-create-description" ariaLabelledBy="property-create-title" className="modal-md" onClose={closeDialog}>
         <header className="modal-header"><div><h2 id="property-create-title">เพิ่มหอพัก</h2><p id="property-create-description">สร้างพื้นที่ใหม่สำหรับเจ้าของหอและผู้เช่าในระบบ</p></div><IconButton disabled={pending} label="ปิด" onClick={closeDialog} tooltip="ปิดหน้าต่างเพิ่มหอพัก"><X /></IconButton></header>
         <form className="modal-form" onSubmit={submitProperty}>
           <label>ชื่อเต็ม <input maxLength={160} minLength={2} name="name" required /></label>
@@ -254,7 +254,7 @@ export function SuperAdminForms({
     </> : null}
     {showAccount ? <>
       <button className="primary-button" onClick={() => { setMessage(""); setOpenDialog("account"); }} type="button"><UserPlus size={18} /> เพิ่มแอดมินประจำหอ</button>
-      {openDialog === "account" ? <Dialog ariaDescribedBy="admin-create-description" ariaLabelledBy="admin-create-title" onClose={closeDialog}>
+      {openDialog === "account" ? <Dialog ariaDescribedBy="admin-create-description" ariaLabelledBy="admin-create-title" className="modal-md" onClose={closeDialog}>
         <header className="modal-header"><div><h2 id="admin-create-title">เพิ่มแอดมินประจำหอ</h2><p id="admin-create-description">สร้างบัญชีผู้ดูแลและกำหนดหอพักที่รับผิดชอบ</p></div><IconButton disabled={pending} label="ปิด" onClick={closeDialog} tooltip="ปิดหน้าต่างเพิ่มแอดมิน"><X /></IconButton></header>
         <form className="modal-form" onSubmit={submitAdmin}>
           <div className="modal-grid">

@@ -627,7 +627,7 @@ function PlanEditor({
     }
   }
   return (
-    <Dialog ariaDescribedBy="plan-editor-description" ariaLabelledBy="plan-editor-title" onClose={onClose}>
+    <Dialog ariaDescribedBy="plan-editor-description" ariaLabelledBy="plan-editor-title" className="modal-md" onClose={onClose}>
         <header className="modal-header">
           <div><h2 id="plan-editor-title">{plan === "new" ? "สร้างแพ็กเกจ" : "แก้ไขแพ็กเกจ"}</h2><p id="plan-editor-description">กำหนดราคาและขีดจำกัดการใช้งานของแพ็กเกจ</p></div>
           <IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแพ็กเกจ"><X /></IconButton>

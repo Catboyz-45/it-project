@@ -328,7 +328,7 @@ export function InvoicesPage({
         rooms={rooms}
       /> : null}
       {invoiceToCancel ? (
-        <Dialog ariaDescribedBy="invoice-cancel-description" ariaLabelledBy="invoice-cancel-title" onClose={() => { if (!isCancelling) setInvoiceToCancel(null); }}>
+        <Dialog ariaDescribedBy="invoice-cancel-description" ariaLabelledBy="invoice-cancel-title" className="modal-sm" onClose={() => { if (!isCancelling) setInvoiceToCancel(null); }}>
           <header className="modal-header">
             <div>
               <h2 id="invoice-cancel-title">ยกเลิกบิล {invoiceToCancel.id}</h2>

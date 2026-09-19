@@ -141,7 +141,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
       </form>
     </Dialog> : null}
 
-    {isEditingPassword ? <Dialog ariaDescribedBy="basic-password-description" ariaLabelledBy="basic-password-title" onClose={() => { if (!isSaving) setIsEditingPassword(false); }}>
+    {isEditingPassword ? <Dialog ariaDescribedBy="basic-password-description" ariaLabelledBy="basic-password-title" className="modal-md" onClose={() => { if (!isSaving) setIsEditingPassword(false); }}>
       <form className="modal-form" onSubmit={changePassword}>
         <header className="modal-header"><div><h2 id="basic-password-title">เปลี่ยนรหัสผ่าน</h2><p id="basic-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSaving} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">

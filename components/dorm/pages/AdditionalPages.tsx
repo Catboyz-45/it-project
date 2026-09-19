@@ -325,7 +325,7 @@ export function AnnouncementsPage({ initialAnnouncements, onChanged, propertyId,
         {hasNextPage ? <LoadMoreButton isLoading={isLoadingMore} label="โหลดประกาศเพิ่มเติม" onClick={() => void loadAnnouncements(serverPage + 1, true)} /> : null}
       </article>
       {isCreateOpen ? (
-        <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" onClose={() => { resetForm(); setIsCreateOpen(false); }}>
+        <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" className="modal-md" onClose={() => { resetForm(); setIsCreateOpen(false); }}>
           <form className="modal-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -644,7 +644,7 @@ export function ComplaintsPage({
           {isLoadingMore ? "กำลังโหลด..." : "โหลดเรื่องร้องเรียนเพิ่มเติม"}
         </button> : null}
       </article>
-      {editingComplaint && !readOnly ? <Dialog ariaDescribedBy="complaint-edit-description" ariaLabelledBy="complaint-edit-title" onClose={() => setEditingComplaint(null)}>
+      {editingComplaint && !readOnly ? <Dialog ariaDescribedBy="complaint-edit-description" ariaLabelledBy="complaint-edit-title" className="modal-md" onClose={() => setEditingComplaint(null)}>
         <header className="modal-header"><div><h2 id="complaint-edit-title">แก้ไขเรื่องร้องเรียน</h2><p id="complaint-edit-description">ประวัติสถานะและข้อความตอบกลับจะไม่ถูกลบ</p></div><Button aria-label="ปิด" onClick={() => setEditingComplaint(null)} variant="icon">×</Button></header>
         <div className="modal-form"><label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} required value={editForm.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setEditForm((current) => ({ ...current, detail: event.target.value }))} required rows={5} value={editForm.detail} /></label><DropdownField label="ความเร่งด่วน" onChange={(value) => setEditForm((current) => ({ ...current, priority: value as "NORMAL" | "URGENT" }))} options={[{ value: "NORMAL", label: "ปกติ" }, { value: "URGENT", label: "ด่วน" }]} value={editForm.priority} /></div>
         <footer className="modal-actions"><Button onClick={() => setEditingComplaint(null)} variant="secondary">ยกเลิก</Button><Button disabled={!editForm.title.trim() || !editForm.detail.trim()} isLoading={isSaving} onClick={() => void saveComplaint()}>บันทึกการแก้ไข</Button></footer>

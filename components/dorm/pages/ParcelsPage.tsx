@@ -446,7 +446,7 @@ export function ParcelsPage({
             {!form.roomId ? <p className="disabled-reason justify-self-end" id="parcel-save-disabled-reason">เลือกห้องผู้รับก่อนบันทึกพัสดุ</p> : null}
         </Dialog>
       ) : null}
-      {editingParcel && !readOnly ? <Dialog ariaDescribedBy="parcel-edit-description" ariaLabelledBy="parcel-edit-title" onClose={() => setEditingParcel(null)}>
+      {editingParcel && !readOnly ? <Dialog ariaDescribedBy="parcel-edit-description" ariaLabelledBy="parcel-edit-title" className="modal-sm" onClose={() => setEditingParcel(null)}>
         <header className="modal-header"><div><h2 id="parcel-edit-title">แก้ไขพัสดุห้อง {editingParcel.roomId}</h2><p id="parcel-edit-description">แก้ไขได้เฉพาะรายการที่ยังรอรับ</p></div><Button aria-label="ปิด" onClick={() => setEditingParcel(null)} variant="icon">×</Button></header>
         <label className="modal-field"><span>หมายเหตุ</span><textarea maxLength={1000} onChange={(event) => setEditNote(event.target.value)} rows={4} value={editNote} /></label>
         <footer className="modal-actions"><Button onClick={() => setEditingParcel(null)} variant="secondary">ยกเลิก</Button><Button isLoading={isSaving} onClick={() => void saveParcelEdit()}>บันทึกการแก้ไข</Button></footer>

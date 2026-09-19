@@ -739,7 +739,7 @@ function AccountPanel({
       <PrivacyPreferencesPanel />
     </div>
 
-    {isEditingProfile ? <Dialog ariaDescribedBy="tenant-profile-description" ariaLabelledBy="tenant-profile-title" onClose={() => { if (!isSavingProfile) setIsEditingProfile(false); }}>
+    {isEditingProfile ? <Dialog ariaDescribedBy="tenant-profile-description" ariaLabelledBy="tenant-profile-title" className="modal-md" onClose={() => { if (!isSavingProfile) setIsEditingProfile(false); }}>
       <form className="modal-form" onSubmit={saveProfile}>
         <header className="modal-header"><div><h2 id="tenant-profile-title">แก้ไขข้อมูลส่วนตัว</h2><p id="tenant-profile-description">ข้อมูลสำหรับการติดต่อและกรณีฉุกเฉิน</p></div><IconButton disabled={isSavingProfile} label="ปิด" onClick={() => setIsEditingProfile(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -754,7 +754,7 @@ function AccountPanel({
       </form>
     </Dialog> : null}
 
-    {isEditingPassword ? <Dialog ariaDescribedBy="tenant-password-description" ariaLabelledBy="tenant-password-title" onClose={() => { if (!isSavingPassword) setIsEditingPassword(false); }}>
+    {isEditingPassword ? <Dialog ariaDescribedBy="tenant-password-description" ariaLabelledBy="tenant-password-title" className="modal-md" onClose={() => { if (!isSavingPassword) setIsEditingPassword(false); }}>
       <form className="modal-form" onSubmit={changePassword}>
         <header className="modal-header"><div><h2 id="tenant-password-title">เปลี่ยนรหัสผ่าน</h2><p id="tenant-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSavingPassword} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">
@@ -1547,7 +1547,7 @@ function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
     } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "สร้างรายการไม่สำเร็จ"); }
     finally { setSaving(false); }
   };
-  return <Dialog ariaDescribedBy="tenant-ticket-description" ariaLabelledBy="tenant-ticket-title" onClose={onClose}><header className="modal-header"><div><h2 id="tenant-ticket-title">แจ้งเรื่องใหม่</h2><p id="tenant-ticket-description">ส่งรายการแจ้งซ่อมหรือร้องเรียนถึงผู้ดูแลหอพัก</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแจ้งเรื่อง"><X /></IconButton></header><form className="modal-form" onSubmit={submit}>
+  return <Dialog ariaDescribedBy="tenant-ticket-description" ariaLabelledBy="tenant-ticket-title" className="modal-md" onClose={onClose}><header className="modal-header"><div><h2 id="tenant-ticket-title">แจ้งเรื่องใหม่</h2><p id="tenant-ticket-description">ส่งรายการแจ้งซ่อมหรือร้องเรียนถึงผู้ดูแลหอพัก</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแจ้งเรื่อง"><X /></IconButton></header><form className="modal-form" onSubmit={submit}>
     <div className="modal-grid"><DropdownField label="ประเภท" onChange={(value) => setForm({ ...form, type: value })} options={[{ label: "แจ้งซ่อม", value: "REPAIR" }, { label: "ร้องเรียน", value: "COMPLAINT" }]} value={form.type} /><DropdownField label="ความเร่งด่วน" onChange={(value) => setForm({ ...form, priority: value })} options={[{ label: "ปกติ", value: "NORMAL" }, { label: "ด่วน", value: "URGENT" }]} value={form.priority} /></div>
     <label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} required value={form.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setForm({ ...form, detail: event.target.value })} required value={form.detail} /></label>
     {form.type === "COMPLAINT" ? <label className="flex items-center gap-2"><input checked={form.isAnonymous} className="size-5 min-h-0" onChange={(event) => setForm({ ...form, isAnonymous: event.target.checked })} type="checkbox" /> ไม่แสดงชื่อกับผู้ดูแลหอ</label> : null}

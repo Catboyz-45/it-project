@@ -138,7 +138,7 @@ const timer = window.setTimeout(() => { void load(); }, 300); return () => windo
       {hasNextPage ? <LoadMoreButton isLoading={isLoading} onClick={() => void load(page + 1, true)} /> : null}
     </section>
 
-    {rejecting ? <Dialog ariaDescribedBy="subscription-rejection-description" ariaLabelledBy="subscription-rejection-title" onClose={() => setRejecting(null)}>
+    {rejecting ? <Dialog ariaDescribedBy="subscription-rejection-description" ariaLabelledBy="subscription-rejection-title" className="modal-sm" onClose={() => setRejecting(null)}>
         <header className="modal-header">
           <div>
             <h2 id="subscription-rejection-title">ปฏิเสธหลักฐานค่าสมาชิก</h2>

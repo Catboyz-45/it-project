@@ -163,7 +163,7 @@ export function AccountApprovalActions({
     <ActionMenu items={items} label={`จัดการบัญชี ${displayName}`} />
     {temporaryPassword ? <div className="form-alert" role="status"><strong>แสดงครั้งเดียว:</strong> <code>{temporaryPassword}</code></div> : null}
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
-    {editingMemberships ? <Dialog ariaDescribedBy="account-memberships-description" ariaLabelledBy="account-memberships-title" onClose={() => { if (!pending) setEditingMemberships(false); }}>
+    {editingMemberships ? <Dialog ariaDescribedBy="account-memberships-description" ariaLabelledBy="account-memberships-title" className="modal-md" onClose={() => { if (!pending) setEditingMemberships(false); }}>
       <header className="modal-header"><div><h2 id="account-memberships-title">หอพักที่รับผิดชอบ</h2><p id="account-memberships-description">เลือกหอพักที่ {displayName} สามารถเข้าถึงและจัดการได้</p></div><IconButton disabled={pending} label="ปิด" onClick={() => setEditingMemberships(false)} tooltip="ปิดหน้าต่างแก้ไขหอพัก"><X /></IconButton></header>
       <div className="modal-form">
         {loadingProperties ? <p aria-live="polite">กำลังโหลดรายการหอพัก...</p> : properties.length ? <fieldset><legend>เลือกหอพัก</legend><div className="grid max-h-80 gap-2 overflow-y-auto rounded-xl border border-[#d9dae0] p-3">{properties.map((property) => { const selected = selectedPropertyIds.includes(property.id); return <label className="flex min-h-11 items-center gap-3" key={property.id}><input checked={selected} disabled={pending || (!property.isActive && !selected)} onChange={(event) => setSelectedPropertyIds((current) => event.target.checked ? [...current, property.id] : current.filter((id) => id !== property.id))} type="checkbox" /><span>{property.name}{!property.isActive ? " (ปิดใช้งาน—นำออกได้เท่านั้น)" : ""}</span></label>; })}</div></fieldset> : <p>ไม่พบหอพักที่เลือกได้</p>}
@@ -171,7 +171,7 @@ export function AccountApprovalActions({
         <footer className="modal-actions"><button disabled={pending} onClick={() => setEditingMemberships(false)} type="button">ยกเลิก</button><button className="primary-button" disabled={pending || loadingProperties} onClick={() => void saveMemberships()} type="button">{pending ? "กำลังบันทึก..." : "บันทึกหอพัก"}</button></footer>
       </div>
     </Dialog> : null}
-    {rejecting ? <Dialog ariaDescribedBy="account-rejection-description" ariaLabelledBy="account-rejection-title" onClose={() => setRejecting(false)}>
+    {rejecting ? <Dialog ariaDescribedBy="account-rejection-description" ariaLabelledBy="account-rejection-title" className="modal-sm" onClose={() => setRejecting(false)}>
         <header className="modal-header"><div><h2 id="account-rejection-title">ไม่อนุมัติบัญชี</h2><p id="account-rejection-description">{displayName}</p></div><IconButton label="ปิด" onClick={() => setRejecting(false)} tooltip="ปิดหน้าต่างไม่อนุมัติบัญชี"><X /></IconButton></header>
         <div className="modal-form">
           <label><span>เหตุผล</span><textarea maxLength={500} minLength={2} onChange={(event) => setReason(event.target.value)} required value={reason} /></label>
