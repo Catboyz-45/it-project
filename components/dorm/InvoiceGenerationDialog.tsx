@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Invoice Generation Dialog” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// เก็บสถานะของตัวช่วยทีละขั้นและยิงคำขอจากเบราว์เซอร์
 
 import { FormEvent, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, FilePlus2, Files, Save, X } from "lucide-react";
@@ -14,58 +9,35 @@ import { IconButton } from "@/components/ui/IconButton";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiData } from "@/lib/client/api-error";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Mode” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// สร้างทีละห้อง หรือสร้างให้ทุกห้องที่พร้อมในครั้งเดียว
 type Mode = "single" | "bulk";
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Step” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// เลือกขอบเขต ตรวจข้อมูล แล้วยืนยัน
 type Step = 1 | 2 | 3;
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Bulk Result” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ผลของการสร้างทั้งหอ บางห้องสร้างได้ บางห้องถูกข้ามพร้อมเหตุผล
 type BulkResult = {
   created: Array<{ id: string; invoiceNumber: string; room: { number: string } }>;
   skipped: Array<{ roomId: string; roomNumber: string; reason: string }>;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Preflight Result” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ผลการตรวจก่อนสร้างจริง ให้ผู้ใช้เห็นยอดและปัญหาก่อนตัดสินใจ
 type PreflightResult = {
   ready: Array<{ roomId: string; roomNumber: string; tenantName: string; dueDate: string; subtotal: string; items: Array<{ type: string; description: string; quantity: string; unitPrice: string; amount: string }> }>;
   blocked: Array<{ roomId: string; roomNumber: string; reason: string }>;
   summary: { targetCount: number; readyCount: number; blockedCount: number; total: string };
 };
 
+// ป้ายของแต่ละขั้น แยกออกมาเป็นข้อมูล จะได้วนสร้างแถบขั้นตอนได้เลย
 const steps: Array<{ id: Step; label: string }> = [
   { id: 1, label: "เลือกขอบเขต" },
   { id: 2, label: "ตรวจข้อมูล" },
   { id: 3, label: "ยืนยันร่าง" },
 ];
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: แปลงข้อมูลในขั้นตอน “parse Response” ให้เป็นรูปแบบมาตรฐานที่ส่วนถัดไปใช้ได้
- * รับค่า:
- * - response: ผลตอบกลับ HTTP ที่กำลังจัดเตรียม
- * ผลลัพธ์: คืนข้อมูลชนิด Promise<T> ตามสัญญา TypeScript ของฟังก์ชัน
- */
+// ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function parseResponse<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "บันทึกร่างบิลไม่สำเร็จ");
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Invoice Generation Dialog” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { initialMode, onChanged, onClose, propertyId, rooms, }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// ตัวช่วยสร้างร่างบิลแบบสามขั้น ร่างที่สร้างยังไม่ส่งถึงผู้เช่า ต้องมากดออกบิลอีกที
 export function InvoiceGenerationDialog({
   initialMode,
   onChanged,
@@ -79,37 +51,22 @@ export function InvoiceGenerationDialog({
   propertyId: string;
   rooms: Room[];
 }) {
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “eligible Rooms” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ออกบิลได้เฉพาะห้องที่มีคนอยู่ และต้องมี databaseId เพราะบางห้องเป็นข้อมูลที่ยังไม่บันทึกลงฐาน
   const eligibleRooms = useMemo(() => rooms.filter((room) => room.status === "occupied" && room.databaseId), [rooms]);
   const [step, setStep] = useState<Step>(1);
   const [mode, setMode] = useState<Mode>(initialMode);
+  // ตั้งต้นเป็นเดือนปัจจุบันในรูปแบบ YYYY-MM ซึ่งตรงกับที่ input type="month" ต้องการ
   const [billingMonth, setBillingMonth] = useState(new Date().toISOString().slice(0, 7));
   const [roomId, setRoomId] = useState(eligibleRooms[0]?.databaseId ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<BulkResult | null>(null);
   const [preflight, setPreflight] = useState<PreflightResult | null>(null);
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “selected Room” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - room: ค่า “room” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const selectedRoom = eligibleRooms.find((room) => room.databaseId === roomId);
+  // ตรวจแล้วก็ใช้ตัวเลขจริงจากเซิร์ฟเวอร์ ยังไม่ตรวจก็ประมาณจากที่ผู้ใช้เลือกไว้
   const targetCount = preflight?.summary.readyCount ?? (mode === "bulk" ? eligibleRooms.length : selectedRoom ? 1 : 0);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “go Next” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // ขั้น 1 ต้องเรียกเซิร์ฟเวอร์ตรวจก่อน ขั้นอื่นแค่เลื่อนไปข้างหน้าเฉย ๆ
   const goNext = async () => {
     setError("");
     if (!billingMonth || (mode === "single" && !roomId)) {
@@ -119,8 +76,10 @@ export function InvoiceGenerationDialog({
     if (step === 1) {
       setIsSaving(true);
       try {
+        // URLSearchParams จัดการ escape ให้เอง ปลอดภัยกว่าต่อสตริงเอง
         const query = new URLSearchParams({ billingMonth, ...(mode === "single" ? { roomId } : {}) });
         const response = await fetch(`/api/v1/admin/properties/${propertyId}/invoices/preflight?${query}`, { cache: "no-store" });
+        // ไปขั้นถัดไปเมื่อตรวจสำเร็จเท่านั้น ตรวจพลาดต้องให้แก้แล้วลองใหม่ที่ขั้นเดิม
         setPreflight(await parseResponse<PreflightResult>(response));
         setStep(2);
       } catch (previewError) {
@@ -133,15 +92,10 @@ export function InvoiceGenerationDialog({
     setStep((current) => Math.min(3, current + 1) as Step);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “submit” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const submit = async (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
+    // ยังไม่ถึงขั้นสุดท้าย การกด Enter คือไปขั้นถัดไป ไม่ใช่สร้างบิลเลย
     if (step < 3) {
       void goNext();
       return;
@@ -155,8 +109,10 @@ export function InvoiceGenerationDialog({
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
+        // issueImmediately: false คือหัวใจของที่นี่ สร้างเป็นร่างไว้ก่อน ผู้เช่ายังไม่เห็น
         body: JSON.stringify({ billingMonth, issueImmediately: false, ...(bulk ? {} : { roomId }) }),
       });
+      // สร้างทั้งหอต้องค้างกล่องไว้ให้ดูว่าห้องไหนถูกข้าม ส่วนห้องเดียวปิดได้เลย
       if (bulk) {
         const data = await parseResponse<BulkResult>(response);
         setResult(data);
@@ -179,7 +135,9 @@ export function InvoiceGenerationDialog({
         <IconButton disabled={isSaving} label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างสร้างบิล"><X /></IconButton>
       </header>
 
+      {/* ใช้ ol เพราะเป็นลำดับขั้นจริง ๆ ไม่ใช่แค่กล่องสามกล่องเรียงกัน */}
       <ol aria-label="ขั้นตอนสร้างร่างบิล" className="mx-5 mt-5 grid grid-cols-3 gap-2">
+        {/* aria-current="step" บอกโปรแกรมอ่านหน้าจอว่าอยู่ขั้นไหน ไม่ใช่แค่ทำให้สีต่าง */}
         {steps.map((item) => <li aria-current={step === item.id ? "step" : undefined} className={`rounded-xl border px-3 py-3 text-sm font-bold ${step === item.id ? "border-brand bg-brand/[.08] text-brand" : item.id < step ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#d7d8df] text-[#73757d]"}`} key={item.id}>
           <span className="mr-2 inline-grid size-6 place-items-center rounded-full bg-current/10">{item.id < step ? <Check size={14} /> : item.id}</span>{item.label}
         </li>)}
@@ -189,6 +147,7 @@ export function InvoiceGenerationDialog({
         {step === 1 ? <section aria-labelledby="invoice-step-scope" className="grid gap-5">
           <div><h3 className="text-xl font-black" id="invoice-step-scope">1. เลือกขอบเขตการสร้าง</h3><p className="text-sm text-[#73757d]">เลือกสร้างให้ห้องเดียวหรือทุกห้องที่มีผู้เช่าหลัก</p></div>
           <div className="figma-inline-tabs invoice-tabs">
+            {/* เปลี่ยนโหมดแล้วต้องล้างผลตรวจเก่าทิ้ง ไม่งั้นจะเอายอดของโหมดก่อนหน้ามาแสดง */}
             <button className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); setPreflight(null); setError(""); }} type="button"><FilePlus2 size={17} /> ห้องเดียว</button>
             <button className={mode === "bulk" ? "active" : ""} onClick={() => { setMode("bulk"); setPreflight(null); setError(""); }} type="button"><Files size={17} /> ทั้งหอ</button>
           </div>
@@ -207,6 +166,7 @@ export function InvoiceGenerationDialog({
             <CheckRow label="สถานะเริ่มต้น" value="ฉบับร่าง · ผู้เช่ายังมองไม่เห็น" />
           </div>
           {preflight?.ready.length ? <div className="max-h-64 overflow-y-auto rounded-2xl border border-[#d7d8df]">{preflight.ready.map((item) => <div className="border-b border-[#e7e8eb] p-3 last:border-0" key={item.roomId}><div className="flex justify-between gap-3"><strong>ห้อง {item.roomNumber} · {item.tenantName}</strong><strong>฿{Number(item.subtotal).toLocaleString("th-TH", { minimumFractionDigits: 2 })}</strong></div><small>{item.items.map((line) => `${line.description} ฿${Number(line.amount).toLocaleString("th-TH")}`).join(" · ")}</small></div>)}</div> : null}
+          {/* บอกให้ครบว่าห้องไหนสร้างไม่ได้เพราะอะไร จะได้ไปแก้ถูกจุด */}
           {preflight?.blocked.length ? <div className="form-alert error"><strong>สร้างไม่ได้ {preflight.blocked.length} ห้อง</strong>{preflight.blocked.map((item) => <span className="block" key={item.roomId}>ห้อง {item.roomNumber}: {item.reason}</span>)}</div> : null}
         </section> : null}
 
@@ -221,6 +181,7 @@ export function InvoiceGenerationDialog({
         </section> : null}
 
         {error ? <div className="form-alert error" role="alert">{error}</div> : null}
+        {/* aria-live ให้โปรแกรมอ่านหน้าจออ่านผลลัพธ์เอง เพราะขึ้นมาหลังกดไปแล้ว */}
         {result ? <section aria-live="polite" className="grid gap-3 rounded-2xl border border-[#d7d8df] p-4">
           <h3 className="text-xl font-black">บันทึกร่างเรียบร้อย</h3>
           <p><strong className="text-emerald-700">สำเร็จ {result.created.length} ห้อง</strong> · <strong className="text-amber-700">ข้าม {result.skipped.length} ห้อง</strong></p>
@@ -235,6 +196,7 @@ export function InvoiceGenerationDialog({
             </button>
           </>}
         </footer>
+        {/* ปุ่มที่กดไม่ได้ต้องบอกเหตุผลด้วย แยกสามกรณีเพราะวิธีแก้ไม่เหมือนกัน */}
         {!result && !isSaving && eligibleRooms.length === 0 ? <p className="disabled-reason justify-self-end" id="invoice-generation-disabled-reason">ยังไม่มีห้องที่พร้อมสร้างบิล กรุณาตรวจผู้เช่า สัญญา และข้อมูลมิเตอร์ก่อน</p> : null}
         {!result && !isSaving && eligibleRooms.length > 0 && mode === "single" && !roomId ? <p className="disabled-reason justify-self-end" id="invoice-generation-disabled-reason">เลือกห้องที่ต้องการสร้างบิลก่อนดำเนินการต่อ</p> : null}
         {!result && !isSaving && eligibleRooms.length > 0 && !(mode === "single" && !roomId) && step > 1 && targetCount === 0 ? <p className="disabled-reason justify-self-end" id="invoice-generation-disabled-reason">ไม่มีรายการที่ผ่านการตรวจสอบสำหรับสร้างร่างบิล</p> : null}
@@ -242,13 +204,7 @@ export function InvoiceGenerationDialog({
   </Dialog>;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Check Row” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { label, value }: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// แถวชื่อคู่ค่าในหน้าตรวจข้อมูล ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function CheckRow({ label, value }: { label: string; value: string }) {
   return <div className="flex items-center justify-between gap-4 border-b border-[#e7e8eb] pb-3 last:border-0 last:pb-0"><span className="text-sm text-[#73757d]">{label}</span><strong className="text-right">{value}</strong></div>;
 }
