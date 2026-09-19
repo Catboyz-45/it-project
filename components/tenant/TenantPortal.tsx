@@ -711,7 +711,7 @@ function HomePanel({
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
   }
 
-  const { room, role, startedAt } = roomResource.data;
+  const { room, startedAt } = roomResource.data;
   const furniture = Array.isArray(room.furniture) ? room.furniture.filter((item): item is string => typeof item === "string") : [];
   const unpaidInvoice = invoices.data?.find((invoice) => ["PENDING", "OVERDUE"].includes(invoice.status));
   const waitingParcel = parcels.data?.find((parcel) => parcel.status === "WAITING");
@@ -720,17 +720,6 @@ function HomePanel({
   const hasOverviewError = notificationResource.error || invoices.error || parcels.error || tickets.error;
 
   return <div className="tenant-home">
-    <section className="tenant-home-hero">
-      <div className="tenant-home-hero-copy">
-        <p className="tenant-home-eyebrow">{room.property.name}</p>
-        <h1>
-          <span className="tenant-home-title-line">สวัสดี</span>
-          <span className="tenant-home-title-line tenant-home-title-line-secondary">{account.user.displayName}</span>
-        </h1>
-        <p className="tenant-home-room">ห้อง {room.number} · {room.building.name} · {room.floor.label ?? `ชั้น ${room.floor.number}`} · {role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</p>
-      </div>
-    </section>
-
     <div className="tenant-home-surface">
 
     {hasOverviewError ? (

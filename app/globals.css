@@ -329,26 +329,8 @@
   .tenant-home {
     @apply isolate overflow-hidden rounded-2xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
-  .tenant-home-hero {
-    @apply relative flex min-h-[clamp(200px,26vh,280px)] items-center overflow-hidden bg-gradient-to-br from-brand via-[#6d5df6] to-[#9b5cf6] px-[clamp(1.5rem,4vw,3rem)] py-10 text-[#fff];
-  }
-  .tenant-home-hero::before,
-  .tenant-home-hero::after {
-    content: "";
-    @apply pointer-events-none absolute rounded-full border border-white/15;
-  }
-  .tenant-home-hero::before { @apply -right-16 -bottom-40 size-[22rem]; }
-  .tenant-home-hero::after { @apply -right-4 -bottom-24 size-[15rem]; }
-  .tenant-home-hero-copy {
-    @apply relative z-10 max-w-4xl;
-  }
-  .tenant-home-eyebrow { @apply mb-3 text-sm font-semibold text-white/75; }
-  .tenant-home-hero h1 { @apply m-0 font-display text-[clamp(1.75rem,3.2vw,2.75rem)] leading-tight font-bold tracking-[-.02em]; }
-  .tenant-home-title-line { @apply block w-fit; }
-  .tenant-home-title-line-secondary { @apply text-white/85; }
-  .tenant-home-room { @apply mt-3 max-w-2xl text-sm leading-6 font-medium text-white/80; }
   .tenant-home-surface {
-    @apply relative z-20 -mt-4 grid gap-5 rounded-t-xl bg-[#fff] p-[clamp(1rem,2.5vw,1.5rem)];
+    @apply grid gap-5 rounded-xl bg-[#fff] p-[clamp(1rem,2.5vw,1.5rem)];
   }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
@@ -1382,8 +1364,7 @@
     .tenant-header-actions select { @apply w-full; }
     .tenant-content { @apply px-4 py-5; }
     .tenant-home { @apply rounded-xl; }
-    .tenant-home-hero { @apply min-h-[360px] items-start px-6 pt-14 pb-24; }
-    .tenant-home-surface { @apply -mt-6 rounded-t-3xl p-5; }
+    .tenant-home-surface { @apply p-5; }
     .tenant-mobile-navigation {
       @apply fixed right-0 bottom-0 left-0 z-50 grid grid-cols-5 border-t border-[#dedfe5] bg-[#fff]/95 px-1 pt-1 shadow-[0_-8px_30px_rgba(30,31,36,.10)] backdrop-blur-xl;
       padding-bottom: max(0.35rem, env(safe-area-inset-bottom));

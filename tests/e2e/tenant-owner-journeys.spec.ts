@@ -157,13 +157,11 @@ test.describe("tenant journey", () => {
   test("views room, bill, PromptPay, lease, announcements and parcels", async ({ page }) => {
     await login(page, e2e.tenantEmail);
     await expect(page).toHaveURL(/\/tenant/);
-    await expect(page.getByRole("heading", { name: /สวัสดี E2E Tenant/ })).toBeVisible();
-    await expect(page.locator("p").filter({ hasText: /^ห้อง E101 ·/ })).toBeVisible();
+    // หน้าแรกไม่มีแบนเนอร์ทักทายแล้ว หอกับห้องที่กำลังดูอยู่ดูได้จากตัวเลือกการเข้าพักมุมบนขวา
     await expect(page.getByRole("heading", { name: "ภาพรวมที่ต้องรู้" })).toBeVisible();
     await expect(page.getByText("ยอดที่ต้องชำระ", { exact: true })).toBeVisible();
     await expect(page.getByText("พัสดุรอรับ", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("เรื่องที่กำลังติดตาม", { exact: true })).toBeVisible();
-    await expect(page.getByText(/ผู้เช่าหลัก/).first()).toBeVisible();
 
     await page.getByRole("link", { name: /^บิลและชำระเงิน(?:\s|$)/ }).click();
     await expect(page).toHaveURL(/\/tenant\/invoices$/);
