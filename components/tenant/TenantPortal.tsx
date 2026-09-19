@@ -143,10 +143,13 @@ async function apiData<T>(response: Response): Promise<T> {
 
 // โหลดข้อมูลชุดเดียวจาก URL พร้อมจัดการสถานะโหลดกับข้อผิดพลาดให้ครบ
 // enabled=false ใช้ตอนยังไม่มีการเข้าพักที่ใช้งานอยู่ จะได้ไม่ยิงคำขอที่ยังไงก็ถูกปฏิเสธ
-function useApiResource<T>(url: string, enabled = true) {
-  const [data, setData] = useState<T | null>(null);
+// initialData มาจาก Server Component ของหน้านั้น ข้อมูลจึงมาพร้อม HTML
+// ไม่ต้องขึ้นสถานะโหลด และไม่ต้องยิงซ้ำตอน mount เพราะเป็นข้อมูลชุดเดียวกัน
+function useApiResource<T>(url: string, enabled = true, initialData: T | null = null) {
+  const [data, setData] = useState<T | null>(initialData);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(enabled);
+  const [isLoading, setIsLoading] = useState(enabled && initialData === null);
+  const skipInitialLoadRef = useRef(initialData !== null);
   const load = useCallback(async (signal?: AbortSignal) => {
     if (!enabled) return;
     setIsLoading(true);
@@ -165,6 +168,12 @@ function useApiResource<T>(url: string, enabled = true) {
     }
   }, [enabled, url]);
   useEffect(() => {
+    // ได้ข้อมูลมาพร้อมหน้าแล้ว ยิงซ้ำตอน mount คือทำงานเดิมสองรอบ
+    // ต้องการของใหม่เมื่อไหร่ค่อยเรียก reload() เอง เช่นหลังบันทึกอะไรสักอย่าง
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     void load(controller.signal);
     return () => controller.abort();
@@ -482,7 +491,7 @@ export function TenantPortal({
 
 // เนื้อของแท็บหนึ่งแท็บ page ของแต่ละ route เรียกตัวนี้พร้อมบอกว่าเป็นแท็บอะไร
 // ข้อมูลร่วมหยิบจาก context ที่เปลือกเตรียมไว้ จึงไม่ต้องโหลดซ้ำตอนเปลี่ยนแท็บ
-export function TenantSectionPanel({ tab }: { tab: TenantTab }) {
+export function TenantSectionPanel({ initialSummary = null, tab }: { initialSummary?: TenantHomeSummary | null; tab: TenantTab }) {
   // เรียก context ครั้งเดียวบนสุด hook ห้ามอยู่หลัง early return
   const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
   // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
@@ -492,6 +501,7 @@ export function TenantSectionPanel({ tab }: { tab: TenantTab }) {
   if (tab === "home") {
     return <HomePanel
       account={account}
+      initialSummary={initialSummary}
       isPrimary={isPrimary}
       notificationResource={notificationResource}
       roomResource={roomResource}
@@ -738,20 +748,30 @@ function PendingState({ account }: { account: Account }) {
 }
 
 // แท็บหน้าหลัก ดึงเฉพาะ 5 รายการล่าสุดของแต่ละอย่างมาแสดงพอให้เห็นภาพรวม
+// initialSummary มาจาก Server Component ของหน้าแรก สามรายการนี้จึงมาพร้อม HTML
+// ส่วนห้องกับยอดแจ้งเตือนยังมาจาก context เพราะเปลือกโหลดไว้แล้วและใช้ร่วมกับแถบเมนู
+export type TenantHomeSummary = {
+  invoices: Invoice[] | null;
+  parcels: Parcel[] | null;
+  tickets: Ticket[] | null;
+};
+
 function HomePanel({
   account,
+  initialSummary,
   isPrimary,
   notificationResource,
   roomResource,
 }: {
   account: Account;
+  initialSummary?: TenantHomeSummary | null;
   isPrimary: boolean;
   notificationResource: ReturnType<typeof useApiResource<TenantNotificationSummary>>;
   roomResource: ReturnType<typeof useApiResource<RoomData>>;
 }) {
-  const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary);
-  const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5");
-  const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5");
+  const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary, initialSummary?.invoices ?? null);
+  const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5", true, initialSummary?.parcels ?? null);
+  const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5", true, initialSummary?.tickets ?? null);
   if (roomResource.isLoading) return <Loading />;
   if (roomResource.error || !roomResource.data) {
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
