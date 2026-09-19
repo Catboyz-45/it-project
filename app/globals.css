@@ -152,8 +152,10 @@
   .loading-skeleton-table-head > span { @apply h-3 w-3/4; }
   .loading-skeleton-table-row > span:not(.loading-skeleton-avatar) { @apply h-4 w-4/5; }
   .loading-skeleton-table-row > .loading-skeleton-pill { @apply h-7 w-20 rounded-full; }
+  /* animate-pulse ของ Tailwind เอง จังหวะ 2 วินาทีเท่ากับที่ Cal.com ใช้
+     ของเดิมเขียน keyframe เองที่ 1.35s ซึ่งกระพริบเร็วจนสะดุดตา */
   .loading-skeleton [aria-hidden="true"] > span,
-  .loading-skeleton [aria-hidden="true"] > div > span { animation: skeleton-pulse 1.35s ease-in-out infinite; }
+  .loading-skeleton [aria-hidden="true"] > div > span { @apply animate-pulse; }
   .app-button {
     @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md border border-transparent px-4 py-2 text-sm font-semibold transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#4651c7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d4d4d8] disabled:bg-[#e4e4e7] disabled:text-[#62646c] lg:min-h-9;
   }
@@ -1760,11 +1762,6 @@ select:disabled {
 @keyframes dropdown-popover-enter {
   from { opacity: 0; transform: translateY(-4px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
 }
 
 @keyframes action-menu-enter {
