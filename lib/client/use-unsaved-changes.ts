@@ -1,49 +1,27 @@
 "use client";
 
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นตัวช่วยฝั่งเบราว์เซอร์สำหรับ “use unsaved changes” เช่น interaction การเรียก API หรือสถานะหน้าจอ
- * การทำงาน: ทำงานหลังหน้าโหลดแล้วและต้องถือว่าข้อมูลจากผู้ใช้ไม่น่าเชื่อถือ; เซิร์ฟเวอร์ยังต้องตรวจข้อมูลและสิทธิ์ซ้ำเสมอ
- */
-
 import { useEffect } from "react";
 
 const DEFAULT_MESSAGE = "มีข้อมูลที่ยังไม่ได้บันทึก หากออกจากหน้านี้การแก้ไขอาจสูญหาย ต้องการออกจากหน้านี้หรือไม่?";
+// หน้าหนึ่งอาจมีหลายฟอร์มที่ยังไม่บันทึกพร้อมกัน สองตัวนี้กันไม่ให้ถามซ้ำหลายรอบจากคลิกเดียว
+// WeakSet จำ event ที่ถามไปแล้ว ส่วน allowUnloadUntil ปิดคำถามของเบราว์เซอร์ชั่วคราว
 const confirmedNavigationEvents = new WeakSet<Event>();
 let allowUnloadUntil = 0;
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: React hook “use Unsaved Changes” รวม state และพฤติกรรมที่คอมโพเนนต์นำกลับมาใช้ซ้ำ
- * รับค่า:
- * - isDirty: ค่าจริง/เท็จที่ใช้เปิดหรือปิดเงื่อนไขนี้
- * - message: ค่า “message” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// เตือนก่อนออกจากหน้าตอนยังมีข้อมูลที่ยังไม่ได้บันทึก ดักสองทาง ปิดแท็บกับกดลิงก์ในหน้า
 export function useUnsavedChanges(isDirty: boolean, message = DEFAULT_MESSAGE) {
   useEffect(() => {
     if (!isDirty) return;
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “before Unload” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ดักการปิดแท็บ รีเฟรช หรือพิมพ์ URL ใหม่ เบราว์เซอร์จะขึ้นคำถามของตัวเอง แก้ข้อความไม่ได้
     const beforeUnload = (event: BeforeUnloadEvent) => {
+      // เพิ่งยืนยันจากคำถามของเราไปหมาด ๆ ไม่ต้องถามซ้ำอีก
       if (Date.now() < allowUnloadUntil) return;
       event.preventDefault();
       event.returnValue = "";
     };
 
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “confirm Link Navigation” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-     * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-     */
+    // ดักการกดลิงก์ในหน้า เพราะ Next เปลี่ยนหน้าเองโดยไม่ผ่าน beforeunload
     const confirmLinkNavigation = (event: MouseEvent) => {
       if (confirmedNavigationEvents.has(event)) return;
       if (
@@ -52,14 +30,17 @@ export function useUnsavedChanges(isDirty: boolean, message = DEFAULT_MESSAGE) {
         || event.metaKey
         || event.ctrlKey
         || event.shiftKey
+      // ปุ่มขวา ปุ่มกลาง หรือกดพร้อม Ctrl/Cmd คือเปิดแท็บใหม่ หน้านี้ยังอยู่จึงไม่ต้องถาม
         || event.altKey
       ) return;
 
       const target = event.target;
       if (!(target instanceof Element)) return;
       const link = target.closest<HTMLAnchorElement>("a[href]");
+      // ลิงก์ดาวน์โหลดกับลิงก์เปิดแท็บใหม่ก็ไม่ได้พาออกจากหน้านี้
       if (!link || link.download || link.target === "_blank") return;
 
+      // เทียบปลายทางกับที่อยู่ปัจจุบัน ลิงก์ที่ชี้มาที่เดิมหรือเปลี่ยนแค่ #anchor ไม่ต้องถาม
       const destination = new URL(link.href, window.location.href);
       const current = new URL(window.location.href);
       if (
@@ -72,19 +53,21 @@ export function useUnsavedChanges(isDirty: boolean, message = DEFAULT_MESSAGE) {
         )
       ) return;
 
+      // ตอบไม่ก็หยุดการเปลี่ยนหน้า และหยุดไม่ให้ตัวจัดการอื่นทำงานต่อด้วย
       if (!window.confirm(message)) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
       }
 
-      // Avoid showing a second native beforeunload prompt for a confirmed
-      // full-page navigation, or a second prompt from a nested dirty editor.
+      // ตอบตกลงแล้ว ต้องกันไม่ให้ถูกถามซ้ำอีกจากคำถามของเบราว์เซอร์
+      // หรือจากฟอร์มอื่นในหน้าเดียวกันที่ก็ยังไม่ได้บันทึกเหมือนกัน
       confirmedNavigationEvents.add(event);
       allowUnloadUntil = Date.now() + 1_000;
     };
 
     window.addEventListener("beforeunload", beforeUnload);
+    // true = ดักตั้งแต่ขาลง จะได้ชิงทำงานก่อนตัวจัดการคลิกของ Next
     document.addEventListener("click", confirmLinkNavigation, true);
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
