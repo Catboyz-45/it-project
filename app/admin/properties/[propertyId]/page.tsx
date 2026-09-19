@@ -1,9 +1,7 @@
-
-import { PropertyWorkspaceRoute } from "@/components/dorm/PropertyWorkspaceRoute";
+import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 
 // เข้าหอโดยไม่ระบุหน้าย่อย ให้ตกที่ภาพรวมเป็นค่าเริ่มต้น
-export default async function PropertyWorkspacePage({ params }: { params: Promise<{ propertyId: string }> }) {
-  // Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
-  const { propertyId } = await params;
-  return <PropertyWorkspaceRoute activePage="overview" propertyId={propertyId} />;
+// เปลือกทั้งหมดอยู่ใน layout หน้านี้จึงเหลือแค่เนื้อของหน้า
+export default function PropertyWorkspacePage() {
+  return <OwnerSectionPanel page="overview" />;
 }

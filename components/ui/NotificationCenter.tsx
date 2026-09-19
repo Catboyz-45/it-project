@@ -108,7 +108,9 @@ export function NotificationCenter({
       <IconButton
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        className={`notification-trigger relative grid size-11 place-items-center rounded-xl border border-[#d7d8df] bg-[#fff] text-[#35363c] shadow-sm transition hover:border-brand/40 hover:bg-brand/[.04] hover:text-brand ${isOpen ? "notification-trigger-open" : ""}`}
+        className={`notification-trigger relative grid size-11 place-items-center rounded-xl border border-[#d7d8df] bg-[#fff] text-[#35363c] shadow-sm transition hover:border-brand/40 hover:bg-brand/[.04] hover:text-[#4651c7] ${isOpen ? "notification-trigger-open" : ""}`}
+        // hover ใช้ #4651c7 ไม่ใช่ text-brand เพราะพื้นหลังตอน hover มี tint 4%
+        // ทำให้ #5865f2 เหลือ contrast 4.38:1 ต่ำกว่าเกณฑ์ 4.5 ส่วนสีนี้ได้ 6.12:1
         // ใส่จำนวนใน label ด้วย เพราะโปรแกรมอ่านหน้าจอมองไม่เห็นป้ายตัวเลข
         label={total > 0 ? `ศูนย์การแจ้งเตือน มี ${total} รายการ` : "ศูนย์การแจ้งเตือน"}
         onClick={() => setIsOpen((current) => !current)}

@@ -1,22 +1,22 @@
-
+// Server Component ที่ตรวจสิทธิ์และดึงข้อมูลตั้งต้นให้ทั้งพื้นที่ของหอหนึ่งหอ
+// อยู่ที่ layout ไม่ใช่ page เพราะ Next คง layout ไว้ตอนเปลี่ยนหน้าลูก
+// read model กับตัวเลขสรุปจึงคำนวณครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
+import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import { DormDashboard } from "@/components/dorm/DormDashboard";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 import { getDashboardReadModel } from "@/lib/server/dashboard-read-model";
 import { getOwnerDashboardAggregation } from "@/lib/server/dashboard-aggregation";
-import type { PageKey } from "@/types/navigation";
 
-// Server Component ที่ตรวจสิทธิ์และดึงข้อมูลตั้งต้น ก่อนส่งให้หน้าจอฝั่งเบราว์เซอร์
-export async function PropertyWorkspaceRoute({
-  activePage,
-  initialInvoiceView = "invoices",
-  propertyId,
+export default async function PropertyWorkspaceLayout({
+  children,
+  params,
 }: {
-  activePage: PageKey;
-  initialInvoiceView?: "invoices" | "payments";
-  propertyId: string;
+  children: ReactNode;
+  params: Promise<{ propertyId: string }>;
 }) {
+  const { propertyId } = await params;
   // ตรวจสิทธิ์บนเซิร์ฟเวอร์ก่อนแตะข้อมูลใด ๆ ไม่เชื่อค่าที่ส่งมาจากฝั่งผู้ใช้
   const auth = await requirePageAuth();
   // ผู้ดูแลระบบมีหน้าของตัวเอง ไม่ใช่หน้าทำงานของหอพัก
@@ -46,14 +46,14 @@ export async function PropertyWorkspaceRoute({
 
   return (
     <DormDashboard
-      activePage={activePage}
       authenticatedEmail={auth.email}
       authenticatedUser={auth.displayName}
       availableProperties={availableProperties}
       initialAggregation={initialAggregation}
       initialData={initialData}
-      initialInvoiceView={initialInvoiceView}
       propertyId={propertyId}
-    />
+    >
+      {children}
+    </DormDashboard>
   );
 }
