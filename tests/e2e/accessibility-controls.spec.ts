@@ -77,6 +77,7 @@ async function expectVisibleFocusIndicator(locator: Locator) {
   await locator.page().keyboard.press("Tab");
   await locator.page().keyboard.press("Shift+Tab");
   await expect(locator).toBeFocused();
+  // เจาะจงสีและความหนาเลย เพราะต้องเหมือนกันทุกที่ ไม่ใช่แค่มีกรอบอะไรก็ได้
   await expect.poll(() => locator.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
@@ -85,7 +86,6 @@ async function expectVisibleFocusIndicator(locator: Locator) {
       outlineWidth: Number.parseFloat(style.outlineWidth),
       shadow: style.boxShadow,
     };
-  // เจาะจงสีและความหนาเลย เพราะต้องเหมือนกันทุกที่ ไม่ใช่แค่มีกรอบอะไรก็ได้
   })).toMatchObject({
     outlineColor: "rgb(70, 81, 199)",
     outlineStyle: "solid",
