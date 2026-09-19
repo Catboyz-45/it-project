@@ -115,8 +115,14 @@ async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
   await locator.blur();
   await expect(tooltip).toBeHidden();
   await locator.hover();
-  const currentLabel = await locator.getAttribute("aria-label");
-  await expect(locator.page().getByRole("tooltip")).toHaveText(currentLabel ?? text);
+  // เทียบกับ aria-label ที่อ่านใหม่ในรอบเดียวกัน ไม่ใช่ค่าที่อ่านค้างไว้ก่อนหน้า
+  // ป้ายของกระดิ่งมีจำนวนแจ้งเตือนต่อท้าย ซึ่งเปลี่ยนเองเมื่อข้อมูลสรุปโหลดเสร็จ
+  // อ่านทีละค่าแล้วค่อยเทียบจะชนจังหวะนั้นพอดีจนตกแบบไม่เกี่ยวกับของที่ทดสอบ
+  await expect.poll(async () => {
+    const tooltipText = await locator.page().getByRole("tooltip").textContent();
+    const currentLabel = await locator.getAttribute("aria-label");
+    return tooltipText === (currentLabel ?? text);
+  }).toBe(true);
   await locator.focus();
 }
 

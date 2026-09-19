@@ -312,18 +312,34 @@ test.describe.serial("subscription access UX", () => {
     await page.goto(`/admin/properties/${e2e.propertyId}/parcels`);
 
     const trigger = page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ });
-    const expectedText = await trigger.getAttribute("aria-label");
-    expect(expectedText).toBeTruthy();
+    await expect(trigger).toHaveAttribute("aria-label", /ศูนย์การแจ้งเตือน/);
+
+    // หา tooltip จาก role อย่างเดียว ไม่ผูกกับข้อความ เพราะป้ายของกระดิ่งมีจำนวน
+    // แจ้งเตือนต่อท้ายซึ่งเปลี่ยนเองเมื่อข้อมูลสรุปโหลดเสร็จ ล็อกข้อความไว้แล้วจะตกตอนตัวเลขขยับ
+    const tooltip = page.getByRole("tooltip");
+    // เทียบข้อความกับ aria-label ที่อ่านใหม่ในรอบเดียวกัน จะได้ไม่ชนจังหวะที่ตัวเลขเปลี่ยน
+    const tooltipMatchesLabel = async () => {
+      const [tooltipText, label] = await Promise.all([
+        tooltip.textContent(),
+        trigger.getAttribute("aria-label"),
+      ]);
+      return tooltipText === label;
+    };
+
+    // รอให้หน้านิ่งก่อนค่อยเอาเมาส์ไปชี้ หลังเปิดหน้าใหม่ ๆ หน้าจะเลื่อนกลับบนสุดเองอีกรอบ
+    // เลื่อนตอนนั้นทำให้ปุ่มขยับหนีเคอร์เซอร์ที่อยู่กับที่ เบราว์เซอร์จึงยิง mouseleave แล้ว tooltip ก็หาย
+    await trigger.scrollIntoViewIfNeeded();
+    await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(
+      await page.evaluate(() => window.scrollY),
+    );
 
     await trigger.hover();
-    let tooltip = page.getByRole("tooltip", { name: expectedText! });
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toHaveText(expectedText!);
+    await expect.poll(tooltipMatchesLabel).toBe(true);
     await page.mouse.move(0, 0);
     await expect(tooltip).toBeHidden();
 
     await trigger.focus();
-    tooltip = page.getByRole("tooltip", { name: expectedText! });
     await expect(tooltip).toBeVisible();
     const tooltipId = await tooltip.getAttribute("id");
     expect(tooltipId).toBeTruthy();
@@ -334,12 +350,11 @@ test.describe.serial("subscription access UX", () => {
     await expect(trigger).toBeFocused();
 
     await trigger.blur();
-    await expect(page.getByRole("tooltip", { name: expectedText! })).toHaveCount(0);
+    await expect(tooltip).toHaveCount(0);
 
     // ย่อเป็นจอเล็กสุด tooltip ต้องยังอยู่ในจอครบทั้งสี่ด้าน
     await page.setViewportSize({ width: 320, height: 568 });
     await trigger.focus();
-    tooltip = page.getByRole("tooltip", { name: expectedText! });
     await expect(tooltip).toBeVisible();
     const bounds = await tooltip.boundingBox();
     expect(bounds).not.toBeNull();

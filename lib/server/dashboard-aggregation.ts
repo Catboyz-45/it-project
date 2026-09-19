@@ -65,6 +65,7 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
     getDatabase().parcel.count({ where: { propertyId, status: "WAITING" } }),
     // ใช้ SQL ดิบเพราะเงื่อนไขเทียบเวลาข้อความกับเวลาที่อ่านล่าสุดของแต่ละห้องสนทนา ซึ่ง Prisma เขียนตรง ๆ ไม่ได้
     // propertyId ส่งเป็นพารามิเตอร์ จึงไม่มีช่องให้ SQL injection
+    // COUNT ของ Postgres คืน bigint ซึ่ง JavaScript รับมาเป็น BigInt จึงแปลงเป็น number ก่อนใช้ต่อ
     getDatabase().$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS "count"
       FROM "ChatMessage" message
@@ -73,7 +74,6 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
         AND message."senderRole" = 'TENANT'
         AND conversation."type" = 'TENANT_PROPERTY'
         AND (conversation."lastAdminReadAt" IS NULL OR message."createdAt" > conversation."lastAdminReadAt")
-    // COUNT ของ Postgres คืน bigint ซึ่ง JavaScript รับมาเป็น BigInt แปลงเป็น number ก่อนใช้ต่อ
     `.then((rows) => Number(rows[0]?.count ?? 0)),
   ]);
   if (!property) return null;
