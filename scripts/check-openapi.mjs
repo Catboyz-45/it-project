@@ -1,23 +1,13 @@
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคำสั่งสำหรับนักพัฒนา/ระบบอัตโนมัติในงาน “check openapi”
- * การทำงาน: เรียกใช้จาก terminal หรือ package script เพื่อทำงานบำรุงรักษาที่ทำซ้ำได้; ควรทดลองในสภาพแวดล้อมที่ไม่ใช่ production ก่อนเมื่อมีการเขียนข้อมูล
- */
-
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
+// ด่านตรวจใน CI ว่า docs/openapi.json ยังตรงกับ route จริงในโค้ด
+// ผิดเมื่อไหร่โยน error ทันที จะได้ไม่ปล่อยเอกสารที่ไม่ตรงกับของจริงออกไป
 const document = JSON.parse(await readFile(new URL("../docs/openapi.json", import.meta.url), "utf8"));
 if (!String(document.openapi).startsWith("3.1.")) throw new Error("OpenAPI 3.1 is required");
 if (!document.info?.title || !document.info?.version) throw new Error("OpenAPI info is incomplete");
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “resolve Ref” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// คลาย $ref ให้เป็น schema จริง เอกสารใช้ ref เยอะเพื่อไม่ต้องเขียนซ้ำ
 function resolveRef(schema) {
   if (!schema?.$ref) return schema;
   const prefix = "#/components/schemas/";
@@ -28,52 +18,27 @@ function resolveRef(schema) {
   return resolved;
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: ตรวจเงื่อนไขของ “validate Example” และหยุดด้วยข้อผิดพลาดที่เหมาะสมเมื่อไม่ผ่าน
- * รับค่า:
- * - schema: ค่า “schema” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - location: ค่า “location” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - seen: ค่า “seen” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ตรวจว่าตัวอย่างที่เขียนไว้ตรงกับ schema ของตัวเองจริงไหม
+// ตัวอย่างที่ผิดแย่กว่าไม่มีตัวอย่าง เพราะคนจะลอกไปใช้แล้วยิงไม่ผ่าน
+// ส่ง location ต่อลงไปทุกชั้น พังตรงไหนจะได้ชี้จุดได้เป๊ะ
 function validateExample(schema, value, location, seen = new Set()) {
   if (!schema) return [];
   if (schema.$ref) {
+    // จำ ref ที่เคยเข้าไปแล้ว กัน schema ที่อ้างถึงตัวเองจนวนไม่รู้จบ
     const marker = `${schema.$ref}:${location}`;
     if (seen.has(marker)) return [];
     return validateExample(resolveRef(schema), value, location, new Set([...seen, marker]));
   }
   if (schema.anyOf) {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “alternatives” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - candidate: ค่าจริง/เท็จที่ใช้เปิดหรือปิดเงื่อนไขนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // anyOf ผ่านแค่แบบเดียวก็พอ
     const alternatives = schema.anyOf.map((candidate) => validateExample(candidate, value, location, seen));
     return alternatives.some((errors) => errors.length === 0)
       ? []
       : [`${location} does not match anyOf`];
   }
   if (schema.oneOf) {
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “alternatives” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - candidate: ค่าจริง/เท็จที่ใช้เปิดหรือปิดเงื่อนไขนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
     const alternatives = schema.oneOf.map((candidate) => validateExample(candidate, value, location, seen));
-    /**
-     * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-     * หน้าที่: รวมขั้นตอนย่อยของ “matching” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-     * รับค่า:
-     * - errors: ค่า “errors” ที่จำเป็นต่อการทำงานของก้อนนี้
-     * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-     */
+    // oneOf ต้องตรงแบบเดียวเป๊ะ ๆ ตรงหลายแบบก็ผิด เพราะแปลว่า schema เขียนกำกวม
     const matching = alternatives.filter((errors) => errors.length === 0);
     return matching.length === 1 ? [] : [`${location} must match exactly one oneOf schema`];
   }
@@ -107,15 +72,8 @@ function validateExample(schema, value, location, seen = new Set()) {
   return [];
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “find Broad Schemas” แล้วส่งผลที่เหมาะสมกลับไป
- * รับค่า:
- * - value: ค่า “value” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - location: ค่า “location” ที่จำเป็นต่อการทำงานของก้อนนี้
- * - errors: ค่า “errors” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
- */
+// ไล่หา additionalProperties: true ซึ่งแปลว่ารับฟิลด์อะไรก็ได้
+// สัญญาที่หลวมแบบนั้นทำให้เอกสารไม่มีความหมาย และเปิดช่องให้ฟิลด์แปลกปลอมหลุดเข้ามา
 function findBroadSchemas(value, location, errors) {
   if (!value || typeof value !== "object") return;
   if (value.additionalProperties === true) errors.push(`${location} uses additionalProperties: true`);
@@ -127,6 +85,7 @@ function findBroadSchemas(value, location, errors) {
 const schemaErrors = [];
 findBroadSchemas(document.components?.schemas, "components.schemas", schemaErrors);
 
+// เส้นทางที่สำคัญที่สุด ต้องมีในเอกสารเสมอ หายไปแปลว่ามีคนลบพลาด
 const requiredPaths = [
   "/api/health",
   "/api/auth/login",
@@ -143,12 +102,14 @@ for (const path of requiredPaths) {
 }
 
 const operationIds = new Set();
+// schema กว้าง ๆ ชุดเก่าที่เลิกใช้แล้ว เจอที่ไหนคือมีคนเผลอเอากลับมาใช้
 const forbiddenResponseSchemas = new Set(["DataObject", "DataList", "DataValue", "MessageList"]);
 for (const [path, pathItem] of Object.entries(document.paths)) {
   for (const method of ["get", "post", "put", "patch", "delete"]) {
     const operation = pathItem[method];
     if (!operation) continue;
     if (!operation.operationId) throw new Error(`${method.toUpperCase()} ${path} has no operationId`);
+    // operationId ต้องไม่ซ้ำ เพราะตัวสร้าง client ใช้ชื่อนี้ตั้งชื่อฟังก์ชัน
     if (operationIds.has(operation.operationId)) throw new Error(`Duplicate operationId: ${operation.operationId}`);
     operationIds.add(operation.operationId);
     if (path.startsWith("/api/v1/")) {
@@ -166,6 +127,7 @@ for (const [path, pathItem] of Object.entries(document.paths)) {
         if (jsonSchema.type === "object" && !jsonSchema.$ref && !jsonSchema.properties) {
           throw new Error(`${method.toUpperCase()} ${path} has an untyped JSON success response`);
         }
+        // ทุก endpoint ต้องมีตัวอย่างคำตอบ คนอ่านเอกสารจะได้เห็นหน้าตาข้อมูลจริง
         if (!jsonExample) throw new Error(`${method.toUpperCase()} ${path} has no JSON success example`);
         const examples = success.content["application/json"].examples;
         const values = examples
@@ -196,9 +158,11 @@ for (const [path, pathItem] of Object.entries(document.paths)) {
           ));
         }
       }
+      // บังคับให้เขียนกรณีผิดพลาดไว้ครบทุกรหัส คนเรียก API จะได้เตรียมรับมือถูก
       for (const status of ["400", "401", "403", "404", "409", "429", "500"]) {
         if (!operation.responses?.[status]) throw new Error(`${method.toUpperCase()} ${path} does not document HTTP ${status}`);
       }
+      // endpoint ที่รับไฟล์ต้องบอกด้วยว่าไฟล์ใหญ่เกินหรือชนิดผิดจะตอบอะไร
       const multipart = operation.requestBody?.content?.["multipart/form-data"];
       if (multipart && (!operation.responses?.["413"] || !operation.responses?.["415"])) {
         throw new Error(`${method.toUpperCase()} ${path} does not document upload HTTP 413/415`);
@@ -217,13 +181,7 @@ for (const name of forbiddenResponseSchemas) {
   }
 }
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “walk” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - directory: ค่า “directory” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
- */
+// ไล่เก็บไฟล์ทุกไฟล์ในโฟลเดอร์และโฟลเดอร์ย่อย เรียกตัวเองซ้ำลงไป
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
@@ -235,14 +193,8 @@ async function walk(directory) {
 const methodNames = ["get", "post", "put", "patch", "delete"];
 const appRoot = new URL("../app/", import.meta.url).pathname;
 const routeRoot = new URL("../app/api/v1/", import.meta.url).pathname;
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: รวมขั้นตอนย่อยของ “route Files” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
- * รับค่า:
- * - file: ค่า “file” ที่จำเป็นต่อการทำงานของก้อนนี้
- * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
- */
 const routeFiles = (await walk(routeRoot)).filter((file) => file.endsWith("/route.ts"));
+// เก็บสิ่งที่โค้ดจริงมีอยู่ ไว้เทียบสองทางกับเอกสารในสองลูปข้างล่าง
 const routeOperations = new Set();
 for (const file of routeFiles) {
   const source = await readFile(file, "utf8");
@@ -254,6 +206,7 @@ for (const file of routeFiles) {
   }
 }
 
+// ทางที่หนึ่ง มีใน route แต่ไม่มีในเอกสาร แปลว่าเขียน API ใหม่แล้วลืมอัปเดตเอกสาร
 for (const operation of routeOperations) {
   const separator = operation.indexOf(" ");
   const method = operation.slice(0, separator).toLowerCase();
@@ -261,6 +214,7 @@ for (const operation of routeOperations) {
   if (!document.paths?.[apiPath]?.[method]) throw new Error(`Missing OpenAPI operation: ${operation}`);
 }
 
+// ทางที่สอง มีในเอกสารแต่ไม่มีใน route แปลว่าลบ API ไปแล้วแต่เอกสารยังค้าง
 for (const [apiPath, pathItem] of Object.entries(document.paths)) {
   if (!apiPath.startsWith("/api/v1/")) continue;
   for (const method of methodNames) {
