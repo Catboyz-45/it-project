@@ -1,36 +1,30 @@
 "use client";
-// ต้องเป็น Client Component เพราะแตะ document และ focus ของเบราว์เซอร์
+// แตะ document และ focus ของเบราว์เซอร์
 
 import type { KeyboardEvent } from "react";
 
-// ค่าของแท็บเป็นได้ทั้งข้อความและตัวเลข แล้วแต่หน้าไหนใช้อะไรเป็นตัวระบุ
 type TabValue = string | number;
 
-// ทำให้แถบแท็บเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA — แถบที่กดได้ด้วยเมาส์อย่างเดียว
-// ถือว่าใช้งานไม่ได้สำหรับคนที่ใช้คีย์บอร์ด
-// คืนค่าเป็นฟังก์ชัน onKeyDown ให้เอาไปใส่ที่กล่องครอบแท็บ (ตัวที่มี role="tablist")
-// ไม่ใช่ใส่ทีละปุ่ม เพราะต้องรู้จักแท็บทั้งชุดถึงจะเลื่อนไปมาได้
+// ทำให้แถบแท็บเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA
+// คืนค่าเป็น onKeyDown เอาไปใส่ที่กล่องครอบ (role="tablist") ไม่ใช่ทีละปุ่ม
 export function useTablistKeyboard<T extends TabValue>(
   values: readonly T[],
   onSelect: (value: T) => void,
 ) {
   return (event: KeyboardEvent<HTMLElement>) => {
-    // ปุ่มอื่นปล่อยผ่านให้เบราว์เซอร์จัดการตามปกติ เช่น Tab ต้องออกจากแถบแท็บได้
+    // ปุ่มอื่นปล่อยผ่าน เช่น Tab ต้องออกจากแถบแท็บได้ตามปกติ
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
 
-    // อ่านแท็บจาก DOM จริงแทนที่จะเชื่อ values อย่างเดียว เพราะบางแท็บอาจถูก disabled
-    // ไว้ ซึ่งต้องข้ามไป ไม่ใช่เลื่อนไปโฟกัสปุ่มที่กดไม่ได้
+    // อ่านจาก DOM ไม่ใช่จาก values เพราะต้องข้ามแท็บที่ถูก disabled
     const tabs = Array.from(
       event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled])'),
     );
     if (tabs.length === 0) return;
 
-    // หาว่าตอนนี้โฟกัสอยู่แท็บที่เท่าไหร่ ถ้าโฟกัสไม่ได้อยู่ในแถบเลย indexOf จะได้ -1
-    // จึงดันขึ้นเป็น 0 เพื่อให้เริ่มนับจากแท็บแรก
+    // โฟกัสไม่ได้อยู่ในแถบจะได้ -1 จึงดันเป็น 0 ให้เริ่มนับจากแท็บแรก
     const currentIndex = Math.max(0, tabs.indexOf(document.activeElement as HTMLElement));
 
-    // Home/End กระโดดสุดทาง ส่วนลูกศรขยับทีละหนึ่งโดย % ทำให้วนกลับจากตัวท้ายไปตัวแรก
-    // ฝั่งลูกศรซ้ายต้อง + tabs.length ก่อนหาร ไม่งั้นค่าจะติดลบตอนอยู่แท็บแรก
+    // ลูกศรขยับทีละหนึ่งแล้ววนกลับด้วย % ฝั่งซ้ายต้อง + length ก่อน ไม่งั้นติดลบ
     const nextIndex = event.key === "Home"
       ? 0
       : event.key === "End"
@@ -41,12 +35,11 @@ export function useTablistKeyboard<T extends TabValue>(
 
     const nextValue = values[nextIndex];
     const nextTab = tabs[nextIndex];
-    // กันกรณีจำนวนแท็บใน DOM ไม่ตรงกับ values ที่ส่งมา จะได้ไม่พังทั้งหน้า
+    // กันกรณีจำนวนแท็บใน DOM ไม่ตรงกับ values ที่ส่งมา
     if (nextValue === undefined || !nextTab) return;
 
-    // กันเบราว์เซอร์เลื่อนหน้าจอตามปุ่มลูกศร เพราะเราจะจัดการโฟกัสเอง
+    // กันเบราว์เซอร์เลื่อนหน้าตามลูกศร เพราะเราจัดการโฟกัสเอง
     event.preventDefault();
-    // บอกหน้าที่เรียกใช้ให้เปลี่ยนแท็บที่เลือก แล้วค่อยย้ายโฟกัสตามไป
     onSelect(nextValue);
     nextTab.focus();
   };

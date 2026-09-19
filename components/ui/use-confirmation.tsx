@@ -1,41 +1,35 @@
 "use client";
-// ต้องเป็น Client Component เพราะเก็บ state และ render กล่องโต้ตอบ
+// เก็บ state และ render กล่องโต้ตอบ
 
 import { useCallback, useState } from "react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 
-// ข้อความและรูปแบบของกล่องยืนยันแต่ละครั้ง
 type Confirmation = {
   title: string;
   description: string;
-  // ข้อความบนปุ่มยืนยัน ถ้าไม่ส่งมากล่องจะใช้คำเริ่มต้นของมันเอง
+  // ไม่ส่งมาก็ได้ กล่องจะใช้คำเริ่มต้นของมันเอง
   confirmLabel?: string;
   // danger ใช้กับการกระทำที่ย้อนกลับไม่ได้ เช่น ลบข้อมูล
   variant?: "default" | "danger";
 };
 
-// ทำให้กล่องยืนยันเรียกใช้ง่ายเหมือน window.confirm แต่เป็นกล่องของเราเอง
-// เขียนต่อกันเป็นบรรทัดเดียวได้:  if (!(await confirm({ title, description }))) return;
-// วิธีใช้: เรียก confirm ตอนต้องการถาม และวาง confirmationDialog ไว้ใน JSX ของหน้า
-// ไม่งั้นกล่องจะไม่ถูก render ออกมา
+// ถามยืนยันแบบ await ได้:  if (!(await confirm({ title, description }))) return;
+// ต้องวาง confirmationDialog ไว้ใน JSX ของหน้าด้วย ไม่งั้นกล่องไม่ถูก render
 export function useConfirmation() {
-  // เก็บคำถามที่ค้างอยู่ พร้อม resolve ของ Promise ที่รอคำตอบ
-  // เป็น null แปลว่าตอนนี้ไม่ได้ถามอะไรอยู่ กล่องจึงไม่ถูกแสดง
+  // null = ไม่ได้ถามอะไรอยู่ กล่องจึงไม่แสดง
   const [pending, setPending] = useState<(Confirmation & { resolve: (value: boolean) => void }) | null>(null);
 
-  // คืน Promise ที่ยังค้างไว้ก่อน แล้วเก็บ resolve ไว้ใน state
-  // Promise จะยังไม่จบจนกว่าผู้ใช้จะกดปุ่ม ทำให้ฝั่งที่เรียกใช้ await รอได้
+  // เก็บ resolve ไว้ใน state แล้วปล่อย Promise ค้าง จนกว่าผู้ใช้จะกดปุ่ม
   const confirm = useCallback((options: Confirmation) => new Promise<boolean>((resolve) => {
     setPending({ ...options, resolve });
   }), []);
 
-  // เรียกเมื่อผู้ใช้ตอบแล้ว: ส่งคำตอบกลับไปให้ Promise ที่รออยู่ แล้วล้าง state เพื่อปิดกล่อง
+  // ส่งคำตอบกลับให้ Promise ที่รออยู่ แล้วล้าง state เพื่อปิดกล่อง
   const close = (result: boolean) => {
     pending?.resolve(result);
     setPending(null);
   };
 
-  // มีคำถามค้างอยู่จึงสร้างกล่อง ถ้าไม่มีก็เป็น null คือไม่ render อะไรเลย
   const confirmationDialog = pending ? <ConfirmationDialog
     confirmLabel={pending.confirmLabel}
     description={pending.description}
