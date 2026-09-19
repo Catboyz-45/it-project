@@ -477,18 +477,20 @@ export function DormDashboard({
               <span>ค่าน้ำและค่าไฟ</span>
               <ChevronDown className={isMetersMenuOpen ? "sidebar-chevron open" : "sidebar-chevron"} size={17} />
             </button>
-            {isMetersMenuOpen ? (
-              <div className="sidebar-subnav">
-                <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")}>
+            {/* คงไว้ใน DOM เสมอแล้วสลับคลาสแทนการถอดออก ไม่งั้นความสูงกระโดดทันทีจนไม่มีอะไรให้ค่อย ๆ กาง */}
+            <div aria-hidden={!isMetersMenuOpen} className={isMetersMenuOpen ? "sidebar-subnav open" : "sidebar-subnav"}>
+              <div>
+                {/* ปิดอยู่ก็ต้องกด Tab ข้ามไป ไม่งั้นโฟกัสจะหายเข้าไปในเมนูที่มองไม่เห็น */}
+                <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")} tabIndex={isMetersMenuOpen ? undefined : -1}>
                   <Droplets size={17} />
                   <span>มิเตอร์น้ำ</span>
                 </Link>
-                <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")}>
+                <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")} tabIndex={isMetersMenuOpen ? undefined : -1}>
                   <Zap size={17} />
                   <span>มิเตอร์ไฟ</span>
                 </Link>
               </div>
-            ) : null}
+            </div>
           </div>
           {secondaryMenuItems.map(({ key, label, icon: Icon }) => (
             <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} href={ownerPagePath(propertyId, key)} key={key}>

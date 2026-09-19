@@ -21,6 +21,10 @@ export type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "ari
   variant?: IconButtonVariant;
 };
 
+// กวาดเมาส์ผ่านแถวปุ่มไอคอนแล้วคำแนะนำจะเด้งทีละอันจนตาลาย รอ 50ms ก่อนค่อยแสดง
+// เท่ากับ delayDuration ของ Cal.com ซึ่งสั้นพอที่จะยังรู้สึกว่าขึ้นทันทีเมื่อตั้งใจชี้จริง
+const tooltipHoverDelayMs = 50;
+
 // ปุ่มไอคอนพร้อมคำแนะนำ ใช้ตอนที่ไอคอนอย่างเดียวยังสื่อความหมายไม่ชัดพอ
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton({
   children,
@@ -44,6 +48,13 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ยกเลิกตัวจับเวลาที่ยังค้าง ใช้ทั้งตอนเมาส์ออกและตอนถอดคอมโพเนนต์
+  const cancelHoverTimer = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = null;
+  };
+  useEffect(() => cancelHoverTimer, []);
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>();
 
   // เก็บ ref ไว้ใช้วัดตำแหน่งเอง พร้อมส่งต่อให้ผู้เรียกที่ขอ ref มาด้วย
@@ -121,10 +132,12 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         className={`icon-button icon-button-${size} icon-button-${variant} ${className}`.trim()}
         // แสดงทั้งตอนเมาส์ชี้และตอนโฟกัสด้วยคีย์บอร์ด ไม่งั้นคนที่ใช้ Tab จะไม่เห็นคำแนะนำเลย
         onBlur={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(false);
           onBlur?.(event);
         }}
         onFocus={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(true);
           onFocus?.(event);
         }}
@@ -134,10 +147,12 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
           onKeyDown?.(event);
         }}
         onMouseEnter={(event) => {
-          setIsTooltipVisible(true);
+          cancelHoverTimer();
+          hoverTimerRef.current = setTimeout(() => setIsTooltipVisible(true), tooltipHoverDelayMs);
           onMouseEnter?.(event);
         }}
         onMouseLeave={(event) => {
+          cancelHoverTimer();
           setIsTooltipVisible(false);
           onMouseLeave?.(event);
         }}

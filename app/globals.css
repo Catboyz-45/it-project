@@ -209,7 +209,6 @@
   .dropdown-trigger > svg.open { @apply rotate-180; }
   .dropdown-popover {
     @apply absolute top-full right-0 left-0 z-[80] mt-2;
-    animation: dropdown-popover-enter var(--motion-base) var(--ease-out-quint) both;
     transform-origin: top center;
   }
   .dropdown-menu {
@@ -331,7 +330,11 @@
   }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
-  .sidebar-subnav { @apply ml-5 grid gap-1 border-l border-[#e4e4e7] pl-2; }
+  /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
+     ไม่ต้องวัดด้วย JS และไม่ต้องรู้ว่าข้างในสูงเท่าไหร่ */
+  .sidebar-subnav { @apply grid transition-all duration-300 ease-in-out; grid-template-rows: 0fr; }
+  .sidebar-subnav.open { grid-template-rows: 1fr; }
+  .sidebar-subnav > div { @apply ml-5 grid gap-1 overflow-hidden border-l border-[#e4e4e7] pl-2; }
   .sidebar-chevron { @apply ml-auto transition-transform; }
   .sidebar-chevron.open { @apply rotate-180; }
   .sidebar-footer { @apply relative mt-auto pt-3; }
@@ -651,7 +654,6 @@
   .action-menu { @apply relative inline-flex; }
   .action-menu-popover {
     @apply fixed z-[100] grid min-w-44 overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
-    animation: action-menu-enter var(--motion-base) var(--ease-out-quint) both;
   }
   .action-menu-end { transform-origin: top right; }
   .action-menu-start { transform-origin: top left; }
@@ -860,14 +862,14 @@
 
   .modal-backdrop {
     @apply fixed inset-0 z-50 grid place-items-center bg-[#202124]/55 p-4 backdrop-blur-[2px];
-    animation: modal-backdrop-enter 180ms ease-out both;
+    animation: modal-backdrop-enter 300ms ease-in-out both;
   }
   .modal-backdrop > .modal,
   .modal-backdrop > .room-edit-modal,
   .modal-backdrop > .tenant-config-modal,
   .modal-backdrop > .repair-flow-modal,
   .modal-backdrop > .repair-schedule-modal {
-    animation: modal-surface-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: modal-surface-enter 300ms ease-in-out both;
     transform-origin: center;
     will-change: opacity, transform;
   }
@@ -1750,23 +1752,13 @@ select:disabled {
 }
 
 @keyframes modal-surface-enter {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes modal-sheet-enter {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes dropdown-popover-enter {
-  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes action-menu-enter {
-  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes toast-enter {
