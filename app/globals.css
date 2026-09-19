@@ -308,13 +308,8 @@
     height: 60%;
     opacity: 1;
   }
-  /* สีประจำหมวดของไอคอน: ค่าน้ำ/ไฟ + บิลและการเงิน = เขียว (เรื่องค่าใช้จ่าย),
-     ร้องเรียน = magenta, พัสดุ = cyan ส่วนห้อง/ผู้เช่า/สัญญา/แดชบอร์ดเป็นหมวด
-     หลักจึงใช้สี brand เดิม (ไม่ตั้ง data-accent) ข้อความยังเป็นสีเดิมเสมอ
-     เปลี่ยนเฉพาะไอคอนเพื่อช่วยกวาดสายตาแยกหมวดโดยไม่ทำให้ตารอกมั่ว */
-  .sidebar nav [data-accent="green"] svg { color: var(--color-brand-green); }
-  .sidebar nav [data-accent="magenta"] svg { color: var(--color-brand-magenta); }
-  .sidebar nav [data-accent="cyan"] svg { color: var(--color-brand-cyan); }
+  /* ไอคอนไม่ตั้งสีของตัวเอง ปล่อยให้รับสีจากข้อความของเมนู เทาตอนปกติ
+     และเป็นสี brand ตอน active เหมือนกันทั้งเจ้าของหอ ผู้เช่า และซูเปอร์แอดมิน */
   .sidebar nav a.active svg, .sidebar nav button.active svg { color: #4651c7; }
   .notification-badge {
     @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white;

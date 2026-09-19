@@ -106,13 +106,13 @@ type TenantNotificationSummary = {
 };
 
 // เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหน้าใหม่โดยไม่ต้องแก้ JSX
-const tabs: Array<{ accent?: "green" | "magenta" | "cyan"; id: TenantTab; label: string; icon: typeof Home }> = [
+const tabs: Array<{ id: TenantTab; label: string; icon: typeof Home }> = [
   { id: "home", label: "หน้าหลัก", icon: Home },
-  { accent: "green", id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
+  { id: "invoices", label: "บิลและชำระเงิน", icon: ReceiptText },
   { id: "lease", label: "สัญญา", icon: FileText },
   { id: "announcements", label: "ประกาศ", icon: Bell },
-  { accent: "cyan", id: "parcels", label: "พัสดุ", icon: Package },
-  { accent: "magenta", id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
+  { id: "parcels", label: "พัสดุ", icon: Package },
+  { id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
   { id: "chat", label: "ติดต่อหอ", icon: MessageSquare },
   { id: "account", label: "บัญชีของฉัน", icon: UserRound },
 ];
@@ -331,8 +331,8 @@ export function TenantPortal({
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
-        {navigationTabs.map(({ accent, id, icon: Icon, label }) => (
-          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} data-accent={accent} href={tenantPagePath(id)} key={id}>
+        {navigationTabs.map(({ id, icon: Icon, label }) => (
+          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
             <Icon size={19} />{label}
             {notificationCount(id) > 0 ? (
               <span className="notification-badge" aria-label={`${notificationCount(id)} รายการที่ต้องตรวจสอบ`}>
