@@ -1,10 +1,5 @@
 "use client";
-
-/**
- * คำอธิบายสำหรับผู้เริ่มต้น
- * ภาพรวมไฟล์: เป็นคอมโพเนนต์หน้าจอ “Chat Widget” ที่แยกไว้เพื่อใช้ซ้ำและลดโค้ดซ้ำในหน้า React
- * การทำงาน: รับข้อมูลผ่าน props แสดงผลตามสถานะ และส่ง event กลับไปยังหน้าหรือ service; ถ้าใช้ state หรือ browser API ไฟล์จะประกาศเป็น Client Component
- */
+// ต่อสตรีมข้อความ จัดการการเลื่อน และอัปโหลดไฟล์จากเบราว์เซอร์
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
@@ -14,15 +9,9 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { IconButton } from "@/components/ui/IconButton";
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Chat View” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// หน้าต่างแชทมีสองหน้า รายชื่อคู่สนทนา กับห้องสนทนา
 type ChatView = "tenants" | "chat";
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Chat Message” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// ข้อความหนึ่งข้อความ ส่งเป็นข้อความอย่างเดียว ไฟล์อย่างเดียว หรือทั้งสองอย่างก็ได้
 type ChatMessage = {
   id: string;
   tenantId: string;
@@ -32,24 +21,16 @@ type ChatMessage = {
   createdAt: string;
   attachment: { name: string; mimeType: string; size: number; url: string } | null;
 };
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: type “Chat Contact” อธิบายรูปแบบข้อมูลให้ TypeScript ตรวจระหว่างพัฒนา; ก้อนนี้ไม่ทำงานเองตอน runtime
- */
+// isSupport แยกแอดมินใหญ่ออกจากผู้เช่า เพราะใช้คนละ API และแสดงผลต่างกัน
 type ChatContact = { id: string; isSupport?: boolean; name: string; roomId: string };
 
-/**
- * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
- * หน้าที่: คอมโพเนนต์ React “Chat Widget” จัดข้อมูลและสร้างส่วนหน้าจอที่ผู้ใช้เห็น
- * รับค่า:
- * - { propertyId, readOnly = false, tenants, unreadCount = 0, op: ชุดข้อมูลที่แยกเฉพาะฟิลด์ซึ่งก้อนนี้ต้องใช้
- * ผลลัพธ์: คืน JSX ซึ่ง React นำไปแสดงเป็นหน้าจอ และอาจผูก event ให้ผู้ใช้โต้ตอบ
- */
+// หน้าต่างแชทมุมจอฝั่งเจ้าของหอ คุยกับผู้เช่าและกับแอดมินใหญ่
 export function ChatWidget({
   propertyId,
   readOnly = false,
   tenants,
   unreadCount = 0,
+  // ตัวเลขที่เพิ่มขึ้นจากหน้าแม่เพื่อสั่งเปิดแชท ใช้ตัวเลขเพราะสั่งเปิดซ้ำได้เรื่อย ๆ
   openSignal = 0,
 }: {
   propertyId: string;
@@ -74,21 +55,18 @@ export function ChatWidget({
   const [error, setError] = useState("");
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const conversationScrollRef = useRef<HTMLDivElement>(null);
+  // ปกติข้อความใหม่เข้ามาแล้วเลื่อนลงล่างสุด ยกเว้นตอนโหลดข้อความเก่ามาต่อข้างบน
   const shouldScrollToEndRef = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ข้าม 0 ซึ่งเป็นค่าเริ่มต้น ไม่งั้นแชทจะเด้งเปิดเองตั้งแต่เข้าหน้า
   useEffect(() => {
     if (openSignal <= 0) return;
     setView("tenants");
     setIsOpen(true);
   }, [openSignal]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “contacts” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
+  // ปักแอดมินใหญ่ไว้บนสุดเสมอ เพราะเป็นช่องทางขอความช่วยเหลือเรื่องระบบ
   const contacts = useMemo<ChatContact[]>(
     () => [
       { id: "super-admin", isSupport: true, name: "แอดมินใหญ่", roomId: "SUPPORT" },
@@ -96,30 +74,20 @@ export function ChatWidget({
     ],
     [tenants],
   );
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “selected Contact” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนค่าที่คำนวณจาก expression นี้โดยตรง
-   */
   const selectedContact = useMemo(
     () => contacts.find((contact) => contact.id === selectedTenantId) ?? contacts[0],
     [contacts, selectedTenantId],
   );
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “append Message” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - nextMessage: ค่า “next Message” ที่จำเป็นต่อการทำงานของก้อนนี้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
+  // เช็ค id ซ้ำก่อนต่อท้าย เพราะข้อความที่เราส่งเองจะกลับมาทางสตรีมอีกรอบด้วย
   const appendMessage = (nextMessage: ChatMessage) => {
     setMessages((current) => current.some((item) => item.id === nextMessage.id) ? current : [...current, nextMessage]);
   };
 
   useEffect(() => {
     if (!isOpen || !conversationId) return;
+    // EventSource รับข้อความใหม่จากเซิร์ฟเวอร์ทางเดียว เบากว่าถามซ้ำ ๆ และเบราว์เซอร์ต่อใหม่ให้เองเมื่อหลุด
+    // after เป็นเวลาปัจจุบัน เพราะข้อความเก่าโหลดมาแล้วจาก effect ข้างล่าง
     const stream = new EventSource(`/api/v1/chat/conversations/${conversationId}/stream?propertyId=${encodeURIComponent(propertyId)}&after=${encodeURIComponent(new Date().toISOString())}`);
     stream.onmessage = (event) => {
       try {
@@ -130,7 +98,9 @@ export function ChatWidget({
       }
     };
     stream.onerror = () => setError("การเชื่อมต่อเรียลไทม์ขัดข้อง ระบบกำลังเชื่อมต่อใหม่");
+    // ต่อติดแล้วก็ล้างข้อความเตือนทิ้ง ผู้ใช้จะได้รู้ว่ากลับมาปกติแล้ว
     stream.onopen = () => setError("");
+    // ต้องปิดสตรีมตอนออกจากหน้า ไม่งั้นการเชื่อมต่อจะค้างสะสม
     return () => stream.close();
   }, [conversationId, isOpen, propertyId]);
 
@@ -139,6 +109,7 @@ export function ChatWidget({
     const controller = new AbortController();
     setIsLoading(true);
     setError("");
+    // คนละ API เพราะสิทธิ์ต่างกัน คุยกับผู้เช่าต้องเป็นผู้เช่าในหอนี้เท่านั้น
     const endpoint = selectedContact?.isSupport
       ? `/api/v1/admin/properties/${propertyId}/support-chat`
       : `/api/v1/admin/properties/${propertyId}/tenant-chat/${selectedTenantId}`;
@@ -152,6 +123,7 @@ export function ChatWidget({
       setHasOlderMessages(result.hasMore ?? false);
       setConversationId(result.conversationId ?? null);
     }).catch((loadError) => {
+      // ยกเลิกเองตอนเปลี่ยนคู่สนทนา ไม่ใช่ข้อผิดพลาดจริง
       if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : "โหลดข้อความไม่สำเร็จ");
     }).finally(() => {
       if (!controller.signal.aborted) setIsLoading(false);
@@ -159,39 +131,38 @@ export function ChatWidget({
     return () => controller.abort();
   }, [propertyId, selectedContact?.isSupport, selectedTenantId, view]);
 
+  // เลื่อนลงล่างสุดเมื่อมีข้อความใหม่ แล้วรีเซ็ตธงกลับเป็นค่าปกติทันที
   useEffect(() => {
     if (shouldScrollToEndRef.current) conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
     shouldScrollToEndRef.current = true;
   }, [messages]);
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: อ่านหรือค้นหาข้อมูลสำหรับ “load Older Messages” แล้วส่งผลที่เหมาะสมกลับไป
-   * รับค่า: ไม่มี — ใช้ข้อมูลจากขอบเขตของไฟล์หรือค่าที่ระบบเตรียมไว้
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const loadOlderMessages = async () => {
     const oldest = messages[0];
     if (!oldest || !selectedContact || isLoadingOlder) return;
     setIsLoadingOlder(true);
     setError("");
+    // จำความสูงเดิมไว้ก่อน เดี๋ยวใช้คำนวณชดเชยการเลื่อนหลังข้อความเก่าถูกแทรกเข้ามา
     const container = conversationScrollRef.current;
     const previousHeight = container?.scrollHeight ?? 0;
     try {
       const endpoint = selectedContact.isSupport
         ? `/api/v1/admin/properties/${propertyId}/support-chat`
         : `/api/v1/admin/properties/${propertyId}/tenant-chat/${selectedContact.id}`;
+      // อ้างอิงจาก id ของข้อความเก่าสุดที่มีอยู่ ไม่ใช้เลขหน้า เพราะข้อความใหม่เข้ามาแล้วเลขหน้าจะเลื่อน
       const search = new URLSearchParams({ beforeMessageId: oldest.id, limit: "50" });
       const response = await fetch(`${endpoint}?${search}`, { cache: "no-store" });
       const result = await response.json() as { error?: string; hasMore?: boolean; messages?: ChatMessage[] };
       if (!response.ok || !result.messages) throw new Error(result.error || "โหลดข้อความก่อนหน้าไม่สำเร็จ");
       const olderMessages = result.messages;
+      // ครั้งนี้อย่าเลื่อนลงล่าง ผู้ใช้กำลังอ่านข้อความเก่าอยู่
       shouldScrollToEndRef.current = false;
       setMessages((current) => [
         ...olderMessages.filter((item) => !current.some((existing) => existing.id === item.id)),
         ...current,
       ]);
       setHasOlderMessages(result.hasMore ?? false);
+      // ดันตำแหน่งลงเท่ากับความสูงที่เพิ่มมา ข้อความที่อ่านอยู่จะได้ค้างที่เดิมไม่กระโดด
       requestAnimationFrame(() => {
         if (container) container.scrollTop += container.scrollHeight - previousHeight;
       });
@@ -202,38 +173,28 @@ export function ChatWidget({
     }
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: รวมขั้นตอนย่อยของ “open Tenant Chat” ไว้ในจุดเดียว เพื่อให้ส่วนอื่นเรียกใช้ซ้ำและทดสอบได้
-   * รับค่า:
-   * - tenantId: รหัสภายในของ tenant
-   * ผลลัพธ์: คืนผลลัพธ์หรือเปลี่ยนสถานะตามหน้าที่ของฟังก์ชัน; TypeScript จะอนุมานชนิดจากโค้ด
-   */
   const openTenantChat = (tenantId: string) => {
     setSelectedTenantId(tenantId);
     setView("chat");
     setIsOptionsOpen(false);
   };
 
-  /**
-   * คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
-   * หน้าที่: สร้างหรือส่งข้อมูลในขั้นตอน “send Message” หลังผ่านการตรวจที่เกี่ยวข้อง
-   * รับค่า:
-   * - event: เหตุการณ์จากผู้ใช้หรือเบราว์เซอร์
-   * ผลลัพธ์: คืนข้อมูลที่ก้อนนี้อ่าน คำนวณ หรือประกอบให้ผู้เรียก
-   */
   const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
+    // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     const body = message.trim();
+    // ส่งได้ถ้ามีข้อความหรือมีไฟล์อย่างใดอย่างหนึ่ง และต้องไม่กำลังส่งอยู่
     if ((!body && !attachment) || !selectedContact || isSending) return;
     setIsSending(true);
     setError("");
     try {
+      // id ที่ฝั่งเราสร้าง ให้เซิร์ฟเวอร์ใช้กันบันทึกซ้ำถ้าคำขอถูกส่งซ้ำ
       const clientId = crypto.randomUUID();
       if (!conversationId) throw new Error("ยังไม่พบบทสนทนา");
       const baseEndpoint = selectedContact.isSupport
         ? `/api/v1/admin/properties/${propertyId}/support-chat`
         : `/api/v1/admin/properties/${propertyId}/tenant-chat/${selectedContact.id}`;
+      // มีไฟล์ต้องส่งเป็น FormData ไปที่ปลายทางของไฟล์ ไม่มีไฟล์ก็ส่ง JSON ตามปกติ
       const response = attachment
         ? await fetch(`/api/v1/chat/conversations/${conversationId}/attachments`, {
           method: "POST",
@@ -257,9 +218,12 @@ export function ChatWidget({
       });
       const result = await response.json() as { error?: string; message?: ChatMessage };
       if (!response.ok || !result.message) throw new Error(result.error || "ส่งข้อความไม่สำเร็จ");
+      // ต่อข้อความที่เซิร์ฟเวอร์ตอบกลับมา ไม่ใช่ที่พิมพ์ไว้ จะได้ได้ id กับเวลาที่ถูกต้อง
       appendMessage(result.message);
+      // ล้างช่องพิมพ์เมื่อส่งสำเร็จเท่านั้น ส่งไม่ผ่านข้อความจะได้ยังอยู่ให้กดส่งใหม่
       setMessage("");
       setAttachment(null);
+      // ล้างค่า input ด้วย ไม่งั้นเลือกไฟล์ชื่อเดิมซ้ำจะไม่เกิด onChange
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "ส่งข้อความไม่สำเร็จ");
@@ -268,6 +232,7 @@ export function ChatWidget({
     }
   };
 
+  // ปิดอยู่ก็เหลือแค่ปุ่มลอยมุมจอ พร้อมป้ายจำนวนข้อความที่ยังไม่ได้อ่าน
   if (!isOpen) {
     return <IconButton className="chat-launcher" label="เปิดข้อความผู้เช่า" onClick={() => {
       setView("tenants");
@@ -284,6 +249,7 @@ export function ChatWidget({
 
   return <>
     <aside className={`${view === "chat" ? "chat-widget chat-mode" : "chat-widget"}${isExpanded ? " expanded" : ""}`} aria-label="ข้อความผู้เช่า">
+      {/* หัวหน้าต่างคนละแบบ ในห้องสนทนามีปุ่มย้อนกลับกับชื่อคู่สนทนา */}
       {view === "chat" && selectedContact ? (
         <header className="chat-widget-header chat-conversation-header">
           <IconButton label="ย้อนกลับไปยังรายชื่อผู้เช่า" onClick={() => { setIsOptionsOpen(false); setView("tenants"); }}><ChevronLeft size={22} /></IconButton>
@@ -337,16 +303,19 @@ export function ChatWidget({
             ) : null}
             <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</time>
           </article>)}
+          {/* กล่องเปล่าไว้เป็นหมุดให้เลื่อนไปหา ง่ายกว่าคำนวณความสูงเอง */}
           <div ref={conversationEndRef} />
         </div> : null}
       </div>
 
+      {/* โหมดอ่านอย่างเดียวยังคุยกับแอดมินใหญ่ได้ เพราะต้องใช้ติดต่อขอต่ออายุแพ็กเกจ */}
       {view === "chat" && (!readOnly || selectedContact?.isSupport) ? <form className="chat-composer" onSubmit={sendMessage}>
         {error ? <p className="chat-error" role="alert">{error}</p> : null}
         {attachment ? <div className="chat-attachment-preview"><FileText size={18} /><span>{attachment.name}</span><IconButton label="นำไฟล์แนบออก" onClick={() => { setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} size="sm"><X size={16} /></IconButton></div> : null}
         <div>
           <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={(event) => {
             const file = event.target.files?.[0] ?? null;
+            // ตรวจขนาดตั้งแต่ตอนเลือก จะได้ไม่เสียเวลาอัปโหลดแล้วโดนปฏิเสธ ส่วนเซิร์ฟเวอร์ตรวจซ้ำอยู่ดี
             if (file && file.size > 5 * 1024 * 1024) {
               setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
               event.target.value = "";
