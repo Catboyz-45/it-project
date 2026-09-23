@@ -31,6 +31,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { ActionMenu } from "@/components/ui/ActionMenu";
+import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LEASE_EXPIRY_NOTICE_DAYS, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
@@ -107,7 +108,7 @@ const emptyForm: LeaseForm = {
   depositAmount: "",
 };
 
-// แปลงเป็น "YYYY-MM-DD" ซึ่งเป็นรูปแบบเดียวที่ input type="date" ยอมรับ
+// แปลงเป็น "YYYY-MM-DD" ซึ่งเป็นรูปแบบที่ปฏิทินกับฐานข้อมูลใช้ร่วมกัน
 function dateInput(value: string) {
   return value ? new Date(value).toISOString().slice(0, 10) : "";
 }
@@ -119,6 +120,15 @@ function dateDisplay(value: string) {
 
 // คำนวณช่วงของสัญญาใหม่ให้ต่อจากฉบับเดิมพอดี ไม่ทับและไม่เว้นช่อง
 // ใช้ UTC ทั้งหมดกันวันเลื่อนตามเขตเวลาของเครื่องที่เปิด
+// สัญญาบันทึกย้อนหลังได้ เช่นเพิ่งมาคีย์ของที่เซ็นไปแล้ว ปฏิทินจึงต้องไม่ปิดวันในอดีต
+// ปฏิทินบังคับให้มีวันต่ำสุดเสมอ จึงตั้งไว้ไกลพอจนไม่ขวางการใช้งานจริง
+const earliestLeaseDate = new Date(2000, 0, 1);
+
+// แปลง "YYYY-MM-DD" เป็น Date โดยระบุเวลาไว้ด้วย ไม่งั้นเบราว์เซอร์จะตีความเป็น UTC แล้วเลื่อนไปหนึ่งวัน
+function parseFormDate(value: string) {
+  return new Date(`${value}T00:00:00`);
+}
+
 function renewalDates(endDate: string) {
   // เริ่มวันถัดจากวันสิ้นสุดของฉบับเดิม
   const start = new Date(endDate);
@@ -292,6 +302,11 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
     if (isSaving || actionFeedback.isPending) return;
     if (!editingLease && !renewingLease && !form.roomId) {
       setError("กรุณาเลือกห้อง");
+      return;
+    }
+    // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
+    if (!form.startDate || !form.endDate || form.endDate < form.startDate) {
+      setError("กรุณาตรวจสอบวันเริ่มและวันสิ้นสุดสัญญา");
       return;
     }
     setIsSaving(true);
@@ -548,8 +563,18 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
                   setForm((current) => ({ ...current, roomId: value, monthlyRent: room ? String(room.rent) : current.monthlyRent }));
                 }} options={[{ label: "เลือกห้อง", value: "" }, ...occupiedRooms.flatMap((room) => room.databaseId ? [{ label: `ห้อง ${room.id}`, value: room.databaseId }] : [])]} value={form.roomId} />
                 <label><span>ค่าเช่าต่อเดือน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required step="0.01" type="number" value={form.monthlyRent} /></label>
-                <label><span>วันเริ่มสัญญา</span><input min={renewingLease ? renewalDates(renewingLease.endDate).startDate : undefined} onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={form.startDate} /></label>
-                <label><span>วันสิ้นสุดสัญญา</span><input min={form.startDate || undefined} onChange={(event) => setForm((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={form.endDate} /></label>
+                <DatePickerField
+                  label="วันเริ่มสัญญา"
+                  minDate={renewingLease ? parseFormDate(renewalDates(renewingLease.endDate).startDate) : earliestLeaseDate}
+                  onChange={(value) => setForm((current) => ({ ...current, startDate: value }))}
+                  value={form.startDate}
+                />
+                <DatePickerField
+                  label="วันสิ้นสุดสัญญา"
+                  minDate={form.startDate ? parseFormDate(form.startDate) : earliestLeaseDate}
+                  onChange={(value) => setForm((current) => ({ ...current, endDate: value }))}
+                  value={form.endDate}
+                />
                 <label><span>เงินประกัน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, depositAmount: event.target.value }))} required step="0.01" type="number" value={form.depositAmount} /></label>
               </div>
               <footer className="modal-actions">

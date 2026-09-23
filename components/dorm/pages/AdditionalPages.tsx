@@ -20,6 +20,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
+import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { TablePagination, useTablePagination } from "@/components/dorm/TablePagination";
@@ -344,10 +345,11 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
             </fieldset>
 
             {form.publishMode === "scheduled" ? (
-              <label>
-                <span>วันที่เผยแพร่</span>
-                <input min={todayInputValue()} onChange={(event) => setForm((current) => ({ ...current, publishDate: event.target.value }))} required type="date" value={form.publishDate} />
-              </label>
+              <DatePickerField
+                label="วันที่เผยแพร่"
+                onChange={(value) => setForm((current) => ({ ...current, publishDate: value }))}
+                value={form.publishDate}
+              />
             ) : null}
 
             {formError ? <p role="alert">{formError}</p> : null}

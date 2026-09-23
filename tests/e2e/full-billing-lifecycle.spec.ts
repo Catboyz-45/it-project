@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { pickDate } from "./helpers/date-picker";
 
 // เทสต์นี้สร้างทุกอย่างขึ้นใหม่เอง จึงต้องเริ่มจากบัญชีซูเปอร์แอดมินตั้งต้นใน env
 const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
@@ -261,8 +262,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   // ช่องห้องเป็น dropdown ที่เขียนเอง ไม่ใช่ <select> ของเบราว์เซอร์ จึงต้องกดเปิดแล้วเลือก
   await leaseDialog.getByLabel("ห้อง").click();
   await page.getByRole("option", { name: `ห้อง ${room.data.number}`, exact: true }).click();
-  await leaseDialog.getByLabel("วันเริ่มสัญญา").fill(leaseStart);
-  await leaseDialog.getByLabel("วันสิ้นสุดสัญญา").fill(leaseEnd);
+  // วันที่ในสัญญาใช้ปฏิทินที่เขียนเอง ไม่ใช่ช่องวันที่ของเบราว์เซอร์
+  await pickDate(leaseDialog, page, "วันเริ่มสัญญา", leaseStart);
+  await pickDate(leaseDialog, page, "วันสิ้นสุดสัญญา", leaseEnd);
   await leaseDialog.getByLabel("เงินประกัน").fill("7000");
   const leaseResponsePromise = page.waitForResponse((response) =>
     response.url().endsWith(`/api/v1/admin/properties/${property.id}/leases`)

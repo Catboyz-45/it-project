@@ -58,12 +58,15 @@ const monthShortLabels = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", 
 export function DatePickerField({
   label,
   // ค่าเริ่มต้นคือวันนี้ เพราะที่ใช้ส่วนใหญ่เป็นวันในอนาคต เช่นวันเริ่มหรือวันสิ้นสุดสัญญา
+  // บางช่องห้ามเลือกวันในอนาคต เช่นวันที่มีผลของการย้ายออก ไม่ส่งมาก็เลือกได้ไม่จำกัด
+  maxDate,
   minDate = new Date(),
   onChange,
   placeholder = "เลือกวันที่",
   value,
 }: {
   label: string;
+  maxDate?: Date;
   minDate?: Date;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -76,15 +79,22 @@ export function DatePickerField({
   // ค่าที่รับมาเป็นสตริง แปลงเป็น Date ไว้ใช้ภายใน ค่าที่รูปแบบผิดจะได้ null
   const selectedDate = useMemo(() => parseIsoDate(value), [value]);
   const minimumDate = useMemo(() => startOfDay(minDate), [minDate]);
+  const maximumDate = useMemo(() => maxDate ? startOfDay(maxDate) : null, [maxDate]);
   const [isOpen, setIsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"day" | "month" | "year">("day");
-  // เปิดมาที่เดือนของวันที่เลือกไว้ ถ้ายังไม่ได้เลือกหรือเลือกไว้ก่อนวันต่ำสุดก็ไปที่เดือนของวันต่ำสุด
-  const [visibleMonth, setVisibleMonth] = useState(() => {
-    const baseDate = selectedDate && selectedDate >= minimumDate ? selectedDate : minimumDate;
-    return new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-  });
+  // ยังไม่ได้เลือกวันก็เปิดมาที่เดือนปัจจุบัน ซึ่งเป็นจุดที่ผู้ใช้มองหาเสมอ
+  // เว้นแต่วันต่ำสุดอยู่ในอนาคต ถึงจะเปิดที่เดือนของวันต่ำสุดแทน
+  // ถ้าใช้วันต่ำสุดเป็นหลักเสมอ ช่องที่ยอมให้ย้อนหลังได้ไกล ๆ จะเปิดมาที่ปีเก่าจนผู้ใช้ต้องกดเลื่อนเอง
+  const openingDate = useMemo(() => {
+    if (selectedDate && selectedDate >= minimumDate) return selectedDate;
+    const today = startOfDay(new Date());
+    // วันนี้เลยเพดานไปแล้วก็เปิดที่วันสูงสุดแทน ไม่งั้นจะเปิดมาที่เดือนที่กดอะไรไม่ได้เลย
+    if (maximumDate !== null && today > maximumDate) return maximumDate;
+    return today >= minimumDate ? today : minimumDate;
+  }, [maximumDate, minimumDate, selectedDate]);
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(openingDate.getFullYear(), openingDate.getMonth(), 1));
   // วันที่โฟกัสอยู่ แยกจากวันที่เลือกไว้ เพราะเลื่อนด้วยลูกศรได้โดยยังไม่ได้กดเลือก
-  const [focusedDate, setFocusedDate] = useState(() => selectedDate && selectedDate >= minimumDate ? selectedDate : minimumDate);
+  const [focusedDate, setFocusedDate] = useState(() => openingDate);
   const visibleYear = visibleMonth.getFullYear();
   // หน้าเลือกปีแสดงทีละ 12 ปี ปัดลงให้ช่วงเริ่มต้นคงที่ ไม่เลื่อนตามปีที่ดูอยู่
   const yearRangeStart = Math.floor(visibleYear / 12) * 12;
@@ -190,9 +200,8 @@ export function DatePickerField({
       window.dispatchEvent(new CustomEvent("dorm-date-picker-open", { detail: { id: pickerId } }));
       // เปิดมาที่มุมมองวันเสมอ ไม่ค้างมุมมองเดือนหรือปีจากครั้งก่อน
       setViewMode("day");
-      const nextFocusedDate = selectedDate && selectedDate >= minimumDate ? selectedDate : minimumDate;
-      setFocusedDate(nextFocusedDate);
-      setVisibleMonth(new Date(nextFocusedDate.getFullYear(), nextFocusedDate.getMonth(), 1));
+      setFocusedDate(openingDate);
+      setVisibleMonth(new Date(openingDate.getFullYear(), openingDate.getMonth(), 1));
     }
     setIsOpen((current) => !current);
   };
@@ -320,7 +329,8 @@ export function DatePickerField({
                   {calendarDays.map((day) => {
                     const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
                     const isSelected = selectedDate ? sameCalendarDay(day, selectedDate) : false;
-                    const isDisabled = startOfDay(day) < minimumDate;
+                    // วันที่เลยเพดานไปก็กดไม่ได้ เหมือนวันที่ต่ำกว่าวันต่ำสุด
+                    const isDisabled = startOfDay(day) < minimumDate || (maximumDate !== null && startOfDay(day) > maximumDate);
                     return (
                       <button
                         // aria-current="date" คือวันนี้ ส่วน aria-selected คือวันที่ผู้ใช้เลือกไว้ คนละเรื่องกัน

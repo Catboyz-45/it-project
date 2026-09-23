@@ -54,8 +54,9 @@ test("owner renews a lease without overwriting the active lease", async ({ page 
   // ช่องห้องต้องล็อกไว้ ต่อสัญญาคือต่อห้องเดิม ย้ายห้องต้องทำสัญญาใหม่
   await expect(dialog.getByLabel("ห้อง")).toBeDisabled();
   // วันที่ต้องถูกเติมให้อัตโนมัติต่อจากใบเดิม ผู้ใช้ไม่ต้องคำนวณเอง
-  await expect(dialog.getByLabel("วันเริ่มสัญญา")).toHaveValue("2027-01-01");
-  await expect(dialog.getByLabel("วันสิ้นสุดสัญญา")).toHaveValue("2027-12-31");
+  // ปฏิทินที่เขียนเองแสดงวันที่เป็นข้อความไทยบนปุ่ม ไม่ได้เก็บไว้ใน value ของ input
+  await expect(dialog.getByRole("button", { name: "วันเริ่มสัญญา", exact: true })).toContainText("1 ม.ค. 2570");
+  await expect(dialog.getByRole("button", { name: "วันสิ้นสุดสัญญา", exact: true })).toContainText("31 ธ.ค. 2570");
   await dialog.getByRole("button", { name: "สร้างสัญญาต่ออายุ" }).click();
 
   const rows = page.locator(".contract-table .figma-table-row");

@@ -6,6 +6,7 @@ import { ArrowRight, ArrowRightLeft, CheckCircle2, LoaderCircle, LogOut, Plus, R
 import { useToast } from "@/components/ui/ToastProvider";
 import { IconButton } from "@/components/ui/IconButton";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
+import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { useConfirmation } from "@/components/ui/use-confirmation";
@@ -167,8 +168,15 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
           <button className={`rounded-2xl border p-4 text-left ${type === "MOVE_ROOM" ? "border-brand bg-brand/10" : "border-[#d9dae0]"}`} onClick={() => setType("MOVE_ROOM")} type="button"><ArrowRightLeft className="mb-2" /><strong className="block">ย้ายห้อง</strong><small>ย้ายผู้พักทั้งห้องและโอนเงินประกันคงเหลือ</small></button>
         </div>
         <div className="tenant-config-grid">
-          {/* max เป็นวันนี้ เพราะย้ายออกในอนาคตต้องรอให้ถึงวันจริงก่อน จะได้ไม่ปิดสัญญาล่วงหน้า */}
-          <label><span>วันที่มีผล</span><input max={new Date().toISOString().slice(0, 10)} onChange={(event) => setEffectiveDate(event.target.value)} required type="date" value={effectiveDate} /></label>
+          {/* เพดานเป็นวันนี้ เพราะย้ายออกในอนาคตต้องรอให้ถึงวันจริงก่อน จะได้ไม่ปิดสัญญาล่วงหน้า
+              ส่วนวันต่ำสุดเปิดกว้างไว้ เพราะย้ายออกไปแล้วเพิ่งมาบันทึกย้อนหลังได้ */}
+          <DatePickerField
+            label="วันที่มีผล"
+            maxDate={new Date()}
+            minDate={new Date(2000, 0, 1)}
+            onChange={setEffectiveDate}
+            value={effectiveDate}
+          />
           {type === "MOVE_ROOM" ? <DropdownField label="ห้องปลายทาง" onChange={setDestinationRoomId} options={[{ label: "เลือกห้องว่าง", value: "" }, ...destinationRooms.flatMap((room) => room.databaseId ? [{ label: `${room.id} · ${currency.format(room.rent)}/เดือน`, value: room.databaseId }] : [])]} value={destinationRoomId} /> : null}
           <label className="full-width"><span>เหตุผล</span><textarea maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder={type === "MOVE_OUT" ? "เช่น ครบกำหนดสัญญา" : "เช่น ต้องการห้องขนาดใหญ่ขึ้น"} required value={reason} /></label>
         </div>

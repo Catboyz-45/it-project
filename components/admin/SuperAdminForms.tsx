@@ -6,6 +6,7 @@ import { Plus, UserPlus, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 
 type PropertyOption = { id: string; name: string };
@@ -30,6 +31,9 @@ export function SuperAdminForms({
   const showProperty = sections.includes("property");
   const showAccount = sections.includes("account");
   const showSubscription = sections.includes("subscription");
+  // ปฏิทินที่เขียนเองเก็บค่าไว้ใน state ไม่ใช่ใน FormData แบบ input ของเบราว์เซอร์
+  const [subscriptionStartsAt, setSubscriptionStartsAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
@@ -137,17 +141,22 @@ export function SuperAdminForms({
   async function submitSubscription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true); setMessage("");
-    const form = new FormData(event.currentTarget);
-    // ทั้งสองช่องเป็นตัวเลือกที่ค้นได้ ไม่ใช่ input ปกติ จึงต้องเช็คเองก่อนส่ง
+    // ทุกช่องในฟอร์มนี้เก็บค่าไว้ใน state ไม่ได้อ่านจาก FormData จึงต้องเช็คเองก่อนส่ง
     const propertyId = subscriptionPropertyId;
     if (!propertyId || !subscriptionPlanId) {
       setMessage("กรุณาเลือกหอพักและแพ็กเกจ");
       setPending(false);
       return;
     }
+    // ปฏิทินที่เขียนเองไม่มี required ของเบราว์เซอร์ จึงต้องตรวจเอง
+    if (!subscriptionStartsAt || !subscriptionExpiresAt || subscriptionExpiresAt < subscriptionStartsAt) {
+      setMessage("กรุณาตรวจสอบวันเริ่มใช้งานและวันหมดอายุ");
+      setPending(false);
+      return;
+    }
     try {
-      const startsAt = new Date(String(form.get("startsAt")));
-      const expiresAt = new Date(String(form.get("expiresAt")));
+      const startsAt = new Date(`${subscriptionStartsAt}T00:00:00`);
+      const expiresAt = new Date(`${subscriptionExpiresAt}T00:00:00`);
       const response = await fetch(`/api/v1/super-admin/properties/${propertyId}/subscription`, {
         // PUT เพราะหอหนึ่งมีแพ็กเกจที่ใช้งานอยู่ได้ใบเดียว ส่งไปคือแทนที่ของเดิม
         method: "PUT", headers: { "Content-Type": "application/json" },
@@ -207,8 +216,14 @@ export function SuperAdminForms({
         {propertyQuery.trim() && properties.length === 0 ? <div className="md:col-span-2 xl:col-span-5"><SearchEmptyState description="ลองใช้ชื่อหรือชื่อย่ออื่น" title="ไม่พบหอพักที่ค้นหา" /></div> : null}
         {planQuery.trim() && plans.length === 0 ? <div className="md:col-span-2 xl:col-span-5"><SearchEmptyState description="ลองใช้ชื่อหรือรหัสแพ็กเกจอื่น" title="ไม่พบแพ็กเกจที่ค้นหา" /></div> : null}
         <DropdownField label="รอบบิล" onChange={setBillingInterval} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} />
-        <label>เริ่มใช้งาน<input defaultValue={new Date().toISOString().slice(0, 10)} name="startsAt" required type="date" /></label>
-        <label>หมดอายุ<input name="expiresAt" required type="date" /></label>
+        {/* แพ็กเกจย้อนหลังได้ เช่นมาคีย์ของที่เริ่มไปแล้ว ปฏิทินจึงไม่ปิดวันในอดีต */}
+        <DatePickerField label="เริ่มใช้งาน" minDate={new Date(2000, 0, 1)} onChange={setSubscriptionStartsAt} value={subscriptionStartsAt} />
+        <DatePickerField
+          label="หมดอายุ"
+          minDate={subscriptionStartsAt ? new Date(`${subscriptionStartsAt}T00:00:00`) : new Date(2000, 0, 1)}
+          onChange={setSubscriptionExpiresAt}
+          value={subscriptionExpiresAt}
+        />
         <button aria-describedby={!pending && (properties.length === 0 || plans.length === 0) ? "subscription-override-disabled-reason" : undefined} className="primary-button md:col-span-2 xl:col-span-5" disabled={pending || properties.length === 0 || plans.length === 0} type="submit">บันทึกแพ็กเกจ</button>
         {!pending && (properties.length === 0 || plans.length === 0) ? <p className="disabled-reason md:col-span-2 xl:col-span-5" id="subscription-override-disabled-reason">{properties.length === 0 ? "ต้องมีหอพักก่อนกำหนดแพ็กเกจ" : "ต้องมีแพ็กเกจอย่างน้อย 1 รายการก่อนบันทึก"}</p> : null}
       </form>
