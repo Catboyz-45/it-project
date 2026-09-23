@@ -252,7 +252,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
         </PageHeaderActions>
         <div className="figma-table-wrap">
           <table className="figma-table">
-            <thead><tr><th>หัวข้อ</th><th>กลุ่มผู้รับ</th><th>วันที่เผยแพร่</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <thead><tr><th scope="col">หัวข้อ</th><th scope="col">กลุ่มผู้รับ</th><th scope="col">วันที่เผยแพร่</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
             <tbody>{pageItems.map((item) => (
               <tr key={item.id}>
                 <td><strong>{item.title}</strong></td>
@@ -538,7 +538,7 @@ export function ComplaintsPage({
       <article className="figma-table-card">
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
-            <thead><tr><th>เลขที่</th><th>เรื่อง</th><th>ผู้แจ้ง/พื้นที่</th><th>วันที่แจ้ง</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+            <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
             <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td>{item.id}</td><td><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
               items={[
                 { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: replyTicketId === item.id ? "ปิดข้อความ" : "เปิดข้อความ", onSelect: () => setReplyTicketId((current) => current === item.id ? null : item.id) },

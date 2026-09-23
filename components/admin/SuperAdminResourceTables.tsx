@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Download,
   Inbox,
-  LoaderCircle,
   Pencil,
   Plus,
   Search,
@@ -18,6 +17,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
 
 type PageInfo = {
@@ -67,6 +67,7 @@ type AuditLog = {
 function PaginatedTable<T>({
   action,
   children,
+  columns,
   empty,
   emptyDescription,
   endpoint,
@@ -76,6 +77,8 @@ function PaginatedTable<T>({
   action?: React.ReactNode;
   // รับเป็นฟังก์ชัน เพื่อให้ผู้เรียกเป็นคนตัดสินใจว่าจะวาดแต่ละแถวยังไง
   children: (rows: T[]) => React.ReactNode;
+  // จำนวนคอลัมน์ของตารางที่กำลังจะมา ใช้วาดโครงหลอกให้ตรงกับของจริง
+  columns: number;
   empty: string;
   emptyDescription?: string;
   endpoint: string;
@@ -212,11 +215,8 @@ function PaginatedTable<T>({
           {action}
         </div>
       </div>
-      {isLoading ? (
-        <div className="document-editor-state">
-          <LoaderCircle className="animate-spin" /> กำลังโหลด...
-        </div>
-      ) : null}
+      {/* โครงหลอกรูปตาราง ไม่ใช่วงหมุน คอลัมน์จะได้ไม่ขยับตอนข้อมูลมาถึง */}
+      {isLoading ? <LoadingSkeleton columns={columns} count={5} label="กำลังโหลดข้อมูล" variant="table" /> : null}
       {error ? (
         <p className="form-alert error" role="alert">
           {error}
@@ -306,6 +306,7 @@ export function SuperAdminResourceTables({
       {resources.includes("plans") ? (
         <ResourceSection>
           <PaginatedTable<Plan>
+            columns={7}
             initialPageInfo={initialTables?.["plans"]?.pageInfo ?? null}
             initialRows={(initialTables?.["plans"]?.rows as Plan[] | undefined) ?? null}
             action={
@@ -321,17 +322,17 @@ export function SuperAdminResourceTables({
             endpoint="/api/v1/super-admin/plans"
           >
             {(plans) => (
-              <div className="overflow-x-auto">
+              <div className="figma-table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>แพ็กเกจ</th>
-                      <th>รายเดือน</th>
-                      <th>รายปี</th>
-                      <th>ห้องสูงสุด</th>
-                      <th>สมาชิก</th>
-                      <th>สถานะ</th>
-                      <th>จัดการ</th>
+                      <th scope="col">แพ็กเกจ</th>
+                      <th scope="col">รายเดือน</th>
+                      <th scope="col">รายปี</th>
+                      <th scope="col">ห้องสูงสุด</th>
+                      <th scope="col">สมาชิก</th>
+                      <th scope="col">สถานะ</th>
+                      <th scope="col">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -378,6 +379,7 @@ export function SuperAdminResourceTables({
       {resources.includes("properties") ? (
         <ResourceSection>
           <PaginatedTable<Property>
+            columns={4}
             initialPageInfo={initialTables?.["properties"]?.pageInfo ?? null}
             initialRows={(initialTables?.["properties"]?.rows as Property[] | undefined) ?? null}
             action={propertyAction}
@@ -385,14 +387,14 @@ export function SuperAdminResourceTables({
             endpoint="/api/v1/super-admin/properties"
           >
             {(properties) => (
-              <div className="overflow-x-auto">
+              <div className="figma-table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>ชื่อ</th>
-                      <th>ชื่อย่อ</th>
-                      <th>สถานะ</th>
-                      <th>รายละเอียด</th>
+                      <th scope="col">ชื่อ</th>
+                      <th scope="col">ชื่อย่อ</th>
+                      <th scope="col">สถานะ</th>
+                      <th scope="col">รายละเอียด</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -427,6 +429,7 @@ export function SuperAdminResourceTables({
       {resources.includes("accounts") ? (
         <ResourceSection>
           <PaginatedTable<Admin>
+            columns={6}
             initialPageInfo={initialTables?.["accounts"]?.pageInfo ?? null}
             initialRows={(initialTables?.["accounts"]?.rows as Admin[] | undefined) ?? null}
             action={accountAction}
@@ -434,16 +437,16 @@ export function SuperAdminResourceTables({
             endpoint="/api/v1/super-admin/users"
           >
             {(admins) => (
-              <div className="overflow-x-auto">
+              <div className="figma-table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>ชื่อ</th>
-                      <th>อีเมล</th>
-                      <th>หอที่ดูแล</th>
-                      <th>การอนุมัติ</th>
-                      <th>การใช้งาน</th>
-                      <th>จัดการ</th>
+                      <th scope="col">ชื่อ</th>
+                      <th scope="col">อีเมล</th>
+                      <th scope="col">หอที่ดูแล</th>
+                      <th scope="col">การอนุมัติ</th>
+                      <th scope="col">การใช้งาน</th>
+                      <th scope="col">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -495,21 +498,22 @@ export function SuperAdminResourceTables({
       {resources.includes("audit-logs") ? (
         <ResourceSection>
           <PaginatedTable<AuditLog>
+            columns={5}
             initialPageInfo={initialTables?.["audit-logs"]?.pageInfo ?? null}
             initialRows={(initialTables?.["audit-logs"]?.rows as AuditLog[] | undefined) ?? null}
             empty="ยังไม่มีรายการ" emptyDescription="เหตุการณ์สำคัญในระบบจะถูกบันทึกมาที่นี่"
             endpoint="/api/v1/super-admin/audit-logs"
           >
             {(logs) => (
-              <div className="overflow-x-auto">
+              <div className="figma-table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>เวลา</th>
-                      <th>ผู้ใช้</th>
-                      <th>หอพัก</th>
-                      <th>เหตุการณ์</th>
-                      <th>ผลลัพธ์</th>
+                      <th scope="col">เวลา</th>
+                      <th scope="col">ผู้ใช้</th>
+                      <th scope="col">หอพัก</th>
+                      <th scope="col">เหตุการณ์</th>
+                      <th scope="col">ผลลัพธ์</th>
                     </tr>
                   </thead>
                   <tbody>

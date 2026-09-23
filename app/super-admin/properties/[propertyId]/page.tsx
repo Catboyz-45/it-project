@@ -127,16 +127,16 @@ export default async function PropertyDetailPage({
           <h2 className="text-base font-semibold">ประวัติ Subscription</h2>
           <p className="text-sm text-[#62646c]">คำสั่งซื้อและการต่ออายุล่าสุด</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="figma-table-wrap">
           <table>
             <thead>
               <tr>
-                <th>คำสั่งซื้อ</th>
-                <th>แพ็กเกจ</th>
-                <th>ประเภท</th>
-                <th>ยอด</th>
-                <th>สถานะ</th>
-                <th>วันที่</th>
+                <th scope="col">คำสั่งซื้อ</th>
+                <th scope="col">แพ็กเกจ</th>
+                <th scope="col">ประเภท</th>
+                <th scope="col">ยอด</th>
+                <th scope="col">สถานะ</th>
+                <th scope="col">วันที่</th>
               </tr>
             </thead>
             <tbody>

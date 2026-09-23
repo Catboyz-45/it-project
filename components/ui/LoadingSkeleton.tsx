@@ -40,7 +40,7 @@ export function LoadingSkeleton({
           <table className={`figma-grid-table ${tableClassName ?? ""}`.trim()}>
             <thead>
               <tr className="figma-table-head" style={gridStyle}>
-                {columnIndexes.map((column) => <th key={column}><span /></th>)}
+                {columnIndexes.map((column) => <th key={column} scope="col"><span /></th>)}
               </tr>
             </thead>
             <tbody>

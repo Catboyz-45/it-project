@@ -268,7 +268,7 @@ export function ParcelsPage({
           <div className="parcel-table-wrap">
             <table className="parcel-table status-scan-table">
               <thead>
-                <tr><th>พัสดุ</th><th>ห้อง / ผู้รับ</th><th>หมายเหตุ</th><th>วันที่ลงทะเบียน</th><th>สถานะ</th><th>จัดการ</th></tr>
+                <tr><th scope="col">พัสดุ</th><th scope="col">ห้อง / ผู้รับ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่ลงทะเบียน</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
               </thead>
               <tbody>
                 {pageItems.map((parcel) => (

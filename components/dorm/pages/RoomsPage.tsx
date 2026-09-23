@@ -111,7 +111,7 @@ export function RoomsPage({
           <div className="additional-card-head"><div><h2>รายการห้องพัก</h2><p>ข้อมูลห้องเรียงตามอาคาร ชั้น และเลขห้อง</p></div></div>
           <div className="figma-table-wrap">
             <table className="figma-table rooms-data-table">
-              <thead><tr><th>ห้อง</th><th>อาคาร</th><th>ชั้น</th><th>ประเภท</th><th>ค่าเช่า</th><th>ผู้เช่า</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+              <thead><tr><th scope="col">ห้อง</th><th scope="col">อาคาร</th><th scope="col">ชั้น</th><th scope="col">ประเภท</th><th scope="col">ค่าเช่า</th><th scope="col">ผู้เช่า</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
               <tbody>{pageItems.map((room) => (
                 <tr className={selectedRoom?.id === room.id ? "selected" : ""} key={room.databaseId ?? `${room.buildingName}-${room.floor}-${room.id}`}>
                   <td><strong>ห้อง {room.id}</strong></td>

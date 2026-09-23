@@ -27,7 +27,7 @@ export function ParcelHistoryTable({ items, total }: { items: TenantParcel[]; to
     <header className="additional-card-head">
       <div><h2>ประวัติการรับพัสดุ</h2><p>{total === null ? "กำลังนับรายการ..." : `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`}</p></div>
     </header>
-    <div className="overflow-x-auto">
+    <div className="figma-table-wrap">
       <table>
         <thead><tr><th scope="col">พัสดุ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่รับเข้าระบบ</th><th scope="col">วันที่รับพัสดุ</th><th scope="col">สถานะ</th></tr></thead>
         <tbody>{items.map((item) => <tr key={item.id}>

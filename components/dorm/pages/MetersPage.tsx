@@ -314,14 +314,14 @@ export function MetersPage({
             <table className="figma-table meter-figma-table">
               <thead>
                 <tr>
-                  <th>ห้อง</th>
-                  <th>ผู้เช่า</th>
-                  <th>เลขครั้งก่อน</th>
-                  <th>เลขล่าสุด</th>
-                  <th>หน่วยที่ใช้</th>
-                  <th>ราคา/หน่วย</th>
-                  <th>จำนวนเงิน</th>
-                  <th>สถานะ</th>
+                  <th scope="col">ห้อง</th>
+                  <th scope="col">ผู้เช่า</th>
+                  <th scope="col">เลขครั้งก่อน</th>
+                  <th scope="col">เลขล่าสุด</th>
+                  <th scope="col">หน่วยที่ใช้</th>
+                  <th scope="col">ราคา/หน่วย</th>
+                  <th scope="col">จำนวนเงิน</th>
+                  <th scope="col">สถานะ</th>
                 </tr>
               </thead>
               <tbody>

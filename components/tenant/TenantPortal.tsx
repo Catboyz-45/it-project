@@ -991,7 +991,7 @@ function TenantHistoryTable({ children, title, total }: { children: ReactNode; t
     <header className="additional-card-head">
       <div><h2>{title}</h2><p>{total === null ? "กำลังนับรายการ..." : `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`}</p></div>
     </header>
-    <div className="overflow-x-auto">{children}</div>
+    <div className="figma-table-wrap">{children}</div>
   </section>;
 }
 
@@ -1013,7 +1013,7 @@ function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitia
   return <div className="grid gap-5">
     <TenantHistoryTabs currentLabel="บิลปัจจุบัน" historyLabel="ประวัติบิล" id="tenant-invoices" onChange={changeView} view={view} />
     <div aria-labelledby={`tenant-invoices-tab-${view}`} aria-live="polite" id="tenant-invoices-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
+    {resource.isLoading ? <Loading columns={6} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((invoice) => {
@@ -1145,7 +1145,7 @@ function ParcelsPanel() {
             <td><Status value={item.status} /></td>
           </tr>)}</tbody>
         </table>
-      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
+      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList loadingColumns={5} loadingVariant={view === "history" ? "table" : "list"} resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
     </div>
   </div>;
 }
@@ -1179,7 +1179,7 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialView
   return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}</div>
     {readOnly ? <ReadOnlyNotice>ดูสถานะ ประวัติ และไฟล์แนบเดิมได้ แต่ไม่สามารถสร้างหรือตอบกลับรายการได้</ReadOnlyNotice> : null}
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
+    {resource.isLoading ? <Loading columns={5} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">หัวข้อ</th><th scope="col">ประเภท</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((ticket) => {
@@ -1453,8 +1453,8 @@ function TenantChat({
   </div>;
 }
 
-function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, resource }: { children: (item: T) => ReactNode; empty: string; emptyDescription?: string; resource: PaginatedResource<T>; subtitle: string; title: string }) {
-  if (resource.isLoading) return <Loading />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
+function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: { children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }) {
+  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
   return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
 }
 function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) {
@@ -1463,6 +1463,9 @@ function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) 
     {resource.isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}
   </button>;
 }
-function Loading() { return <LoadingSkeleton count={3} label="กำลังโหลดข้อมูล" variant="list" />; }
+// มุมมองประวัติแสดงเป็นตาราง ส่วนรายการปัจจุบันเป็นการ์ด โครงหลอกจึงต้องเปลี่ยนตามมุมมองที่เปิดอยู่
+function Loading({ columns, variant = "list" }: { columns?: number; variant?: "list" | "table" }) {
+  return <LoadingSkeleton columns={columns} count={3} label="กำลังโหลดข้อมูล" variant={variant} />;
+}
 function ErrorState({ error, retry }: { error: string; retry: () => void }) { return <div className="form-alert error" role="alert"><span>{error || "โหลดข้อมูลไม่สำเร็จ"}</span><RetryButton onClick={retry} /></div>; }
 function RestrictedPanel({ message }: { message: string }) { return <Empty icon={<QrCode />} text={message} />; }

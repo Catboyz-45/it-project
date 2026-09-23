@@ -545,6 +545,7 @@
   .figma-grid-table > tbody > .figma-table-row:last-child { @apply border-b-0; }
 
   /* One column-header treatment across native tables and div-based data grids. */
+  table:not(.figma-grid-table) > thead { @apply sticky top-0 z-10; }
   table:not(.figma-grid-table) > thead,
   .figma-table-head {
     background: #fafafa;
@@ -597,7 +598,7 @@
   }
   .invoice-table .figma-table-head > :last-child,
   .invoice-table .figma-table-row > :last-child { @apply flex items-center justify-center; }
-  .parcel-table-wrap { @apply overflow-x-auto; }
+  .parcel-table-wrap { @apply max-h-[75dvh] overflow-auto; }
   .parcel-table { @apply w-full min-w-[880px] border-collapse text-left text-sm; }
   .parcel-table thead { @apply bg-[#fafafa] text-sm font-bold text-[#4d4f58]; }
   .parcel-table th { @apply h-16 border-b border-[#e4e4e7] px-6 py-4 normal-case tracking-normal; }
@@ -1541,7 +1542,9 @@
     .settings-furniture-grid > div,
     .settings-editable-list article { @apply gap-3; }
     .settings-password-grid { @apply grid-cols-1; }
-    .parcel-table-wrap { @apply overflow-visible border-0; }
+    /* บนมือถือตารางพัสดุกลายเป็นการ์ดเรียงลงมา ต้องปลดเพดานความสูงด้วย
+       ไม่ใช่แค่ overflow ไม่งั้นเนื้อหาล้นออกไปทับปุ่มแบ่งหน้าข้างล่าง */
+    .parcel-table-wrap { @apply max-h-none overflow-visible border-0; }
     .parcel-table { @apply min-w-0; }
     .parcel-table thead { @apply hidden; }
     .parcel-table, .parcel-table tbody { @apply block; }
