@@ -245,16 +245,21 @@ export function InvoicesPage({
             </> : null}
           </div>
         </div>
-        <div className="figma-table invoice-table">
-          <div className="figma-table-head"><span>เลขที่บิล</span><span>ห้อง</span><span>ผู้เช่า</span><span>ค่าเช่า</span><span>ค่าน้ำ</span><span>ค่าไฟ</span><span>ยอดรวม</span><span>สถานะ</span><span /></div>
+        <div className="figma-table-wrap">
+        <table className="figma-table invoice-table">
+          <thead>
+            {/* ช่องสุดท้ายเป็นเมนูจัดการ ไม่มีหัวข้อให้อ่าน จึงใส่ชื่อไว้ให้โปรแกรมอ่านหน้าจอเท่านั้น */}
+            <tr className="figma-table-head"><th scope="col">เลขที่บิล</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ค่าน้ำ</th><th scope="col">ค่าไฟ</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col"><span className="sr-only">จัดการ</span></th></tr>
+          </thead>
+          <tbody>
           {loadedInvoices.map((invoice) => (
-            <div className="figma-table-row" data-status={invoice.status} key={invoice.id}>
-              <span>{invoice.id}</span><span>{invoice.roomId}</span><span>{invoice.tenantName}</span>
-              <span>{currency.format(invoice.rent)}</span><span>{currency.format(invoice.water)}</span><span>{currency.format(invoice.electricity)}</span>
-              <span><strong>{currency.format(totalInvoice(invoice))}</strong></span>
-              <span><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></span>
+            <tr className="figma-table-row" data-status={invoice.status} key={invoice.id}>
+              <td>{invoice.id}</td><td>{invoice.roomId}</td><td>{invoice.tenantName}</td>
+              <td>{currency.format(invoice.rent)}</td><td>{currency.format(invoice.water)}</td><td>{currency.format(invoice.electricity)}</td>
+              <td><strong>{currency.format(totalInvoice(invoice))}</strong></td>
+              <td><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></td>
               {/* รายการในเมนูขึ้นกับสถานะบิล ร่างยังออกบิลได้ ที่ออกไปแล้วเหลือแค่ตรวจการชำระ */}
-              <span><ActionMenu
+              <td><ActionMenu
                 items={[
                   { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างบิล (PDF)", onSelect: () => void requestInvoicePdf(invoice, "preview") },
                   // ร่างยังไม่มีเลขบิลจริง จึงให้ดูตัวอย่างได้อย่างเดียว ยังดาวน์โหลดไม่ได้
@@ -271,9 +276,11 @@ export function InvoicesPage({
                   ]) : []),
                 ]}
                 label={`จัดการบิล ${invoice.id}`}
-              /></span>
-            </div>
+              /></td>
+            </tr>
           ))}
+          </tbody>
+        </table>
         </div>
         {/* ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีบิลเลย ต้องบอกคนละแบบ */}
         {!isLoading && !loadError && loadedInvoices.length === 0 && (query.trim() || statusFilter !== "all") ? (

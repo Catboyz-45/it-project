@@ -304,7 +304,7 @@ export function MetersPage({
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
         {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
         {isLoading ? (
-          <LoadingSkeleton count={6} label="กำลังโหลดข้อมูลมิเตอร์" variant="table" />
+          <LoadingSkeleton columns={8} count={6} label="กำลังโหลดข้อมูลมิเตอร์" variant="table" />
         ) : visibleRows.length === 0 && (query.trim() || building !== "all" || floor !== "all") ? (
           <SearchEmptyState description="ลองเปลี่ยนคำค้นหา อาคาร หรือชั้น" title="ไม่พบห้องพักตามเงื่อนไข" />
         ) : visibleRows.length === 0 ? (

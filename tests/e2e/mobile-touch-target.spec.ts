@@ -18,6 +18,7 @@ const importantControlSelector = [
   ".secondary-button",
   ".icon-button",
   ".figma-icon-action",
+  ".figma-row-action",
   ".icon-btn",
   ".table-pagination button",
   ".notification-center button",

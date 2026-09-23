@@ -450,7 +450,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
         </div>
 
         {isLoading ? (
-          <LoadingSkeleton count={5} label="กำลังโหลดสัญญา" variant="table" />
+          <LoadingSkeleton columns={8} count={5} label="กำลังโหลดสัญญา" tableClassName="contract-table" variant="table" />
         ) : leases.length === 0 && query.trim() ? (
           <SearchEmptyState
             description="ลองใช้เลขสัญญา เลขห้อง ชื่อ หรืออีเมลอื่น"
@@ -462,21 +462,25 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
             <p>ยังไม่มีสัญญา สร้างสัญญาได้เมื่อห้องมีผู้เช่าหลักที่อนุมัติแล้ว</p>
           </div>
         ) : (
-          <div className="figma-table contract-table">
-            <div className="figma-table-head"><span>สัญญา</span><span>ห้อง</span><span>ผู้เช่า</span><span>ค่าเช่า</span><span>ระยะเวลา</span><span>Version</span><span>สถานะ</span><span>จัดการ</span></div>
+          <div className="figma-table-wrap">
+          <table className="figma-table contract-table">
+            <thead>
+              <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">Version</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+            </thead>
+            <tbody>
             {leases.map((lease) => {
               const tenant = lease.tenants.find((item) => item.isPrimary)?.occupancy.tenantProfile.user;
               const canRenew = ["ACTIVE", "EXPIRING", "EXPIRED"].includes(lease.status);
               const displayStatus = leaseDisplayStatus(lease.status, lease.endDate);
-              return <div className="figma-table-row" data-status={displayStatus} key={lease.id}>
-                <span className="tenant-name-cell">{lease.leaseNumber}</span>
-                <span>{lease.room.number}</span>
-                <span>{tenant?.displayName ?? "-"}</span>
-                <span>{currency.format(Number(lease.monthlyRent))}</span>
-                <span className="muted-cell">{dateDisplay(lease.startDate)} – {dateDisplay(lease.endDate)}</span>
-                <span>v{lease.currentVersion}</span>
-                <span><em className={`figma-status ${displayStatus === "ACTIVE" ? "normal" : displayStatus === "EXPIRING" ? "warning" : ""}`}>{statusLabels[displayStatus]}</em></span>
-                <span className="contract-actions">
+              return <tr className="figma-table-row" data-status={displayStatus} key={lease.id}>
+                <td className="tenant-name-cell">{lease.leaseNumber}</td>
+                <td>{lease.room.number}</td>
+                <td>{tenant?.displayName ?? "-"}</td>
+                <td>{currency.format(Number(lease.monthlyRent))}</td>
+                <td className="muted-cell">{dateDisplay(lease.startDate)} – {dateDisplay(lease.endDate)}</td>
+                <td>v{lease.currentVersion}</td>
+                <td><em className={`figma-status ${displayStatus === "ACTIVE" ? "normal" : displayStatus === "EXPIRING" ? "warning" : ""}`}>{statusLabels[displayStatus]}</em></td>
+                <td className="contract-actions">
                   {!readOnly && displayStatus === "EXPIRING" ? (
                     <button
                       aria-label={`ต่อสัญญา ${lease.leaseNumber}`}
@@ -518,9 +522,11 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
                     ]}
                     label={`จัดการสัญญา ${lease.leaseNumber}`}
                   /> : null}
-                </span>
-              </div>;
+                </td>
+              </tr>;
             })}
+            </tbody>
+          </table>
           </div>
         )}
         <ServerTablePagination currentItemCount={leases.length} disabled={isLoading} onPageChange={(nextPage) => void loadLeases(nextPage)} pageInfo={pageInfo} />

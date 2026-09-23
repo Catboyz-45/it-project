@@ -143,28 +143,36 @@ export function TenantsPage({
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาผู้เช่า" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อ ห้อง หรือเบอร์โทร..." value={query} /></div>
         </div>
-        <div className="figma-table tenant-table">
-          <div className="figma-table-head"><span>ผู้เช่า</span><span>ห้อง</span><span>เบอร์โทร</span><span>ค่าเช่า</span><span>สัญญา</span><span>สถานะ</span><span>จัดการ</span></div>
-          {tenants.map((tenant) => {
-            // สัญญาที่ยังใช้งานอยู่แต่ใกล้หมดอายุ ต้องแสดงเป็น "ใกล้หมดอายุ" ไม่ใช่ "ใช้งาน"
-            // ฐานข้อมูลยังเก็บเป็น ACTIVE อยู่ จึงต้องคำนวณตอนแสดงผลเอง
-            const displayStatus = tenant.leaseStatus && tenant.contractEnd
-              ? leaseDisplayStatus(tenant.leaseStatus, tenant.contractEnd)
-              : tenant.leaseStatus;
-            // ทั้งแถวเป็นปุ่ม กดตรงไหนก็เปิดรายละเอียดได้ ไม่ต้องเล็งปุ่มเล็ก ๆ ท้ายแถว
-            return <button className="figma-table-row" key={tenant.id} onClick={() => {
-              setSelectedRoomId(tenant.roomId);
-              onOpenTenantDetail(tenant);
-            }} type="button">
-              <span className="tenant-name-cell">{tenant.name}</span>
-              <span>{tenant.roomId}</span>
-              <span className="muted-cell">{tenant.phone}</span>
-              <span>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</span>
-              <span className="muted-cell">{tenant.leaseNumber ? `${tenant.startDate} – ${tenant.contractEnd}` : "ยังไม่มีสัญญา"}</span>
-              <span><em className={`figma-status ${displayStatus === "ACTIVE" ? "normal" : displayStatus === "EXPIRING" ? "warning" : ""}`}>{displayStatus ? leaseStatusText[displayStatus] : "ไม่มีสัญญา"}</em></span>
-              <span><b className="figma-row-action">ดูข้อมูล</b></span>
-            </button>;
-          })}
+        <div className="figma-table-wrap">
+          <table className="figma-table tenant-table">
+            <thead>
+              <tr className="figma-table-head"><th scope="col">ผู้เช่า</th><th scope="col">ห้อง</th><th scope="col">เบอร์โทร</th><th scope="col">ค่าเช่า</th><th scope="col">สัญญา</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+            </thead>
+            <tbody>
+              {tenants.map((tenant) => {
+                // สัญญาที่ยังใช้งานอยู่แต่ใกล้หมดอายุ ต้องแสดงเป็น "ใกล้หมดอายุ" ไม่ใช่ "ใช้งาน"
+                // ฐานข้อมูลยังเก็บเป็น ACTIVE อยู่ จึงต้องคำนวณตอนแสดงผลเอง
+                const displayStatus = tenant.leaseStatus && tenant.contractEnd
+                  ? leaseDisplayStatus(tenant.leaseStatus, tenant.contractEnd)
+                  : tenant.leaseStatus;
+                const openDetail = () => {
+                  setSelectedRoomId(tenant.roomId);
+                  onOpenTenantDetail(tenant);
+                };
+                // กดตรงไหนของแถวก็เปิดรายละเอียดได้ ไม่ต้องเล็งปุ่มเล็ก ๆ ท้ายแถว
+                // ส่วนคนที่ใช้คีย์บอร์ดกดที่ปุ่มท้ายแถว ซึ่งมีชื่อกำกับว่าเป็นของใคร
+                return <tr className="figma-table-row" key={tenant.id} onClick={openDetail}>
+                  <td className="tenant-name-cell">{tenant.name}</td>
+                  <td>{tenant.roomId}</td>
+                  <td className="muted-cell">{tenant.phone}</td>
+                  <td>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</td>
+                  <td className="muted-cell">{tenant.leaseNumber ? `${tenant.startDate} – ${tenant.contractEnd}` : "ยังไม่มีสัญญา"}</td>
+                  <td><em className={`figma-status ${displayStatus === "ACTIVE" ? "normal" : displayStatus === "EXPIRING" ? "warning" : ""}`}>{displayStatus ? leaseStatusText[displayStatus] : "ไม่มีสัญญา"}</em></td>
+                  <td><button aria-label={`ดูข้อมูล ${tenant.name} ${tenant.roomId}`} className="figma-row-action" onClick={openDetail} type="button">ดูข้อมูล</button></td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
         </div>
         {/* ว่างเพราะค้นไม่เจอ กับว่างเพราะยังไม่มีผู้เช่า ต้องบอกคนละแบบ */}
         {!isLoading && !loadError && tenants.length === 0 && query.trim() ? (

@@ -169,25 +169,29 @@ export function PendingTenantApprovals({
       </div>
 
       {isLoading ? (
-        <LoadingSkeleton count={4} label="กำลังโหลดคำขอเข้าพัก" variant="table" />
+        <LoadingSkeleton columns={8} count={4} label="กำลังโหลดคำขอเข้าพัก" tableClassName="approval-table" variant="table" />
       // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ
       ) : pageItems.length === 0 && query.trim() ? (
         <SearchEmptyState description="ลองใช้ชื่อ อีเมล เบอร์โทร หรือเลขห้องอื่น" title="ไม่พบคำขอที่ค้นหา" />
       ) : pageItems.length === 0 ? (
         <div className="document-editor-state"><Clock3 /><p>ไม่มีคำขอเข้าพักที่รอตรวจสอบ</p></div>
       ) : (
-        <div className="figma-table approval-table">
-          <div className="figma-table-head"><span>ผู้สมัคร</span><span>ห้อง</span><span>ประเภท</span><span>อีเมล</span><span>เบอร์โทร</span><span>สมัครเมื่อ</span><span>สถานะ</span><span>จัดการ</span></div>
+        <div className="figma-table-wrap">
+        <table className="figma-table approval-table">
+          <thead>
+            <tr className="figma-table-head"><th scope="col">ผู้สมัคร</th><th scope="col">ห้อง</th><th scope="col">ประเภท</th><th scope="col">อีเมล</th><th scope="col">เบอร์โทร</th><th scope="col">สมัครเมื่อ</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+          </thead>
+          <tbody>
           {pageItems.map((request) => (
-            <div className="figma-table-row" key={request.id}>
-              <span className="tenant-name-cell">{request.tenantProfile.user.displayName}</span>
-              <span>{request.room.number}</span>
-              <span>{request.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</span>
-              <span className="muted-cell">{request.tenantProfile.user.email}</span>
-              <span>{request.tenantProfile.phone}</span>
-              <span className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</span>
-              <span><em className="figma-status warning">รอตรวจสอบ</em></span>
-              <span className="contract-actions">
+            <tr className="figma-table-row" key={request.id}>
+              <td className="tenant-name-cell">{request.tenantProfile.user.displayName}</td>
+              <td>{request.room.number}</td>
+              <td>{request.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</td>
+              <td className="muted-cell">{request.tenantProfile.user.email}</td>
+              <td>{request.tenantProfile.phone}</td>
+              <td className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</td>
+              <td><em className="figma-status warning">รอตรวจสอบ</em></td>
+              <td className="contract-actions">
                 {/* ซ่อนปุ่มจัดการทั้งหมดในโหมดอ่านอย่างเดียว ไม่ใช่แค่ทำให้กดไม่ได้ */}
                 {!readOnly ? <span className="icon-button-group">
                   {/* ใส่ชื่อผู้สมัครใน label เพราะทุกแถวมีปุ่มหน้าตาเหมือนกันหมด */}
@@ -195,9 +199,11 @@ export function PendingTenantApprovals({
                   <IconButton disabled={reviewingId !== null} label={`ปฏิเสธ ${request.tenantProfile.user.displayName}`} onClick={() => void review(request, "REJECTED")} tooltip="ปฏิเสธ" variant="danger"><UserX size={17} /></IconButton>
                 </span> : null}
                 {reviewingId === request.id ? <Check className="animate-pulse" size={16} /> : null}
-              </span>
-            </div>
+              </td>
+            </tr>
           ))}
+          </tbody>
+        </table>
         </div>
       )}
       <TablePagination page={page} setPage={setPage} totalItems={visibleRequests.length} totalPages={totalPages} />
