@@ -67,6 +67,10 @@ export default async function globalSetup() {
   const planId = "cm000000000000000000015";
   const secondBuildingId = "cm000000000000000000025";
   const secondFloorId = "cm000000000000000000026";
+  // ข้อมูลฝั่ง "ประวัติ" ของผู้เช่า บิลที่ชำระแล้ว พัสดุที่รับแล้ว และเรื่องที่ปิดแล้ว
+  // สามตารางประวัติจะได้มีแถวให้แสดงจริง ไม่งั้นทดสอบโครงตารางไม่ได้เลย
+  const paidInvoiceId = "cm000000000000000000028";
+  const resolvedTicketId = "cm000000000000000000029";
 
   try {
     // ห่อทั้งหมดใน transaction เดียว พลาดกลางทางจะย้อนคืนหมด ไม่เหลือข้อมูลเตรียมไปครึ่งเดียว
@@ -208,6 +212,23 @@ export default async function globalSetup() {
        VALUES ('cm000000000000000000016',$1,$2,$3,4200,'PENDING_REVIEW',NULL,NULL,NULL,NOW(),NOW(),NOW())`,
       [e2e.propertyId, invoiceId, e2e.tenantProfileId],
     );
+    // บิลรอบก่อนที่ชำระเสร็จแล้ว ไว้ให้ตารางประวัติบิลของผู้เช่ามีแถว
+    await client.query(
+      `INSERT INTO "Invoice" ("id","propertyId","roomId","leaseId","invoiceNumber","billingMonth","status","issuedAt","dueDate","subtotal","lateFee","total","paidAt","version","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,'E2E-202606-E101','2026-06-01','PAID','2026-06-01','2026-06-05',4000,0,4000,'2026-06-04',1,NOW(),NOW())`,
+      [paidInvoiceId, e2e.propertyId, e2e.activeRoomId, leaseId],
+    );
+    await client.query(
+      `INSERT INTO "InvoiceItem" ("id","invoiceId","type","description","quantity","unitPrice","amount","sortOrder","createdAt")
+       VALUES ('cm000000000000000000030',$1,'RENT','ค่าห้องรายเดือน',1,3600,3600,0,NOW())`,
+      [paidInvoiceId],
+    );
+    // เรื่องแจ้งที่ปิดไปแล้ว ไว้ให้ตารางประวัติเรื่องแจ้งมีแถว
+    await client.query(
+      `INSERT INTO "ServiceTicket" ("id","propertyId","roomId","tenantProfileId","type","status","priority","title","detail","createdByUserId","resolvedAt","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,'REPAIR','RESOLVED','NORMAL','ไฟห้องน้ำเสีย','หลอดไฟกะพริบ ช่างเปลี่ยนให้แล้ว',$5,'2026-06-10',NOW(),NOW())`,
+      [resolvedTicketId, e2e.propertyId, e2e.activeRoomId, e2e.tenantProfileId, e2e.tenantUserId],
+    );
     await client.query(
       `INSERT INTO "Announcement" ("id","propertyId","title","content","status","audience","publishedAt","createdById","createdAt","updatedAt")
        VALUES ('cm000000000000000000017',$1,'ประกาศ E2E','แจ้งทดสอบระบบสำหรับผู้เช่า','PUBLISHED','ALL_TENANTS','2026-07-01',$2,NOW(),NOW())`,
@@ -217,6 +238,12 @@ export default async function globalSetup() {
       `INSERT INTO "Parcel" ("id","propertyId","roomId","status","note","registeredById","registeredAt","createdAt","updatedAt")
        VALUES ('cm000000000000000000018',$1,$2,'WAITING','พัสดุ E2E ที่เคาน์เตอร์',$3,NOW(),NOW(),NOW())`,
       [e2e.propertyId, e2e.activeRoomId, e2e.ownerId],
+    );
+    // พัสดุที่ผู้เช่ามารับไปแล้ว ไว้ให้ตารางประวัติการรับพัสดุมีแถว
+    await client.query(
+      `INSERT INTO "Parcel" ("id","propertyId","roomId","status","note","registeredById","registeredAt","receivedAt","receivedByTenantId","recipientTenantId","createdAt","updatedAt")
+       VALUES ('cm000000000000000000031',$1,$2,'RECEIVED','พัสดุ E2E ที่รับไปแล้ว',$3,'2026-06-01','2026-06-02',$4,$4,NOW(),NOW())`,
+      [e2e.propertyId, e2e.activeRoomId, e2e.ownerId, e2e.tenantProfileId],
     );
     await client.query("COMMIT");
   } catch (error) {
