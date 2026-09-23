@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FormEvent, useCallback, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -17,13 +17,6 @@ import type { Tenant } from "@/types/dorm";
 // สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
 
-// เรียงตามลำดับที่ปรากฏบนหน้าจอ เพราะใช้หาว่าตอนนี้เลื่อนมาถึงหมวดไหนแล้ว
-const tabs: Array<{ id: TenantTab; label: string }> = [
-  { id: "personal", label: "ข้อมูลส่วนตัว" },
-  { id: "contact", label: "ที่อยู่และผู้ติดต่อ" },
-  { id: "contract", label: "สัญญาและผู้พัก" },
-  { id: "vehicle", label: "ข้อมูลรถ" },
-];
 // รวมการตั้งชื่อ id ไว้ที่เดียว ทั้งตอนวางลงหน้าและตอนหาเพื่อเลื่อนไป
 const tenantSectionId = (tab: TenantTab) => `tenant-section-${tab}`;
 
@@ -45,7 +38,6 @@ export function TenantDetailModal({
   rooms: import("@/types/dorm").Room[];
   tenant: Tenant;
 }) {
-  const [activeTab, setActiveTab] = useState<TenantTab>("personal");
   // แก้บนสำเนา ไม่แตะของเดิม ผู้ใช้จะได้กดยกเลิกแล้วข้อมูลจริงไม่เปลี่ยน
   const [draft, setDraft] = useState<Tenant>(tenant);
   const [error, setError] = useState("");
@@ -60,40 +52,8 @@ export function TenantDetailModal({
   // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
-  useEffect(() => {
-    // ไฮไลต์หมวดทางซ้ายให้ตรงกับส่วนที่กำลังอ่านอยู่ ทำแบบเดียวกับใน RoomEditModal
-    const sections = tabs
-      .map((tab) => document.getElementById(tenantSectionId(tab.id)))
-      .filter((section): section is HTMLElement => Boolean(section));
-    const contentContainer = sections[0]?.closest<HTMLElement>(".tenant-config-scroll");
-    const modalContainer = sections[0]?.closest<HTMLElement>(".tenant-config-modal");
-    // ตัวที่เลื่อนจริงเปลี่ยนไปตามขนาดจอ จอกว้างเป็นกล่องเนื้อหา จอแคบเป็นตัวกล่องทั้งใบ
-    const scrollContainer =
-      contentContainer && window.getComputedStyle(contentContainer).overflowY !== "visible"
-        ? contentContainer
-        : modalContainer;
-    if (!scrollContainer) return;
-
-    const updateActiveSection = () => {
-      // เส้นตัดสินอยู่ต่ำกว่าขอบบนนิดหน่อย จอแคบต้องเผื่อมากกว่าเพราะมีหัวกล่องบังอยู่
-      const activationOffset = scrollContainer === contentContainer ? 32 : 150;
-      const activationLine = scrollContainer.getBoundingClientRect().top + activationOffset;
-      // เอาหมวดสุดท้ายที่เลื่อนผ่านเส้นไปแล้ว ซึ่งก็คือหมวดที่กำลังอ่านอยู่
-      const currentSection = sections.reduce((current, section) => (
-        section.getBoundingClientRect().top <= activationLine ? section : current
-      ), sections[0]);
-      setActiveTab(currentSection.id.replace("tenant-section-", "") as TenantTab);
-    };
-
-    updateActiveSection();
-    // passive บอกเบราว์เซอร์ว่าจะไม่ขัดการเลื่อน การเลื่อนจะได้ลื่นไม่สะดุด
-    scrollContainer.addEventListener("scroll", updateActiveSection, { passive: true });
-    return () => scrollContainer.removeEventListener("scroll", updateActiveSection);
-  }, []);
-
-  const goToTab = (tab: TenantTab) => {
-    // ตั้งหมวดที่ไฮไลต์ทันที ไม่รอให้เลื่อนถึง ผู้ใช้จะได้เห็นผลของการกดเลย
-    setActiveTab(tab);
+  // แผงเรียงทุกหมวดลงมาต่อกัน ช่องที่กรอกผิดจึงอาจอยู่นอกจอ ต้องเลื่อนไปให้เห็นเอง
+  const scrollToSection = (tab: TenantTab) => {
     document.getElementById(tenantSectionId(tab))?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -111,19 +71,19 @@ export function TenantDetailModal({
     if (readOnly) return;
     // เลื่อนไปหมวดที่มีปัญหาด้วย ไม่ใช่แค่ขึ้นข้อความ เพราะช่องที่ผิดอาจอยู่นอกจอ
     if (!draft.name.trim() || !draft.phone.trim()) {
-      setActiveTab("personal");
+      scrollToSection("personal");
       setError("กรุณากรอกชื่อและเบอร์โทรของผู้เช่า");
       return;
     }
     // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
     if (!draft.startDate || !draft.contractEnd || draft.contractEnd < draft.startDate) {
-      setActiveTab("contract");
+      scrollToSection("contract");
       setError("กรุณาตรวจสอบวันเริ่มและวันสิ้นสุดสัญญา");
       return;
     }
     // เลือกว่ามีรถแล้วต้องมีทะเบียน ไม่งั้นข้อมูลที่บันทึกไว้ใช้ทำอะไรต่อไม่ได้
     if (draft.vehicleType !== "ไม่มีรถ" && !draft.vehiclePlate.trim()) {
-      setActiveTab("vehicle");
+      scrollToSection("vehicle");
       setError("กรุณากรอกเลขทะเบียนรถ หรือเลือกไม่มีรถ");
       return;
     }
@@ -157,23 +117,6 @@ export function TenantDetailModal({
         <form className="tenant-config-form" onSubmit={submit}>
           {readOnly ? <ReadOnlyNotice className="mx-5 mt-5">ตรวจสอบข้อมูลผู้เช่าได้ แต่ไม่สามารถแก้ไข บันทึก หรือเปลี่ยนการเข้าพักได้</ReadOnlyNotice> : null}
           <div className="room-editor-layout tenant-config-layout">
-            <aside aria-label="หมวดข้อมูลผู้เช่า" className="room-editor-nav tenant-config-tabs">
-              <strong>จัดการข้อมูลผู้เช่า</strong>
-              <nav>
-                {/* aria-current="location" บอกว่าตอนนี้อ่านอยู่ตรงไหนของหน้า ไม่ใช่ว่าอยู่หน้าไหน */}
-                {tabs.map((tab) => (
-                  <button
-                    aria-current={activeTab === tab.id ? "location" : undefined}
-                    className={activeTab === tab.id ? "active" : ""}
-                    key={tab.id}
-                    onClick={() => goToTab(tab.id)}
-                    type="button"
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
-            </aside>
 
           {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
           <fieldset className="tenant-config-scroll room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>

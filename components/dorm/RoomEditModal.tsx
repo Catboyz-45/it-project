@@ -22,7 +22,6 @@ const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
 
 // as const ทำให้ TypeScript รู้ว่ามีแค่สี่ค่านี้ ไม่ใช่ string อะไรก็ได้
 // เรียงตามลำดับที่ปรากฏบนหน้าจอ เพราะใช้หาว่าตอนนี้เลื่อนมาถึงหัวข้อไหนแล้ว
-const roomSectionIds = ["room-section-general", "room-section-billing", "room-section-furniture", "room-section-tenant"] as const;
 
 // removeTenant แยกออกมาต่างหาก เพราะ tenant เป็น undefined บอกไม่ได้ว่าตั้งใจลบหรือไม่มีตั้งแต่แรก
 export interface RoomEditPayload {
@@ -56,7 +55,6 @@ export function RoomEditModal({
   const [waterMeter, setWaterMeter] = useState(String(room.waterMeter));
   const [electricMeter, setElectricMeter] = useState(String(room.electricMeter));
   const [furniture, setFurniture] = useState<string[]>(room.furniture);
-  const [activeSection, setActiveSection] = useState<(typeof roomSectionIds)[number]>("room-section-general");
   const [name, setName] = useState(tenant?.name ?? "");
   const [phone, setPhone] = useState(tenant?.phone ?? "");
   const [nationalId, setNationalId] = useState(tenant?.nationalId ?? "");
@@ -111,48 +109,9 @@ export function RoomEditModal({
     setFormError("");
   }, [room, tenant]);
 
-  useEffect(() => {
-    // ไฮไลต์หัวข้อทางซ้ายให้ตรงกับส่วนที่กำลังอ่านอยู่
-    const sections = roomSectionIds
-      .map((id) => document.getElementById(id))
-      .filter((section): section is HTMLElement => Boolean(section));
-    const contentContainer = sections[0]?.closest<HTMLElement>(".room-editor-content");
-    const modalContainer = sections[0]?.closest<HTMLElement>(".room-edit-modal");
-    // ตัวที่เลื่อนจริงเปลี่ยนไปตามขนาดจอ จอกว้างเป็นกล่องเนื้อหา จอแคบเป็นตัวกล่องทั้งใบ
-    const scrollContainer =
-      contentContainer && window.getComputedStyle(contentContainer).overflowY !== "visible"
-        ? contentContainer
-        : modalContainer;
-    if (!scrollContainer) return;
-
-    const updateActiveSection = () => {
-      const containerTop = scrollContainer.getBoundingClientRect().top;
-      // เส้นตัดสินอยู่ต่ำกว่าขอบบนนิดหน่อย ไม่งั้นหัวข้อจะสลับตั้งแต่ยังเห็นไม่ถึงครึ่ง
-      // จอแคบต้องเผื่อมากกว่า เพราะมีหัวกล่องกับปุ่มปิดบังอยู่ข้างบน
-      const activationOffset = scrollContainer === contentContainer ? 32 : 150;
-      const activationLine = containerTop + activationOffset;
-      // เอาหัวข้อสุดท้ายที่เลื่อนผ่านเส้นไปแล้ว ซึ่งก็คือหัวข้อที่กำลังอ่านอยู่
-      const currentSection = sections.reduce((current, section) => (
-        section.getBoundingClientRect().top <= activationLine ? section : current
-      ), sections[0]);
-      setActiveSection(currentSection.id as (typeof roomSectionIds)[number]);
-    };
-
-    updateActiveSection();
-    // passive บอกเบราว์เซอร์ว่าจะไม่ขัดการเลื่อน การเลื่อนจะได้ลื่นไม่สะดุด
-    scrollContainer.addEventListener("scroll", updateActiveSection, { passive: true });
-    return () => scrollContainer.removeEventListener("scroll", updateActiveSection);
-  }, []);
-
   // ติ๊กเพิ่ม ติ๊กซ้ำเอาออก เก็บเป็นรายการชื่อ ไม่ใช่ค่าจริงเท็จทีละชิ้น
   const toggleFurniture = (item: string) => {
     setFurniture((current) => (current.includes(item) ? current.filter((value) => value !== item) : [...current, item]));
-  };
-
-  const goToSection = (sectionId: string) => {
-    // ตั้งหัวข้อที่ไฮไลต์ทันที ไม่รอให้เลื่อนถึง ผู้ใช้จะได้เห็นผลของการกดเลย
-    setActiveSection(sectionId as (typeof roomSectionIds)[number]);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const submitForm = (event: FormEvent<HTMLFormElement>) => {
@@ -229,16 +188,6 @@ export function RoomEditModal({
         <form className="modal-form room-editor-form" onSubmit={submitForm}>
           {readOnly ? <ReadOnlyNotice>ตรวจสอบข้อมูลห้อง ค่าเช่า มิเตอร์ เฟอร์นิเจอร์ และผู้เช่าได้ แต่ไม่สามารถแก้ไขหรือบันทึกได้</ReadOnlyNotice> : null}
           <div className="room-editor-layout">
-            <aside aria-label="หัวข้อจัดการข้อมูลห้อง" className="room-editor-nav">
-              <strong>จัดการข้อมูลห้อง</strong>
-              <nav>
-                {/* aria-current="location" บอกว่าตอนนี้อ่านอยู่ตรงไหนของหน้า ไม่ใช่ว่าอยู่หน้าไหน */}
-                <button aria-current={activeSection === "room-section-general" ? "location" : undefined} className={activeSection === "room-section-general" ? "active" : ""} onClick={() => goToSection("room-section-general")} type="button">ข้อมูลห้อง</button>
-                <button aria-current={activeSection === "room-section-billing" ? "location" : undefined} className={activeSection === "room-section-billing" ? "active" : ""} onClick={() => goToSection("room-section-billing")} type="button">ค่าเช่าและมิเตอร์</button>
-                <button aria-current={activeSection === "room-section-furniture" ? "location" : undefined} className={activeSection === "room-section-furniture" ? "active" : ""} onClick={() => goToSection("room-section-furniture")} type="button">เฟอร์นิเจอร์และอุปกรณ์</button>
-                <button aria-current={activeSection === "room-section-tenant" ? "location" : undefined} className={activeSection === "room-section-tenant" ? "active" : ""} onClick={() => goToSection("room-section-tenant")} type="button">ข้อมูลผู้เช่า</button>
-              </nav>
-            </aside>
             {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
             <fieldset className="room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>
           <section className="room-editor-section" id="room-section-general">
