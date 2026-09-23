@@ -144,7 +144,7 @@ export function TenantsPage({
           <div><Search size={16} /><input aria-label="ค้นหาผู้เช่า" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อ ห้อง หรือเบอร์โทร..." value={query} /></div>
         </div>
         <div className="figma-table-wrap">
-          <table className="figma-table tenant-table">
+          <table className="figma-grid-table tenant-table">
             <thead>
               <tr className="figma-table-head"><th scope="col">ผู้เช่า</th><th scope="col">ห้อง</th><th scope="col">เบอร์โทร</th><th scope="col">ค่าเช่า</th><th scope="col">สัญญา</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
             </thead>

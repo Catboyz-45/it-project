@@ -37,7 +37,7 @@ export function LoadingSkeleton({
       {variant === "table" ? (
         // ใช้โครงเดียวกับตารางจริงทั้งกล่องและคลาส ความสูงกับความกว้างจึงตรงกันตั้งแต่ยังไม่มีข้อมูล
         <div aria-hidden="true" className="figma-table-wrap">
-          <table className={`figma-table ${tableClassName ?? ""}`.trim()}>
+          <table className={`figma-grid-table ${tableClassName ?? ""}`.trim()}>
             <thead>
               <tr className="figma-table-head" style={gridStyle}>
                 {columnIndexes.map((column) => <th key={column}><span /></th>)}

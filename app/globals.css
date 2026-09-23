@@ -529,11 +529,11 @@
   .figma-table-toolbar > .contract-actions > :is(button, a) { @apply min-h-11 lg:min-h-9; }
   .figma-table-wrap { @apply max-h-[75dvh] overflow-auto; }
   /* ตารางที่วางคอลัมน์ด้วย grid ใช้ element ของตารางจริง โปรแกรมอ่านหน้าจอจะได้จับคู่หัวคอลัมน์กับค่าได้ */
-  .figma-table { @apply grid w-full border-collapse text-left; }
-  .figma-table > thead { @apply sticky top-0 z-10 grid; }
-  .figma-table > tbody { @apply grid; }
+  .figma-grid-table { @apply grid w-full border-collapse text-left; }
+  .figma-grid-table > thead { @apply sticky top-0 z-10 grid; }
+  .figma-grid-table > tbody { @apply grid; }
   /* ช่องในตารางแบบนี้ไม่ตกแต่งตัวเอง ปล่อยให้แถวเป็นคนคุมระยะ เส้น และพื้นหลังทั้งหมด */
-  .figma-table :is(th, td) {
+  .figma-grid-table :is(th, td) {
     @apply m-0 h-auto min-w-0 border-0 bg-transparent p-0 text-left align-middle;
     font: inherit;
     color: inherit;
@@ -541,16 +541,16 @@
   .figma-table-head, .figma-table-row { @apply grid min-w-[860px] grid-cols-8 items-center gap-4; }
   .figma-table-head { @apply min-h-12 border-b border-[#e4e4e7] bg-[#fafafa] px-6 py-3 text-[13px] font-medium normal-case tracking-normal text-[#62646c]; }
   .figma-table-row { @apply min-h-20 border-b border-[#e4e4e7] bg-[#fff] px-6 py-4 text-sm text-[#292a30] transition-colors duration-150 hover:bg-[#fafafa]; }
-  .figma-table > tbody > .figma-table-row:nth-child(odd) { @apply bg-[#fff] hover:bg-[#fafafa]; }
-  .figma-table > tbody > .figma-table-row:last-child { @apply border-b-0; }
+  .figma-grid-table > tbody > .figma-table-row:nth-child(odd) { @apply bg-[#fff] hover:bg-[#fafafa]; }
+  .figma-grid-table > tbody > .figma-table-row:last-child { @apply border-b-0; }
 
   /* One column-header treatment across native tables and div-based data grids. */
-  table:not(.figma-table) > thead,
+  table:not(.figma-grid-table) > thead,
   .figma-table-head {
     background: #fafafa;
     color: #62646c;
   }
-  table:not(.figma-table) > thead > tr > th {
+  table:not(.figma-grid-table) > thead > tr > th {
     height: 3rem;
     padding: 0.75rem 1.5rem;
     border-bottom: 1px solid #e4e4e7;
@@ -609,28 +609,28 @@
   .parcel-table td small { @apply mt-1 text-xs text-[#62646c]; }
   .parcel-table-photo { @apply grid size-13 place-items-center overflow-hidden rounded-xl bg-brand/[.08] text-brand; }
   .parcel-table-photo img { @apply size-full object-cover; }
-  .figma-table-card table:not(.figma-table), .meter-table-card table, .panel.overflow-hidden table {
+  .figma-table-card table:not(.figma-grid-table), .meter-table-card table, .panel.overflow-hidden table {
     @apply w-full min-w-[860px] border-collapse text-left;
   }
-  .figma-table-card table:not(.figma-table) thead, .meter-table-card table thead, .panel.overflow-hidden table thead {
+  .figma-table-card table:not(.figma-grid-table) thead, .meter-table-card table thead, .panel.overflow-hidden table thead {
     @apply sticky top-0 z-10 bg-[#fafafa];
   }
-  .figma-table-card table:not(.figma-table) th, .meter-table-card table th, .panel.overflow-hidden table th {
+  .figma-table-card table:not(.figma-grid-table) th, .meter-table-card table th, .panel.overflow-hidden table th {
     @apply h-12 bg-[#fafafa] px-6 py-3 text-[13px] font-medium normal-case tracking-normal text-[#62646c];
     box-shadow: inset 0 -1px 0 #e4e4e7;
   }
-  .figma-table-card table:not(.figma-table) td, .meter-table-card table td, .panel.overflow-hidden table td {
+  .figma-table-card table:not(.figma-grid-table) td, .meter-table-card table td, .panel.overflow-hidden table td {
     @apply h-20 border-t border-[#e4e4e7] bg-[#fff] px-6 py-3 text-sm text-[#292a30];
   }
-  .figma-table-card table:not(.figma-table) tbody tr:nth-child(even) td,
+  .figma-table-card table:not(.figma-grid-table) tbody tr:nth-child(even) td,
   .meter-table-card table tbody tr:nth-child(even) td,
   .panel.overflow-hidden table tbody tr:nth-child(even) td { @apply bg-[#fff]; }
   tbody tr { @apply transition-colors duration-150; }
-  table:not(.figma-table) tbody tr:hover > td { background-color: #fafafa; }
-  .figma-table-card table:not(.figma-table) tbody tr:hover td,
+  table:not(.figma-grid-table) tbody tr:hover > td { background-color: #fafafa; }
+  .figma-table-card table:not(.figma-grid-table) tbody tr:hover td,
   .meter-table-card table tbody tr:hover td,
   .panel.overflow-hidden table tbody tr:hover td { @apply bg-[#fafafa]; }
-  .figma-table-card table:not(.figma-table) tbody tr:last-child td,
+  .figma-table-card table:not(.figma-grid-table) tbody tr:last-child td,
   .meter-table-card table tbody tr:last-child td,
   .panel.overflow-hidden table tbody tr:last-child td { @apply border-b-0; }
   .parcel-status { @apply inline-flex rounded-full px-3 py-1 text-xs font-bold; }

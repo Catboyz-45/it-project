@@ -177,7 +177,7 @@ export function PendingTenantApprovals({
         <div className="document-editor-state"><Clock3 /><p>ไม่มีคำขอเข้าพักที่รอตรวจสอบ</p></div>
       ) : (
         <div className="figma-table-wrap">
-        <table className="figma-table approval-table">
+        <table className="figma-grid-table approval-table">
           <thead>
             <tr className="figma-table-head"><th scope="col">ผู้สมัคร</th><th scope="col">ห้อง</th><th scope="col">ประเภท</th><th scope="col">อีเมล</th><th scope="col">เบอร์โทร</th><th scope="col">สมัครเมื่อ</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
           </thead>

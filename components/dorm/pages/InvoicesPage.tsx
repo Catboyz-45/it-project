@@ -246,7 +246,7 @@ export function InvoicesPage({
           </div>
         </div>
         <div className="figma-table-wrap">
-        <table className="figma-table invoice-table">
+        <table className="figma-grid-table invoice-table">
           <thead>
             {/* ช่องสุดท้ายเป็นเมนูจัดการ ไม่มีหัวข้อให้อ่าน จึงใส่ชื่อไว้ให้โปรแกรมอ่านหน้าจอเท่านั้น */}
             <tr className="figma-table-head"><th scope="col">เลขที่บิล</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ค่าน้ำ</th><th scope="col">ค่าไฟ</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col"><span className="sr-only">จัดการ</span></th></tr>

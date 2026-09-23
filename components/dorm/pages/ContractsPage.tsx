@@ -463,7 +463,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
           </div>
         ) : (
           <div className="figma-table-wrap">
-          <table className="figma-table contract-table">
+          <table className="figma-grid-table contract-table">
             <thead>
               <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">Version</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
             </thead>
