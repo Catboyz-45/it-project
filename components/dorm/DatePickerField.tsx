@@ -164,6 +164,8 @@ export function DatePickerField({
   }, [visibleMonth]);
 
   const monthLabel = visibleMonth.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+  // แยกชื่อเดือนกับปีออกจากกัน เพื่อให้เน้นเดือนหนากว่าปีแบบหัวปฏิทินของ Cal
+  const monthOnlyLabel = visibleMonth.toLocaleDateString("th-TH", { month: "long" });
   // ปุ่มย้อนกลับต้องปิดเมื่อช่วงก่อนหน้าเลยวันต่ำสุดไปหมดแล้ว แต่ละมุมมองคิดคนละแบบ
   const canMoveBackward = useMemo(() => {
     if (viewMode === "day") {
@@ -313,7 +315,9 @@ export function DatePickerField({
                 type="button"
               >
                 {/* +543 แปลงเป็นปี พ.ศ. ส่วนข้อมูลที่เก็บยังเป็น ค.ศ. เหมือนเดิม */}
-                {viewMode === "day" ? monthLabel : viewMode === "month" ? visibleYear + 543 : `${yearRangeStart + 543} - ${yearRangeStart + 554}`}
+                {viewMode === "day"
+                  ? <><strong>{monthOnlyLabel}</strong> <span>{visibleYear + 543}</span></>
+                  : viewMode === "month" ? visibleYear + 543 : `${yearRangeStart + 543} - ${yearRangeStart + 554}`}
               </button>
               <IconButton label="ช่วงถัดไป" onClick={() => moveVisiblePeriod(1)}><ChevronRight size={20} /></IconButton>
             </div>

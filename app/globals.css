@@ -270,16 +270,27 @@
   }
   .schedule-calendar-head { @apply mb-3 grid grid-cols-[44px_1fr_44px] items-center; }
   .schedule-calendar-head > button:not(.schedule-calendar-title) { @apply grid size-11 place-items-center rounded-xl text-[#55575f] hover:bg-[#f4f4f5]; }
-  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-semibold hover:bg-[#f4f4f5]; }
+  /* ชื่อเดือนหนา ปีบางกว่า แบบหัวปฏิทินของ Cal ที่แยกน้ำหนักสองระดับ */
+  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-medium hover:bg-[#f4f4f5]; }
+  .schedule-calendar-title strong { @apply font-semibold; }
+  .schedule-calendar-title span { @apply text-[#62646c]; }
   .schedule-calendar-weekdays, .schedule-calendar-grid { @apply grid grid-cols-7; }
-  .schedule-calendar-weekdays span { @apply grid h-9 place-items-center text-xs font-medium text-[#62646c]; }
+  /* เว้นช่องระหว่างวันเหมือนของ Cal ที่ใช้ gap-1 ไม่ให้ช่องติดกันจนดูแน่น */
+  .schedule-calendar-grid { @apply gap-1; }
+  .schedule-calendar-weekdays span { @apply grid h-9 place-items-center text-xs font-medium tracking-widest text-[#62646c]; }
   .schedule-calendar-grid button {
     @apply relative grid aspect-square min-h-0 w-full place-items-center rounded-md text-sm font-medium text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5];
   }
   .schedule-calendar-grid button.muted { @apply text-[#62646c]; }
   .schedule-calendar-grid button:disabled { @apply bg-transparent text-[#71717a] hover:bg-transparent; }
   .schedule-calendar-grid button.selected { @apply bg-brand font-semibold text-[#fff] hover:bg-[#4651c7]; }
-  .schedule-calendar-grid button.today:not(.selected) { @apply ring-1 ring-inset ring-[#d4d4d8]; }
+  /* วันนี้ใช้จุดเล็ก ๆ ใต้ตัวเลขแบบ Cal ไม่ใช่กรอบ จะได้ไม่ชนกับพื้นหลังของวันที่เลือกไว้ */
+  .schedule-calendar-grid button.today::after {
+    content: "";
+    @apply absolute bottom-1.5 left-1/2 size-[5px] -translate-x-1/2 rounded-full bg-brand;
+  }
+  .schedule-calendar-grid button.today.selected::after { @apply bg-[#fff]; }
+  .schedule-calendar-grid button.today:disabled::after { @apply bg-[#a1a1aa]; }
   .schedule-calendar-picker-grid { @apply grid grid-cols-3 gap-2; }
   .schedule-calendar-picker-grid.year { @apply grid-cols-3; }
   .schedule-calendar-picker-grid button { @apply min-h-11 rounded-md text-sm font-medium transition-colors hover:bg-[#f4f4f5]; }
