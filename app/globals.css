@@ -527,20 +527,36 @@
   }
   .figma-table-toolbar > .contract-actions { @apply ml-auto items-center; }
   .figma-table-toolbar > .contract-actions > :is(button, a) { @apply min-h-11 lg:min-h-9; }
-  .figma-table-wrap { @apply max-h-[75dvh] overflow-auto; }
+  /* กรอบเทาบาง ๆ รอบตัวตาราง แบบเดียวกับกล่องของ Cal ที่ใช้พื้นหลัง muted หนา 2px
+     หัวตารางสีเดียวกับกรอบ จึงกลืนเป็นชิ้นเดียวกันแล้วตัวตารางสีขาวดูลอยขึ้นมา */
+  .figma-table-wrap { @apply max-h-[75dvh] overflow-auto rounded-lg border-2 border-[#f6f7f8]; }
   /* ตารางที่วางคอลัมน์ด้วย grid ใช้ element ของตารางจริง โปรแกรมอ่านหน้าจอจะได้จับคู่หัวคอลัมน์กับค่าได้ */
   .figma-grid-table { @apply grid w-full border-collapse text-left; }
   .figma-grid-table > thead { @apply sticky top-0 z-10 grid; }
   .figma-grid-table > tbody { @apply grid; }
   /* ช่องในตารางแบบนี้ไม่ตกแต่งตัวเอง ปล่อยให้แถวเป็นคนคุมระยะ เส้น และพื้นหลังทั้งหมด */
   .figma-grid-table :is(th, td) {
-    @apply m-0 h-auto min-w-0 border-0 bg-transparent p-0 text-left align-middle;
+    @apply m-0 h-auto min-w-0 border-0 bg-transparent p-0 pl-6 text-left align-middle;
     font: inherit;
     color: inherit;
   }
   .figma-table-head, .figma-table-row { @apply grid min-w-[860px] grid-cols-8 items-center gap-4; }
-  .figma-table-head { @apply min-h-12 border-b border-[#e4e4e7] bg-[#fafafa] px-6 py-3 text-[13px] font-medium normal-case tracking-normal text-[#62646c]; }
-  .figma-table-row { @apply min-h-20 border-b border-[#e4e4e7] bg-[#fff] px-6 py-4 text-sm text-[#292a30] transition-colors duration-150 hover:bg-[#fafafa]; }
+  .figma-table-head { @apply min-h-12 border-b border-[#e4e4e7] bg-[#fafafa] pr-6 py-3 text-[13px] font-medium normal-case tracking-normal text-[#62646c]; }
+  .figma-table-row { @apply min-h-11 border-b border-[#e4e4e7] bg-[#fff] pr-6 py-2.5 text-sm text-[#292a30] transition-colors duration-150 hover:bg-[#fafafa]; }
+  /* ปักคอลัมน์แรกไว้ซ้ายสุด เลื่อนไปดูคอลัมน์ท้าย ๆ แล้วยังรู้ว่าแถวนี้ของใคร
+     background: inherit ทำให้ช่องที่ปักไว้รับสีพื้นของแถวมาเอง ทั้งสีปกติ สีชี้ และสีตามสถานะ */
+  .figma-grid-table :is(th, td):not(:first-child) { @apply pl-0; }
+  .figma-grid-table > thead > tr > :first-child,
+  .figma-grid-table > tbody > tr > :first-child {
+    @apply sticky left-0 z-[1];
+    background: inherit;
+  }
+  .figma-table-card table:not(.figma-grid-table) :is(thead, tbody) > tr > :first-child,
+  .meter-table-card table :is(thead, tbody) > tr > :first-child,
+  .repair-board table :is(thead, tbody) > tr > :first-child,
+  .panel.overflow-hidden table :is(thead, tbody) > tr > :first-child {
+    @apply sticky left-0 z-[1];
+  }
   .figma-grid-table > tbody > .figma-table-row:nth-child(odd) { @apply bg-[#fff] hover:bg-[#fafafa]; }
   .figma-grid-table > tbody > .figma-table-row:last-child { @apply border-b-0; }
 
@@ -566,7 +582,7 @@
   }
   .figma-table-row strong { @apply font-semibold text-[#292a30]; }
   .tenant-table .figma-table-head, .tenant-table .figma-table-row {
-    grid-template-columns: minmax(160px,1.1fr) minmax(72px,.5fr) minmax(120px,.8fr) minmax(100px,.65fr) minmax(220px,1.45fr) minmax(110px,.75fr) 72px;
+    grid-template-columns: minmax(184px,1.1fr) minmax(72px,.5fr) minmax(120px,.8fr) minmax(100px,.65fr) minmax(220px,1.45fr) minmax(110px,.75fr) 72px;
     min-width: 1040px;
   }
   .tenant-table .figma-table-row { @apply w-full text-left; }
@@ -579,7 +595,7 @@
   .tenant-table .figma-table-head > :last-child,
   .tenant-table .figma-table-row > :last-child { @apply flex items-center justify-center text-center; }
   .contract-table .figma-table-head, .contract-table .figma-table-row {
-    grid-template-columns: minmax(170px,1.15fr) minmax(70px,.5fr) minmax(130px,.9fr) minmax(95px,.65fr) minmax(180px,1.2fr) minmax(75px,.5fr) minmax(110px,.75fr) minmax(150px,1fr);
+    grid-template-columns: minmax(194px,1.15fr) minmax(70px,.5fr) minmax(130px,.9fr) minmax(95px,.65fr) minmax(180px,1.2fr) minmax(75px,.5fr) minmax(110px,.75fr) minmax(150px,1fr);
     min-width: 1160px;
   }
   .contract-table .contract-actions { @apply flex-nowrap justify-center; }
@@ -589,11 +605,11 @@
   /* ปุ่มท้ายแถวที่เปิดรายละเอียด ให้คนใช้คีย์บอร์ดมีเป้าหมายที่โฟกัสได้ ไม่ต้องกดทั้งแถว */
   .figma-row-action { @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold whitespace-nowrap text-brand transition-colors hover:bg-brand/[.08] lg:min-h-9; }
   .approval-table .figma-table-head, .approval-table .figma-table-row {
-    grid-template-columns: minmax(150px,1fr) minmax(70px,.5fr) minmax(90px,.65fr) minmax(180px,1.2fr) minmax(120px,.8fr) minmax(125px,.85fr) minmax(110px,.75fr) 110px;
+    grid-template-columns: minmax(174px,1fr) minmax(70px,.5fr) minmax(90px,.65fr) minmax(180px,1.2fr) minmax(120px,.8fr) minmax(125px,.85fr) minmax(110px,.75fr) 110px;
     min-width: 1120px;
   }
   .invoice-table .figma-table-head, .invoice-table .figma-table-row {
-    grid-template-columns: minmax(150px, 1.25fr) minmax(72px, .55fr) minmax(130px, 1fr) repeat(4, minmax(90px, .72fr)) minmax(92px, .72fr) 52px;
+    grid-template-columns: minmax(174px, 1.25fr) minmax(72px, .55fr) minmax(130px, 1fr) repeat(4, minmax(90px, .72fr)) minmax(92px, .72fr) 52px;
     min-width: 1080px;
   }
   .invoice-table .figma-table-head > :last-child,
@@ -621,7 +637,7 @@
     box-shadow: inset 0 -1px 0 #e4e4e7;
   }
   .figma-table-card table:not(.figma-grid-table) td, .meter-table-card table td, .panel.overflow-hidden table td {
-    @apply h-20 border-t border-[#e4e4e7] bg-[#fff] px-6 py-3 text-sm text-[#292a30];
+    @apply border-t border-[#e4e4e7] bg-[#fff] px-6 py-2.5 text-sm text-[#292a30];
   }
   .figma-table-card table:not(.figma-grid-table) tbody tr:nth-child(even) td,
   .meter-table-card table tbody tr:nth-child(even) td,
@@ -1545,6 +1561,7 @@
     /* บนมือถือตารางพัสดุกลายเป็นการ์ดเรียงลงมา ต้องปลดเพดานความสูงด้วย
        ไม่ใช่แค่ overflow ไม่งั้นเนื้อหาล้นออกไปทับปุ่มแบ่งหน้าข้างล่าง */
     .parcel-table-wrap { @apply max-h-none overflow-visible border-0; }
+    .parcel-table :is(thead, tbody) > tr > :first-child { @apply static; }
     .parcel-table { @apply min-w-0; }
     .parcel-table thead { @apply hidden; }
     .parcel-table, .parcel-table tbody { @apply block; }
