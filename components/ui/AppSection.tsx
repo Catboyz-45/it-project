@@ -7,18 +7,21 @@ export function AppSection({
   // ตัวเลขหรือข้อความสั้น ๆ มุมขวาของหัวข้อ เช่นจำนวนรายการที่รอดำเนินการ
   aside,
   children,
+  // ใช้ใส่คลาสของ grid เช่นการกินพื้นที่กี่คอลัมน์ เมื่อส่วนนี้อยู่ในตารางของหน้า
+  className,
   description,
   icon,
   title,
 }: {
   aside?: ReactNode;
   children: ReactNode;
+  className?: string;
   description?: string;
   icon: ReactNode;
   title: string;
 }) {
   return (
-    <section className="app-section">
+    <section className={`app-section ${className ?? ""}`.trim()}>
       <header className="app-section-head">
         <div>
           <span>{icon}</span>

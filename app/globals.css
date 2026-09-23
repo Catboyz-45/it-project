@@ -504,12 +504,15 @@
 
   .workspace > .grid { @apply grid grid-cols-12 gap-4 px-6; }
   .workspace > .grid > .panel { @apply col-span-6; }
-  .workspace > .grid > .panel.wide { @apply col-span-7; }
-  .workspace > .grid > .panel.wide + .panel { @apply col-span-5; }
+  .workspace > .grid > .panel.wide,
+  .workspace > .grid > .app-section.wide { @apply col-span-7; }
+  .workspace > .grid > .panel.wide + .panel,
+  .workspace > .grid > .app-section.wide + .app-section { @apply col-span-5; }
   .workspace > .grid > .panel.four { @apply col-span-4; }
   .workspace > .grid > .panel.five { @apply col-span-5; }
   .workspace > .grid > .panel.six { @apply col-span-6; }
-  .workspace > .grid > .panel.full { @apply col-span-12; }
+  .workspace > .grid > .panel.full,
+  .workspace > .grid > .app-section.full { @apply col-span-12; }
 
   .figma-list-page, .figma-rooms-page, .meter-figma-page, .repair-page, .additional-page, .settings-page, .contracts-page, .invoices-page {
     @apply space-y-5 px-6 py-6;
@@ -866,9 +869,13 @@
   .workspace .dashboard-panel-stagger {
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
-  .workspace .dashboard-panel-stagger > .panel.full { grid-column: 1 / -1; }
-  .workspace .dashboard-panel-stagger > .panel.wide { grid-column: span 7 / span 7; }
-  .workspace .dashboard-panel-stagger > .panel.wide + .panel { grid-column: span 5 / span 5; }
+  .workspace .dashboard-panel-stagger > .panel.full,
+  .workspace .dashboard-panel-stagger > .app-section.full { grid-column: 1 / -1; }
+  .workspace .dashboard-panel-stagger > .app-section { grid-column: span 6 / span 6; }
+  .workspace .dashboard-panel-stagger > .panel.wide,
+  .workspace .dashboard-panel-stagger > .app-section.wide { grid-column: span 7 / span 7; }
+  .workspace .dashboard-panel-stagger > .panel.wide + .panel,
+  .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: span 5 / span 5; }
   .dashboard-panel-stagger > .panel { @apply rounded-2xl p-4; }
   /* หัวข้อของแผงบนแดชบอร์ดใช้ขนาดเดียวกับหัวข้อของส่วน จะได้ไม่มีหัวข้อสองขนาดในหน้าเดียว */
   .dashboard-panel-stagger .panel-title { @apply mb-3; }
@@ -1504,7 +1511,10 @@
     .workspace .dashboard-panel-stagger > .panel,
     .workspace .dashboard-panel-stagger > .panel.full,
     .workspace .dashboard-panel-stagger > .panel.wide,
-    .workspace .dashboard-panel-stagger > .panel.wide + .panel { grid-column: 1 / -1; }
+    .workspace .dashboard-panel-stagger > .panel.wide + .panel,
+    .workspace .dashboard-panel-stagger > .app-section,
+    .workspace .dashboard-panel-stagger > .app-section.wide,
+    .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: 1 / -1; }
     .figma-room-grid, .room-grid { @apply grid-cols-2; }
     .payment-review-workspace { @apply grid-cols-1; }
     .payment-review-queue { @apply border-r-0 border-b border-[#e4e4e7]; }

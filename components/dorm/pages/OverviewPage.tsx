@@ -8,7 +8,7 @@ import type { Invoice, Room, Tenant } from "@/types/dorm";
 import type { DashboardSummary, PageKey } from "@/types/navigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { AppSection } from "@/components/ui/AppSection";
-import { InvoiceList, Metric, PanelTitle } from "../shared";
+import { InvoiceList, Metric } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
 
 // เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
@@ -253,8 +253,13 @@ export function OverviewPage({
       </AppSection>
 
       <section className="grid dashboard-panel-stagger">
-        <article className="panel wide revenue-summary-panel">
-          <PanelTitle title="สรุปรายรับรอบล่าสุด" action={latestRevenue?.label ?? "ยังไม่มีรอบบิล"} />
+        <AppSection
+          aside={latestRevenue?.label ?? "ยังไม่มีรอบบิล"}
+          className="wide revenue-summary-panel"
+          description="แยกตามค่าเช่า ค่าน้ำ และค่าไฟของรอบล่าสุด"
+          icon={<Landmark />}
+          title="สรุปรายรับรอบล่าสุด"
+        >
           {latestRevenue ? (
             <section className="revenue-summary" aria-label={`สรุปรายรับรอบ ${latestRevenue.label}`}>
               <div className="revenue-summary-total">
@@ -269,10 +274,14 @@ export function OverviewPage({
               </dl>
             </section>
           ) : <div className="dashboard-empty-state">ยังไม่มีข้อมูลบิลสำหรับสรุปรายรับ</div>}
-        </article>
+        </AppSection>
 
-        <article className="panel">
-          <PanelTitle title="สถานะห้อง" action={`${rooms.length} ห้อง`} />
+        <AppSection
+          aside={`${rooms.length} ห้อง`}
+          description="สัดส่วนห้องที่มีผู้เช่า ว่าง และกำลังซ่อม"
+          icon={<Building2 />}
+          title="สถานะห้อง"
+        >
           <div
             className="room-status-donut"
             aria-label={`มีผู้เช่า ${summary.occupied} ห้อง ห้องว่าง ${availableRooms} ห้อง ซ่อมบำรุง ${maintenanceRooms} ห้อง`}
@@ -288,10 +297,15 @@ export function OverviewPage({
               </div>
             ))}
           </div>
-        </article>
+        </AppSection>
 
-        <article className="panel wide">
-          <PanelTitle title="เรื่องสำคัญที่ต้องรู้" action="เรียงตามความเร่งด่วน" />
+        <AppSection
+          aside="เรียงตามความเร่งด่วน"
+          className="wide"
+          description="เรื่องที่ควรรู้ก่อนเริ่มงานวันนี้"
+          icon={<AlertTriangle />}
+          title="เรื่องสำคัญที่ต้องรู้"
+        >
           <div className="priority-list">
             {urgentItems.map((item) => (
               <button aria-label={`${item.title}: ${item.detail} กดเพื่อ${item.action}`} className="interactive-card" key={item.title} onClick={item.onClick} type="button">
@@ -303,10 +317,14 @@ export function OverviewPage({
               </button>
             ))}
           </div>
-        </article>
+        </AppSection>
 
-        <article className="panel">
-          <PanelTitle title={readOnly ? "ข้อมูลรอบบิล" : "งานรอบบิล"} action={readOnly ? "เปิดดูข้อมูลเดิม" : "งานที่ต้องทำประจำ"} />
+        <AppSection
+          aside={readOnly ? "เปิดดูข้อมูลเดิม" : "งานที่ต้องทำประจำ"}
+          description="ทางลัดไปหน้าที่ใช้ทุกรอบบิล"
+          icon={<ReceiptText />}
+          title={readOnly ? "ข้อมูลรอบบิล" : "งานรอบบิล"}
+        >
           <div className="quick-actions dashboard-actions">
             <button onClick={() => setActivePage("waterMeter")} type="button"><Gauge aria-hidden="true" size={20} /><strong>{readOnly ? "ดูมิเตอร์" : "จดมิเตอร์"}</strong><small>เปิดหน้ามิเตอร์ <ChevronRight aria-hidden="true" size={14} /></small></button>
             <button onClick={() => setActivePage("invoices")} type="button"><QrCode aria-hidden="true" size={20} /><strong>{readOnly ? "ดูบิล" : "ตรวจบิล"}</strong><small>เปิดหน้าบิล <ChevronRight aria-hidden="true" size={14} /></small></button>
@@ -315,15 +333,20 @@ export function OverviewPage({
             <strong>รอชำระ {pendingInvoices.length} ห้อง</strong>
             <span>{readOnly ? "ดูยอดและประวัติเดิมได้ในหน้าบิล" : "ตรวจหลักฐานการโอนก่อนอนุมัติการชำระในหน้าบิล"}</span>
           </div>
-        </article>
+        </AppSection>
 
-        <article className="panel full">
-          <PanelTitle title="บิลที่ต้องตาม" action={`${overdueInvoices.length} รายการค้างชำระ`} />
+        <AppSection
+          aside={`${overdueInvoices.length} รายการค้างชำระ`}
+          className="full"
+          description="บิลค้างชำระก่อน ถ้าไม่มีก็แสดงบิลรอบล่าสุด"
+          icon={<FileClock />}
+          title="บิลที่ต้องตาม"
+        >
           {/* โชว์บิลค้างก่อนถ้ามี ไม่มีค้างก็โชว์บิลรอบล่าสุดแทน เอาแค่ 3 รายการพอ */}
           {currentInvoices.length > 0 ? (
             <InvoiceList invoices={overdueInvoices.length > 0 ? overdueInvoices.slice(0, 3) : currentInvoices.slice(0, 3)} />
           ) : <div className="dashboard-empty-state">ยังไม่มีบิลที่ต้องติดตาม</div>}
-        </article>
+        </AppSection>
 
       </section>
     </>
