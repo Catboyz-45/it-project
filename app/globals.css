@@ -266,18 +266,18 @@
   .schedule-date-trigger.active { @apply border-brand bg-[#fff]; }
   .schedule-date-trigger svg { @apply shrink-0 text-[#60616b]; }
   .schedule-calendar {
-    @apply absolute top-full left-0 z-[90] mt-2 w-[min(390px,calc(100vw-48px))] rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
+    @apply absolute top-full left-0 z-[90] mt-2 w-[min(336px,calc(100vw-48px))] rounded-xl border border-[#e4e4e7] bg-[#fff] p-3 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
   }
-  .schedule-calendar-head { @apply mb-3 grid grid-cols-[44px_1fr_44px] items-center; }
-  .schedule-calendar-head > button:not(.schedule-calendar-title) { @apply grid size-11 place-items-center rounded-xl text-[#55575f] hover:bg-[#f4f4f5]; }
+  .schedule-calendar-head { @apply mb-2 grid grid-cols-[44px_1fr_44px] items-center lg:grid-cols-[36px_1fr_36px]; }
+  .schedule-calendar-head > button:not(.schedule-calendar-title) { @apply grid size-11 place-items-center rounded-xl text-[#55575f] hover:bg-[#f4f4f5] lg:size-9; }
   /* ชื่อเดือนหนา ปีบางกว่า แบบหัวปฏิทินของ Cal ที่แยกน้ำหนักสองระดับ */
-  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-medium hover:bg-[#f4f4f5]; }
+  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-medium hover:bg-[#f4f4f5] lg:min-h-9; }
   .schedule-calendar-title strong { @apply font-semibold; }
   .schedule-calendar-title span { @apply text-[#62646c]; }
   .schedule-calendar-weekdays, .schedule-calendar-grid { @apply grid grid-cols-7; }
   /* เว้นช่องระหว่างวันเหมือนของ Cal ที่ใช้ gap-1 ไม่ให้ช่องติดกันจนดูแน่น */
   .schedule-calendar-grid { @apply gap-1; }
-  .schedule-calendar-weekdays span { @apply grid h-9 place-items-center text-xs font-medium tracking-widest text-[#62646c]; }
+  .schedule-calendar-weekdays span { @apply grid h-7 place-items-center text-xs font-medium tracking-widest text-[#62646c]; }
   .schedule-calendar-grid button {
     @apply relative grid aspect-square min-h-0 w-full place-items-center rounded-md text-sm font-medium text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5];
   }
