@@ -364,12 +364,10 @@
   .super-admin-sidebar .sidebar-footer > button { @apply w-full justify-center; }
   .tenant-content .tenant-page-title { @apply hidden; }
   .tenant-workspace > .subscription-access-banner { @apply mx-6; }
-  .tenant-home {
-    @apply isolate overflow-hidden rounded-2xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)];
-  }
-  .tenant-home-surface {
-    @apply grid gap-5 rounded-xl bg-[#fff] p-[clamp(1rem,2.5vw,1.5rem)];
-  }
+  /* หน้าแรกของผู้เช่าเคยมีการ์ดขาวใบใหญ่ครอบทุกอย่างอีกชั้น ซึ่งอีกสองโรลไม่มี
+     ตอนนี้แต่ละส่วนเป็นการ์ดของตัวเองแล้ว ชั้นครอบจึงเหลือแค่การจัดระยะ */
+  .tenant-home { @apply isolate; }
+  .tenant-home-surface { @apply grid gap-5; }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
   /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
@@ -444,11 +442,11 @@
     @apply flex flex-wrap items-center gap-2;
   }
   .work-item-grid { @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3; }
-  .work-item-grid > button, .work-item-grid > div {
+  .work-item-grid > a, .work-item-grid > button, .work-item-grid > div {
     @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
-  .work-item-grid > button { @apply hover:bg-[#fafafa]; }
-  .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-md bg-brand/[.08] text-[#4651c7]; }
+  .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
+  .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff] text-[#62646c]; }
   .work-item-icon > svg { @apply size-4; }
   .work-item-copy { @apply min-w-0 flex-1; }
   .work-item-copy strong { @apply block; }
@@ -456,6 +454,21 @@
   .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-red-500 px-2 py-1 text-sm font-bold text-white; }
   .work-item-arrow { @apply shrink-0 text-[#8a8c95] transition-transform; }
   .work-item-grid > button:hover .work-item-arrow { @apply translate-x-0.5 text-brand; }
+
+  /* โครงหน้าแบบ Section ของ Cal พื้นเทาอ่อนห่อไว้ชั้นนอก หัวข้อมีไอคอนกับคำอธิบาย
+     แล้วเนื้อหาจริงอยู่บนการ์ดขาวข้างใน ใช้เหมือนกันทั้งสามโรล หน้าจะได้อ่านเป็นระบบเดียวกัน */
+  /* Cal วางส่วนสีเทาบนพื้นขาว ของเราพื้นหน้าเป็นเทาอยู่แล้ว จึงสลับเป็นการ์ดขาวบนพื้นเทา
+     ความสัมพันธ์ยังเหมือนกันคือกล่องของส่วนต้องแยกออกจากพื้นหลังของหน้าให้เห็นชัด */
+  .app-section { @apply grid gap-4 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
+  .app-section-head { @apply flex flex-wrap items-center justify-between gap-3 sm:flex-nowrap; }
+  .app-section-head > div:first-child { @apply flex min-w-0 items-center gap-2; }
+  .app-section-head > div:first-child > span {
+    @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff] text-[#62646c];
+  }
+  .app-section-head > div:first-child > span > svg { @apply size-4; }
+  .app-section-head h2 { @apply m-0 text-base leading-none font-semibold text-[#292a30]; }
+  .app-section-head p { @apply mt-1 text-sm text-[#62646c]; }
+  .app-section-head > small { @apply shrink-0 text-sm text-[#62646c]; }
 
   .stats, .figma-summary-grid, .parcel-summary-grid {
     @apply grid grid-cols-4 gap-4 px-6 py-6;
@@ -857,9 +870,8 @@
   .workspace .dashboard-panel-stagger > .panel.wide { grid-column: span 7 / span 7; }
   .workspace .dashboard-panel-stagger > .panel.wide + .panel { grid-column: span 5 / span 5; }
   .dashboard-panel-stagger > .panel { @apply rounded-2xl p-4; }
+  /* หัวข้อของแผงบนแดชบอร์ดใช้ขนาดเดียวกับหัวข้อของส่วน จะได้ไม่มีหัวข้อสองขนาดในหน้าเดียว */
   .dashboard-panel-stagger .panel-title { @apply mb-3; }
-  .dashboard-panel-stagger .panel-title h2,
-  .dashboard-panel-stagger .panel-title strong { @apply text-lg; }
   .dashboard-panel-stagger .work-item-grid { @apply gap-2; }
   .dashboard-panel-stagger .work-item-grid > button,
   .dashboard-panel-stagger .work-item-grid > div { @apply min-h-18 rounded-xl p-3; }

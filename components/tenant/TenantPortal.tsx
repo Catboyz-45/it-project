@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { AppSection } from "@/components/ui/AppSection";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,7 +18,9 @@ import {
   ChevronRight,
   Expand,
   FileText,
+  Gauge,
   Home,
+  ListChecks,
   LoaderCircle,
   LockKeyhole,
   MessageSquare,
@@ -827,12 +830,8 @@ function HomePanel({
       </div>
     ) : null}
 
-    <section aria-labelledby="tenant-priority-heading">
-      <div className="mb-3">
-        <h2 className="text-base font-semibold" id="tenant-priority-heading">ภาพรวมที่ต้องรู้</h2>
-        <p className="text-sm text-[#62646c]">บิล พัสดุ และเรื่องที่กำลังติดตาม</p>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
+    <AppSection description="บิล พัสดุ และเรื่องที่กำลังติดตาม" icon={<Gauge />} title="ภาพรวมที่ต้องรู้">
+      <div className="figma-summary-grid three">
         <HomePriorityCard
           tone="orange"
           detail={isPrimary
@@ -864,26 +863,26 @@ function HomePanel({
           value={`${summary?.openTickets ?? 0} รายการ`}
         />
       </div>
-    </section>
+    </AppSection>
 
-    <Panel title="งานที่ต้องทำ">
-      <div className="grid gap-3">
+    <AppSection description="รายการที่ต้องเข้าไปจัดการในตอนนี้" icon={<ListChecks />} title="งานที่ต้องทำ">
+      <div className="work-item-grid">
         {isPrimary && unpaidInvoice ? (
           <HomeTask
             detail={`บิล ${unpaidInvoice.invoiceNumber} ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`}
             href={tenantPagePath("invoices")}
+            icon={<ReceiptText size={20} />}
             label={unpaidInvoice.status === "OVERDUE" ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
-            tone={unpaidInvoice.status === "OVERDUE" ? "text-red-600" : "text-amber-600"}
           />
         ) : null}
         {(summary?.waitingParcels ?? 0) > 0 ? (
-          <HomeTask detail={`มีพัสดุรอรับ ${summary?.waitingParcels ?? 0} รายการ`} href={tenantPagePath("parcels")} label="รับพัสดุที่หอพัก" tone="text-sky-600" />
+          <HomeTask detail={`มีพัสดุรอรับ ${summary?.waitingParcels ?? 0} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" />
         ) : null}
         {(summary?.openTickets ?? 0) > 0 ? (
-          <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${summary?.openTickets ?? 0} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} label="ติดตามเรื่องที่แจ้งไว้" tone="text-violet-600" />
+          <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${summary?.openTickets ?? 0} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" />
         ) : null}
         {(summary?.unreadMessages ?? 0) > 0 ? (
-          <HomeTask detail={`มีข้อความที่ยังไม่ได้อ่าน ${summary?.unreadMessages ?? 0} ข้อความ`} href={tenantPagePath("chat")} label="อ่านข้อความจากหอพัก" tone="text-emerald-600" />
+          <HomeTask detail={`มีข้อความที่ยังไม่ได้อ่าน ${summary?.unreadMessages ?? 0} ข้อความ`} href={tenantPagePath("chat")} icon={<MessageSquare size={20} />} label="อ่านข้อความจากหอพัก" />
         ) : null}
         {(!isPrimary || !unpaidInvoice)
           && (summary?.waitingParcels ?? 0) === 0
@@ -898,15 +897,16 @@ function HomePanel({
           ) : null}
         {notificationResource.isLoading ? <Loading /> : null}
       </div>
-    </Panel>
+    </AppSection>
 
+    <AppSection description="รายละเอียดห้องที่กำลังเข้าพัก" icon={<Home />} title="ข้อมูลห้อง">
     <div className="grid gap-4 sm:grid-cols-3">
       <InfoCard label="ค่าเช่าต่อเดือน" value={currency.format(Number(room.monthlyRent))} />
       <InfoCard label="ประเภทห้อง" value={room.roomType} />
       <InfoCard label="เริ่มเข้าพัก" value={startedAt ? new Date(startedAt).toLocaleDateString("th-TH") : "-"} />
     </div>
 
-    <details className="panel group">
+    <details className="rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 group">
       <summary className="cursor-pointer list-none text-sm font-semibold">ข้อมูลห้องและช่องทางติดต่อ</summary>
       <dl className="mt-5 grid gap-4 sm:grid-cols-2">
         <Info label="ที่อยู่" value={room.property.settings?.address ?? "-"} />
@@ -918,6 +918,7 @@ function HomePanel({
       </dl>
       {room.property.settings?.houseRules ? <div className="mt-5 rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
     </details>
+    </AppSection>
     </div>
   </div>;
 }
@@ -940,19 +941,20 @@ function HomePriorityCard({ detail, href, icon, label, tone, value }: {
   </Link>;
 }
 
-function HomeTask({ detail, href, label, tone }: {
+// รายการงานหนึ่งบรรทัด ใช้โครงและคลาสเดียวกับหน้าแรกของเจ้าของหอและผู้ดูแลระบบ
+function HomeTask({ detail, href, icon, label }: {
   detail: string;
   href: string;
+  icon: ReactNode;
   label: string;
-  tone: string;
 }) {
-  return <Link className="flex items-center gap-4 rounded-xl border border-[#e4e4e7] p-4 transition hover:border-brand hover:bg-brand/[.03]" href={href}>
-    <AlertCircle className={tone} size={23} />
-    <span className="min-w-0 flex-1">
+  return <Link href={href}>
+    <span className="work-item-icon">{icon}</span>
+    <span className="work-item-copy">
       <strong className="block">{label}</strong>
       <small className="block truncate text-[#62646c]">{detail}</small>
     </span>
-    <ArrowRight className="shrink-0 text-[#62646c]" size={18} />
+    <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
   </Link>;
 }
 

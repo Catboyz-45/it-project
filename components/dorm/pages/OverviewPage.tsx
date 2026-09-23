@@ -1,12 +1,13 @@
 "use client";
 // มีอนิเมชันตัวเลขที่ต้องใช้ timer และเช็คการตั้งค่าของเบราว์เซอร์
 
-import { AlertTriangle, ArrowRight, Building2, ChevronRight, CreditCard, FileClock, Gauge, Landmark, MessageSquare, PackageCheck, QrCode, ReceiptText, UserCheck, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, Building2, ChevronRight, CreditCard, FileClock, Gauge, Landmark, ListChecks, MessageSquare, PackageCheck, QrCode, ReceiptText, UserCheck, Wrench } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { currency, totalInvoice } from "@/lib/dorm-utils";
 import type { Invoice, Room, Tenant } from "@/types/dorm";
 import type { DashboardSummary, PageKey } from "@/types/navigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
+import { AppSection } from "@/components/ui/AppSection";
 import { InvoiceList, Metric, PanelTitle } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
 
@@ -210,19 +211,21 @@ export function OverviewPage({
 
   return (
     <>
+      <AppSection description="ยอดบิล รายได้ และห้องที่มีผู้เช่าของรอบล่าสุด" icon={<Gauge />} title="ภาพรวมธุรกิจ">
       <section className="stats dashboard-metric-stagger" aria-label="ภาพรวมธุรกิจ">
         <Metric icon={<Landmark />} label="ยอดบิลรอบล่าสุด" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดบิลรอบล่าสุด" value={summary.revenue + summary.pending} />} detail={latestMonth ?? "ยังไม่มีรอบบิล"} tone="indigo" />
         <Metric icon={<QrCode />} label="รายได้ที่รับแล้ว" value={<AnimatedNumber format={(value) => currency.format(value)} label="รายได้ที่รับแล้ว" value={summary.revenue} />} detail="ยอดที่ชำระเรียบร้อย" tone="green" />
         <Metric icon={<AlertTriangle />} label="ยอดค้างชำระ" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดค้างชำระ" value={summary.pending} />} detail={`${summary.overdue} ห้องค้างชำระ`} tone="red" />
         <Metric icon={<Building2 />} label="ห้องที่มีผู้เช่า" value={<AnimatedNumber format={(value) => `${value.toLocaleString("th-TH")} ห้อง`} label="ห้องที่มีผู้เช่า" value={summary.occupied} />} detail={`${percent(summary.occupied, rooms.length)}% ของห้องทั้งหมด`} tone="blue" />
       </section>
+      </AppSection>
 
-      <section className="grid dashboard-panel-stagger">
-        <article className="panel full">
-          <PanelTitle
-            title={readOnly ? "รายการที่ควรตรวจสอบ" : "งานที่ต้องทำ"}
-            action={pendingWorkCount > 0 ? `${pendingWorkCount} รายการ${readOnly ? "สำหรับตรวจสอบ" : "รอดำเนินการ"}` : "ไม่มีรายการค้าง"}
-          />
+      <AppSection
+        aside={pendingWorkCount > 0 ? `${pendingWorkCount} รายการ${readOnly ? "สำหรับตรวจสอบ" : "รอดำเนินการ"}` : "ไม่มีรายการค้าง"}
+        description="รายการที่ต้องเข้าไปจัดการในตอนนี้"
+        icon={<ListChecks />}
+        title={readOnly ? "รายการที่ควรตรวจสอบ" : "งานที่ต้องทำ"}
+      >
           {pendingWorkCount > 0 ? (
             <div className="work-item-grid">
               {/* ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง */}
@@ -247,8 +250,9 @@ export function OverviewPage({
           ) : (
             <div className="dashboard-empty-state">ไม่มีรายการเร่งด่วนที่ต้องดำเนินการในขณะนี้</div>
           )}
-        </article>
+      </AppSection>
 
+      <section className="grid dashboard-panel-stagger">
         <article className="panel wide revenue-summary-panel">
           <PanelTitle title="สรุปรายรับรอบล่าสุด" action={latestRevenue?.label ?? "ยังไม่มีรอบบิล"} />
           {latestRevenue ? (

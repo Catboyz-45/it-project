@@ -1,0 +1,35 @@
+import type { ReactNode } from "react";
+
+// กรอบของแต่ละส่วนในหน้า ใช้โครงเดียวกับ Section ของ Cal
+// พื้นเทาอ่อนห่อไว้ หัวข้อมีไอคอนกับคำอธิบาย แล้วเนื้อหาอยู่ข้างใน
+// ทั้งสามโรลใช้ตัวนี้ หน้าหลักจึงอ่านเป็นระบบเดียวกัน
+export function AppSection({
+  // ตัวเลขหรือข้อความสั้น ๆ มุมขวาของหัวข้อ เช่นจำนวนรายการที่รอดำเนินการ
+  aside,
+  children,
+  description,
+  icon,
+  title,
+}: {
+  aside?: ReactNode;
+  children: ReactNode;
+  description?: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="app-section">
+      <header className="app-section-head">
+        <div>
+          <span>{icon}</span>
+          <div className="min-w-0">
+            <h2>{title}</h2>
+            {description ? <p>{description}</p> : null}
+          </div>
+        </div>
+        {aside ? <small>{aside}</small> : null}
+      </header>
+      {children}
+    </section>
+  );
+}
