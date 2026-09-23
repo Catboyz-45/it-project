@@ -212,7 +212,10 @@ function PaginatedTable<T>({
         >
           <Download size={16} /> CSV
         </a>
-          {action}
+          {/* ห่อไว้หนึ่งชั้นเพราะ action ถูกสร้างจาก Server Component แล้วส่งข้ามมาเป็น prop
+              React ฝั่งเบราว์เซอร์จึงไม่รู้ว่ามันเป็นลูกที่อยู่ตำแหน่งตายตัวและเตือนเรื่อง key
+              display: contents ทำให้กล่องนี้ไม่มีผลต่อการจัดวาง */}
+          {action ? <span className="contents">{action}</span> : null}
         </div>
       </div>
       {/* โครงหลอกรูปตาราง ไม่ใช่วงหมุน คอลัมน์จะได้ไม่ขยับตอนข้อมูลมาถึง */}
