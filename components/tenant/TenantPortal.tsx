@@ -834,7 +834,7 @@ function HomePanel({
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <HomePriorityCard
-          accent="border-amber-200 bg-amber-50"
+          tone="orange"
           detail={isPrimary
             ? unpaidInvoice
               ? `ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`
@@ -846,7 +846,7 @@ function HomePanel({
           value={isPrimary ? unpaidInvoice ? currency.format(Number(unpaidInvoice.total)) : "ไม่มี" : "-"}
         />
         <HomePriorityCard
-          accent="border-sky-200 bg-sky-50"
+          tone="blue"
           detail={waitingParcel
             ? `${waitingParcel.note || "พัสดุใหม่"} · ${new Date(waitingParcel.registeredAt).toLocaleDateString("th-TH")}`
             : "ไม่มีพัสดุรอรับ"}
@@ -856,7 +856,7 @@ function HomePanel({
           value={`${summary?.waitingParcels ?? 0} รายการ`}
         />
         <HomePriorityCard
-          accent="border-violet-200 bg-violet-50"
+          tone="indigo"
           detail={openTicket ? openTicket.title : "ไม่มีเรื่องที่กำลังดำเนินการ"}
           href={tenantPagePath("tickets")}
           icon={<Wrench />}
@@ -922,22 +922,21 @@ function HomePanel({
   </div>;
 }
 
-function HomePriorityCard({ accent, detail, href, icon, label, value }: {
-  accent: string;
+// ใช้การ์ดตัวเลขใบเดียวกับฝั่งเจ้าของหอและผู้ดูแลระบบ ต่างกันแค่กดแล้วไปหน้าอื่นได้
+// เดิมเป็นการ์ดพื้นสีพาสเทลเต็มใบ ซึ่งเป็นคนละภาษากับอีกสองโรล
+function HomePriorityCard({ detail, href, icon, label, tone, value }: {
   detail: string;
   href: string;
   icon: ReactNode;
   label: string;
+  tone: string;
   value: string;
 }) {
-  return <Link className={`rounded-xl border p-5 transition-colors duration-150 ${accent}`} href={href}>
-    <div className="flex items-start justify-between gap-3">
-      <span className="grid size-9 place-items-center rounded-md bg-white text-[#4651c7]">{icon}</span>
-      <ArrowRight size={19} />
-    </div>
-    <p className="mt-5 text-sm font-bold text-[#62646c]">{label}</p>
-    <strong className="mt-1 block text-2xl font-bold">{value}</strong>
-    <small className="mt-2 block text-[#62646c]">{detail}</small>
+  // span ต้องเป็นลูกโดยตรงของการ์ด ถึงจะได้กรอบไอคอนแบบเดียวกับอีกสองโรล
+  return <Link className={`figma-summary-card tone-${tone} pr-12 hover:border-[#c8c9d0]`} href={href}>
+    <div className="min-w-0"><small>{label}</small><strong>{value}</strong><small className="mt-1.5 block">{detail}</small></div>
+    <span>{icon}</span>
+    <ArrowRight aria-hidden="true" className="absolute right-4 bottom-4 text-[#62646c]" size={18} />
   </Link>;
 }
 

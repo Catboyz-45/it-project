@@ -8,13 +8,14 @@ import type { Invoice, Room, Tenant } from "@/types/dorm";
 // การ์ดตัวเลขสรุปบนหน้าภาพรวม tone คุมแค่สี ไม่มีผลกับข้อมูล
 export function Metric({ icon, label, value, detail, tone = "indigo" }: { icon: ReactNode; label: string; value: ReactNode; detail: string; tone?: "blue" | "green" | "indigo" | "orange" | "red" }) {
   return (
+    /* ข้อความก่อน ไอคอนทีหลัง ให้อ่านเรียงเหมือนการ์ดตัวเลขของอีกสองโรล */
     <article className={`metric tone-${tone}`}>
-      <span>{icon}</span>
-      <div>
+      <div className="min-w-0">
         <small>{label}</small>
         <strong>{value}</strong>
         <em>{detail}</em>
       </div>
+      <span>{icon}</span>
     </article>
   );
 }

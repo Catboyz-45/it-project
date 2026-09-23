@@ -70,6 +70,12 @@ async function readTableShape(table: Locator) {
 }
 
 async function expectTableContract(page: Page, table: Locator, expected: { columns: number; title: string }) {
+  // รอให้ตารางกางเสร็จก่อนค่อยวัด ระหว่างที่แผงยังจัดวางอยู่ความกว้างจะยังเป็นศูนย์
+  // ตารางที่ยุบจริงจะไม่มีวันถึงเกณฑ์ การรอตรงนี้จึงยังจับของพังได้เหมือนเดิม
+  await expect
+    .poll(async () => (await readTableShape(table)).headerWidths.reduce((a, b) => Math.min(a, b), Infinity),
+      { message: `${expected.title}: รอให้คอลัมน์กางเสร็จ`, timeout: 10_000 })
+    .toBeGreaterThanOrEqual(minimumColumnWidth);
   const shape = await readTableShape(table);
 
   expect(shape.columns, `${expected.title}: จำนวนคอลัมน์`).toBe(expected.columns);

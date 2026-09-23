@@ -470,15 +470,16 @@
     @apply relative isolate flex min-h-24 items-start justify-between gap-3 overflow-hidden rounded-xl border border-[#e4e4e7] p-4 shadow-[0_1px_2px_rgba(0,0,0,.04)];
     background-color: #ffffff;
   }
+  /* กล่องไอคอนเป็นกรอบบาง ๆ พื้นขาว แบบ Section.Icon ของ Cal ไม่ใช่บล็อกสีพาสเทล
+     สีของโทนเหลือไว้ที่ตัวไอคอนอย่างเดียว ยังบอกความหมายได้โดยไม่แย่งสายตาจากตัวเลข */
   .metric > span, .figma-summary-card > span {
-    @apply grid size-9 shrink-0 place-items-center rounded-md;
-    background: var(--summary-tint);
+    @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff];
     color: var(--summary-accent);
   }
   .metric > span > svg, .figma-summary-card > span > svg { @apply size-4; }
+  /* ตัวเลขใช้สีข้อความปกติเหมือนของ Cal ที่เน้นด้วยน้ำหนักตัวอักษร ไม่ใช่ด้วยสี */
   .metric strong, .figma-summary-card strong {
-    @apply mt-1.5 block text-xl font-semibold;
-    color: var(--summary-accent);
+    @apply mt-1.5 block text-xl font-semibold text-[#292a30];
   }
   .metric.tone-blue, .figma-summary-card.tone-blue { --summary-accent: #2563eb; --summary-tint: #eff6ff; }
   .metric.tone-green, .figma-summary-card.tone-green { --summary-accent: #07883f; --summary-tint: #f0fdf4; }
