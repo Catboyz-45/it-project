@@ -43,6 +43,9 @@ export function TicketReplyThread({
   // เก็บ onRead ไว้ใน ref เพราะ load ข้างล่างไม่ควรรันใหม่ทุกครั้งที่หน้าแม่ส่งฟังก์ชันตัวใหม่มา
   const onReadRef = useRef(onRead);
   useEffect(() => { onReadRef.current = onRead; }, [onRead]);
+  // แจ้งว่าอ่านแล้วครั้งเดียวต่อหนึ่งเรื่อง ไม่ใช่ทุกครั้งที่โหลดข้อความ
+  // เพราะหน้าแม่ตอบสนองด้วยการโหลดรายการใหม่ แจ้งซ้ำจึงกลายเป็นวนกันไปมา
+  const reportedReadFor = useRef<string | null>(null);
 
   // prepend = โหลดข้อความเก่ากว่ามาต่อข้างบน ไม่ใช่โหลดใหม่ทั้งชุด
   const load = useCallback(async (targetPage = 1, prepend = false) => {
@@ -71,7 +74,10 @@ export function TicketReplyThread({
       setPage(payload.pageInfo.page);
       setHasNextPage(payload.pageInfo.hasNextPage);
       // บอกหน้าแม่ว่าอ่านแล้ว เพื่อให้ตัวเลขแจ้งเตือนลดลง
-      onReadRef.current?.();
+      if (reportedReadFor.current !== endpoint) {
+        reportedReadFor.current = endpoint;
+        onReadRef.current?.();
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "โหลดข้อความตอบกลับไม่สำเร็จ");
     } finally {

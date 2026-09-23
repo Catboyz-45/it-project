@@ -1012,7 +1012,7 @@ function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitia
   return <div className="grid gap-5">
     <TenantHistoryTabs currentLabel="บิลปัจจุบัน" historyLabel="ประวัติบิล" id="tenant-invoices" onChange={changeView} view={view} />
     <div aria-labelledby={`tenant-invoices-tab-${view}`} aria-live="polite" id="tenant-invoices-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading columns={6} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
+    {resource.isLoading && !resource.data.length ? <Loading columns={6} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((invoice) => {
@@ -1178,7 +1178,7 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialView
   return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}</div>
     {readOnly ? <ReadOnlyNotice>ดูสถานะ ประวัติ และไฟล์แนบเดิมได้ แต่ไม่สามารถสร้างหรือตอบกลับรายการได้</ReadOnlyNotice> : null}
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading ? <Loading columns={5} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
+    {resource.isLoading && !resource.data.length ? <Loading columns={5} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
       <table>
         <thead><tr><th scope="col">หัวข้อ</th><th scope="col">ประเภท</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
         <tbody>{resource.data.map((ticket) => {
