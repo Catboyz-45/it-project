@@ -15,6 +15,9 @@ export const e2e = {
   activeRoomId: "cm000000000000000000007",
   secondPropertyRoomId: "cm000000000000000000027",
   pendingRoomId: "cm000000000000000000008",
+  // คำขอเข้าพักใบที่สอง เทสต์ตัวอื่นกดอนุมัติใบแรกไปแล้ว คิวจึงต้องเหลือใบนี้ไว้ให้ตรวจโครงตาราง
+  secondPendingUserId: "cm000000000000000000032",
+  secondPendingProfileId: "cm000000000000000000033",
   ownerEmail: "e2e-owner@example.test",
   tenantEmail: "e2e-tenant@example.test",
   superAdminEmail: "e2e-super-admin@example.test",

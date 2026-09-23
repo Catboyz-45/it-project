@@ -614,7 +614,7 @@
   }
   .invoice-table .figma-table-head > :last-child,
   .invoice-table .figma-table-row > :last-child { @apply flex items-center justify-center; }
-  .parcel-table-wrap { @apply max-h-[75dvh] overflow-auto; }
+  .parcel-table-wrap { @apply max-h-[75dvh] overflow-auto rounded-lg border-2 border-[#f6f7f8]; }
   .parcel-table { @apply w-full min-w-[880px] border-collapse text-left text-sm; }
   .parcel-table thead { @apply bg-[#fafafa] text-sm font-bold text-[#4d4f58]; }
   .parcel-table th { @apply h-16 border-b border-[#e4e4e7] px-6 py-4 normal-case tracking-normal; }

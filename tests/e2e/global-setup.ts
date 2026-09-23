@@ -33,6 +33,8 @@ async function clearProperty(client: pg.PoolClient, propertyId: string) {
   await client.query(`DELETE FROM "Announcement" WHERE "propertyId" = $1`, property);
   await client.query(`DELETE FROM "ChatMessage" WHERE "propertyId" = $1`, property);
   await client.query(`DELETE FROM "ChatConversation" WHERE "propertyId" = $1`, property);
+  // ประวัติการย้ายอ้างถึงการเข้าพัก ต้องลบก่อนไม่งั้นติด foreign key
+  await client.query(`DELETE FROM "OccupancyTransition" WHERE "propertyId" = $1`, property);
   await client.query(`DELETE FROM "RoomOccupancy" WHERE "propertyId" = $1`, property);
   await client.query(`DELETE FROM "TenantInvitation" WHERE "propertyId" = $1`, property);
   await client.query(`DELETE FROM "Room" WHERE "propertyId" = $1`, property);
@@ -71,6 +73,11 @@ export default async function globalSetup() {
   // สามตารางประวัติจะได้มีแถวให้แสดงจริง ไม่งั้นทดสอบโครงตารางไม่ได้เลย
   const paidInvoiceId = "cm000000000000000000028";
   const resolvedTicketId = "cm000000000000000000029";
+  const secondPendingOccupancyId = "cm000000000000000000034";
+  const transitionId = "cm000000000000000000035";
+  const complaintTicketId = "cm000000000000000000036";
+  const subscriptionOrderId = "cm000000000000000000037";
+  const subscriptionPaymentId = "cm000000000000000000038";
 
   try {
     // ห่อทั้งหมดใน transaction เดียว พลาดกลางทางจะย้อนคืนหมด ไม่เหลือข้อมูลเตรียมไปครึ่งเดียว
@@ -82,16 +89,17 @@ export default async function globalSetup() {
     // ทุกคำสั่งส่งค่าผ่าน $1 ไม่ต่อสตริงเข้าไปใน SQL ตรง ๆ
     await clearProperty(client, e2e.propertyId);
     await clearProperty(client, e2e.secondPropertyId);
-    await client.query(`DELETE FROM "TenantProfile" WHERE "userId" = ANY($1::text[])`, [[e2e.tenantUserId, e2e.pendingUserId]]);
-    await client.query(`DELETE FROM "User" WHERE "id" = ANY($1::text[])`, [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.superAdminId]]);
+    await client.query(`DELETE FROM "TenantProfile" WHERE "userId" = ANY($1::text[])`, [[e2e.tenantUserId, e2e.pendingUserId, e2e.secondPendingUserId]]);
+    await client.query(`DELETE FROM "User" WHERE "id" = ANY($1::text[])`, [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.secondPendingUserId, e2e.superAdminId]]);
 
     await client.query(
       `INSERT INTO "User" ("id","email","passwordHash","displayName","role","isActive","approvalStatus","createdAt","updatedAt") VALUES
        ($1,$2,$3,'E2E Owner','PROPERTY_ADMIN',true,'APPROVED',NOW(),NOW()),
        ($4,$5,$3,'E2E Tenant','TENANT',true,'APPROVED',NOW(),NOW()),
        ($6,'e2e-pending@example.test',$3,'E2E Pending Tenant','TENANT',true,'APPROVED',NOW(),NOW()),
+       ($9,'e2e-pending-2@example.test',$3,'E2E Pending Two','TENANT',true,'APPROVED',NOW(),NOW()),
        ($7,$8,$3,'E2E Super Admin','SUPER_ADMIN',true,'APPROVED',NOW(),NOW())`,
-      [e2e.ownerId, e2e.ownerEmail, hash, e2e.tenantUserId, e2e.tenantEmail, e2e.pendingUserId, e2e.superAdminId, e2e.superAdminEmail],
+      [e2e.ownerId, e2e.ownerEmail, hash, e2e.tenantUserId, e2e.tenantEmail, e2e.pendingUserId, e2e.superAdminId, e2e.superAdminEmail, e2e.secondPendingUserId],
     );
     // บัญชีทดสอบต้องผ่านด่านยอมรับนโยบายมาแล้ว ไม่งั้นจะติดอยู่ที่หน้า /legal/accept
     await client.query(
@@ -99,7 +107,7 @@ export default async function globalSetup() {
        SELECT md5("id" || '-terms'), "id", 'TERMS_OF_SERVICE'::"PolicyType", 'ACCEPTED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])
        UNION ALL
        SELECT md5("id" || '-privacy'), "id", 'PRIVACY_NOTICE'::"PolicyType", 'ACKNOWLEDGED'::"PolicyActionType", '2026-09-06', 'REQUIRED_GATE'::"PolicyActionSource", NOW() FROM "User" WHERE "id" = ANY($1::text[])`,
-      [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.superAdminId]],
+      [[e2e.ownerId, e2e.tenantUserId, e2e.pendingUserId, e2e.secondPendingUserId, e2e.superAdminId]],
     );
     // บัญชีแอดมินตั้งต้นถูกสร้างจาก npm run admin:bootstrap คนละที่กับไฟล์นี้ และไม่ถูกลบตรงนี้
     // แต่ก็ต้องกดยอมรับนโยบายเหมือนกัน ไม่งั้นทุกเทสต์ที่ใช้บัญชีนี้จะไปติดที่หน้ายอมรับ
@@ -177,15 +185,24 @@ export default async function globalSetup() {
     );
     await client.query(
       `INSERT INTO "TenantProfile" ("id","userId","phone","createdAt","updatedAt") VALUES
-       ($1,$2,'0811111111',NOW(),NOW()),($3,$4,'0822222222',NOW(),NOW())`,
-      [e2e.tenantProfileId, e2e.tenantUserId, e2e.pendingProfileId, e2e.pendingUserId],
+       ($1,$2,'0811111111',NOW(),NOW()),($3,$4,'0822222222',NOW(),NOW()),($5,$6,'0833333333',NOW(),NOW())`,
+      [e2e.tenantProfileId, e2e.tenantUserId, e2e.pendingProfileId, e2e.pendingUserId,
+        e2e.secondPendingProfileId, e2e.secondPendingUserId],
     );
     // การเข้าพักสองแบบ อันหนึ่งอนุมัติแล้ว อีกอันยังรออนุมัติ ไว้ทดสอบหน้าคิวอนุมัติ
     await client.query(
       `INSERT INTO "RoomOccupancy" ("id","propertyId","roomId","tenantProfileId","role","status","startedAt","approvedAt","approvedByUserId","createdAt","updatedAt") VALUES
        ($1,$3,$4,$5,'PRIMARY','ACTIVE','2026-01-01','2026-01-01',$6,NOW(),NOW()),
-       ($2,$3,$7,$8,'PRIMARY','PENDING',NULL,NULL,NULL,NOW(),NOW())`,
-      [occupancyId, pendingOccupancyId, e2e.propertyId, e2e.activeRoomId, e2e.tenantProfileId, e2e.ownerId, e2e.pendingRoomId, e2e.pendingProfileId],
+       ($2,$3,$7,$8,'PRIMARY','PENDING',NULL,NULL,NULL,NOW(),NOW()),
+       ($9,$3,$7,$10,'CO_OCCUPANT','PENDING',NULL,NULL,NULL,NOW(),NOW())`,
+      [occupancyId, pendingOccupancyId, e2e.propertyId, e2e.activeRoomId, e2e.tenantProfileId, e2e.ownerId,
+        e2e.pendingRoomId, e2e.pendingProfileId, secondPendingOccupancyId, e2e.secondPendingProfileId],
+    );
+    // ประวัติการย้ายออกหนึ่งรายการ ไว้ให้แท็บประวัติย้ายออก/ย้ายห้องมีแถว
+    await client.query(
+      `INSERT INTO "OccupancyTransition" ("id","propertyId","type","primaryOccupancyId","sourceRoomId","effectiveDate","reason","depositAmount","deductions","outstandingAmount","refundAmount","amountDue","transferredAmount","completedByUserId","createdAt")
+       VALUES ($1,$2,'MOVE_OUT',$3,$4,'2026-05-31','ครบกำหนดสัญญา',7200,'[]'::jsonb,0,7200,0,0,$5,NOW())`,
+      [transitionId, e2e.propertyId, occupancyId, e2e.activeRoomId, e2e.ownerId],
     );
     await client.query(
       `INSERT INTO "Lease" ("id","propertyId","roomId","leaseNumber","status","startDate","endDate","monthlyRent","depositAmount","currentVersion","signedStorageKey","activatedAt","createdAt","updatedAt")
@@ -229,6 +246,13 @@ export default async function globalSetup() {
        VALUES ($1,$2,$3,$4,'REPAIR','RESOLVED','NORMAL','ไฟห้องน้ำเสีย','หลอดไฟกะพริบ ช่างเปลี่ยนให้แล้ว',$5,'2026-06-10',NOW(),NOW())`,
       [resolvedTicketId, e2e.propertyId, e2e.activeRoomId, e2e.tenantProfileId, e2e.tenantUserId],
     );
+    // ไม่ผูกกับโปรไฟล์ผู้เช่า เพราะจะไปโผล่ในรายการเรื่องที่กำลังดำเนินการของผู้เช่าด้วย
+    // แล้วหน้าแจ้งเรื่องจะเปลี่ยนจากสถานะว่างเป็นมีรายการ ซึ่งชนกับเทสต์ที่กดปุ่มแจ้งเรื่องในสถานะว่าง
+    await client.query(
+      `INSERT INTO "ServiceTicket" ("id","propertyId","roomId","type","status","priority","title","detail","createdByUserId","createdAt","updatedAt")
+       VALUES ($1,$2,$3,'COMPLAINT','OPEN','NORMAL','เสียงดังตอนกลางคืน','ห้องข้าง ๆ เปิดเพลงดังหลังเที่ยงคืน',$4,NOW(),NOW())`,
+      [complaintTicketId, e2e.propertyId, e2e.activeRoomId, e2e.ownerId],
+    );
     await client.query(
       `INSERT INTO "Announcement" ("id","propertyId","title","content","status","audience","publishedAt","createdById","createdAt","updatedAt")
        VALUES ('cm000000000000000000017',$1,'ประกาศ E2E','แจ้งทดสอบระบบสำหรับผู้เช่า','PUBLISHED','ALL_TENANTS','2026-07-01',$2,NOW(),NOW())`,
@@ -244,6 +268,19 @@ export default async function globalSetup() {
       `INSERT INTO "Parcel" ("id","propertyId","roomId","status","note","registeredById","registeredAt","receivedAt","receivedByTenantId","recipientTenantId","createdAt","updatedAt")
        VALUES ('cm000000000000000000031',$1,$2,'RECEIVED','พัสดุ E2E ที่รับไปแล้ว',$3,'2026-06-01','2026-06-02',$4,$4,NOW(),NOW())`,
       [e2e.propertyId, e2e.activeRoomId, e2e.ownerId, e2e.tenantProfileId],
+    );
+    // คำสั่งซื้อที่ยังรอชำระพร้อมหลักฐาน ไว้ให้หน้าตรวจค่าสมาชิกและหน้ารายละเอียดหอมีแถว
+    // ผูกกับหอที่สองโดยตั้งใจ เพราะหอที่มีคำสั่งซื้อค้างอยู่จะกดสั่งซื้อใหม่ไม่ได้
+    // ซึ่งจะไปชนกับเทสต์สิทธิ์ที่ตรวจว่าหอแรกยังกดต่ออายุได้ตอนอยู่โหมดอ่านอย่างเดียว
+    await client.query(
+      `INSERT INTO "SubscriptionOrder" ("id","orderNumber","propertyId","planId","planCode","planName","type","status","billingInterval","amount","maxProperties","maxRooms","allowPromptPay","allowFileUploads","allowPrioritySupport","createdByUserId","expiresAt","createdAt","updatedAt")
+       VALUES ($1,'E2E-ORDER-0001',$2,$3,'E2E_STANDARD','E2E Standard','RENEWAL','PENDING_PAYMENT','MONTHLY',990,2,100,true,true,true,$4,'2030-01-01',NOW(),NOW())`,
+      [subscriptionOrderId, e2e.secondPropertyId, plan.rows[0].id, e2e.ownerId],
+    );
+    await client.query(
+      `INSERT INTO "SubscriptionPayment" ("id","orderId","amount","storageKey","mimeType","sizeBytes","status","submittedByUserId","submittedAt","createdAt","updatedAt")
+       VALUES ($1,$2,990,'e2e/subscription/slip.png','image/png',1024,'PENDING_REVIEW',$3,NOW(),NOW(),NOW())`,
+      [subscriptionPaymentId, subscriptionOrderId, e2e.ownerId],
     );
     await client.query("COMMIT");
   } catch (error) {

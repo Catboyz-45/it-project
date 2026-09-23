@@ -41,7 +41,8 @@ test("owner shell does not refetch the read model it already has", async ({ page
   await approve.click();
   await page.getByRole("alertdialog", { name: "อนุมัติคำขอเข้าพัก?" })
     .getByRole("button", { name: "อนุมัติ", exact: true }).click();
-  await expect(page.getByText("ไม่มีคำขอเข้าพักที่รอตรวจสอบ")).toBeVisible();
+  // คิวมีมากกว่าหนึ่งใบ จึงดูว่าใบที่เพิ่งอนุมัติหลุดออกจากคิวไป ไม่ใช่ว่าคิวต้องว่าง
+  await expect(approve).toBeHidden();
   await page.waitForLoadState("networkidle");
   // แต่พอแก้ข้อมูลจริงต้องโหลดใหม่ ไม่งั้นหน้าอื่นจะเห็นข้อมูลเก่า
   expect(calls.length).toBeGreaterThan(0);

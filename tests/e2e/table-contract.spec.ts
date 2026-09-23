@@ -20,6 +20,10 @@ const ownerTables = [
   { columns: 6, path: "/parcels", title: "พัสดุ" },
   { columns: 8, path: "/meters/water", title: "มิเตอร์น้ำ" },
   { columns: 5, path: "/announcements", title: "ประกาศ" },
+  { columns: 6, path: "/tickets", title: "เรื่องร้องเรียน" },
+  // สองแท็บนี้อยู่ในหน้าผู้เช่า เก็บแท็บที่เลือกไว้ใน URL จึงเข้าตรงได้
+  { columns: 8, path: "/tenants?tab=pending", title: "คำขอเข้าพัก" },
+  { columns: 6, path: "/tenants?tab=transitions", title: "ประวัติย้ายออก/ย้ายห้อง" },
 ] as const;
 
 // ตารางประวัติของผู้เช่าอยู่หลังแท็บ "ประวัติ" และต้องมีข้อมูลใน seed ถึงจะ render
@@ -34,6 +38,8 @@ const superAdminTables = [
   { columns: 4, path: "/super-admin/properties", title: "หอพัก" },
   { columns: 7, path: "/super-admin/plans", title: "แพ็กเกจ" },
   { columns: 5, path: "/super-admin/audit-logs", title: "บันทึกระบบ" },
+  { columns: 6, path: "/super-admin/subscriptions", title: "ตรวจค่าสมาชิก" },
+  { columns: 6, path: `/super-admin/properties/${e2e.secondPropertyId}`, title: "ประวัติแพ็กเกจของหอ" },
 ] as const;
 
 async function login(page: Page, email: string) {
@@ -89,8 +95,10 @@ test.describe("สัญญาของตารางทุกโรล", () =>
       if ("needsTableView" in entry && entry.needsTableView) {
         await page.getByRole("tab", { name: /ตาราง/ }).first().click();
       }
+      // รอให้โครงหลอกหายไปก่อน ไม่งั้นจะไปวัดโครงหลอกแทนตารางจริง
+      await expect(page.locator(".loading-skeleton")).toHaveCount(0, { timeout: 10_000 });
       const table = page.locator("table").first();
-      await table.waitFor({ state: "visible", timeout: 10_000 });
+      await expect(table, `${entry.title}: ต้องมีตารางในหน้านี้`).toBeVisible({ timeout: 10_000 });
       await expectTableContract(page, table, entry);
     }
   });
@@ -103,8 +111,10 @@ test.describe("สัญญาของตารางทุกโรล", () =>
       await page.waitForLoadState("networkidle");
       // แท็บเป็น role="tab" ไม่ใช่ปุ่มธรรมดา
       await page.getByRole("tab", { name: /ประวัติ/ }).first().click();
+      // รอให้โครงหลอกหายไปก่อน ไม่งั้นจะไปวัดโครงหลอกแทนตารางจริง
+      await expect(page.locator(".loading-skeleton")).toHaveCount(0, { timeout: 10_000 });
       const table = page.locator("table").first();
-      await table.waitFor({ state: "visible", timeout: 10_000 });
+      await expect(table, `${entry.title}: ต้องมีตารางในหน้านี้`).toBeVisible({ timeout: 10_000 });
       await expectTableContract(page, table, entry);
     }
   });
@@ -115,8 +125,10 @@ test.describe("สัญญาของตารางทุกโรล", () =>
     for (const entry of superAdminTables) {
       await page.goto(entry.path);
       await page.waitForLoadState("networkidle");
+      // รอให้โครงหลอกหายไปก่อน ไม่งั้นจะไปวัดโครงหลอกแทนตารางจริง
+      await expect(page.locator(".loading-skeleton")).toHaveCount(0, { timeout: 10_000 });
       const table = page.locator("table").first();
-      await table.waitFor({ state: "visible", timeout: 10_000 });
+      await expect(table, `${entry.title}: ต้องมีตารางในหน้านี้`).toBeVisible({ timeout: 10_000 });
       await expectTableContract(page, table, entry);
     }
   });
