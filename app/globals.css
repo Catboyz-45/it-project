@@ -949,8 +949,10 @@
   .form-alert { @apply rounded-xl border border-[#047857] bg-emerald-50 px-4 py-3 text-sm font-semibold text-[#065f46]; }
   .form-alert.error { @apply border-[#b91c1c] bg-red-50 text-[#991b1b]; }
   .form-alert.warning { @apply border-[#b45309] bg-amber-50 text-[#92400e]; }
+  /* ค่าเริ่มต้นเท่ากล่องใหญ่สุดของ Cal คือ 48rem ของเดิม 56rem กว้างกว่าที่เขายอมให้กล่องกว้างได้
+     และกว้างกว่ากล่องอื่นในระบบที่ใช้ modal-md อยู่แล้วเกือบทั้งหมด */
   .modal, .room-edit-modal, .tenant-config-modal, .repair-flow-modal, .repair-schedule-modal {
-    @apply max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-[#d4d4d8] bg-[#fff] p-7 shadow-[0_16px_48px_rgba(0,0,0,.14),0_4px_12px_rgba(0,0,0,.08)] sm:p-10;
+    @apply max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-[#d4d4d8] bg-[#fff] p-7 shadow-[0_16px_48px_rgba(0,0,0,.14),0_4px_12px_rgba(0,0,0,.08)] sm:p-10;
   }
   /* ความกว้างหน้าต่างซ้อน: ค่าเริ่มต้นกว้างพอสำหรับฟอร์มสองคอลัมน์ ส่วนกล่อง
      ยืนยันและฟอร์มคอลัมน์เดียวแคบลง เพราะยิ่งกว้างยิ่งต้องกวาดตาไกลกว่าจะอ่านจบ */
