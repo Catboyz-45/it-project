@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { apiSuccessBinaryResponse, apiSuccessResponse } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessBinaryResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { setRequestActorContext } from "@/lib/server/request-context";
 import { getDatabase } from "@/lib/server/db";
 import { cleanupIntegrationFixture, createIntegrationFixture } from "./helpers";
@@ -86,5 +86,62 @@ describe("central API responses", () => {
       expect.objectContaining({ action: "API_POST_SUCCESS", targetType: path, result: "SUCCESS" }),
       expect.objectContaining({ action: "API_DELETE_SUCCESS", targetType: path, result: "SUCCESS" }),
     ]));
+  });
+});
+
+// ด่านกัน CSRF สองชั้น ต้นทางต้องเป็นของเราเอง และต้องเป็น JSON
+// เพราะฟอร์ม HTML ธรรมดาส่ง application/json ไม่ได้ เว็บอื่นจึงยิงฟอร์มมาใส่ไม่ได้
+describe("same origin guard", () => {
+  const post = (headers: Record<string, string>) => new NextRequest("http://localhost/api/v1/admin/properties/p1/rooms", {
+    method: "POST",
+    headers,
+  });
+
+  it("accepts a request from our own page with JSON", () => {
+    expect(() => assertSameOrigin(post({ origin: "http://localhost", host: "localhost", "content-type": "application/json" })))
+      .not.toThrow();
+  });
+
+  it("refuses a request with no origin at all", () => {
+    expect(() => assertSameOrigin(post({ host: "localhost", "content-type": "application/json" }))).toThrow(ApiError);
+  });
+
+  it("refuses a request from another site", () => {
+    expect(() => assertSameOrigin(post({ origin: "http://evil.test", host: "localhost", "content-type": "application/json" })))
+      .toThrow(ApiError);
+  });
+
+  // origin ที่ไม่ใช่ URL ต้องไม่ทำให้ระบบพัง แต่ต้องไม่ผ่านด้วย
+  it("refuses a malformed origin without blowing up", () => {
+    expect(() => assertSameOrigin(post({ origin: "not a url", host: "localhost", "content-type": "application/json" })))
+      .toThrow(ApiError);
+  });
+
+  it("refuses the right origin with the wrong content type", () => {
+    try {
+      assertSameOrigin(post({ origin: "http://localhost", host: "localhost", "content-type": "application/x-www-form-urlencoded" }));
+      throw new Error("ควรจะโยนข้อผิดพลาดแต่ผ่านไปได้");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(415);
+    }
+  });
+});
+
+describe("error responses", () => {
+  // ข้อความที่ตอบผู้ใช้ต้องไม่หลุดรายละเอียดภายใน แต่ต้องมี requestId ให้อ้างอิงได้
+  it("hides the detail of an unexpected failure but keeps the request id", async () => {
+    const response = apiErrorResponse(new Error("connect ECONNREFUSED 127.0.0.1:5432"), requestOf("POST", "err-req"));
+    expect(response.status).toBe(500);
+    expect(response.headers.get("x-request-id")).toBe("err-req");
+    const body = await response.json() as { error: string };
+    expect(body.error).toBe("ไม่สามารถดำเนินการได้");
+    expect(body.error).not.toContain("ECONNREFUSED");
+  });
+
+  it("passes through the message of an error we raised ourselves", async () => {
+    const response = apiErrorResponse(new ApiError(409, "ห้องนี้มีสัญญาที่ใช้งานอยู่"), requestOf("POST"));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: "ห้องนี้มีสัญญาที่ใช้งานอยู่" });
   });
 });
