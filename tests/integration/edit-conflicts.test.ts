@@ -82,6 +82,35 @@ describe("edit conflict and state guards", () => {
       .resolves.toBeDefined();
   });
 
+  // ทุกการเปลี่ยนสถานะและความสำคัญต้องทิ้งร่องรอยไว้ ไม่งั้นย้อนดูไม่ได้ว่าใครเปลี่ยนอะไร
+  it("records an event for both a status change and a priority change", async () => {
+    const ticket = await createTicket();
+    await updateTicket(fixture!.property.id, ticket.id, fixture!.owner.id, {
+      status: "ACKNOWLEDGED",
+      priority: "URGENT",
+    });
+
+    const events = await getDatabase().ticketEvent.findMany({
+      where: { ticketId: ticket.id },
+      select: { type: true, fromValue: true, toValue: true },
+    });
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "STATUS_CHANGED", fromValue: "OPEN", toValue: "ACKNOWLEDGED" }),
+      expect.objectContaining({ type: "PRIORITY_CHANGED", fromValue: "NORMAL", toValue: "URGENT" }),
+    ]));
+  });
+
+  // แก้เป็นค่าเดิมไม่ควรนับเป็นการเปลี่ยน ไม่งั้นประวัติจะเต็มไปด้วยรายการที่ไม่มีอะไรเปลี่ยน
+  it("does not record an event when the value does not actually change", async () => {
+    const ticket = await createTicket();
+    await updateTicket(fixture!.property.id, ticket.id, fixture!.owner.id, { priority: "NORMAL" });
+    const events = await getDatabase().ticketEvent.findMany({
+      where: { ticketId: ticket.id, type: "PRIORITY_CHANGED" },
+      select: { id: true },
+    });
+    expect(events).toHaveLength(0);
+  });
+
   it("rejects an announcement edit that was based on a stale copy", async () => {
     const announcement = await createAnnouncement(fixture!.property.id, fixture!.owner.id, {
       title: "แจ้งปิดน้ำ",

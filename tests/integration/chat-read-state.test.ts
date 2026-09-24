@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDatabase } from "@/lib/server/db";
 import {
   ensureSupportConversation,
   ensureTenantConversation,
   listConversations,
+  listTenantMessages,
   markConversationRead,
   type ConversationActor,
 } from "@/lib/server/chat";
@@ -93,6 +95,39 @@ describe("chat read state per role", () => {
     });
     expect(row?.lastSuperAdminReadAt).not.toBeNull();
     expect(row?.lastTenantReadAt).toBeNull();
+  });
+
+  // หน้าจอแชทเรียงเก่าไปใหม่ แต่การแบ่งหน้าต้องดึงใหม่สุดก่อน จึงต้องกลับลำดับตอนส่งออก
+  // ถ้าลืมกลับลำดับ ข้อความจะขึ้นกลับหัวโดยไม่มีอะไรฟ้อง
+  it("returns tenant messages oldest first", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    // เส้นทางนี้ค้นจาก tenantExternalId ไม่ใช่ tenantProfileId จึงสร้างห้องสนทนาเองให้ตรงกับที่มันหา
+    const conversation = await getDatabase().chatConversation.create({
+      data: {
+        propertyId: fixture.property.id,
+        type: "TENANT_PROPERTY",
+        conversationKey: `EXTERNAL:${tenantProfileId}`,
+        tenantExternalId: tenantProfileId,
+        tenantName: "ผู้เช่าทดสอบแชท",
+      },
+      select: { id: true },
+    });
+    for (const [index, body] of ["ข้อความแรก", "ข้อความที่สอง", "ข้อความที่สาม"].entries()) {
+      await getDatabase().chatMessage.create({
+        data: {
+          propertyId: fixture.property.id,
+          conversationId: conversation.id,
+          body,
+          senderRole: "TENANT",
+          senderUserId: tenantUserId,
+          clientId: randomUUID(),
+          createdAt: new Date(Date.now() + index * 1_000),
+        },
+      });
+    }
+
+    const page = await listTenantMessages(fixture.property.id, tenantProfileId, pagination);
+    expect(page.data.map((message) => message.body)).toEqual(["ข้อความแรก", "ข้อความที่สอง", "ข้อความที่สาม"]);
   });
 
   // ผู้เช่าเห็นได้เฉพาะห้องสนทนาของตัวเอง และเปิดดูห้องสายซัพพอร์ตของหอไม่ได้
