@@ -6,6 +6,7 @@ import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api
 import { requireActiveTenant, parseTenantRecordId } from "@/lib/server/tenant-auth";
 import { attachTicketFile, requireTenantTicket } from "@/lib/server/property-operations";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
+import { detectUploadSignature } from "@/lib/server/file-signatures";
 type Context = { params: Promise<{ ticketId: string }> };
 // แนบไฟล์ในเรื่องที่แจ้ง
 export async function POST(request: NextRequest, context: Context) {
@@ -22,12 +23,9 @@ export async function POST(request: NextRequest, context: Context) {
     if (!(file instanceof File) || file.size < 1) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size > 5 * 1024 * 1024) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const png = bytes.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    const pdf = new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
-    if (!png && !jpg && !pdf) throw new ApiError(415, "รองรับเฉพาะ PNG, JPG และ PDF");
-    const extension = png ? "png" : jpg ? "jpg" : "pdf";
-    const mime = png ? "image/png" : jpg ? "image/jpeg" : "application/pdf";
+    const signature = detectUploadSignature(bytes, ["png", "jpg", "pdf"]);
+    if (!signature) throw new ApiError(415, "รองรับเฉพาะ PNG, JPG และ PDF");
+    const { extension, mimeType: mime } = signature;
     key = `tickets/${occupancy.propertyId}/${ticketId}/${randomUUID()}.${extension}`;
     const storage = getStorageAdapter();
     await storage.put(key, Buffer.from(bytes), mime);

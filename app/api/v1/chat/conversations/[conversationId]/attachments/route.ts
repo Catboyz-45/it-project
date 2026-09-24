@@ -8,6 +8,7 @@ import { getStorageAdapter } from "@/lib/documents/storage";
 import { parseChatId, requireChatActorForProperty } from "@/lib/server/chat-auth";
 import { sendConversationMessage } from "@/lib/server/chat";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
+import { detectUploadSignature } from "@/lib/server/file-signatures";
 
 export const runtime = "nodejs";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -17,14 +18,8 @@ const fieldsSchema = z.object({
   clientId: chatClientIdSchema,
 }).strict();
 
-function detectFile(bytes: Uint8Array) {
-  const png = [137, 80, 78, 71, 13, 10, 26, 10];
-  if (bytes.length >= 8 && png.every((value, index) => bytes[index] === value)) return { extension: "png", mimeType: "image/png" };
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { extension: "jpg", mimeType: "image/jpeg" };
-  if (bytes.length >= 12 && new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP") return { extension: "webp", mimeType: "image/webp" };
-  if (bytes.length >= 5 && new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-") return { extension: "pdf", mimeType: "application/pdf" };
-  return null;
-}
+// ไฟล์แนบในแชทรับได้ทั้งรูปสามแบบและ PDF
+const detectFile = (bytes: Uint8Array) => detectUploadSignature(bytes, ["png", "jpg", "webp", "pdf"]);
 
 type Context = { params: Promise<{ conversationId: string }> };
 

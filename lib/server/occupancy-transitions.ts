@@ -89,7 +89,11 @@ export async function completeOccupancyTransition(
     // ล็อกแถวของห้องที่เกี่ยวข้องไว้ก่อน การตรวจความจุกับจำนวนผู้พักจะได้ยังจริงอยู่
     // ตอนที่มีคำขอย้ายเข้าห้องเดียวกันหลายอันพร้อมกัน
     // เรียง id ก่อนล็อกเสมอ เพราะสองคำขอที่ล็อกห้องคู่เดียวกันคนละลำดับจะทำให้ติดตายทั้งคู่
-    const lockedRoomIds = [primaryOccupancy.roomId, input.destinationRoomId].filter((id): id is string => Boolean(id)).sort();
+    // เทียบแบบ code unit ตรง ๆ ไม่ใช้ localeCompare เพราะกฎการเรียงตามภาษาขึ้นกับเวอร์ชัน ICU
+    // ของแต่ละเครื่อง สองโพรเซสอาจได้ลำดับต่างกันจนล็อกสลับกันแล้วติดตายทั้งคู่
+    const lockedRoomIds = [primaryOccupancy.roomId, input.destinationRoomId]
+      .filter((id): id is string => Boolean(id))
+      .sort((left, right) => (left < right ? -1 : Number(left > right)));
     for (const roomId of lockedRoomIds) {
       // FOR UPDATE คือการล็อกแถวไว้จนกว่า transaction จะจบ ไม่ได้ต้องการข้อมูลที่อ่านมา
       await database.$queryRaw`SELECT "id" FROM "Room" WHERE "id" = ${roomId} FOR UPDATE`;

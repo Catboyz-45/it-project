@@ -5,14 +5,11 @@ import { getStorageAdapter } from "@/lib/documents/storage";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { parseTenantRecordId, requireActiveTenant } from "@/lib/server/tenant-auth";
 import { createPaymentSubmission, listTenantPaymentSubmissions } from "@/lib/server/payments";
+import { detectUploadSignature } from "@/lib/server/file-signatures";
 type Context = { params: Promise<{ invoiceId: string }> };
 const maxSize = 5 * 1024 * 1024;
-function detect(bytes: Uint8Array) {
-  if (bytes.length >= 8 && bytes.slice(0, 8).every((value, index) => value === [137,80,78,71,13,10,26,10][index])) return { mime: "image/png", extension: "png" };
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { mime: "image/jpeg", extension: "jpg" };
-  if (new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-") return { mime: "application/pdf", extension: "pdf" };
-  return null;
-}
+// สลิปรับได้ทั้งรูปถ่ายและไฟล์ PDF ที่ธนาคารออกให้
+const detect = (bytes: Uint8Array) => detectUploadSignature(bytes, ["png", "jpg", "pdf"]);
 // ประวัติหลักฐานที่เคยส่งของบิลใบนี้
 export async function GET(request: NextRequest, context: Context) {
   try {
@@ -38,12 +35,12 @@ export async function POST(request: NextRequest, context: Context) {
     if (!detected) throw new ApiError(415, "รองรับเฉพาะ PNG, JPG และ PDF");
     const key = `payment-slips/${occupancy.propertyId}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${detected.extension}`;
     const storage = getStorageAdapter();
-    await storage.put(key, Buffer.from(bytes), detected.mime);
+    await storage.put(key, Buffer.from(bytes), detected.mimeType);
     let data;
     try {
       data = await createPaymentSubmission({
         tenantProfileId: auth.tenantProfileId, invoiceId,
-        storageKey: key, mimeType: detected.mime, size: file.size,
+        storageKey: key, mimeType: detected.mimeType, size: file.size,
       });
     } catch (error) {
       await storage.delete(key);

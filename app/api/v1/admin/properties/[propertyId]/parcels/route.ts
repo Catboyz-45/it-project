@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createParcelSchema } from "@/lib/domain/property-operations";
+import { detectUploadSignature } from "@/lib/server/file-signatures";
 import { getStorageAdapter } from "@/lib/documents/storage";
 import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
@@ -17,6 +18,17 @@ export async function GET(request: NextRequest, context: Context) {
   catch (error) { return apiErrorResponse(error, request); }
 }
 // ลงทะเบียนพัสดุเข้า แนบรูปได้
+// เก็บรูปพัสดุไว้นอกโฟลเดอร์สาธารณะ ตั้งชื่อไฟล์เองด้วยค่าสุ่ม ไม่ใช้ชื่อจากผู้ใช้
+async function storeParcelPhoto(file: File, propertyId: string) {
+  if (file.size > 5 * 1024 * 1024) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const signature = detectUploadSignature(bytes, ["png", "jpg"]);
+  if (!signature) throw new ApiError(415, "รองรับเฉพาะ PNG และ JPG");
+  const storedKey = `parcels/${propertyId}/${randomUUID()}.${signature.extension}`;
+  await getStorageAdapter().put(storedKey, Buffer.from(bytes), signature.mimeType);
+  return storedKey;
+}
+
 export async function POST(request: NextRequest, context: Context) {
   let storedKey: string | undefined;
   try {
@@ -33,13 +45,7 @@ export async function POST(request: NextRequest, context: Context) {
     const file = form.get("file");
     if (file instanceof File && file.size > 0) {
       await requireSubscriptionFeature(propertyId, "allowFileUploads");
-      if (file.size > 5 * 1024 * 1024) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const png = bytes.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
-      const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-      if (!png && !jpg) throw new ApiError(415, "รองรับเฉพาะ PNG และ JPG");
-      storedKey = `parcels/${propertyId}/${randomUUID()}.${png ? "png" : "jpg"}`;
-      await getStorageAdapter().put(storedKey, Buffer.from(bytes), png ? "image/png" : "image/jpeg");
+      storedKey = await storeParcelPhoto(file, propertyId);
     }
     try {
       const data = await createParcel(propertyId, auth.userId, input, storedKey);

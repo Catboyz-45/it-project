@@ -6,16 +6,13 @@ import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { requirePropertyAccess, requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { createSubscriptionPayment } from "@/lib/server/subscription-orders";
+import { detectUploadSignature } from "@/lib/server/file-signatures";
 
 type Context = { params: Promise<{ propertyId: string; orderId: string }> };
 const maxSize = 5 * 1024 * 1024;
+// สลิปรับได้ทั้งรูปถ่ายและไฟล์ PDF ที่ธนาคารออกให้
+const detect = (bytes: Uint8Array) => detectUploadSignature(bytes, ["png", "jpg", "pdf"]);
 
-function detect(bytes: Uint8Array) {
-  if (bytes.length >= 8 && bytes.slice(0, 8).every((value, index) => value === [137,80,78,71,13,10,26,10][index])) return { mime: "image/png", extension: "png" };
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { mime: "image/jpeg", extension: "jpg" };
-  if (new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-") return { mime: "application/pdf", extension: "pdf" };
-  return null;
-}
 
 // ส่งหลักฐานการโอนค่าสมาชิก
 export async function POST(request: NextRequest, context: Context) {
@@ -40,12 +37,12 @@ export async function POST(request: NextRequest, context: Context) {
     if (!detected) throw new ApiError(415, "รองรับเฉพาะ PNG, JPG และ PDF");
     storageKey = `subscription-slips/${propertyId.data}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${detected.extension}`;
     const storage = getStorageAdapter();
-    await storage.put(storageKey, Buffer.from(bytes), detected.mime);
+    await storage.put(storageKey, Buffer.from(bytes), detected.mimeType);
     let payment;
     try {
       payment = await createSubscriptionPayment({
         propertyId: propertyId.data, orderId: orderId.data, storageKey,
-        mimeType: detected.mime, sizeBytes: file.size, submittedByUserId: auth.userId,
+        mimeType: detected.mimeType, sizeBytes: file.size, submittedByUserId: auth.userId,
       });
     } catch (error) {
       await storage.delete(storageKey);

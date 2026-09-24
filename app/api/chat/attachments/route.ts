@@ -14,7 +14,7 @@ const fieldsSchema = z.object({
   tenantName: z.string().trim().min(1).max(160),
   roomNumber: z.string().trim().min(1).max(30),
   body: z.string().trim().max(4000),
-  clientId: z.string().uuid(),
+  clientId: z.uuid(),
 });
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
