@@ -64,7 +64,7 @@ describe("storage adapter selection", () => {
     expect(putInputs[0]).toMatchObject({ Bucket: "nestly-files", ServerSideEncryption: "AES256" });
   });
 
-  // R2 เข้ารหัสให้เองอยู่แล้วและปฏิเสธ header นี้ ส่งไปจะอัปโหลดไม่ผ่าน
+  // header นี้เป็นของ AWS โดยเฉพาะ ผู้ให้บริการอื่นเข้ารหัสให้เองและไม่รับประกันว่าจะรับ
   it("omits the encryption header for a non-AWS endpoint", async () => {
     const adapter = await adapterWith({ ...s3Env, AWS_S3_ENDPOINT: "https://acc.r2.cloudflarestorage.com" });
     await adapter.put("documents/a.pdf", Buffer.from("x"), "application/pdf");

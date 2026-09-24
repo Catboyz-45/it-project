@@ -85,7 +85,9 @@ class S3StorageAdapter implements StorageAdapter {
   }
 
   // ServerSideEncryption เข้ารหัสตอนเก็บ ดิสก์ของผู้ให้บริการหลุดก็ยังอ่านไฟล์ไม่ได้
-  // ส่งเฉพาะกับ AWS เพราะผู้ให้บริการอื่นอย่าง R2 เข้ารหัสให้อยู่แล้วและปฏิเสธ header นี้
+  // ส่งเฉพาะกับ AWS เพราะเป็น header เฉพาะของ AWS ผู้ให้บริการอื่นที่พูดภาษา S3
+  // เข้ารหัสตอนเก็บให้เองอยู่แล้ว และไม่รับประกันว่าจะรับ header นี้
+  // (Cloudflare R2 รับแล้วไม่ทำอะไร ส่วนเจ้าอื่นอาจตอบกลับเป็นข้อผิดพลาด)
   async put(key: string, body: Buffer, contentType: string) {
     await this.client.send(new PutObjectCommand({
       Bucket: this.bucket,
