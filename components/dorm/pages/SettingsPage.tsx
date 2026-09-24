@@ -68,9 +68,9 @@ export function SettingsPage({
   accountEmail: string;
   accountName: string;
   // ส่งต่อให้หัวข้อคำเชิญ ซึ่ง Server Component ของหน้าดึงมาให้แล้ว
-  initialInvitations?: Parameters<typeof InvitationsPage>[0]["initialData"];
+  initialInvitations?: Exclude<Parameters<typeof InvitationsPage>[0]["initialData"], undefined>;
   // ส่งต่อให้หัวข้อแพ็กเกจ
-  initialSubscriptionData?: Parameters<typeof SubscriptionPage>[0]["initialData"];
+  initialSubscriptionData?: Exclude<Parameters<typeof SubscriptionPage>[0]["initialData"], undefined>;
   initialSection: "account" | "general" | "invitations" | "subscription";
   initialSettings: PropertySettingsReadModel;
   onAccountNameChange: (name: string) => void;

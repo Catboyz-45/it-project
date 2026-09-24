@@ -17,7 +17,7 @@ const id = { type: "string", minLength: 1 };
 const text = { type: "string" };
 const dateTime = { type: "string", format: "date-time" };
 // เงินส่งเป็นสตริงเสมอ ไม่ใช่ number เพราะ JSON เก็บทศนิยมแล้วปัดเศษเพี้ยน
-const money = { type: "string", pattern: "^-?\\d+(\\.\\d+)?$" };
+const money = { type: "string", pattern: String.raw`^-?\d+(\.\d+)?$` };
 
 export const responseSchemas = {
   PropertySearchResult: entity(["id", "type", "title", "subtitle", "href"], {
@@ -629,7 +629,8 @@ const collectionSchemas = new Map([
 
 // คำตอบทุกอันห่อไว้ใน { data: ... } รูปแบบเดียวกันหมด ฝั่งที่เรียกจะได้เขียนโค้ดอ่านแบบเดียว
 function data(schema, array = false, nullable = false) {
-  const value = array ? arrayOf(schema) : nullable ? nullableRef(schema) : ref(schema);
+  const singleValue = nullable ? nullableRef(schema) : ref(schema);
+  const value = array ? arrayOf(schema) : singleValue;
   return {
     description: "Successful response",
     content: {
@@ -702,7 +703,7 @@ function direct(schema) {
 // เก็บเป็นตารางเพราะทั้งหมดคือข้อมูลการจับคู่ URL ไม่ใช่ตรรกะ บันได if ยาว ๆ อ่านยากกว่าโดยไม่ได้อะไรเพิ่ม
 const requestExampleRules = [
   [(apiPath) => apiPath.endsWith("/catalogs"), { roomTypes: [{ name: "ห้องมาตรฐาน", monthlyRent: 3500 }], serviceCharges: [], furnitureOptions: [] }],
-  [(apiPath) => apiPath.includes("support-chat") || apiPath.endsWith("/tenant/chat") || /tenant-chat\/\{tenantProfileId\}$/.test(apiPath), { content: "ขอสอบถามข้อมูลเพิ่มเติมครับ" }],
+  [(apiPath) => apiPath.includes("support-chat") || apiPath.endsWith("/tenant/chat") || apiPath.endsWith("tenant-chat/{tenantProfileId}"), { content: "ขอสอบถามข้อมูลเพิ่มเติมครับ" }],
   [(apiPath) => apiPath.endsWith("/buildings"), { name: "อาคาร A", code: "A" }],
   [(apiPath) => apiPath.endsWith("/floors"), { name: "ชั้น 1", number: 1 }],
   [(apiPath) => apiPath.endsWith("/rooms"), { buildingId: "bld_a", floorId: "floor_a_1", number: "A101", monthlyRent: 3500, depositAmount: 7000, capacity: 2 }],

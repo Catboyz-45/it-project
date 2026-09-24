@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const parsed = z.string().cuid().safeParse((await context.params).userId);
+    const parsed = z.cuid().safeParse((await context.params).userId);
     if (!parsed.success) throw new ApiError(404, "ไม่พบบัญชีเจ้าของหอ");
     const temporaryPassword = await issueTemporaryPassword(parsed.data);
     return apiSuccessResponse(request, { data: { temporaryPassword, mustChangePassword: true } }, undefined, {

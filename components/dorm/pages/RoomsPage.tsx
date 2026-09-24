@@ -126,7 +126,7 @@ function groupRoomsByBuildingAndFloor(rooms: Room[]): RoomBuildingGroup[] {
     // เรียงห้องในแต่ละชั้น แล้วเรียงชั้นอีกที ให้ผังออกมาตรงกับของจริง
     const groupedFloors = Array.from(floorMap, ([number, floorRooms]) => ({
       number,
-      rooms: floorRooms.sort((a, b) => a.id.localeCompare(b.id, "th", { numeric: true })),
+      rooms: floorRooms.toSorted((a, b) => a.id.localeCompare(b.id, "th", { numeric: true })),
     })).sort((a, b) => a.number - b.number);
     return { name, roomCount: groupedFloors.reduce((total, floor) => total + floor.rooms.length, 0), floors: groupedFloors };
   }).sort((a, b) => a.name.localeCompare(b.name, "th", { numeric: true }));

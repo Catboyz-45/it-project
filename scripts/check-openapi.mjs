@@ -153,10 +153,12 @@ for (const [path, pathItem] of Object.entries(document.paths)) {
           ? Object.values(examples).map((entry) => entry?.value).filter((value) => value !== undefined)
           : [jsonExample];
         for (const [index, example] of values.entries()) {
+          // มีตัวอย่างเดียวก็ไม่ต้องใส่เลขกำกับ ข้อความจะได้อ่านสะอาด
+          const suffix = values.length > 1 ? ` ${index + 1}` : "";
           schemaErrors.push(...validateExample(
             jsonSchema,
             example,
-            `${method.toUpperCase()} ${path} response example${values.length > 1 ? ` ${index + 1}` : ""}`,
+            `${method.toUpperCase()} ${path} response example${suffix}`,
           ));
         }
       }
@@ -170,10 +172,12 @@ for (const [path, pathItem] of Object.entries(document.paths)) {
           ? Object.values(media.examples).map((entry) => entry?.value).filter((value) => value !== undefined)
           : [media.example];
         for (const [index, example] of values.entries()) {
+          // มีตัวอย่างเดียวก็ไม่ต้องใส่เลขกำกับ ข้อความจะได้อ่านสะอาด
+          const suffix = values.length > 1 ? ` ${index + 1}` : "";
           schemaErrors.push(...validateExample(
             media.schema,
             example,
-            `${method.toUpperCase()} ${path} request example${values.length > 1 ? ` ${index + 1}` : ""}`,
+            `${method.toUpperCase()} ${path} request example${suffix}`,
           ));
         }
       }
@@ -219,7 +223,7 @@ for (const file of routeFiles) {
   const source = await readFile(file, "utf8");
   const apiPath = `/${path.relative(appRoot, file).replace(/\/route\.ts$/, "").replace(/\[([^\]]+)\]/g, "{$1}")}`;
   for (const method of methodNames) {
-    if (new RegExp(`export\\s+(?:async\\s+)?function\\s+${method.toUpperCase()}\\b`).test(source)) {
+    if (new RegExp(String.raw`export\s+(?:async\s+)?function\s+${method.toUpperCase()}\b`).test(source)) {
       routeOperations.add(`${method.toUpperCase()} ${apiPath}`);
     }
   }

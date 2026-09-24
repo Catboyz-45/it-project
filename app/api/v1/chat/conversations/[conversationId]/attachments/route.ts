@@ -13,7 +13,7 @@ import { detectUploadSignature } from "@/lib/server/file-signatures";
 export const runtime = "nodejs";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const fieldsSchema = z.object({
-  propertyId: z.string().cuid(),
+  propertyId: z.cuid(),
   body: chatMessageBodySchema,
   clientId: chatClientIdSchema,
 }).strict();
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, context: Context) {
   let storageKey: string | undefined;
   try {
     assertSameOrigin(request, null);
-    const headerPropertyId = z.string().cuid().parse(request.headers.get("x-property-id"));
+    const headerPropertyId = z.cuid().parse(request.headers.get("x-property-id"));
     const actor = await requireChatActorForProperty(request, headerPropertyId);
     await assertUploadRateLimit(request, "chat");
     const formData = await request.formData();

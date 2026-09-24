@@ -55,7 +55,7 @@ async function reserveInvitation(
     },
   });
   // ตรวจสามอย่างรวดเดียว ข้อความเหมือนกันหมด ไม่บอกว่าติดข้อไหน จะได้ไม่ช่วยให้เดารหัส
-  if (!invitation || invitation.status !== "PENDING" || invitation.expiresAt <= new Date()) {
+  if (invitation?.status !== "PENDING" || invitation.expiresAt <= new Date()) {
     throw new ApiError(400, "รหัสเชิญไม่ถูกต้องหรือหมดอายุ");
   }
   // แพ็กเกจของหอหมดอายุก็รับผู้เช่าใหม่ไม่ได้ ตรวจตรงนี้ก่อนเสียเวลาสร้างบัญชี

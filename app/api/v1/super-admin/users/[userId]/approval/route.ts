@@ -6,7 +6,7 @@ import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { reviewPropertyAdminAccount } from "@/lib/server/account-approval";
 
 type Context = { params: Promise<{ userId: string }> };
-const userIdSchema = z.string().cuid();
+const userIdSchema = z.cuid();
 
 // อนุมัติหรือปฏิเสธบัญชีเจ้าของหอ ปฏิเสธแล้ว session ที่เปิดอยู่ถูกตัดทิ้ง
 export async function PATCH(request: NextRequest, context: Context) {

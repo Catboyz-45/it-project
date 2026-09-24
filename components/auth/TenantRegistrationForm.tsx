@@ -48,7 +48,7 @@ export function TenantRegistrationForm() {
 
   return <form className="login-form tenant-registration-form" onSubmit={submit}>
     {/* รหัสเชิญยาว 32 ตัวขึ้นไป ปิด autoComplete เพราะเป็นค่าที่ใช้ครั้งเดียว ไม่ควรให้เบราว์เซอร์จำ */}
-    <label className="tenant-invitation-field">รหัสเชิญจากหอพัก
+    <label className="tenant-invitation-field"><span>รหัสเชิญจากหอพัก</span>
       <input autoComplete="off" minLength={32} name="invitationCode" placeholder="วางรหัสเชิญที่ได้รับ" required />
     </label>
     {/* สองข้อแรกบังคับติ๊ก ส่วนข่าวสารเป็นความสมัครใจและถอนได้ทีหลัง ตามหลักการขอความยินยอม */}
@@ -67,16 +67,16 @@ export function TenantRegistrationForm() {
         <span>ฉันยินยอมรับข่าวสารและคำแนะนำจาก Nestly (ไม่บังคับและเปลี่ยนภายหลังได้)</span>
       </label>
     </fieldset>
-    <label>ชื่อผู้เช่า
+    <label><span>ชื่อผู้เช่า</span>
       <input autoComplete="name" maxLength={120} minLength={2} name="displayName" placeholder="ชื่อที่ใช้ในระบบ" required />
     </label>
-    <label>อีเมล
+    <label><span>อีเมล</span>
       <input autoComplete="email" name="email" placeholder="name@example.com" required type="email" />
     </label>
-    <label>เบอร์โทรศัพท์
+    <label><span>เบอร์โทรศัพท์</span>
       <input autoComplete="tel" minLength={8} name="phone" placeholder="08x xxx xxxx" required type="tel" />
     </label>
-    <label>รหัสผ่าน
+    <label><span>รหัสผ่าน</span>
       <input
         // ผูกคำอธิบายเกณฑ์รหัสผ่านไว้กับช่อง โปรแกรมอ่านหน้าจอจะได้อ่านให้ฟังด้วย
         aria-describedby="tenant-password-help"

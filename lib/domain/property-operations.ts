@@ -13,9 +13,9 @@ export const createAnnouncementSchema = z.object({
   title: z.string().trim().min(1).max(200),
   content: z.string().trim().min(1).max(10_000),
   audience: announcementAudienceSchema.default("ALL_TENANTS"),
-  buildingId: z.string().cuid().optional(),
-  floorId: z.string().cuid().optional(),
-  roomIds: z.array(z.string().cuid()).max(10_000).default([]),
+  buildingId: z.cuid().optional(),
+  floorId: z.cuid().optional(),
+  roomIds: z.array(z.cuid()).max(10_000).default([]),
   // ไม่มี ARCHIVED เพราะสร้างมาเป็นเก็บเข้ากรุเลยไม่มีความหมาย ต้องไปเปลี่ยนทีหลัง
   status: announcementStatusSchema.extract(["DRAFT", "SCHEDULED", "PUBLISHED"]).default("DRAFT"),
   publishAt: z.coerce.date().optional(),
@@ -32,9 +32,9 @@ export const updateAnnouncementSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   content: z.string().trim().min(1).max(10_000).optional(),
   audience: announcementAudienceSchema.optional(),
-  buildingId: z.string().cuid().optional(),
-  floorId: z.string().cuid().optional(),
-  roomIds: z.array(z.string().cuid()).max(10_000).optional(),
+  buildingId: z.cuid().optional(),
+  floorId: z.cuid().optional(),
+  roomIds: z.array(z.cuid()).max(10_000).optional(),
   status: announcementStatusSchema.optional(),
   publishAt: z.coerce.date().optional(),
   // บังคับส่งเวลาที่แก้ล่าสุดมาด้วย เซิร์ฟเวอร์จะได้ปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว
@@ -42,15 +42,15 @@ export const updateAnnouncementSchema = z.object({
 }).strict();
 
 export const createParcelSchema = z.object({
-  roomId: z.string().cuid(),
-  recipientTenantId: z.string().cuid().optional(),
+  roomId: z.cuid(),
+  recipientTenantId: z.cuid().optional(),
   note: z.string().trim().max(1000).optional(),
 }).strict();
 
 export const updateParcelSchema = z.object({
   // เปลี่ยนกลับเป็นรอรับไม่ได้ เพราะส่งมอบไปแล้วย้อนไม่ได้
   status: parcelStatusSchema.extract(["RECEIVED", "CANCELLED"]).optional(),
-  receivedByTenantId: z.string().cuid().optional(),
+  receivedByTenantId: z.cuid().optional(),
   note: z.string().trim().max(1000).nullable().optional(),
   expectedUpdatedAt: z.coerce.date().optional(),
 }).strict().refine((value) => value.status !== undefined || value.note !== undefined, "ไม่มีข้อมูลให้แก้ไข");

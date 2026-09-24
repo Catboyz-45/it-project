@@ -456,11 +456,11 @@ function AnnouncementFormDialog({ editingId, form, formError, isOpen, isSaving, 
         <legend>การเผยแพร่</legend>
         <label>
           <input checked={form.publishMode === "now"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "now" }))} type="radio" />
-          เผยแพร่ทันที
+          <span>เผยแพร่ทันที</span>
         </label>
         <label>
           <input checked={form.publishMode === "scheduled"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "scheduled" }))} type="radio" />
-          ตั้งเวลาเผยแพร่
+          <span>ตั้งเวลาเผยแพร่</span>
         </label>
       </fieldset>
 

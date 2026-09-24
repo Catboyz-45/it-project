@@ -34,15 +34,23 @@ export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
   return <ToastContext.Provider value={value}>
     {children}
     <div aria-label="การแจ้งเตือน" className="toast-region">
-      {/* alert สำหรับข้อผิดพลาด ให้โปรแกรมอ่านหน้าจอขัดจังหวะอ่านทันที ส่วน status รอจังหวะว่าง */}
-      {toasts.map((toast) => <div aria-atomic="true" className={`toast ${toast.tone === "error" ? "toast-error" : "toast-success"}`} key={toast.id} role={toast.tone === "error" ? "alert" : "status"}>
-        {toast.tone === "error" ? <CircleAlert aria-hidden size={20} /> : <CheckCircle2 aria-hidden size={20} />}
-        <span>{toast.message}</span>
-        {/* ปิดเองได้ ไม่ต้องรอครบ 5 วิ */}
-        <IconButton label="ปิดการแจ้งเตือน" onClick={() => setToasts((current) => current.filter(({ id }) => id !== toast.id))}><X size={17} /></IconButton>
-      </div>)}
+      {toasts.map((toast) => <Toast key={toast.id} onDismiss={() => setToasts((current) => current.filter(({ id }) => id !== toast.id))} toast={toast} />)}
     </div>
   </ToastContext.Provider>;
+}
+
+// ข้อผิดพลาดต้องให้โปรแกรมอ่านหน้าจอขัดจังหวะอ่านทันที จึงเป็น role="alert"
+// ส่วนที่สำเร็จรอจังหวะว่างได้ ใช้ output ซึ่งมี role="status" ติดมาในตัว
+function Toast({ onDismiss, toast }: Readonly<{ onDismiss: () => void; toast: ToastItem }>) {
+  const isError = toast.tone === "error";
+  const body = <>
+    {isError ? <CircleAlert aria-hidden size={20} /> : <CheckCircle2 aria-hidden size={20} />}
+    <span>{toast.message}</span>
+    {/* ปิดเองได้ ไม่ต้องรอครบ 5 วิ */}
+    <IconButton label="ปิดการแจ้งเตือน" onClick={onDismiss}><X size={17} /></IconButton>
+  </>;
+  if (isError) return <div aria-atomic="true" className="toast toast-error" role="alert">{body}</div>;
+  return <output aria-atomic="true" className="toast toast-success">{body}</output>;
 }
 
 // โยน error แทนที่จะคืน null เพื่อให้รู้ตั้งแต่ตอนพัฒนาว่าลืมครอบ ToastProvider

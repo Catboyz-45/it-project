@@ -33,16 +33,11 @@ export function LiveAnnouncement({
     };
   }, [message]);
 
-  return (
-    <span
-      // อ่านทั้งก้อนใหม่ ไม่ใช่เฉพาะส่วนที่ต่าง
-      aria-atomic="true"
-      aria-live={politeness}
-      // ซ่อนจากสายตา แต่ยังอยู่ใน DOM ให้โปรแกรมอ่านหน้าจอเข้าถึง
-      className="sr-only"
-      role={politeness === "assertive" ? "alert" : "status"}
-    >
-      {announcement}
-    </span>
-  );
+  // aria-atomic = อ่านทั้งก้อนใหม่ ไม่ใช่เฉพาะส่วนที่ต่าง
+  // sr-only = ซ่อนจากสายตา แต่ยังอยู่ใน DOM ให้โปรแกรมอ่านหน้าจอเข้าถึง
+  // แบบด่วนต้องเป็น role="alert" ส่วนแบบรอจังหวะว่างใช้ output ซึ่งเป็น status อยู่แล้ว
+  if (politeness === "assertive") {
+    return <span aria-atomic="true" aria-live="assertive" className="sr-only" role="alert">{announcement}</span>;
+  }
+  return <output aria-atomic="true" aria-live="polite" className="sr-only">{announcement}</output>;
 }

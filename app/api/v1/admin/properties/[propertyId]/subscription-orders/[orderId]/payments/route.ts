@@ -22,8 +22,8 @@ export async function POST(request: NextRequest, context: Context) {
     const auth = await requireRequestAuth(request);
     requireRole(auth, "PROPERTY_ADMIN");
     const params = await context.params;
-    const propertyId = z.string().cuid().safeParse(params.propertyId);
-    const orderId = z.string().cuid().safeParse(params.orderId);
+    const propertyId = z.cuid().safeParse(params.propertyId);
+    const orderId = z.cuid().safeParse(params.orderId);
     if (!propertyId.success || !orderId.success) throw new ApiError(404, "ไม่พบคำสั่งซื้อ");
     requirePropertyAccess(auth, propertyId.data);
     const { setRequestActorContext } = await import("@/lib/server/request-context");

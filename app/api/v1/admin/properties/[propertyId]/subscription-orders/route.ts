@@ -15,7 +15,7 @@ type Context = { params: Promise<{ propertyId: string }> };
 async function requireOwnerProperty(request: NextRequest, rawPropertyId: string) {
   const auth = await requireRequestAuth(request);
   requireRole(auth, "PROPERTY_ADMIN");
-  const propertyId = z.string().cuid().safeParse(rawPropertyId);
+  const propertyId = z.cuid().safeParse(rawPropertyId);
   if (!propertyId.success) throw new ApiError(404, "ไม่พบหอพัก");
   requirePropertyAccess(auth, propertyId.data);
   return { auth, propertyId: propertyId.data };

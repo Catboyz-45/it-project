@@ -183,11 +183,10 @@
   .app-button--danger:not(:disabled):active { box-shadow: var(--shadow-button-solid-active); }
   .app-button--secondary,
   .app-button--tertiary { transition-duration: 200ms; }
-  .app-button--secondary { box-shadow: var(--shadow-button-outline-rested); }
   .app-button--secondary:not(:disabled):active,
   .app-button--tertiary:not(:disabled):active { box-shadow: var(--shadow-button-outline-active); }
   .app-button--primary { @apply bg-brand text-[#fff] hover:bg-[#4651c7]; }
-  .app-button--secondary { @apply border-[#8b8d96] bg-[#fff] text-[#292a30] hover:bg-[#f4f4f5]; }
+  .app-button--secondary { @apply border-[#8b8d96] bg-[#fff] text-[#292a30] hover:bg-[#f4f4f5]; box-shadow: var(--shadow-button-outline-rested); }
   .app-button--tertiary { @apply bg-transparent text-[#4651c7] hover:bg-brand/[.08]; }
   .app-button--danger { @apply bg-[#b91c1c] text-[#fff] hover:bg-[#991b1b] focus-visible:ring-[#b91c1c]; }
   .app-button--icon { @apply size-11 shrink-0 rounded-md bg-transparent p-0 text-[#60616b] hover:bg-[#f4f4f5] lg:size-9; }
@@ -1837,7 +1836,6 @@ select:disabled {
 
   /* Essential control and table boundaries remain distinguishable at >= 3:1. */
   .border-\[\#d4d4d8\],
-  .border-\[\#e4e4e7\],
   .border-\[\#e4e4e7\] { border-color: #8b8d96; }
 }
 

@@ -35,6 +35,34 @@ export class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
+// บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
+// แยกออกมาเพราะคำตอบแบบ JSON กับแบบไฟล์ต้องบันทึกเหมือนกันทุกอย่าง
+function recordSuccessAudit(
+  request: NextRequest,
+  requestId: string,
+  audit?: Omit<AuditInput, "request" | "requestId" | "result">,
+) {
+  if (request.method === "GET" || request.method === "HEAD") return;
+  const context = getRequestActorContext(request);
+  const recordSuccess = () => writeAuditLogSafely({
+    userId: context.userId,
+    propertyId: context.propertyId,
+    action: `API_${request.method}_SUCCESS`,
+    targetType: request.nextUrl.pathname.slice(0, 120),
+    ...audit,
+    request,
+    requestId,
+    result: "SUCCESS",
+  });
+  // after ทำให้เขียน log หลังส่งคำตอบไปแล้ว ผู้ใช้จะได้ไม่ต้องรอ
+  // ใช้ไม่ได้ตอนเรียก route ตรง ๆ ในการทดสอบ จึงมีทางสำรองให้เขียนทันที
+  try {
+    after(recordSuccess);
+  } catch {
+    void recordSuccess();
+  }
+}
+
 // ตอบกลับตอนสำเร็จ ทุก route ใช้ตัวนี้ จะได้มีรูปแบบและ requestId เหมือนกันหมด
 // มีตัวทดสอบคอยเช็คว่าไม่มี route ไหนตอบเองโดยไม่ผ่านตรงนี้
 export function apiSuccessResponse(
@@ -45,27 +73,7 @@ export function apiSuccessResponse(
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
-  // บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    const context = getRequestActorContext(request);
-    const recordSuccess = () => writeAuditLogSafely({
-      userId: context.userId,
-      propertyId: context.propertyId,
-      action: `API_${request.method}_SUCCESS`,
-      targetType: request.nextUrl.pathname.slice(0, 120),
-      ...audit,
-      request,
-      requestId,
-      result: "SUCCESS",
-    });
-    // after ทำให้เขียน log หลังส่งคำตอบไปแล้ว ผู้ใช้จะได้ไม่ต้องรอ
-    // ใช้ไม่ได้ตอนเรียก route ตรง ๆ ในการทดสอบ จึงมีทางสำรองให้เขียนทันที
-    try {
-      after(recordSuccess);
-    } catch {
-      void recordSuccess();
-    }
-  }
+  recordSuccessAudit(request, requestId, audit);
   const headers = new Headers(init?.headers);
   headers.set("x-request-id", requestId);
   // แนบ requestId ไปทั้งใน header และในตัวข้อมูล เผื่อฝั่งเบราว์เซอร์อ่านได้ไม่ครบทั้งสองทาง
@@ -81,25 +89,7 @@ export function apiSuccessBinaryResponse(
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
-  // บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    const context = getRequestActorContext(request);
-    const recordSuccess = () => writeAuditLogSafely({
-      userId: context.userId,
-      propertyId: context.propertyId,
-      action: `API_${request.method}_SUCCESS`,
-      targetType: request.nextUrl.pathname.slice(0, 120),
-      ...audit,
-      request,
-      requestId,
-      result: "SUCCESS",
-    });
-    try {
-      after(recordSuccess);
-    } catch {
-      void recordSuccess();
-    }
-  }
+  recordSuccessAudit(request, requestId, audit);
   const headers = new Headers(init.headers);
   headers.set("x-request-id", requestId);
   return new NextResponse(body, { ...init, headers });
@@ -118,7 +108,7 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
   if (request && request.method !== "GET" && request.method !== "HEAD") {
     const context = getRequestActorContext(request);
     // คำขอที่พลาดตั้งแต่ก่อนตรวจสิทธิ์จะยังไม่มี propertyId ใน context จึงลองดึงจาก URL แทน
-    const pathPropertyId = request.nextUrl.pathname.match(/\/properties\/([^/]+)/)?.[1];
+    const pathPropertyId = /\/properties\/([^/]+)/.exec(request.nextUrl.pathname)?.[1];
     const recordFailure = async () => {
       let propertyId = context.propertyId;
       if (!propertyId && pathPropertyId && context.userId) {

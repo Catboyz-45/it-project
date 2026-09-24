@@ -594,14 +594,14 @@ function PlanEditor({
     const body = {
       ...(plan === "new"
         ? {
-            code: String(form.get("code")),
+            code: formText(form, "code"),
             allowPromptPay: true,
             allowFileUploads: true,
             allowPrioritySupport: false,
             sortOrder: 0,
           }
         : {}),
-      name: String(form.get("name")),
+      name: formText(form, "name"),
       monthlyPrice: Number(form.get("monthlyPrice")),
       // ปล่อยว่างได้ หมายถึงไม่เปิดขายรายปี ระบบจะคิดจากรายเดือนคูณ 12 ให้เอง
       yearlyPrice: form.get("yearlyPrice")
@@ -638,7 +638,7 @@ function PlanEditor({
         </header>
         <form className="modal-form" onSubmit={submit}>
           <label>
-            รหัส
+            <span>รหัส</span>
             <input
               defaultValue={plan === "new" ? "" : plan.code}
               disabled={plan !== "new"}
@@ -647,7 +647,7 @@ function PlanEditor({
             />
           </label>
           <label>
-            ชื่อ
+            <span>ชื่อ</span>
             <input
               defaultValue={plan === "new" ? "" : plan.name}
               name="name"
@@ -656,7 +656,7 @@ function PlanEditor({
           </label>
           <div className="grid gap-3 md:grid-cols-2">
             <label>
-              ราคารายเดือน
+              <span>ราคารายเดือน</span>
               <input
                 defaultValue={plan === "new" ? "" : plan.monthlyPrice}
                 min="0"
@@ -666,7 +666,7 @@ function PlanEditor({
               />
             </label>
             <label>
-              ราคารายปี
+              <span>ราคารายปี</span>
               <input
                 defaultValue={plan === "new" ? "" : (plan.yearlyPrice ?? "")}
                 min="0"
@@ -675,7 +675,7 @@ function PlanEditor({
               />
             </label>
             <label>
-              จำนวนหอสูงสุด
+              <span>จำนวนหอสูงสุด</span>
               <input
               defaultValue={plan === "new" ? 1 : plan.maxProperties}
                 min="1"
@@ -685,7 +685,7 @@ function PlanEditor({
               />
             </label>
             <label>
-              จำนวนห้องสูงสุด
+              <span>จำนวนห้องสูงสุด</span>
               <input
                 defaultValue={plan === "new" ? "" : plan.maxRooms}
                 min="1"
@@ -737,4 +737,11 @@ function tableAnnouncement({ isLoading, page, total, totalPages }: {
   const current = page.toLocaleString("th-TH");
   if (isLoading) return `กำลังโหลดหน้า ${current}`;
   return `พบ ${total.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${current} จาก ${totalPages.toLocaleString("th-TH")} หน้า`;
+}
+
+// form.get คืนได้ทั้งสตริงและ File การ String() ตรง ๆ จะได้ "[object File]" ส่งขึ้นเซิร์ฟเวอร์
+// ช่องพวกนี้เป็นช่องข้อความล้วน ค่าที่ไม่ใช่สตริงจึงถือว่าไม่ได้กรอก
+function formText(form: FormData, field: string) {
+  const value = form.get(field);
+  return typeof value === "string" ? value : "";
 }

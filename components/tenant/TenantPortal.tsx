@@ -471,7 +471,7 @@ export function TenantPortal({
         <div className="tenant-header-actions flex items-center gap-3">
           <PageHeaderTarget />
           {active ? <NotificationCenter isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
-          {account.occupancies.filter(({ status }) => status === "ACTIVE").length > 0 ? <DropdownField
+          {account.occupancies.some(({ status }) => status === "ACTIVE") ? <DropdownField
             disabled={isSwitching}
             label="เลือกการเข้าพัก"
             onChange={(value) => void switchOccupancy(value)}
@@ -1706,7 +1706,8 @@ function TenantChatComposer({ attachment, fileInputRef, isSending, message, onSu
 }
 
 function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: Readonly<{ children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }>) {
-  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
+  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />;
+  if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
   return <div className="grid gap-5"><LiveAnnouncement message={listAnnouncement({ hasNextPage: resource.hasNextPage, isLoading: resource.isLoadingMore, total: resource.data.length })} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
 }
 function PaginationActions<T>({ resource }: Readonly<{ resource: PaginatedResource<T> }>) {

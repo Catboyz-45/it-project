@@ -27,15 +27,18 @@ function findByTypeahead(options: DropdownOption[], enabledIndexes: number[], ac
   return searchOrder.find((index) => options[index].label.trim().toLocaleLowerCase("th-TH").startsWith(query));
 }
 
+// จุดที่เมนูควรเปิดมาโฟกัส ขึ้นกับปุ่มที่กดเปิด
+type OpenPreference = "first" | "last" | "selected";
+
 // ตัวเลือกที่จะโฟกัสตอนเพิ่งเปิดเมนู ค่าที่เลือกอยู่ถ้ามี ไม่มีก็ตัวแรก
-function openingIndex(preference: "first" | "last" | "selected", enabledIndexes: number[], selectedIndex: number) {
+function openingIndex(preference: OpenPreference, enabledIndexes: number[], selectedIndex: number) {
   if (preference === "first") return enabledIndexes[0];
   if (preference === "last") return enabledIndexes.at(-1) ?? enabledIndexes[0];
   return selectedIndex >= 0 ? selectedIndex : enabledIndexes[0];
 }
 
 // ลูกศรขึ้นกับ End เปิดมาที่ตัวท้าย Home เปิดมาที่ตัวแรก ที่เหลือเปิดมาที่ค่าที่เลือกอยู่
-function openPreferenceFor(key: string): "first" | "last" | "selected" {
+function openPreferenceFor(key: string): OpenPreference {
   if (key === "ArrowUp" || key === "End") return "last";
   return key === "Home" ? "first" : "selected";
 }

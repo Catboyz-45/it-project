@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: Context) {
   try {
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const paymentId = z.string().cuid().safeParse((await context.params).paymentId);
+    const paymentId = z.cuid().safeParse((await context.params).paymentId);
     if (!paymentId.success) throw new ApiError(404, "ไม่พบหลักฐานการชำระ");
     const payment = await getSubscriptionPaymentSlip(paymentId.data);
     const file = await getStorageAdapter().get(payment.storageKey);

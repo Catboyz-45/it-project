@@ -6,7 +6,7 @@ import { getLease, transitionLease, updateLease } from "@/lib/server/leases";
 import { z } from "zod";
 type Context = { params: Promise<{ propertyId: string; leaseId: string }> };
 const id = (value: string) => {
-  const parsed = z.string().cuid().safeParse(value);
+  const parsed = z.cuid().safeParse(value);
   if (!parsed.success) throw new ApiError(404, "ไม่พบสัญญา");
   return parsed.data;
 };

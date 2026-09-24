@@ -84,7 +84,11 @@ export function RoomEditModal({
   const isDirty = !readOnly && currentSnapshot !== initialSnapshot;
   const { confirm, confirmationDialog } = useConfirmation();
   // ยังไม่ได้แก้อะไรก็ปิดไปเลย แก้แล้วต้องถามก่อน ไม่งั้นกดพลาดแล้วที่กรอกไว้หายหมด
-  const requestClose = useCallback(() => { if (!isDirty) return onClose(); void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "ข้อมูลห้องที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" }).then((ok) => { if (ok) onClose(); }); }, [confirm, isDirty, onClose]);
+  const requestClose = useCallback(() => {
+    if (!isDirty) return onClose();
+    return void confirm({ title: "ทิ้งข้อมูลที่แก้ไข?", description: "ข้อมูลห้องที่ยังไม่บันทึกจะหายไป", confirmLabel: "ทิ้งข้อมูล" })
+      .then((ok) => { if (ok) onClose(); });
+  }, [confirm, isDirty, onClose]);
   // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 

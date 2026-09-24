@@ -41,7 +41,7 @@ export function validateEmbeddedImages(html: string) {
   for (const match of html.matchAll(embeddedImagePattern)) {
     // กลุ่มที่ 1 คือค่าที่อยู่ใน " ส่วนกลุ่มที่ 2 คือค่าที่อยู่ใน ' จะมีค่าแค่กลุ่มเดียวเสมอ
     const source = match[1] ?? match[2];
-    const dataMatch = source.match(embeddedImageDataPattern);
+    const dataMatch = embeddedImageDataPattern.exec(source);
     // ไม่รับ URL จากภายนอก เพราะการดึงรูปจาก URL ที่ผู้ใช้กำหนดเป็นช่องทาง SSRF
     if (!dataMatch) throw new Error("รองรับเฉพาะรูป PNG, JPEG หรือ WebP ที่อัปโหลดจากเครื่อง");
     const bytes = Buffer.from(dataMatch[2].replace(/\s/g, ""), "base64");

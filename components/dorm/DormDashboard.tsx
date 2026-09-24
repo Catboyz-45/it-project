@@ -414,11 +414,11 @@ type OwnerSectionProps = {
   initialParcels?: OwnerInitialParcels | null;
   initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
   initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
-  initialPendingRequests?: Parameters<typeof TenantsPage>[0]["initialPendingRequests"];
-  initialPayments?: Parameters<typeof InvoicesPage>[0]["initialPayments"];
+  initialPendingRequests?: Exclude<Parameters<typeof TenantsPage>[0]["initialPendingRequests"], undefined>;
+  initialPayments?: Exclude<Parameters<typeof InvoicesPage>[0]["initialPayments"], undefined>;
   initialComplaints?: Complaint[] | null;
-  initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
-  initialSubscriptionData?: Parameters<typeof SettingsPage>[0]["initialSubscriptionData"];
+  initialInvitations?: Exclude<Parameters<typeof SettingsPage>[0]["initialInvitations"], undefined>;
+  initialSubscriptionData?: Exclude<Parameters<typeof SettingsPage>[0]["initialSubscriptionData"], undefined>;
   invoiceView?: "invoices" | "payments";
   page: PageKey;
 };

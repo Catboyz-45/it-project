@@ -7,7 +7,7 @@ import { getPropertyTenant, updatePropertyTenant } from "@/lib/server/property-m
 
 type Context = { params: Promise<{ propertyId: string; tenantProfileId: string }> };
 const parseId = (value: string) => {
-  const result = z.string().cuid().safeParse(value);
+  const result = z.cuid().safeParse(value);
   if (!result.success) throw new ApiError(404, "ไม่พบผู้เช่า");
   return result.data;
 };

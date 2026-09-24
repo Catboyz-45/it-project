@@ -12,7 +12,7 @@ const passwordSchema = z.object({
     .max(128)
     .regex(/[a-z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์เล็ก")
     .regex(/[A-Z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์ใหญ่")
-    .regex(/[0-9]/, "ต้องมีตัวเลข"),
+    .regex(/\d/, "ต้องมีตัวเลข"),
 }).strict().refine((value) => value.currentPassword !== value.newPassword, {
   message: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม",
   path: ["newPassword"],

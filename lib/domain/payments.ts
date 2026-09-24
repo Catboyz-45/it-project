@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { paymentSubmissionStatusSchema } from "@/lib/domain/enums";
 
-export const paymentInvoiceIdSchema = z.string().cuid();
+export const paymentInvoiceIdSchema = z.cuid();
 
 // ตรวจผลการตรวจหลักฐานการชำระ
 export const paymentReviewSchema = z.object({

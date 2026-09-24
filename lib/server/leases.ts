@@ -127,7 +127,7 @@ export async function renewLease(propertyId: string, sourceLeaseId: string, user
     if (input.startDate <= source.endDate) throw new ApiError(409, "สัญญาใหม่ต้องเริ่มหลังวันสิ้นสุดของสัญญาเดิม");
     const primary = source.tenants[0]?.occupancy;
     // คนเดิมย้ายออกไปแล้วก็ต่อสัญญาไม่ได้ ต้องทำสัญญาใหม่ให้คนใหม่แทน
-    if (!primary || primary.status !== "ACTIVE") throw new ApiError(409, "ผู้เช่าหลักของสัญญานี้ไม่ได้พักอยู่ในห้องแล้ว");
+    if (primary?.status !== "ACTIVE") throw new ApiError(409, "ผู้เช่าหลักของสัญญานี้ไม่ได้พักอยู่ในห้องแล้ว");
     const overlapping = await database.lease.count({
       where: {
         id: { not: source.id },

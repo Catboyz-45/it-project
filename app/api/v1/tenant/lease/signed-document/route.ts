@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { auth, occupancy } = await requireActiveTenant(request);
     if (occupancy.role !== "PRIMARY") throw new ApiError(404, "ไม่พบข้อมูล");
     const requestedLeaseId = request.nextUrl.searchParams.get("leaseId");
-    const leaseId = requestedLeaseId ? z.string().cuid().safeParse(requestedLeaseId) : null;
+    const leaseId = requestedLeaseId ? z.cuid().safeParse(requestedLeaseId) : null;
     if (leaseId && !leaseId.success) throw new ApiError(404, "ไม่พบข้อมูล");
     const lease = await getDatabase().lease.findFirst({
       where: {

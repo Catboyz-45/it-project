@@ -14,7 +14,7 @@ export const sendChatMessageSchema = z.object({
 // เลื่อนดูข้อความเก่าด้วยจุดอ้างอิง ไม่ใช้เลขหน้า เพราะข้อความใหม่เข้ามาแล้วเลขหน้าจะเลื่อน
 export const chatCursorSchema = z.object({
   before: z.coerce.date().optional(),
-  beforeMessageId: z.string().cuid().optional(),
+  beforeMessageId: z.cuid().optional(),
   // จำกัด 100 กันขอทีเดียวเยอะจนเซิร์ฟเวอร์รับไม่ไหว coerce เพราะค่ามาจาก query string เป็นสตริง
   limit: z.coerce.number().int().min(1).max(100).default(50),
 }).strict();

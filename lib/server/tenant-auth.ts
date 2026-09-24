@@ -84,7 +84,7 @@ export async function requireTenantOccupancy(
 
 // id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด ค่านี้มาจาก URL ที่ผู้ใช้พิมพ์เองได้
 export function parseTenantRecordId(value: string) {
-  const parsed = z.string().cuid().safeParse(value);
+  const parsed = z.cuid().safeParse(value);
   if (!parsed.success) throw new ApiError(404, "ไม่พบข้อมูล");
   return parsed.data;
 }

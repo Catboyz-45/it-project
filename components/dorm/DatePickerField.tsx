@@ -281,6 +281,11 @@ export function DatePickerField({
     setViewMode("month");
   };
 
+  // ตัดดอกจันของช่องบังคับกรอกออก ไม่งั้นโปรแกรมอ่านหน้าจอจะอ่านว่า "ดาว"
+  // ตัดด้วยการหั่นสตริงตรง ๆ ไม่ใช้ regex เพราะ /\s*\*$/ ย้อนรอยเป็นพหุนาม
+  // เมื่อข้อความลงท้ายด้วยช่องว่างยาว ๆ แล้วไม่มีดอกจัน
+  const plainLabel = label.endsWith("*") ? label.slice(0, -1).trimEnd() : label;
+
   return (
     // ไม่ใช่ label เพราะข้างในเป็นปุ่มเปิดปฏิทิน ซึ่ง label ผูกด้วยไม่ได้ตามสเปก
     // ชื่อที่โปรแกรมอ่านหน้าจอใช้มาจาก aria-label ของปุ่ม ไม่ใช่ span ที่เห็น
@@ -289,13 +294,13 @@ export function DatePickerField({
       <span>{label}</span>
       <div className="schedule-date-picker">
         {/* ตัดดอกจันของช่องบังคับกรอกออกจาก label ไม่งั้นโปรแกรมอ่านหน้าจอจะอ่านว่า "ดาว" */}
-        <button aria-controls={`${pickerId}-calendar`} aria-expanded={isOpen} aria-haspopup="dialog" aria-label={label.replace(/\s*\*$/, "")} className={isOpen ? "schedule-date-trigger active" : "schedule-date-trigger"} onClick={toggleOpen} ref={triggerRef} type="button">
+        <button aria-controls={`${pickerId}-calendar`} aria-expanded={isOpen} aria-haspopup="dialog" aria-label={plainLabel} className={isOpen ? "schedule-date-trigger active" : "schedule-date-trigger"} onClick={toggleOpen} ref={triggerRef} type="button">
           <span>{value ? formatDisplayDate(value) : placeholder}</span>
           <CalendarDays aria-hidden="true" size={22} />
         </button>
         {isOpen ? (
           <div
-            aria-label={`เลือก${label.replace(/\s*\*$/, "")}`}
+            aria-label={`เลือก${plainLabel}`}
             aria-modal="true"
             className="schedule-calendar"
             id={`${pickerId}-calendar`}

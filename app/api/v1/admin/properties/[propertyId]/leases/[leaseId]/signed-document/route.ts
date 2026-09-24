@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, context: Context) {
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
     await assertUploadRateLimit(request, "signed-lease");
-    const leaseId = z.string().cuid().safeParse(params.leaseId);
+    const leaseId = z.cuid().safeParse(params.leaseId);
     if (!leaseId.success) throw new ApiError(404, "ไม่พบสัญญา");
     const file = (await request.formData()).get("file");
     if (!(file instanceof File)) throw new ApiError(400, "กรุณาเลือกไฟล์");
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, context: Context) {
   try {
     const params = await context.params;
     const { propertyId } = await requireAdminProperty(request, params.propertyId);
-    const leaseId = z.string().cuid().safeParse(params.leaseId);
+    const leaseId = z.cuid().safeParse(params.leaseId);
     if (!leaseId.success) throw new ApiError(404, "ไม่พบสัญญา");
     const lease = await getSignedLeaseKey(propertyId, leaseId.data);
     const file = await getStorageAdapter().get(lease.signedStorageKey);

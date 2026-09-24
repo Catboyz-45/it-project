@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ownerPageFromSegments,
   ownerPagePath,
+  roleHomePath,
   tenantPagePath,
   tenantTabFromSegments,
 } from "@/lib/navigation-routes";
@@ -22,5 +23,16 @@ describe("URL navigation routes", () => {
     expect(tenantPagePath("invoices")).toBe("/tenant/invoices");
     expect(tenantTabFromSegments(["lease"])).toBe("lease");
     expect(tenantTabFromSegments(["unknown"])).toBeNull();
+    // ไม่มี segment เลยคือ /tenant เฉย ๆ ต้องเป็นหน้าแรก ไม่ใช่ null
+    expect(tenantTabFromSegments(undefined)).toBe("home");
+    expect(tenantTabFromSegments([])).toBe("home");
+  });
+
+  // ใช้ตอนเด้งผู้ใช้ที่เข้าผิดพื้นที่กลับบ้านตัวเอง บทบาทที่ไม่รู้จักต้องไม่หลุดไปฝั่งผู้ดูแลระบบ
+  it("sends each role to its own home", () => {
+    expect(roleHomePath("SUPER_ADMIN")).toBe("/super-admin");
+    expect(roleHomePath("TENANT")).toBe("/tenant");
+    expect(roleHomePath("ADMIN")).toBe("/admin");
+    expect(roleHomePath("STAFF")).toBe("/admin");
   });
 });

@@ -202,7 +202,7 @@ export function InvoicesPage({
   rooms,
 }: Readonly<{
   // ส่งต่อให้แท็บตรวจหลักฐานการชำระ
-  initialPayments?: Parameters<typeof PaymentReviewPanel>[0]["initialPayments"];
+  initialPayments?: Exclude<Parameters<typeof PaymentReviewPanel>[0]["initialPayments"], undefined>;
   initialView?: "invoices" | "payments";
   invoices: Invoice[];
   onChanged: () => Promise<void>;

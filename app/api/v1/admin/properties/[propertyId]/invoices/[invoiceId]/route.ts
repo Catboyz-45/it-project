@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const { propertyId: rawPropertyId, invoiceId: rawInvoiceId } = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, rawPropertyId);
-    const invoiceId = z.string().cuid().parse(rawInvoiceId);
+    const invoiceId = z.cuid().parse(rawInvoiceId);
     const body: unknown = await request.json();
     const cancellation = cancelInvoiceSchema.safeParse(body);
     const data = cancellation.success

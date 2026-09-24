@@ -60,7 +60,7 @@ export function LoginForm({ demoAccounts = [] }: Readonly<{ demoAccounts?: DemoA
         </article>)}
       </section> : null}
       <label>อีเมล<input autoComplete="username" name="email" onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" required type="email" value={email} /></label>
-      <label>รหัสผ่าน
+      <label><span>รหัสผ่าน</span>
         <span className="login-password-field">
           {/* minLength ตรงกับเกณฑ์ของเซิร์ฟเวอร์ ส่วน autoComplete ช่วยให้ตัวจัดการรหัสผ่านทำงานถูก */}
           <input autoComplete="current-password" minLength={12} name="password" onChange={(event) => setPassword(event.target.value)} placeholder="กรอกรหัสผ่าน" required type={showPassword ? "text" : "password"} value={password} />

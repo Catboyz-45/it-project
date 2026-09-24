@@ -6,7 +6,7 @@ const bool = { type: "boolean" };
 const integer = (minimum, maximum) => ({ type: "integer", ...(minimum === undefined ? {} : { minimum }), ...(maximum === undefined ? {} : { maximum }) });
 const number = (minimum = 0) => ({ type: "number", minimum });
 const dateTime = text({ format: "date-time" });
-const billingMonth = text({ pattern: "^\\d{4}-(0[1-9]|1[0-2])$" });
+const billingMonth = text({ pattern: String.raw`^\d{4}-(0[1-9]|1[0-2])$` });
 // ช่องที่ว่างได้ ต้องเขียนเป็น anyOf คู่กับ null เพราะ OpenAPI 3.1 ไม่มีคำว่า nullable แล้ว
 const nullable = (schema) => ({ anyOf: [schema, { type: "null" }] });
 const array = (items, extra = {}) => ({ type: "array", items, ...extra });

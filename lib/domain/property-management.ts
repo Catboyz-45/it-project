@@ -16,7 +16,7 @@ export const updatePropertySettingsSchema = z.object({
   contactPhone: z.string().trim().min(1).max(30),
   contactEmail: z.string().trim().toLowerCase().pipe(z.email().max(254)).nullable().optional(),
   // เบอร์โทร 10 หลักหรือเลขประจำตัว 13 หลัก เอาเฉพาะตัวเลข เพราะต้องเอาไปสร้าง QR พร้อมเพย์
-  promptPayId: z.string().trim().regex(/^[0-9]{10,15}$/).nullable().optional(),
+  promptPayId: z.string().trim().regex(/^\d{10,15}$/).nullable().optional(),
   waterUnitRate: money,
   electricityUnitRate: money,
   // วันออกบิลได้ถึงแค่ 28 เพราะกุมภาพันธ์มี 28 วัน ตั้ง 30 แล้วบางเดือนจะไม่มีวันนั้น
@@ -34,7 +34,7 @@ export const updatePropertySettingsSchema = z.object({
 // ผู้ดูแลระบบแก้ได้แค่สองอย่าง เปิดปิดหอ กับตั้งว่าใครดูแล ไม่ยุ่งกับการตั้งค่าภายในของหอ
 export const superAdminPropertyUpdateSchema = z.object({
   isActive: z.boolean().optional(),
-  memberUserIds: z.array(z.string().cuid()).max(50).optional(),
+  memberUserIds: z.array(z.cuid()).max(50).optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, "ไม่มีข้อมูลให้แก้ไข");
 
 export const updateTenantProfileSchema = z.object({

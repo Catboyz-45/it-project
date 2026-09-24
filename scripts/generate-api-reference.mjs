@@ -119,7 +119,8 @@ const lines = [
 for (const [category, categoryRoutes] of categories) {
   lines.push(`## ${category}`, "", "| Method | URL | ใช้ทำอะไร |", "|---|---|---|");
   for (const route of categoryRoutes) {
-    lines.push(`| ${route.methods.map((method) => `\`${method}\``).join(" ") || "—"} | \`${route.endpoint}\` | ${route.purpose} |`);
+    const methods = route.methods.map((method) => `\`${method}\``).join(" ") || "—";
+  lines.push(`| ${methods} | \`${route.endpoint}\` | ${route.purpose} |`);
   }
   lines.push("");
 }

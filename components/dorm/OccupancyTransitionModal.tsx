@@ -331,7 +331,7 @@ export function OccupancyTransitionModal({ onClose, onCompleted, propertyId, roo
         /> : null}
         <label><span>หมายเหตุการชำระ/คืนเงิน</span><textarea maxLength={1000} onChange={(event) => setNote(event.target.value)} placeholder="เช่น คืนผ่านบัญชีธนาคารภายใน 7 วัน" value={note} /></label>
         {error ? <p className="form-alert error" role="alert">{error}</p> : null}
-        <p className="form-alert" role="status">เมื่อยืนยัน ระบบจะปิดสัญญาเดิมและการเข้าพักทันที {type === "MOVE_ROOM" ? "จากนั้นระบบจะเปิดฟอร์มสร้างสัญญาห้องใหม่พร้อมกรอกข้อมูลเดิมให้" : "ระบบจะบันทึกสรุปการย้ายออกและเงินประกันไว้ในประวัติ"}</p>
+        <output className="form-alert block">เมื่อยืนยัน ระบบจะปิดสัญญาเดิมและการเข้าพักทันที {type === "MOVE_ROOM" ? "จากนั้นระบบจะเปิดฟอร์มสร้างสัญญาห้องใหม่พร้อมกรอกข้อมูลเดิมให้" : "ระบบจะบันทึกสรุปการย้ายออกและเงินประกันไว้ในประวัติ"}</output>
       </div>
       <footer className="modal-actions"><button className="secondary-button" disabled={isSubmitting} onClick={requestClose} type="button">ยกเลิก</button><button className="primary-button" disabled={isSubmitting} onClick={requestConfirmation} type="button">{transitionSubmitLabel(isSubmitting, type)}</button></footer>
     </Dialog>

@@ -111,7 +111,7 @@ export function TenantsPage({
   // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
   initialPageInfo?: ServerPageInfo | null;
   // ส่งต่อให้แท็บคำขอเข้าพัก
-  initialPendingRequests?: Parameters<typeof PendingTenantApprovals>[0]["initialRequests"];
+  initialPendingRequests?: Exclude<Parameters<typeof PendingTenantApprovals>[0]["initialRequests"], undefined>;
   onChanged: () => Promise<void>;
   onOpenTenantDetail: (tenant: Tenant) => void;
   propertyId: string;

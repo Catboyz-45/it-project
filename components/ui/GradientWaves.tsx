@@ -354,7 +354,7 @@ export function GradientWaves({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       reduceMotionQuery.removeEventListener("change", handleReducedMotionChange);
       container.removeEventListener("pointermove", handlePointerMove);
-      if (canvas.parentElement === container) container.removeChild(canvas);
+      if (canvas.parentElement === container) canvas.remove();
       // คืน WebGL context ให้เบราว์เซอร์ทันที เพราะแต่ละแท็บเปิดได้จำกัดจำนวน
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };

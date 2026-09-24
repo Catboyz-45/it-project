@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { policyPreferenceSchema } from "@/lib/domain/legal-policies";
-import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { getRequestAuth } from "@/lib/server/auth";
-import { ApiError } from "@/lib/server/api";
 import { getPolicyPreferences, recordMarketingPreference, recordRequiredPolicies } from "@/lib/server/legal-policies";
 import { setRequestActorContext } from "@/lib/server/request-context";
 

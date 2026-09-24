@@ -29,3 +29,20 @@ describe("lease lifecycle", () => {
     expect(renewLeaseSchema.safeParse({ startDate: "2027-12-31", endDate: "2027-01-01", monthlyRent: 4000 }).success).toBe(false);
   });
 });
+
+// ทั้งโปรเจกต์ย้ายจาก z.string().cuid() ที่ถูก deprecate มาเป็น z.cuid()
+// ตัวทดสอบนี้กันไม่ให้ใครเข้าใจผิดว่า cuid2 คือตัวแทน เพราะ cuid2 รับสตริงกว้างกว่า
+// ถ้าเผลอเปลี่ยนไปใช้ cuid2 การตรวจ id จะหลวมลงทั้งระบบโดยไม่มีใครรู้
+describe("lease id validation", () => {
+  const lease = { startDate: "2026-01-01", endDate: "2027-01-01", monthlyRent: 3000 };
+
+  it("accepts a real cuid room id", () => {
+    expect(createLeaseSchema.safeParse({ ...lease, roomId: "cjld2cjxh0000qzrmn831i7rn" }).success).toBe(true);
+  });
+
+  it("rejects ids that are not cuids, including the wider cuid2 shape", () => {
+    for (const bad of ["", "not-a-cuid", "tz4a98xxat96iws9zmbrgj3a"]) {
+      expect(createLeaseSchema.safeParse({ ...lease, roomId: bad }).success).toBe(false);
+    }
+  });
+});

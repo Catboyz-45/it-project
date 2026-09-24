@@ -86,7 +86,7 @@ export async function listTenantMessages(
   // ดึงใหม่สุดก่อนเพื่อให้แบ่งหน้าได้ถูก แล้วค่อยกลับลำดับตอนส่งออก
   // เพราะหน้าจอต้องเรียงเก่าไปใหม่แบบห้องสนทนาทั่วไป
   const page = toPaginatedResult(messages.map(toChatMessageDto), pagination);
-  return { ...page, data: page.data.reverse() };
+  return { ...page, data: page.data.toReversed() };
 }
 
 export async function listPropertyMessagesAfter(propertyId: string, after: Date) {
@@ -337,7 +337,7 @@ export async function listConversationMessages(
   });
   const hasMore = messages.length > options.limit;
   const page = hasMore ? messages.slice(0, options.limit) : messages;
-  return { messages: page.reverse().map(toChatMessageDto), hasMore };
+  return { messages: page.toReversed().map(toChatMessageDto), hasMore };
 }
 
 export async function listConversationMessagesAfter(

@@ -88,7 +88,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: Re
       <div className="account-detail-row">
         <strong>อีเมล</strong><span>{email}</span><small>ใช้สำหรับเข้าสู่ระบบ</small>
       </div>
-      {profileMessage ? <p className={`account-settings-message ${profileMessage.tone}`} role={profileMessage.tone === "error" ? "alert" : "status"}>{profileMessage.message}</p> : null}
+      {profileMessage ? <ProfileMessage message={profileMessage.message} tone={profileMessage.tone} /> : null}
     </section>
 
     <section className="account-content-section">
@@ -133,4 +133,13 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: Re
       </form>
     </Dialog> : null}
   </div>;
+}
+
+// ข้อผิดพลาดต้องให้โปรแกรมอ่านหน้าจอขัดจังหวะอ่านทันที จึงเป็น role="alert"
+// ส่วนผลที่สำเร็จรอจังหวะว่างได้ ใช้ output ซึ่งมี role="status" ติดมาในตัว
+// output เป็น inline โดยปริยาย ส่วน .account-settings-message ไม่ได้กำหนด display จึงต้องใส่ block เอง
+function ProfileMessage({ message, tone }: Readonly<{ message: string; tone: string }>) {
+  const className = `account-settings-message ${tone}`;
+  if (tone === "error") return <p className={className} role="alert">{message}</p>;
+  return <output className={`${className} block`}>{message}</output>;
 }

@@ -110,7 +110,7 @@ function parametersFor(method, apiPath) {
     parameters.push(
       {
         name: "billingMonth", in: "query", required: true,
-        schema: { type: "string", pattern: "^\\d{4}-(0[1-9]|1[0-2])$", example: "2026-07" },
+        schema: { type: "string", pattern: String.raw`^\d{4}-(0[1-9]|1[0-2])$`, example: "2026-07" },
       },
       {
         name: "type", in: "query", required: true,
@@ -140,7 +140,7 @@ function parametersFor(method, apiPath) {
       {
         name: "billingMonth", in: "query", required: false,
         description: "Invoice billing month filter. Used only when resource is invoices.",
-        schema: { type: "string", pattern: "^\\d{4}-(0[1-9]|1[0-2])$", example: "2026-07" },
+        schema: { type: "string", pattern: String.raw`^\d{4}-(0[1-9]|1[0-2])$`, example: "2026-07" },
       },
     );
   }
@@ -339,7 +339,7 @@ for (const file of routeFiles) {
   const apiPath = openApiPath(file);
   document.paths[apiPath] ??= {};
   for (const method of methods) {
-    const exported = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method.toUpperCase()}\\b`).test(source);
+    const exported = new RegExp(String.raw`export\s+(?:async\s+)?function\s+${method.toUpperCase()}\b`).test(source);
     const current = document.paths[apiPath][method];
     // ข้ามอันที่คนแก้เอง ดูจากคำว่า Implementation: ที่สคริปต์นี้ใส่ไว้เป็นเครื่องหมาย
     // ไม่มีเครื่องหมายแปลว่ามีคนมาเขียนทับ ต้องเคารพของที่เขียนด้วยมือ

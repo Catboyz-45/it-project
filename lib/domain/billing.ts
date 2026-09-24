@@ -11,7 +11,7 @@ export function billingMonthToDate(value: string) {
 }
 
 export const meterReadingInputSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: z.cuid(),
   type: meterTypeSchema,
   billingMonth: billingMonthSchema,
   previousReading: z.coerce.number().min(0).max(1_000_000_000).optional(),
@@ -38,7 +38,7 @@ export const bulkMeterReadingSchema = z.object({
 });
 
 export const generateInvoiceSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: z.cuid(),
   billingMonth: billingMonthSchema,
   // literal(false) คือปิดทางออกบิลทันทีตั้งแต่ระดับตัวตรวจ ส่ง true มาก็ไม่ผ่าน
   // บิลต้องเกิดเป็นร่างเสมอ เพื่อให้มีจังหวะตรวจก่อนถึงผู้เช่า

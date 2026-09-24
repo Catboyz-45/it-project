@@ -583,8 +583,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     }
     const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break:not(.editor-auto-page-break)"));
     const previousPageBreak = pageBreaks
-      .filter((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .at(-1);
+      .findLast((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING);
     if (!previousPageBreak) {
       setError("หน้าแรกไม่สามารถรวมกับหน้าก่อนได้");
       return;
@@ -604,8 +603,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     }
     const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break:not(.editor-auto-page-break)"));
     const previousPageBreak = pageBreaks
-      .filter((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .at(-1);
+      .findLast((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING);
     const nextPageBreak = pageBreaks.find((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_PRECEDING);
     const pageContainer = previousPageBreak?.parentElement ?? nextPageBreak?.parentElement;
     if (!pageContainer || (previousPageBreak && previousPageBreak.parentElement !== pageContainer) || (nextPageBreak && nextPageBreak.parentElement !== pageContainer)) {
@@ -651,7 +649,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setError("");
     if (action === "add-row") {
       const newRow = table.insertRow(row.rowIndex + 1);
-      for (let index = 0; index < row.cells.length; index += 1) newRow.insertCell().textContent = "ข้อความ";
+      // แถวใหม่ต้องมีจำนวนช่องเท่าแถวที่กดเพิ่ม ไม่งั้นตารางเบี้ยว
+      Array.from(row.cells).forEach(() => { newRow.insertCell().textContent = "ข้อความ"; });
     } else if (action === "remove-row") {
       if (table.rows.length <= 1) return setError("ตารางต้องเหลืออย่างน้อย 1 แถว");
       table.deleteRow(row.rowIndex);
