@@ -38,7 +38,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends chromium fonts-noto-core fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 1001 nodejs \
-    && useradd --system --uid 1001 --gid nodejs nextjs
+    # --create-home จำเป็นจริง ๆ ไม่ใช่ของประดับ Chromium เขียน user data กับฐานข้อมูล
+    # ของตัวรายงานข้อขัดข้องลงใน HOME ถ้าโฟลเดอร์ไม่มีอยู่ เบราว์เซอร์จะตายตั้งแต่เปิด
+    # ด้วยข้อความ "Failed to create headless user data directory container" แล้วการสร้าง PDF จะล้มทุกครั้ง
+    && useradd --system --uid 1001 --gid nodejs --create-home nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
