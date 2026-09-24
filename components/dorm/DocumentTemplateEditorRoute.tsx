@@ -7,7 +7,7 @@ import { RetryButton } from "@/components/ui/DataNavigation";
 import type { DocumentKind, DocumentTemplateDto } from "@/lib/documents/types";
 
 // ห่อหน้าแก้ไข Template ไว้ โหลดข้อมูลก่อนแล้วค่อยส่งต่อให้ตัวแก้ไขจริง
-export function DocumentTemplateEditorRoute({ kind, propertyId }: { kind: DocumentKind; propertyId: string }) {
+export function DocumentTemplateEditorRoute({ kind, propertyId }: Readonly<{ kind: DocumentKind; propertyId: string }>) {
   const router = useRouter();
   const [template, setTemplate] = useState<DocumentTemplateDto | null>(null);
   const [error, setError] = useState("");

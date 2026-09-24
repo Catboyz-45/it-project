@@ -698,133 +698,156 @@ function direct(schema) {
   return { description: "Successful response", content: { "application/json": { schema: ref(schema), example: sample(schema) } } };
 }
 
+// ตัวอย่าง request body ของแต่ละเส้น เรียงจากจำเพาะไปกว้าง ตัวแรกที่เข้าเงื่อนไขชนะ
+// เก็บเป็นตารางเพราะทั้งหมดคือข้อมูลการจับคู่ URL ไม่ใช่ตรรกะ บันได if ยาว ๆ อ่านยากกว่าโดยไม่ได้อะไรเพิ่ม
+const requestExampleRules = [
+  [(apiPath) => apiPath.endsWith("/catalogs"), { roomTypes: [{ name: "ห้องมาตรฐาน", monthlyRent: 3500 }], serviceCharges: [], furnitureOptions: [] }],
+  [(apiPath) => apiPath.includes("support-chat") || apiPath.endsWith("/tenant/chat") || /tenant-chat\/\{tenantProfileId\}$/.test(apiPath), { content: "ขอสอบถามข้อมูลเพิ่มเติมครับ" }],
+  [(apiPath) => apiPath.endsWith("/buildings"), { name: "อาคาร A", code: "A" }],
+  [(apiPath) => apiPath.endsWith("/floors"), { name: "ชั้น 1", number: 1 }],
+  [(apiPath) => apiPath.endsWith("/rooms"), { buildingId: "bld_a", floorId: "floor_a_1", number: "A101", monthlyRent: 3500, depositAmount: 7000, capacity: 2 }],
+  [(apiPath) => apiPath.includes("/rooms/{roomId}"), { status: "AVAILABLE", monthlyRent: 3800 }],
+  [(apiPath) => apiPath.endsWith("/invitations"), { roomId: "room_a101", role: "PRIMARY", expiresInDays: 7 }],
+  [(apiPath) => apiPath.includes("/occupancies/{occupancyId}"), { status: "ACTIVE" }],
+  [(apiPath) => apiPath.endsWith("/leases"), { roomId: "room_a101", startDate: "2026-08-01", endDate: "2027-07-31", monthlyRent: 3500, depositAmount: 7000 }],
+  [(apiPath) => apiPath.includes("/leases/{leaseId}"), { expectedVersion: 2, status: "PENDING_SIGNATURE", terms: "ชำระค่าเช่าภายในวันที่ 5" }],
+  [(apiPath) => apiPath.endsWith("/meter-readings"), { roomId: "room_a101", meterType: "ELECTRICITY", billingMonth: "2026-07", previousReading: 1250, currentReading: 1320 }],
+  [(apiPath) => apiPath.endsWith("/meter-readings/bulk"), { billingMonth: "2026-07", readings: [{ roomId: "room_a101", meterType: "WATER", previousReading: 30, currentReading: 36 }] }],
+  [(apiPath) => apiPath.endsWith("/invoices"), { roomId: "room_a101", billingMonth: "2026-07", dueDate: "2026-08-05" }],
+  [(apiPath) => apiPath.endsWith("/invoices/bulk"), { billingMonth: "2026-07", dueDate: "2026-08-05" }],
+  [(apiPath) => apiPath.endsWith("/invoices/recalculate-overdue"), { asOf: "2026-08-06" }],
+  [(apiPath) => apiPath.endsWith("/announcements"), { title: "แจ้งล้างถังน้ำ", content: "งดใช้น้ำเวลา 09:00–12:00 น.", audience: "ALL", status: "PUBLISHED" }],
+  [(apiPath) => apiPath.includes("/announcements/"), { title: "แจ้งเปลี่ยนเวลา", expectedUpdatedAt: "2026-07-28T09:30:00.000Z" }],
+  [(apiPath) => apiPath.includes("/parcels/{parcelId}"), { status: "COLLECTED" }],
+  [(apiPath) => apiPath.includes("/payment-submissions/{paymentId}"), { status: "APPROVED" }],
+  [(apiPath) => apiPath.endsWith("/subscription-orders"), { planId: "plan_standard", billingInterval: "MONTHLY" }],
+  [(apiPath) => apiPath.includes("/super-admin/subscription-payments/{paymentId}"), { status: "APPROVED" }],
+  [(apiPath) => apiPath.endsWith("/tickets"), { type: "REPAIR", priority: "NORMAL", title: "ท่อน้ำรั่ว", description: "ท่อน้ำใต้อ่างล้างหน้ารั่ว" }],
+  [(apiPath) => apiPath.includes("/tickets/{ticketId}"), { status: "IN_PROGRESS", priority: "HIGH" }],
+  [(apiPath) => apiPath === "/api/v1/tenant/register", { email: "tenant@example.com", password: "example-password-123", firstName: "สุดา", lastName: "สุขใจ", phone: "0891234567", inviteCode: "JOIN-A101" }],
+  [(apiPath) => apiPath === "/api/v1/tenant/invitations/accept", { invitationCode: "invitation-code-at-least-32-characters" }],
+  [(apiPath) => apiPath === "/api/v1/tenant/occupancy-selection", { occupancyId: "occupancy_01" }],
+  [(apiPath) => apiPath === "/api/v1/super-admin/plans", { code: "STANDARD", name: "Standard", price: 990, billingInterval: "MONTHLY", maxProperties: 3, maxRooms: 100 }],
+  [(apiPath) => apiPath.includes("/super-admin/plans/"), { name: "Standard Plus", price: 1290, isActive: true }],
+  [(apiPath) => apiPath.endsWith("/subscription"), { planId: "plan_standard", startsAt: "2026-08-01" }],
+  [(apiPath) => apiPath.endsWith("/approval"), { status: "APPROVED" }],
+  [(apiPath) => apiPath.endsWith("/super-admin/properties/{propertyId}"), { isActive: true, memberUserIds: ["usr_owner_01"] }],
+];
+
 export function requestExample(method, apiPath) {
+  // GET กับ DELETE ไม่มี body ส่วน temporary-password เป็น POST ที่ไม่ต้องส่งอะไรมาเลย
   if (method === "get" || method === "delete") return undefined;
   if (apiPath.endsWith("/temporary-password")) return undefined;
-  if (apiPath.endsWith("/catalogs")) return { roomTypes: [{ name: "ห้องมาตรฐาน", monthlyRent: 3500 }], serviceCharges: [], furnitureOptions: [] };
-  if (apiPath.includes("support-chat") || apiPath.endsWith("/tenant/chat") || /tenant-chat\/\{tenantProfileId\}$/.test(apiPath)) return { content: "ขอสอบถามข้อมูลเพิ่มเติมครับ" };
-  if (apiPath.endsWith("/buildings")) return { name: "อาคาร A", code: "A" };
-  if (apiPath.endsWith("/floors")) return { name: "ชั้น 1", number: 1 };
-  if (apiPath.endsWith("/rooms")) return { buildingId: "bld_a", floorId: "floor_a_1", number: "A101", monthlyRent: 3500, depositAmount: 7000, capacity: 2 };
-  if (apiPath.includes("/rooms/{roomId}")) return { status: "AVAILABLE", monthlyRent: 3800 };
-  if (apiPath.endsWith("/invitations")) return { roomId: "room_a101", role: "PRIMARY", expiresInDays: 7 };
-  if (apiPath.includes("/occupancies/{occupancyId}")) return { status: "ACTIVE" };
-  if (apiPath.endsWith("/leases")) return { roomId: "room_a101", startDate: "2026-08-01", endDate: "2027-07-31", monthlyRent: 3500, depositAmount: 7000 };
-  if (apiPath.includes("/leases/{leaseId}")) return { expectedVersion: 2, status: "PENDING_SIGNATURE", terms: "ชำระค่าเช่าภายในวันที่ 5" };
-  if (apiPath.endsWith("/meter-readings")) return { roomId: "room_a101", meterType: "ELECTRICITY", billingMonth: "2026-07", previousReading: 1250, currentReading: 1320 };
-  if (apiPath.endsWith("/meter-readings/bulk")) return { billingMonth: "2026-07", readings: [{ roomId: "room_a101", meterType: "WATER", previousReading: 30, currentReading: 36 }] };
-  if (apiPath.endsWith("/invoices")) return { roomId: "room_a101", billingMonth: "2026-07", dueDate: "2026-08-05" };
-  if (apiPath.endsWith("/invoices/bulk")) return { billingMonth: "2026-07", dueDate: "2026-08-05" };
-  if (apiPath.endsWith("/invoices/recalculate-overdue")) return { asOf: "2026-08-06" };
-  if (apiPath.endsWith("/announcements")) return { title: "แจ้งล้างถังน้ำ", content: "งดใช้น้ำเวลา 09:00–12:00 น.", audience: "ALL", status: "PUBLISHED" };
-  if (apiPath.includes("/announcements/")) return { title: "แจ้งเปลี่ยนเวลา", expectedUpdatedAt: "2026-07-28T09:30:00.000Z" };
-  if (apiPath.includes("/parcels/{parcelId}")) return { status: "COLLECTED" };
-  if (apiPath.includes("/payment-submissions/{paymentId}")) return { status: "APPROVED" };
-  if (apiPath.endsWith("/subscription-orders")) return { planId: "plan_standard", billingInterval: "MONTHLY" };
-  if (apiPath.includes("/super-admin/subscription-payments/{paymentId}")) return { status: "APPROVED" };
-  if (apiPath.endsWith("/tickets")) return { type: "REPAIR", priority: "NORMAL", title: "ท่อน้ำรั่ว", description: "ท่อน้ำใต้อ่างล้างหน้ารั่ว" };
-  if (apiPath.includes("/tickets/{ticketId}")) return { status: "IN_PROGRESS", priority: "HIGH" };
-  if (apiPath === "/api/v1/tenant/register") return { email: "tenant@example.com", password: "example-password-123", firstName: "สุดา", lastName: "สุขใจ", phone: "0891234567", inviteCode: "JOIN-A101" };
-  if (apiPath === "/api/v1/tenant/invitations/accept") return { invitationCode: "invitation-code-at-least-32-characters" };
-  if (apiPath === "/api/v1/tenant/occupancy-selection") return { occupancyId: "occupancy_01" };
-  if (apiPath === "/api/v1/super-admin/plans") return { code: "STANDARD", name: "Standard", price: 990, billingInterval: "MONTHLY", maxProperties: 3, maxRooms: 100 };
-  if (apiPath.includes("/super-admin/plans/")) return { name: "Standard Plus", price: 1290, isActive: true };
-  if (apiPath.endsWith("/subscription")) return { planId: "plan_standard", startsAt: "2026-08-01" };
-  if (apiPath.endsWith("/approval")) return { status: "APPROVED" };
-  if (/\/super-admin\/properties\/\{propertyId\}$/.test(apiPath)) {
-    return { isActive: true, memberUserIds: ["usr_owner_01"] };
-  }
-  return { file: "(binary file)" };
+  const rule = requestExampleRules.find(([matches]) => matches(apiPath));
+  // ที่เหลือคือเส้นอัปโหลดไฟล์ body เป็น multipart ไม่ใช่ JSON
+  return rule ? rule[1] : { file: "(binary file)" };
 }
 
-// เลือกรูปคำตอบให้ endpoint หนึ่งเส้น ดักเส้นทางพิเศษก่อน แล้วที่เหลือค่อยเดาจากชื่อ URL
+// schema ของคำตอบแบบแบ่งหน้าที่ระบุไว้ตรง ๆ เส้นที่ไม่อยู่ในนี้เดาจาก segment ท้าย URL
+const paginatedSchemas = new Map([
+  ["/api/v1/super-admin/audit-logs", "AuditLog"],
+  ["/api/v1/super-admin/plans", "SaasPlan"],
+  ["/api/v1/super-admin/properties", "Property"],
+  ["/api/v1/super-admin/users", "SuperAdminUser"],
+  ["/api/v1/super-admin/subscription-payments", "SubscriptionPayment"],
+  ["/api/v1/admin/properties/{propertyId}/tenants", "OwnerTenantListItem"],
+  ["/api/v1/tenant/invoices", "TenantInvoiceListItem"],
+  ["/api/v1/tenant/announcements", "TenantAnnouncement"],
+  ["/api/v1/tenant/parcels", "TenantParcel"],
+  ["/api/v1/tenant/tickets", "TenantTicket"],
+]);
+
+function paginatedSuccess(apiPath) {
+  const named = paginatedSchemas.get(apiPath);
+  if (named) return paginatedData(named);
+  // subscription-orders มีทั้งฝั่งเจ้าของหอและฝั่งซูเปอร์แอดมิน จึงจับจากท้าย URL แทนชื่อเต็ม
+  if (apiPath.endsWith("/subscription-orders")) return paginatedData("SubscriptionOrder");
+  const segment = [...collectionSchemas.keys()].find((candidate) => apiPath.endsWith(`/${candidate}`));
+  if (!segment) throw new Error(`No paginated schema for ${apiPath}`);
+  return paginatedData(collectionSchemas.get(segment));
+}
+
+// เส้นฝั่งผู้เช่าที่ตรงรูปแบบ คืน undefined เมื่อไม่เข้าข้อไหน เพื่อให้ตารางไหลไปกติกาถัดไปเหมือนเดิม
+function tenantSuccess(method, apiPath) {
+  if (!apiPath.startsWith("/api/v1/tenant/")) return undefined;
+  if (apiPath.includes("/invoices")) return data(apiPath.includes("payment-submissions") ? "PaymentSubmission" : "Invoice", method === "get" && !apiPath.includes("{invoiceId}"));
+  if (apiPath.endsWith("/announcements")) return data("Announcement", true);
+  if (apiPath.endsWith("/parcels")) return data("Parcel", true);
+  if (apiPath.includes("/tickets")) return data(apiPath.endsWith("/attachments") ? "TicketAttachment" : "ServiceTicket", method === "get" && !apiPath.includes("{ticketId}"));
+  return undefined;
+}
+
+// segment แรกใน collectionSchemas ที่โผล่ใน URL ตรงกับที่ลูปเดิมหยุดเป็นตัวแรก
+function collectionSegment(apiPath) {
+  return [...collectionSchemas.keys()].find((segment) => apiPath.includes(`/${segment}`));
+}
+
+function collectionSuccess(method, apiPath) {
+  const segment = collectionSegment(apiPath);
+  // ลงท้ายด้วยชื่อ segment พอดีแปลว่าเป็นรายการทั้งชุด ไม่ใช่รายตัว
+  return data(collectionSchemas.get(segment), method === "get" && apiPath.endsWith(`/${segment}`));
+}
+
+// จับคู่ URL กับรูปคำตอบเป็นตาราง เรียงจากเส้นทางจำเพาะไปหากว้าง ตัวแรกที่เข้าเงื่อนไขชนะ
+const jsonSuccessRules = [
+  [({ method, apiPath }) => method === "get" && apiPath === "/api/v1/admin/properties/{propertyId}/search", () => data("PropertySearchResult", true)],
+  [({ method, apiPath }) => method === "get" && apiPath.endsWith("/meter-readings/worksheet"), () => paginatedData("MeterWorksheetRow")],
+  [({ method, apiPath }) => method === "get" && paginatedPaths.has(apiPath), ({ apiPath }) => paginatedSuccess(apiPath)],
+  [({ apiPath }) => apiPath.endsWith("/tickets/{ticketId}/replies"), ({ method }) => method === "get" ? paginatedData("TicketReply") : data("TicketReply")],
+  [({ apiPath }) => apiPath.endsWith("/notifications/unread"), () => data("TicketUnreadSummary")],
+  [({ apiPath }) => apiPath.endsWith("/promptpay-qr"), () => data("PromptPay")],
+  [({ apiPath }) => apiPath.endsWith("/catalogs"), () => direct("SuccessResult")],
+  [({ method, apiPath }) => apiPath.endsWith("/signed-document") && method === "post", () => data("UploadResult")],
+  [({ apiPath }) => apiPath === "/api/v1/plans", () => data("SaasPlan", true)],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/dashboard", () => data("PlatformDashboard")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/plans", ({ method }) => data("SaasPlan", method === "get")],
+  [({ apiPath }) => apiPath.endsWith("/super-admin/plans/{planId}"), () => data("SaasPlan")],
+  [({ apiPath }) => apiPath.endsWith("/subscription"), () => data("PropertySubscription")],
+  [({ apiPath }) => apiPath.endsWith("/subscription-orders"), () => data("SubscriptionOrder")],
+  [({ apiPath }) => apiPath.endsWith("/payments") && apiPath.includes("/subscription-orders/"), () => data("SubscriptionPayment")],
+  [({ apiPath }) => apiPath.includes("/super-admin/subscription-payments/{paymentId}"), () => data("SubscriptionPaymentReview")],
+  [({ apiPath }) => apiPath.endsWith("/super-admin/users/{userId}/approval"), () => data("AccountApproval")],
+  [({ apiPath }) => apiPath.endsWith("/super-admin/users/{userId}/memberships"), () => data("PropertyAdminMembershipUpdate")],
+  [({ apiPath }) => apiPath.endsWith("/super-admin/users/{userId}/temporary-password"), () => data("TemporaryPasswordResult")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/support-chat" || apiPath.endsWith("/tenant-chat"), () => direct("ConversationList")],
+  [({ apiPath }) => apiPath.includes("support-chat") || apiPath.endsWith("/tenant-chat/{tenantProfileId}") || apiPath === "/api/v1/tenant/chat", ({ method }) => direct(method === "get" ? "ChatThread" : "ChatMessageResult")],
+  [({ apiPath }) => apiPath.endsWith("/attachments") && apiPath.includes("/chat/"), () => direct("ChatMessageResult")],
+  [({ apiPath }) => apiPath === "/api/v1/admin/properties/{propertyId}/dashboard", () => data("OwnerWorkspaceReadModel")],
+  [({ apiPath }) => apiPath.endsWith("/dashboard/summary"), () => data("OwnerDashboard")],
+  [({ apiPath }) => apiPath === "/api/v1/admin/properties/{propertyId}/occupancy-transitions", () => data("OccupancyTransition", true)],
+  [({ apiPath }) => apiPath.endsWith("/tenants/{tenantProfileId}/transitions"), ({ method }) => data("OccupancyTransition", method === "get")],
+  [({ apiPath }) => apiPath === "/api/v1/admin/properties/{propertyId}", () => data("Property")],
+  [({ apiPath }) => apiPath.endsWith("/settings"), () => data("PropertySettings")],
+  [({ apiPath }) => apiPath.endsWith("/invoices/bulk"), () => data("BulkInvoiceResult")],
+  [({ apiPath }) => apiPath.endsWith("/invoices/recalculate-overdue"), () => data("OverdueRecalculation")],
+  [({ apiPath }) => apiPath.endsWith("/meter-readings/bulk"), () => data("MeterReading", true)],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/register", () => data("TenantRegistration")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/invitations/accept", () => data("TenantInvitationAcceptance")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/occupancy-selection", () => data("TenantOccupancySelection")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/me", () => data("TenantAccount")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/notifications/summary", () => data("TenantNotificationSummary")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/room", () => data("TenantRoom")],
+  [({ apiPath }) => apiPath === "/api/v1/tenant/lease", () => data("TenantLease", false, true)],
+  [({ method, apiPath }) => tenantSuccess(method, apiPath) !== undefined, ({ method, apiPath }) => tenantSuccess(method, apiPath)],
+  [({ apiPath }) => apiPath.includes("/buildings/") && apiPath.includes("/floors"), () => data("Floor")],
+  [({ apiPath }) => apiPath.endsWith("/buildings"), ({ method }) => data("Building", method === "get")],
+  [({ apiPath }) => apiPath.includes("/buildings/{buildingId}"), () => data("Building")],
+  [({ apiPath }) => collectionSegment(apiPath) !== undefined, ({ method, apiPath }) => collectionSuccess(method, apiPath)],
+  [({ apiPath }) => apiPath.includes("/announcements/"), () => data("Announcement")],
+  [({ apiPath }) => apiPath.includes("/parcels/"), () => data("Parcel")],
+  [({ apiPath }) => apiPath.includes("/payment-submissions/"), () => data("PaymentSubmission")],
+  [({ apiPath }) => apiPath.includes("/rooms/"), () => data("Room")],
+  [({ apiPath }) => apiPath.includes("/tenants/"), () => data("Tenant")],
+  [({ apiPath }) => apiPath.includes("/tickets/"), () => data("ServiceTicket")],
+  [({ apiPath }) => apiPath.includes("/leases/"), () => data("Lease")],
+  [({ apiPath }) => apiPath.includes("/occupancies/"), () => data("Occupancy")],
+  [({ apiPath }) => apiPath.includes("/invitations/"), () => data("Invitation")],
+  [({ apiPath }) => apiPath.startsWith("/api/v1/super-admin/properties/"), () => data("Property")],
+];
+
+// เลือกรูปคำตอบให้ endpoint หนึ่งเส้นจากตารางด้านบน
 export function jsonSuccessResponse(method, apiPath) {
-  if (method === "get" && apiPath === "/api/v1/admin/properties/{propertyId}/search") {
-    return data("PropertySearchResult", true);
-  }
-  if (method === "get" && apiPath.endsWith("/meter-readings/worksheet")) {
-    return paginatedData("MeterWorksheetRow");
-  }
-  if (method === "get" && paginatedPaths.has(apiPath)) {
-    if (apiPath === "/api/v1/super-admin/audit-logs") return paginatedData("AuditLog");
-    if (apiPath === "/api/v1/super-admin/plans") return paginatedData("SaasPlan");
-    if (apiPath === "/api/v1/super-admin/properties") return paginatedData("Property");
-    if (apiPath === "/api/v1/super-admin/users") return paginatedData("SuperAdminUser");
-    if (apiPath.endsWith("/subscription-orders")) return paginatedData("SubscriptionOrder");
-    if (apiPath === "/api/v1/super-admin/subscription-payments") return paginatedData("SubscriptionPayment");
-    if (apiPath === "/api/v1/admin/properties/{propertyId}/tenants") {
-      return paginatedData("OwnerTenantListItem");
-    }
-    if (apiPath === "/api/v1/tenant/invoices") return paginatedData("TenantInvoiceListItem");
-    if (apiPath === "/api/v1/tenant/announcements") return paginatedData("TenantAnnouncement");
-    if (apiPath === "/api/v1/tenant/parcels") return paginatedData("TenantParcel");
-    if (apiPath === "/api/v1/tenant/tickets") return paginatedData("TenantTicket");
-    const segment = [...collectionSchemas.keys()].find((candidate) => apiPath.endsWith(`/${candidate}`));
-    if (!segment) throw new Error(`No paginated schema for ${apiPath}`);
-    return paginatedData(collectionSchemas.get(segment));
-  }
-  if (apiPath.endsWith("/tickets/{ticketId}/replies")) {
-    return method === "get" ? paginatedData("TicketReply") : data("TicketReply");
-  }
-  if (apiPath.endsWith("/notifications/unread")) return data("TicketUnreadSummary");
-  if (apiPath.endsWith("/promptpay-qr")) return data("PromptPay");
-  if (apiPath.endsWith("/catalogs")) return direct("SuccessResult");
-  if (apiPath.endsWith("/signed-document") && method === "post") return data("UploadResult");
-  if (apiPath === "/api/v1/plans") return data("SaasPlan", true);
-  if (apiPath === "/api/v1/super-admin/dashboard") return data("PlatformDashboard");
-  if (apiPath === "/api/v1/super-admin/plans") return data("SaasPlan", method === "get");
-  if (/\/super-admin\/plans\/\{planId\}$/.test(apiPath)) return data("SaasPlan");
-  if (/\/subscription$/.test(apiPath)) return data("PropertySubscription");
-  if (apiPath.endsWith("/subscription-orders")) return data("SubscriptionOrder");
-  if (apiPath.endsWith("/payments") && apiPath.includes("/subscription-orders/")) return data("SubscriptionPayment");
-  if (apiPath.includes("/super-admin/subscription-payments/{paymentId}")) return data("SubscriptionPaymentReview");
-  if (/\/super-admin\/users\/\{userId\}\/approval$/.test(apiPath)) return data("AccountApproval");
-  if (/\/super-admin\/users\/\{userId\}\/memberships$/.test(apiPath)) return data("PropertyAdminMembershipUpdate");
-  if (/\/super-admin\/users\/\{userId\}\/temporary-password$/.test(apiPath)) return data("TemporaryPasswordResult");
-  if (apiPath === "/api/v1/super-admin/support-chat" || apiPath.endsWith("/tenant-chat")) return direct("ConversationList");
-  if (apiPath.includes("support-chat") || /\/tenant-chat\/\{tenantProfileId\}$/.test(apiPath) || apiPath === "/api/v1/tenant/chat") {
-    return direct(method === "get" ? "ChatThread" : "ChatMessageResult");
-  }
-  if (apiPath.endsWith("/attachments") && apiPath.includes("/chat/")) return direct("ChatMessageResult");
-  if (apiPath === "/api/v1/admin/properties/{propertyId}/dashboard") return data("OwnerWorkspaceReadModel");
-  if (apiPath.endsWith("/dashboard/summary")) return data("OwnerDashboard");
-  if (apiPath === "/api/v1/admin/properties/{propertyId}/occupancy-transitions") return data("OccupancyTransition", true);
-  if (apiPath.endsWith("/tenants/{tenantProfileId}/transitions")) return data("OccupancyTransition", method === "get");
-  if (apiPath === "/api/v1/admin/properties/{propertyId}") return data("Property");
-  if (apiPath.endsWith("/settings")) return data("PropertySettings");
-  if (apiPath.endsWith("/invoices/bulk")) return data("BulkInvoiceResult");
-  if (apiPath.endsWith("/invoices/recalculate-overdue")) return data("OverdueRecalculation");
-  if (apiPath.endsWith("/meter-readings/bulk")) return data("MeterReading", true);
-  if (apiPath === "/api/v1/tenant/register") return data("TenantRegistration");
-  if (apiPath === "/api/v1/tenant/invitations/accept") return data("TenantInvitationAcceptance");
-  if (apiPath === "/api/v1/tenant/occupancy-selection") return data("TenantOccupancySelection");
-  if (apiPath === "/api/v1/tenant/me") return data("TenantAccount");
-  if (apiPath === "/api/v1/tenant/notifications/summary") return data("TenantNotificationSummary");
-  if (apiPath === "/api/v1/tenant/room") return data("TenantRoom");
-  if (apiPath === "/api/v1/tenant/lease") return data("TenantLease", false, true);
-  if (apiPath.startsWith("/api/v1/tenant/")) {
-    if (apiPath.includes("/invoices")) return data(apiPath.includes("payment-submissions") ? "PaymentSubmission" : "Invoice", method === "get" && !apiPath.includes("{invoiceId}"));
-    if (apiPath.endsWith("/announcements")) return data("Announcement", true);
-    if (apiPath.endsWith("/parcels")) return data("Parcel", true);
-    if (apiPath.includes("/tickets")) return data(apiPath.endsWith("/attachments") ? "TicketAttachment" : "ServiceTicket", method === "get" && !apiPath.includes("{ticketId}"));
-  }
-  if (apiPath.includes("/buildings/") && apiPath.includes("/floors")) return data("Floor");
-  if (apiPath.endsWith("/buildings")) return data("Building", method === "get");
-  if (apiPath.includes("/buildings/{buildingId}")) return data("Building");
-  for (const [segment, schema] of collectionSchemas) {
-    if (!apiPath.includes(`/${segment}`)) continue;
-    const isCollection = apiPath.endsWith(`/${segment}`);
-    return data(schema, method === "get" && isCollection);
-  }
-  if (apiPath.includes("/announcements/")) return data("Announcement");
-  if (apiPath.includes("/parcels/")) return data("Parcel");
-  if (apiPath.includes("/payment-submissions/")) return data("PaymentSubmission");
-  if (apiPath.includes("/rooms/")) return data("Room");
-  if (apiPath.includes("/tenants/")) return data("Tenant");
-  if (apiPath.includes("/tickets/")) return data("ServiceTicket");
-  if (apiPath.includes("/leases/")) return data("Lease");
-  if (apiPath.includes("/occupancies/")) return data("Occupancy");
-  if (apiPath.includes("/invitations/")) return data("Invitation");
-  if (apiPath.startsWith("/api/v1/super-admin/properties/")) return data("Property");
-  throw new Error(`No JSON response contract for ${method.toUpperCase()} ${apiPath}`);
+  const rule = jsonSuccessRules.find(([matches]) => matches({ method, apiPath }));
+  if (!rule) throw new Error(`No JSON response contract for ${method.toUpperCase()} ${apiPath}`);
+  return rule[1]({ method, apiPath });
 }

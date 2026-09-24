@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useMemo, useState, type ReactNode } from "react";
+import { SyntheticEvent, useCallback, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -29,7 +29,7 @@ export function TenantDetailModal({
   readOnly = false,
   rooms,
   tenant,
-}: {
+}: Readonly<{
   onClose: () => void;
   onSave: (tenant: Tenant) => void;
   onTransitionCompleted: (leaseDraft?: MoveRoomLeaseDraft) => Promise<void>;
@@ -37,7 +37,7 @@ export function TenantDetailModal({
   readOnly?: boolean;
   rooms: import("@/types/dorm").Room[];
   tenant: Tenant;
-}) {
+}>) {
   // แก้บนสำเนา ไม่แตะของเดิม ผู้ใช้จะได้กดยกเลิกแล้วข้อมูลจริงไม่เปลี่ยน
   const [draft, setDraft] = useState<Tenant>(tenant);
   const [error, setError] = useState("");
@@ -64,7 +64,7 @@ export function TenantDetailModal({
     setError("");
   };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     // กันไว้อีกชั้น เผื่อมีทางกดส่งที่เล็ดลอดจาก fieldset ที่ปิดไว้
@@ -218,7 +218,7 @@ export function TenantDetailModal({
 }
 
 // กรอบหนึ่งหมวดพร้อมหัวเรื่อง ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ConfigSection({ children, description, id, title }: { children: ReactNode; description: string; id: string; title: string }) {
+function ConfigSection({ children, description, id, title }: Readonly<{ children: ReactNode; description: string; id: string; title: string }>) {
   return (
     <section className="tenant-config-section room-editor-section" id={id}>
       <header><div><h3>{title}</h3><p>{description}</p></div></header>
@@ -228,23 +228,23 @@ function ConfigSection({ children, description, id, title }: { children: ReactNo
 }
 
 // ห่อป้ายกับตัวควบคุมที่ไม่ใช่ input ปกติ เช่น DropdownField ที่มี label ของตัวเองไม่ได้
-function Field({ children, label }: { children: ReactNode; label: string }) {
+function Field({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
   return <div className="tenant-config-field"><span>{label}</span>{children}</div>;
 }
 
 // ช่องกรอกข้อความ ห่อ label กับ input ไว้ด้วยกัน กดที่ป้ายแล้วโฟกัสเข้าช่องได้เลย
-function TextField({ className = "", disabled = false, inputMode, label, maxLength, onChange, placeholder, required = false, value }: {
+function TextField({ className = "", disabled = false, inputMode, label, maxLength, onChange, placeholder, required = false, value }: Readonly<{
   className?: string; disabled?: boolean; inputMode?: "email" | "tel" | "text"; label: string; maxLength?: number; onChange: (value: string) => void; placeholder?: string; required?: boolean; value: string;
-}) {
+}>) {
   return <label className={className}><span>{label}</span><input disabled={disabled} inputMode={inputMode} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} value={value} /></label>;
 }
 
 // ช่องกรอกตัวเลข แปลงค่าว่างเป็น 0 เพราะผู้เรียกรับเฉพาะ number
-function NumberField({ label, min, onChange, value }: { label: string; min: number; onChange: (value: number) => void; value: number | "" }) {
+function NumberField({ label, min, onChange, value }: Readonly<{ label: string; min: number; onChange: (value: number) => void; value: number | "" }>) {
   return <label><span>{label}</span><input min={min} onChange={(event) => onChange(event.target.value === "" ? 0 : Number(event.target.value))} type="number" value={value} /></label>;
 }
 
 // ช่องกรอกข้อความหลายบรรทัด ใช้กับที่อยู่และหมายเหตุ
-function TextAreaField({ className = "", disabled = false, label, onChange, placeholder, value }: { className?: string; disabled?: boolean; label: string; onChange: (value: string) => void; placeholder?: string; value: string }) {
+function TextAreaField({ className = "", disabled = false, label, onChange, placeholder, value }: Readonly<{ className?: string; disabled?: boolean; label: string; onChange: (value: string) => void; placeholder?: string; value: string }>) {
   return <label className={className}><span>{label}</span><textarea disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} value={value} /></label>;
 }

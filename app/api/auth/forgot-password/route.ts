@@ -5,7 +5,7 @@ import { requestPasswordReset } from "@/lib/server/password-reset";
 import { assertApiRateLimit } from "@/lib/server/api-rate-limit";
 import { assertLoginAllowed, recordLoginFailure } from "@/lib/server/login-throttle";
 
-const schema = z.object({ email: z.string().trim().toLowerCase().email().max(254) }).strict();
+const schema = z.object({ email: z.string().trim().toLowerCase().pipe(z.email().max(254)) }).strict();
 
 // ขอลิงก์ตั้งรหัสผ่านใหม่ ตอบเหมือนกันเสมอไม่ว่าอีเมลนั้นจะมีอยู่จริงหรือไม่
 export async function POST(request: NextRequest) {

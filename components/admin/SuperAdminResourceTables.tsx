@@ -64,6 +64,78 @@ type AuditLog = {
 
 // ตารางที่โหลดทีละหน้า ค้นหาได้ และกรองได้ ใช้ร่วมกันทั้งสี่ตารางในหน้าผู้ดูแลระบบ
 // generic เพราะแต่ละตารางมีรูปแบบข้อมูลต่างกัน แต่วิธีโหลดกับแบ่งหน้าเหมือนกันหมด
+// ชื่อพารามิเตอร์ของตัวกรองต่างกันตาม endpoint บัญชีกรองด้วยสถานะอนุมัติ ส่วน audit log กรองด้วยผลลัพธ์
+function filterParamOf(endpoint: string) {
+  return endpoint.endsWith("/users") ? "approvalStatus" : "result";
+}
+
+async function requestTablePage<T>({ debouncedQuery, endpoint, filter, page, signal }: {
+  debouncedQuery: string;
+  endpoint: string;
+  filter: string;
+  page: number;
+  signal?: AbortSignal;
+}) {
+  const search = new URLSearchParams({ page: String(page), pageSize: "20" });
+  if (debouncedQuery) search.set("query", debouncedQuery);
+  if (filter) search.set(filterParamOf(endpoint), filter);
+  const response = await fetch(`${endpoint}?${search}`, { cache: "no-store", signal });
+  const payload = await response.json() as { data?: T[]; pageInfo?: PageInfo; error?: string };
+  if (!response.ok || !payload.data || !payload.pageInfo) throw new Error(payload.error || "โหลดข้อมูลไม่สำเร็จ");
+  return { data: payload.data, pageInfo: payload.pageInfo };
+}
+
+// สองตารางนี้เท่านั้นที่มีช่องกรอง ดูจาก endpoint แทนการส่ง prop เพิ่ม
+function TableFilterField({ endpoint, onChange, value }: Readonly<{ endpoint: string; onChange: (value: string) => void; value: string }>) {
+  if (endpoint.endsWith("/users")) {
+    return <div className="admin-table-filter">
+      <DropdownField
+        ariaLabel="กรองสถานะอนุมัติ"
+        onChange={onChange}
+        options={[
+          { value: "", label: "ทุกสถานะ" },
+          { value: "PENDING", label: "รออนุมัติ" },
+          { value: "APPROVED", label: "อนุมัติแล้ว" },
+          { value: "REJECTED", label: "ไม่อนุมัติ" },
+        ]}
+        value={value}
+      />
+    </div>;
+  }
+  if (endpoint.endsWith("/audit-logs")) {
+    return <div className="admin-table-filter">
+      <DropdownField
+        ariaLabel="กรองผลลัพธ์ Audit Log"
+        onChange={onChange}
+        options={[
+          { value: "", label: "ทุกผลลัพธ์" },
+          { value: "SUCCESS", label: "สำเร็จ" },
+          { value: "FAILURE", label: "ไม่สำเร็จ" },
+        ]}
+        value={value}
+      />
+    </div>;
+  }
+  return null;
+}
+
+// มีรายการก็ให้ผู้เรียกวาดเอง ไม่มีก็แยกว่าค้นไม่เจอหรือยังไม่มีข้อมูลเลย
+function TableRows<T>({ children, empty, emptyDescription, hasCriteria, rows }: Readonly<{
+  children: (rows: T[]) => React.ReactNode;
+  empty: string;
+  emptyDescription?: string;
+  hasCriteria: boolean;
+  rows: T[];
+}>) {
+  if (rows.length) return <>{children(rows)}</>;
+  if (hasCriteria) return <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรอง" title="ไม่พบรายการตามเงื่อนไข" />;
+  return <div className="empty-state m-6">
+    <Inbox aria-hidden={true} size={20} />
+    <strong>{empty}</strong>
+    {emptyDescription ? <p>{emptyDescription}</p> : null}
+  </div>;
+}
+
 function PaginatedTable<T>({
   action,
   children,
@@ -73,7 +145,7 @@ function PaginatedTable<T>({
   endpoint,
   initialPageInfo = null,
   initialRows = null,
-}: {
+}: Readonly<{
   action?: React.ReactNode;
   // รับเป็นฟังก์ชัน เพื่อให้ผู้เรียกเป็นคนตัดสินใจว่าจะวาดแต่ละแถวยังไง
   children: (rows: T[]) => React.ReactNode;
@@ -86,7 +158,7 @@ function PaginatedTable<T>({
   // ค้นหา กรอง และเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
   initialPageInfo?: PageInfo | null;
   initialRows?: T[] | null;
-}) {
+}>) {
   const [rows, setRows] = useState<T[]>(initialRows ?? []);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(initialPageInfo ?? null);
   const [isLoading, setIsLoading] = useState(initialRows === null);
@@ -105,33 +177,13 @@ function PaginatedTable<T>({
       else setIsLoading(true);
       setError("");
       try {
-        const search = new URLSearchParams({
-          page: String(page),
-          pageSize: "20",
-        });
-        if (debouncedQuery) search.set("query", debouncedQuery);
-        // ชื่อพารามิเตอร์ของตัวกรองต่างกันตาม endpoint บัญชีกรองด้วยสถานะอนุมัติ ส่วน audit log กรองด้วยผลลัพธ์
-        if (filter) search.set(endpoint.endsWith("/users") ? "approvalStatus" : "result", filter);
-        const response = await fetch(`${endpoint}?${search}`, {
-          cache: "no-store",
-          signal,
-        });
-        const payload = (await response.json()) as {
-          data?: T[];
-          pageInfo?: PageInfo;
-          error?: string;
-        };
-        if (!response.ok || !payload.data || !payload.pageInfo)
-          throw new Error(payload.error || "โหลดข้อมูลไม่สำเร็จ");
-        setRows(payload.data!);
-        setPageInfo(payload.pageInfo);
+        const result = await requestTablePage<T>({ debouncedQuery, endpoint, filter, page, signal });
+        setRows(result.data);
+        setPageInfo(result.pageInfo);
       } catch (cause) {
         // ยกเลิกเองตอนผู้ใช้พิมพ์ต่อ ไม่ใช่ข้อผิดพลาดจริง ไม่ต้องขึ้นเตือนให้ตกใจ
-        if (cause instanceof DOMException && cause.name === "AbortError")
-          return;
-        setError(
-          cause instanceof Error ? cause.message : "โหลดข้อมูลไม่สำเร็จ",
-        );
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setError(cause instanceof Error ? cause.message : "โหลดข้อมูลไม่สำเร็จ");
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
@@ -175,35 +227,7 @@ function PaginatedTable<T>({
             value={query}
           />
         </label>
-        {endpoint.endsWith("/users") ? (
-          <div className="admin-table-filter">
-            <DropdownField
-              ariaLabel="กรองสถานะอนุมัติ"
-              onChange={setFilter}
-              options={[
-                { value: "", label: "ทุกสถานะ" },
-                { value: "PENDING", label: "รออนุมัติ" },
-                { value: "APPROVED", label: "อนุมัติแล้ว" },
-                { value: "REJECTED", label: "ไม่อนุมัติ" },
-              ]}
-              value={filter}
-            />
-          </div>
-        ) : null}
-        {endpoint.endsWith("/audit-logs") ? (
-          <div className="admin-table-filter">
-            <DropdownField
-              ariaLabel="กรองผลลัพธ์ Audit Log"
-              onChange={setFilter}
-              options={[
-                { value: "", label: "ทุกผลลัพธ์" },
-                { value: "SUCCESS", label: "สำเร็จ" },
-                { value: "FAILURE", label: "ไม่สำเร็จ" },
-              ]}
-              value={filter}
-            />
-          </div>
-        ) : null}
+        <TableFilterField endpoint={endpoint} onChange={setFilter} value={filter} />
         <div className="admin-table-actions">
         <a
           className="secondary-button admin-table-export"
@@ -225,23 +249,20 @@ function PaginatedTable<T>({
           {error}
         </p>
       ) : null}
-      {!isLoading &&
-        (rows.length ? (
-          children(rows)
-        ) : debouncedQuery || filter ? (
-          <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรอง" title="ไม่พบรายการตามเงื่อนไข" />
-        ) : (
-          <div className="empty-state m-6">
-            <Inbox aria-hidden={true} size={20} />
-            <strong>{empty}</strong>
-            {emptyDescription ? <p>{emptyDescription}</p> : null}
-          </div>
-        ))}
+      {isLoading ? null : <TableRows
+        empty={empty}
+        emptyDescription={emptyDescription}
+        hasCriteria={Boolean(debouncedQuery || filter)}
+        rows={rows}
+      >{children}</TableRows>}
       {pageInfo ? (
         <>
-        <LiveAnnouncement message={isLoading
-          ? `กำลังโหลดหน้า ${pageInfo.page.toLocaleString("th-TH")}`
-          : `พบ ${(pageInfo.total ?? rows.length).toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${pageInfo.page.toLocaleString("th-TH")} จาก ${(pageInfo.totalPages ?? (pageInfo.hasNextPage ? pageInfo.page + 1 : pageInfo.page)).toLocaleString("th-TH")} หน้า`} />
+        <LiveAnnouncement message={tableAnnouncement({
+          isLoading,
+          page: pageInfo.page,
+          total: pageInfo.total ?? rows.length,
+          totalPages: pageInfo.totalPages ?? (pageInfo.hasNextPage ? pageInfo.page + 1 : pageInfo.page),
+        })} />
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-[#62646c]">
           <span>
             ทั้งหมด {(pageInfo.total ?? rows.length).toLocaleString("th-TH")}{" "}
@@ -297,12 +318,12 @@ export function SuperAdminResourceTables({
   initialTables,
   propertyAction,
   resources = ["plans", "properties", "accounts", "audit-logs"],
-}: {
+}: Readonly<{
   accountAction?: React.ReactNode;
   initialTables?: Partial<Record<SuperAdminResource, SuperAdminInitialTable>> | null;
   propertyAction?: React.ReactNode;
   resources?: SuperAdminResource[];
-}) {
+}>) {
   const [editingPlan, setEditingPlan] = useState<Plan | "new" | null>(null);
   return (
     <>
@@ -557,13 +578,13 @@ export function SuperAdminResourceTables({
 function PlanEditor({
   plan,
   onClose,
-}: {
+}: Readonly<{
   plan: Plan | "new";
   onClose: () => void;
-}) {
+}>) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
@@ -700,8 +721,20 @@ function PlanEditor({
 }
 
 // กรอบของแต่ละตาราง แยกออกมาเพื่อให้ระยะห่างเท่ากันทุกตาราง
-function ResourceSection({ children }: { children: React.ReactNode }) {
+function ResourceSection({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <section className="panel overflow-hidden p-0">{children}</section>
   );
+}
+
+// ข้อความที่อ่านให้ผู้ใช้โปรแกรมอ่านหน้าจอฟัง บอกว่ากำลังโหลดหรือกำลังแสดงหน้าไหน
+function tableAnnouncement({ isLoading, page, total, totalPages }: {
+  isLoading: boolean;
+  page: number;
+  total: number;
+  totalPages: number;
+}) {
+  const current = page.toLocaleString("th-TH");
+  if (isLoading) return `กำลังโหลดหน้า ${current}`;
+  return `พบ ${total.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${current} จาก ${totalPages.toLocaleString("th-TH")} หน้า`;
 }

@@ -43,17 +43,157 @@ type MeterReadingDraft = {
 };
 
 // ใบจดมิเตอร์ กรอกทั้งหอแล้วบันทึกทีเดียว จึงต้องเก็บร่างไว้กันกรอกค้างแล้วหาย
+// ร่างที่เก็บไว้ในเครื่อง ค่าที่เสียก็ลบทิ้ง ดีกว่าปล่อยให้พังทุกครั้งที่เปิดหน้า
+function readSavedDraft(draftKey: string) {
+  const saved = localStorage.getItem(draftKey);
+  if (!saved) return { current: {} as Record<string, string>, previous: {} as Record<string, string> };
+  try {
+    const draft = JSON.parse(saved) as { current?: Record<string, string>; previous?: Record<string, string> };
+    return { current: draft.current ?? {}, previous: draft.previous ?? {} };
+  } catch {
+    localStorage.removeItem(draftKey);
+    return { current: {}, previous: {} };
+  }
+}
+
+// โหลดทุกห้องมาให้ครบ ไม่แบ่งหน้าจากเซิร์ฟเวอร์ เพราะคนจดต้องกรอกทั้งหอในรอบเดียว
+// วนขอทีละ 100 ห้องจนหมด เพราะ API จำกัดจำนวนต่อครั้ง
+async function requestWorksheet({ billingMonth, mode, propertyId, signal }: {
+  billingMonth: string;
+  mode: "water" | "electric";
+  propertyId: string;
+  signal?: AbortSignal;
+}) {
+  const collected: MeterWorksheetRow[] = [];
+  let page = 1;
+  let hasNextPage = true;
+  while (hasNextPage) {
+    const params = new URLSearchParams({
+      billingMonth,
+      type: meterTypeOf(mode),
+      page: String(page),
+      pageSize: "100",
+    });
+    const response = await fetch(`/api/v1/admin/properties/${propertyId}/meter-readings/worksheet?${params}`, {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal,
+    });
+    const payload = await response.json() as { data?: MeterWorksheetRow[]; error?: string; pageInfo?: PageInfo };
+    if (!response.ok || !payload.data) throw new Error(payload.error || "โหลดข้อมูลมิเตอร์ไม่สำเร็จ");
+    collected.push(...payload.data);
+    hasNextPage = payload.pageInfo?.hasNextPage ?? false;
+    page += 1;
+  }
+  return collected;
+}
+
+function meterTypeOf(mode: "water" | "electric") {
+  return mode === "water" ? "WATER" : "ELECTRICITY";
+}
+
+// เลขที่กรอกต้องเป็นตัวเลขไม่ติดลบ และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน
+// เพราะมิเตอร์เดินหน้าอย่างเดียว
+function isValidPair(current: number, currentText: string, previous: number | undefined) {
+  if (currentText === "" || !Number.isFinite(current) || current < 0) return false;
+  if (previous === undefined) return true;
+  return Number.isFinite(previous) && previous >= 0 && current >= previous;
+}
+
+function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row }: {
+  billingMonth: string;
+  currentDrafts: Record<string, string>;
+  mode: "water" | "electric";
+  previousDrafts: Record<string, string>;
+  row: MeterWorksheetRow;
+}): MeterReadingDraft {
+  const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
+  const currentText = currentDrafts[row.room.id] ?? "";
+  const previous = previousText === "" ? undefined : Number(previousText);
+  const current = Number(currentText);
+  if (!isValidPair(current, currentText, previous)) {
+    throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน`);
+  }
+  return {
+    roomId: row.room.id,
+    type: meterTypeOf(mode),
+    billingMonth,
+    // ส่งเลขตั้งต้นไปเฉพาะห้องที่ยังไม่เคยมีในระบบ ห้องเดิมใช้เลขจากรอบก่อนที่เซิร์ฟเวอร์มีอยู่แล้ว
+    ...(row.previousReading === null && previous !== undefined ? { previousReading: previous } : {}),
+    currentReading: current,
+  };
+}
+
+// แถบตัวกรองด้านบน เปลี่ยนอะไรก็กลับไปหน้าแรกของตารางเสมอ
+function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor, floors, onBillingMonthChange, onBuildingChange, onFloorChange, onQueryChange, query }: Readonly<{
+  billingMonth: string;
+  building: string;
+  buildings: Array<[string, string]>;
+  currentMonth: string;
+  floor: string;
+  floors: number[];
+  onBillingMonthChange: (value: string) => void;
+  onBuildingChange: (value: string) => void;
+  onFloorChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
+  query: string;
+}>) {
+  return <div className="meter-filter-bar">
+    <DropdownField
+      label="อาคาร"
+      // เปลี่ยนอาคารแล้วรีเซ็ตชั้นด้วย ไม่งั้นจะค้างชั้นของอาคารเดิมแล้วผลลัพธ์ว่าง
+      onChange={onBuildingChange}
+      options={[{ value: "all", label: "ทุกอาคาร" }, ...buildings.map(([value, label]) => ({ value, label }))]}
+      value={building}
+    />
+    <DropdownField
+      label="ชั้น"
+      onChange={onFloorChange}
+      options={[{ value: "all", label: "ทุกชั้น" }, ...floors.map((item) => ({ value: String(item), label: `ชั้น ${item}` }))]}
+      value={floor}
+    />
+    <label>
+      รอบมิเตอร์
+      {/* เพดานเป็นเดือนปัจจุบัน เพราะยังจดมิเตอร์ของเดือนที่ยังไม่ถึงไม่ได้ */}
+      <input aria-label="รอบเดือนบันทึกมิเตอร์" max={currentMonth} onChange={(event) => onBillingMonthChange(event.target.value)} type="month" value={billingMonth} />
+    </label>
+    <label className="meter-search">
+      <Search size={16} />
+      <input onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} />
+    </label>
+  </div>;
+}
+
+// ปุ่มบันทึกทั้งชุด กดไม่ได้จนกว่าจะกรอกอย่างน้อยหนึ่งห้อง และต้องบอกเหตุผลด้วย
+function MeterSaveAction({ isLoading, isSaving, onSave, readOnly, touchedCount }: Readonly<{
+  isLoading: boolean;
+  isSaving: boolean;
+  onSave: () => void;
+  readOnly: boolean;
+  touchedCount: number;
+}>) {
+  if (readOnly) return <ReadOnlyNotice compact />;
+  const nothingToSave = !isLoading && !isSaving && touchedCount === 0;
+  return <div className="disabled-action">
+    <button aria-describedby={nothingToSave ? "meter-save-disabled-reason" : undefined} className="primary-button" disabled={isLoading || isSaving || touchedCount === 0} onClick={onSave} type="button">
+      {isSaving ? <LoaderCircle className="animate-spin" size={16} /> : <Save size={16} />}
+      {isSaving ? "กำลังบันทึกทั้งชุด..." : `ตรวจสอบและบันทึก ${touchedCount} ห้อง`}
+    </button>
+    {nothingToSave ? <p className="disabled-reason" id="meter-save-disabled-reason">กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อนบันทึก</p> : null}
+  </div>;
+}
+
 export function MetersPage({
   mode,
   onSaveMeters,
   propertyId,
   readOnly = false,
-}: {
+}: Readonly<{
   mode: "water" | "electric";
   onSaveMeters: (readings: MeterReadingDraft[]) => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
-}) {
+}>) {
   const notify = useToast();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [billingMonth, setBillingMonth] = useState(currentMonth);
@@ -67,7 +207,6 @@ export function MetersPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   // แยก key ตามหอ ชนิดมิเตอร์ และเดือน ร่างของแต่ละรอบจะได้ไม่ปนกัน
   const draftKey = `meter-draft:${propertyId}:${mode}:${billingMonth}`;
   const hasUnsavedDrafts = Object.keys(currentDrafts).length > 0 || Object.keys(previousDrafts).length > 0;
@@ -82,47 +221,11 @@ export function MetersPage({
     setIsLoading(true);
     setLoadError("");
     try {
-      const collected: MeterWorksheetRow[] = [];
-      // วนขอทีละ 100 ห้องจนหมด เพราะ API จำกัดจำนวนต่อครั้ง
-      let page = 1;
-      let hasNextPage = true;
-      while (hasNextPage) {
-        const params = new URLSearchParams({
-          billingMonth,
-          type: mode === "water" ? "WATER" : "ELECTRICITY",
-          page: String(page),
-          pageSize: "100",
-        });
-        const response = await fetch(
-          `/api/v1/admin/properties/${propertyId}/meter-readings/worksheet?${params}`,
-          { cache: "no-store", credentials: "same-origin", signal },
-        );
-        const payload = await response.json() as {
-          data?: MeterWorksheetRow[];
-          error?: string;
-          pageInfo?: PageInfo;
-        };
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.error || "โหลดข้อมูลมิเตอร์ไม่สำเร็จ");
-        }
-        collected.push(...payload.data);
-        hasNextPage = payload.pageInfo?.hasNextPage ?? false;
-        page += 1;
-      }
-      setRows(collected);
+      setRows(await requestWorksheet({ billingMonth, mode, propertyId, signal }));
       // มีร่างค้างอยู่ก็เอากลับมาใส่ให้ เผื่อปิดหน้าไปตอนจดยังไม่เสร็จ
-      const saved = localStorage.getItem(draftKey);
-      if (saved) {
-        try {
-          const draft = JSON.parse(saved) as { current?: Record<string, string>; previous?: Record<string, string> };
-          setCurrentDrafts(draft.current ?? {});
-          setPreviousDrafts(draft.previous ?? {});
-        // ค่าที่เก็บไว้เสียก็ลบทิ้ง ดีกว่าปล่อยให้พังทุกครั้งที่เปิดหน้า
-        } catch { localStorage.removeItem(draftKey); }
-      } else {
-        setCurrentDrafts({});
-        setPreviousDrafts({});
-      }
+      const draft = readSavedDraft(draftKey);
+      setCurrentDrafts(draft.current);
+      setPreviousDrafts(draft.previous);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(error instanceof Error ? error.message : "โหลดข้อมูลมิเตอร์ไม่สำเร็จ");
@@ -181,31 +284,7 @@ export function MetersPage({
 
   // ตรวจและรวบรวมค่าที่กรอกไว้ เจอค่าไม่ถูกต้องก็โยน error พร้อมบอกว่าห้องไหน
   function collectReadings() {
-    const readings: MeterReadingDraft[] = [];
-    for (const row of touchedRows) {
-      const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
-      const currentText = currentDrafts[row.room.id] ?? "";
-      const previous = previousText === "" ? undefined : Number(previousText);
-      const current = Number(currentText);
-      if (
-        currentText === ""
-        || !Number.isFinite(current)
-        || current < 0
-        // เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน เพราะมิเตอร์เดินหน้าอย่างเดียว
-        || (previous !== undefined && (!Number.isFinite(previous) || previous < 0 || current < previous))
-      ) {
-        throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน`);
-      }
-      readings.push({
-        roomId: row.room.id,
-        type: mode === "water" ? "WATER" : "ELECTRICITY",
-        billingMonth,
-        // ส่งเลขตั้งต้นไปเฉพาะห้องที่ยังไม่เคยมีในระบบ ห้องเดิมใช้เลขจากรอบก่อนที่เซิร์ฟเวอร์มีอยู่แล้ว
-        ...(row.previousReading === null && previous !== undefined ? { previousReading: previous } : {}),
-        currentReading: current,
-      });
-    }
-    return readings;
+    return touchedRows.map((row) => toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row }));
   }
 
   // ตรวจให้ครบก่อนเปิดกล่องยืนยัน ผู้ใช้จะได้ไม่กดยืนยันแล้วเจอปฏิเสธทีหลัง
@@ -243,165 +322,46 @@ export function MetersPage({
 
   return (
     <section className="meter-figma-page">
-      <div className="meter-filter-bar">
-        <DropdownField
-          label="อาคาร"
-          // เปลี่ยนอาคารแล้วรีเซ็ตชั้นกับหน้าด้วย ไม่งั้นจะค้างชั้นของอาคารเดิมแล้วผลลัพธ์ว่าง
-          onChange={(value) => { setBuilding(value); setFloor("all"); setPage(1); }}
-          options={[
-            { value: "all", label: "ทุกอาคาร" },
-            ...buildings.map(([value, label]) => ({ value, label })),
-          ]}
-          value={building}
-        />
-        <DropdownField
-          label="ชั้น"
-          onChange={(value) => { setFloor(value); setPage(1); }}
-          options={[
-            { value: "all", label: "ทุกชั้น" },
-            ...floors.map((item) => ({ value: String(item), label: `ชั้น ${item}` })),
-          ]}
-          value={floor}
-        />
-        <label>
-          รอบมิเตอร์
-          <input
-            aria-label="รอบเดือนบันทึกมิเตอร์"
-            max={currentMonth}
-            onChange={(event) => {
-              setBillingMonth(event.target.value);
-              setPage(1);
-            }}
-            type="month"
-            value={billingMonth}
-          />
-        </label>
-        <label className="meter-search">
-          <Search size={16} />
-          <input
-            onChange={(event) => { setQuery(event.target.value); setPage(1); }}
-            placeholder="ค้นหาห้องหรือผู้เช่า..."
-            value={query}
-          />
-        </label>
-      </div>
+      <MeterFilterBar
+        billingMonth={billingMonth}
+        building={building}
+        buildings={buildings}
+        currentMonth={currentMonth}
+        floor={floor}
+        floors={floors}
+        onBillingMonthChange={(value) => { setBillingMonth(value); setPage(1); }}
+        onBuildingChange={(value) => { setBuilding(value); setFloor("all"); setPage(1); }}
+        onFloorChange={(value) => { setFloor(value); setPage(1); }}
+        onQueryChange={(value) => { setQuery(value); setPage(1); }}
+        query={query}
+      />
 
       <article className="meter-table-card">
         <div className="additional-card-head">
           <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>ระบบเก็บฉบับร่างในเครื่องอัตโนมัติ · กด Enter เพื่อไปห้องถัดไป</p></div>
           <PageHeaderActions>
-          {!readOnly ? (
-          <div className="disabled-action">
-            <button aria-describedby={!isLoading && !isSaving && touchedRows.length === 0 ? "meter-save-disabled-reason" : undefined} className="primary-button" disabled={isLoading || isSaving || touchedRows.length === 0} onClick={requestConfirmation} type="button">
-              {isSaving ? <LoaderCircle className="animate-spin" size={16} /> : <Save size={16} />}
-              {isSaving ? "กำลังบันทึกทั้งชุด..." : `ตรวจสอบและบันทึก ${touchedRows.length} ห้อง`}
-            </button>
-            {!isLoading && !isSaving && touchedRows.length === 0 ? <p className="disabled-reason" id="meter-save-disabled-reason">กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อนบันทึก</p> : null}
-          </div>
-          ) : <ReadOnlyNotice compact />}
+            <MeterSaveAction
+              isLoading={isLoading}
+              isSaving={isSaving}
+              onSave={requestConfirmation}
+              readOnly={readOnly}
+              touchedCount={touchedRows.length}
+            />
           </PageHeaderActions>
         </div>
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
         {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
-        {isLoading ? (
-          <LoadingSkeleton columns={8} count={6} label="กำลังโหลดข้อมูลมิเตอร์" variant="table" />
-        ) : visibleRows.length === 0 && (query.trim() || building !== "all" || floor !== "all") ? (
-          <SearchEmptyState description="ลองเปลี่ยนคำค้นหา อาคาร หรือชั้น" title="ไม่พบห้องพักตามเงื่อนไข" />
-        ) : visibleRows.length === 0 ? (
-          <div className="dashboard-empty-state">ยังไม่มีห้องพักสำหรับบันทึกมิเตอร์</div>
-        ) : (
-          <div className="figma-table-wrap">
-            <table className="figma-table meter-figma-table">
-              <thead>
-                <tr>
-                  <th scope="col">ห้อง</th>
-                  <th scope="col">ผู้เช่า</th>
-                  <th scope="col">เลขครั้งก่อน</th>
-                  <th scope="col">เลขล่าสุด</th>
-                  <th scope="col">หน่วยที่ใช้</th>
-                  <th scope="col">ราคา/หน่วย</th>
-                  <th scope="col">จำนวนเงิน</th>
-                  <th scope="col">สถานะ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageItems.map((row) => {
-                  const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
-                  const latestText = currentDrafts[row.room.id] ?? row.currentReading ?? previousText;
-                  const previous = Number(previousText);
-                  const latest = Number(latestText);
-                  const validReadings = previousText !== "" && latestText !== ""
-                    && Number.isFinite(previous) && Number.isFinite(latest) && latest >= previous;
-                  const units = validReadings ? latest - previous : 0;
-                  const unitRate = Number(row.unitRate);
-                  const amount = units * unitRate;
-                  // เตือนเมื่อใช้เกินสองเท่าของรอบก่อน หรือเกินรอบก่อน 10 หน่วย เอาเกณฑ์ที่สูงกว่า
-                  // เงื่อนไข +10 กันเตือนพร่ำเพรื่อกับห้องที่ใช้น้อยมาก เช่นจาก 1 เป็น 3 หน่วย
-                  const abnormal = validReadings && row.previousUsage !== null && row.previousUsage > 0
-                    && units > Math.max(row.previousUsage * 2, row.previousUsage + 10);
-                  // ใช้หาแถวถัดไป เพื่อให้กด Enter แล้วกระโดดไปกรอกห้องต่อไปได้เลย
-                  const rowIndex = pageItems.findIndex((item) => item.room.id === row.room.id);
-                  return (
-                    <tr key={row.room.id}>
-                      <td>
-                        <strong>{row.room.number}</strong>
-                        <small className="block">{row.room.building.code} · ชั้น {row.room.floor.number}</small>
-                      </td>
-                      <td>{row.tenantName ?? "-"}</td>
-                      <td>
-                        {row.previousReading !== null ? previous.toLocaleString("th-TH") : readOnly ? "-" : (
-                          <input
-                            aria-label={`เลขมิเตอร์ตั้งต้นห้อง ${row.room.number}`}
-                            // ล็อกแถวที่บันทึกไปแล้ว ต้องไปแก้ที่หน้าประวัติแทน
-                            disabled={Boolean(row.readingId)}
-                            min={0}
-                            onChange={(event) => setPreviousDrafts((current) => ({
-                              ...current,
-                              [row.room.id]: event.target.value,
-                            }))}
-                            placeholder="กรอกครั้งแรก"
-                            type="number"
-                            value={previousDrafts[row.room.id] ?? ""}
-                          />
-                        )}
-                      </td>
-                      <td>
-                        {readOnly ? (row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")) : <input
-                          aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
-                          disabled={Boolean(row.readingId)}
-                          min={previousText || 0}
-                          onChange={(event) => setCurrentDrafts((current) => ({
-                            ...current,
-                            [row.room.id]: event.target.value,
-                          }))}
-                          // Enter กระโดดไปห้องถัดไป คนจดมิเตอร์จะได้ไม่ต้องละมือไปจับเมาส์
-                          onKeyDown={(event) => {
-                            if (event.key !== "Enter") return;
-                            event.preventDefault();
-                            const next = pageItems[rowIndex + 1];
-                            if (next) inputRefs.current[next.room.id]?.focus();
-                          }}
-                          placeholder={previousText || "เลขล่าสุด"}
-                          ref={(element) => { inputRefs.current[row.room.id] = element; }}
-                          type="number"
-                          value={latestText}
-                        />}
-                      </td>
-                      <td><span className={abnormal ? "font-black text-amber-600" : ""}>{units.toLocaleString("th-TH")}</span>{abnormal ? <small className="mt-1 flex items-center gap-1 text-amber-600"><AlertTriangle size={13} /> สูงกว่ารอบก่อนผิดปกติ ({row.previousUsage?.toLocaleString("th-TH")} หน่วย)</small> : null}</td>
-                      <td>฿{unitRate.toLocaleString("th-TH")}</td>
-                      <td><strong>฿{amount.toLocaleString("th-TH")}</strong></td>
-                      <td>
-                        <span className={row.readingId ? "badge badge-paid" : abnormal ? "badge bg-amber-100 text-amber-800" : "badge badge-pending"}>
-                          {abnormal ? <AlertTriangle size={13} /> : <Check size={13} />} {row.readingId ? "บันทึกแล้ว" : abnormal ? "โปรดตรวจสอบ" : "รอบันทึก"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <MeterWorksheetTable
+          currentDrafts={currentDrafts}
+          hasFilter={Boolean(query.trim()) || building !== "all" || floor !== "all"}
+          isLoading={isLoading}
+          pageItems={pageItems}
+          previousDrafts={previousDrafts}
+          readOnly={readOnly}
+          setCurrentDrafts={setCurrentDrafts}
+          setPreviousDrafts={setPreviousDrafts}
+          visibleCount={visibleRows.length}
+        />
         <TablePagination
           page={page}
           setPage={setPage}
@@ -419,4 +379,146 @@ export function MetersPage({
       /> : null}
     </section>
   );
+}
+
+// ตัวเลขที่ใช้แสดงในแถวหนึ่ง คำนวณจากเลขครั้งก่อนกับเลขล่าสุดที่กรอกไว้
+function meterRowFigures(row: MeterWorksheetRow, currentDrafts: Record<string, string>, previousDrafts: Record<string, string>) {
+  const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
+  const latestText = currentDrafts[row.room.id] ?? row.currentReading ?? previousText;
+  const previous = Number(previousText);
+  const latest = Number(latestText);
+  const validReadings = previousText !== "" && latestText !== "" && Number.isFinite(previous) && Number.isFinite(latest) && latest >= previous;
+  const units = validReadings ? latest - previous : 0;
+  const unitRate = Number(row.unitRate);
+  // เตือนเมื่อใช้เกินสองเท่าของรอบก่อน หรือเกินรอบก่อน 10 หน่วย เอาเกณฑ์ที่สูงกว่า
+  // เงื่อนไข +10 กันเตือนพร่ำเพรื่อกับห้องที่ใช้น้อยมาก เช่นจาก 1 เป็น 3 หน่วย
+  const abnormal = validReadings && row.previousUsage !== null && row.previousUsage > 0
+    && units > Math.max(row.previousUsage * 2, row.previousUsage + 10);
+  return { abnormal, amount: units * unitRate, latestText, previous, previousText, unitRate, units };
+}
+
+// ป้ายสถานะท้ายแถว บันทึกแล้ว ต้องตรวจสอบ หรือรอบันทึก
+function MeterRowStatus({ abnormal, saved }: Readonly<{ abnormal: boolean; saved: boolean }>) {
+  if (saved) return <span className="badge badge-paid"><Check size={13} /> บันทึกแล้ว</span>;
+  if (abnormal) return <span className="badge bg-amber-100 text-amber-800"><AlertTriangle size={13} /> โปรดตรวจสอบ</span>;
+  return <span className="badge badge-pending"><Check size={13} /> รอบันทึก</span>;
+}
+
+type MeterTableProps = Readonly<{
+  currentDrafts: Record<string, string>;
+  hasFilter: boolean;
+  isLoading: boolean;
+  pageItems: MeterWorksheetRow[];
+  previousDrafts: Record<string, string>;
+  readOnly: boolean;
+  setCurrentDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setPreviousDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  visibleCount: number;
+}>;
+
+// ตารางกรอกมิเตอร์ แยกกรณีกำลังโหลด กรองจนไม่เหลือ และยังไม่มีห้องเลย
+function MeterWorksheetTable({ hasFilter, isLoading, visibleCount, ...rowProps }: MeterTableProps) {
+  // เก็บ ref ของช่องกรอกไว้ที่นี่ เพราะใช้แค่ตอนกด Enter เพื่อกระโดดไปห้องถัดไป
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const registerInput = (roomId: string, element: HTMLInputElement | null) => {
+    inputRefs.current[roomId] = element;
+  };
+  // คนจดมิเตอร์จะได้ไม่ต้องละมือไปจับเมาส์
+  const focusRoom = (roomId: string) => inputRefs.current[roomId]?.focus();
+
+  if (isLoading) return <LoadingSkeleton columns={8} count={6} label="กำลังโหลดข้อมูลมิเตอร์" variant="table" />;
+  if (visibleCount === 0 && hasFilter) return <SearchEmptyState description="ลองเปลี่ยนคำค้นหา อาคาร หรือชั้น" title="ไม่พบห้องพักตามเงื่อนไข" />;
+  if (visibleCount === 0) return <div className="dashboard-empty-state">ยังไม่มีห้องพักสำหรับบันทึกมิเตอร์</div>;
+
+  return <div className="figma-table-wrap">
+    <table className="figma-table meter-figma-table">
+      <thead>
+        <tr>
+          <th scope="col">ห้อง</th>
+          <th scope="col">ผู้เช่า</th>
+          <th scope="col">เลขครั้งก่อน</th>
+          <th scope="col">เลขล่าสุด</th>
+          <th scope="col">หน่วยที่ใช้</th>
+          <th scope="col">ราคา/หน่วย</th>
+          <th scope="col">จำนวนเงิน</th>
+          <th scope="col">สถานะ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rowProps.pageItems.map((row, index) => <MeterWorksheetRowView index={index} key={row.room.id} onFocusRoom={focusRoom} onRegisterInput={registerInput} row={row} {...rowProps} />)}
+      </tbody>
+    </table>
+  </div>;
+}
+
+// ช่องกรอกเลขตั้งต้น มีเฉพาะห้องที่ยังไม่เคยมีเลขครั้งก่อนในระบบ
+function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts, value }: Readonly<{
+  previousDrafts: Record<string, string>;
+  readOnly: boolean;
+  row: MeterWorksheetRow;
+  setPreviousDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  value: number;
+}>) {
+  if (row.previousReading !== null) return <>{value.toLocaleString("th-TH")}</>;
+  if (readOnly) return <>-</>;
+  return <input
+    aria-label={`เลขมิเตอร์ตั้งต้นห้อง ${row.room.number}`}
+    // ล็อกแถวที่บันทึกไปแล้ว ต้องไปแก้ที่หน้าประวัติแทน
+    disabled={Boolean(row.readingId)}
+    min={0}
+    onChange={(event) => setPreviousDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
+    placeholder="กรอกครั้งแรก"
+    type="number"
+    value={previousDrafts[row.room.id] ?? ""}
+  />;
+}
+
+function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterInput, pageItems, previousDrafts, readOnly, row, setCurrentDrafts, setPreviousDrafts }: Omit<MeterTableProps, "hasFilter" | "isLoading" | "visibleCount"> & Readonly<{
+  index: number;
+  onFocusRoom: (roomId: string) => void;
+  onRegisterInput: (roomId: string, element: HTMLInputElement | null) => void;
+  row: MeterWorksheetRow;
+}>) {
+  const { abnormal, amount, latestText, previous, previousText, unitRate, units } = meterRowFigures(row, currentDrafts, previousDrafts);
+
+  // Enter กระโดดไปห้องถัดไป
+  const focusNextRow = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const next = pageItems[index + 1];
+    if (next) onFocusRoom(next.room.id);
+  };
+
+  return <tr>
+    <td>
+      <strong>{row.room.number}</strong>
+      <small className="block">{row.room.building.code} · ชั้น {row.room.floor.number}</small>
+    </td>
+    <td>{row.tenantName ?? "-"}</td>
+    <td>
+      <PreviousReadingCell previousDrafts={previousDrafts} readOnly={readOnly} row={row} setPreviousDrafts={setPreviousDrafts} value={previous} />
+    </td>
+    <td>
+      {readOnly
+        ? <>{row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")}</>
+        : <input
+          aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
+          disabled={Boolean(row.readingId)}
+          min={previousText || 0}
+          onChange={(event) => setCurrentDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
+          onKeyDown={focusNextRow}
+          placeholder={previousText || "เลขล่าสุด"}
+          ref={(element) => onRegisterInput(row.room.id, element)}
+          type="number"
+          value={latestText}
+        />}
+    </td>
+    <td>
+      <span className={abnormal ? "font-black text-amber-600" : ""}>{units.toLocaleString("th-TH")}</span>
+      {abnormal ? <small className="mt-1 flex items-center gap-1 text-amber-600"><AlertTriangle size={13} /> สูงกว่ารอบก่อนผิดปกติ ({row.previousUsage?.toLocaleString("th-TH")} หน่วย)</small> : null}
+    </td>
+    <td>฿{unitRate.toLocaleString("th-TH")}</td>
+    <td><strong>฿{amount.toLocaleString("th-TH")}</strong></td>
+    <td><MeterRowStatus abnormal={abnormal} saved={Boolean(row.readingId)} /></td>
+  </tr>;
 }

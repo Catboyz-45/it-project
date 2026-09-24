@@ -37,18 +37,29 @@ function operationId(method, apiPath) {
 
 // จัดกลุ่ม endpoint ตามงาน ไล่จากเฉพาะเจาะจงไปกว้าง อันแรกที่ตรงชนะ
 // tag เป็นตัวแบ่งหัวข้อในหน้าเอกสาร คนอ่านจะได้หาของที่ต้องการเจอ
+// กลุ่มที่เดาได้จากชื่อ resource ใน URL เรียงตามลำดับที่ตรวจเดิม อันแรกที่ตรงชนะ
+const resourceTags = [
+  { pattern: /\/(invoices|meter-readings|payment-submissions)(\/|$)/, tag: "Billing" },
+  { pattern: /\/(rooms|buildings|floors|catalogs)(\/|$)/, tag: "Rooms" },
+  { pattern: /\/(tenants|occupancies|invitations)(\/|$)/, tag: "Tenants" },
+  { pattern: /\/leases(\/|$)/, tag: "Contracts" },
+  { pattern: /\/(announcements|parcels|tickets)(\/|$)/, tag: "Operations" },
+];
+
+// ฝั่งซูเปอร์แอดมินมีทั้งงาน SaaS งานแชต และงานดูแลระบบทั่วไป แยกออกมาให้อ่านง่าย
+function superAdminTag(apiPath) {
+  if (apiPath.includes("/plans") || apiPath.includes("/subscription")) return "SaaS";
+  return apiPath.includes("chat") ? "Chat" : "Super Admin";
+}
+
 function tagFor(apiPath) {
   if (apiPath.includes("/subscription-orders") || apiPath.includes("/subscription-payments")) return "SaaS";
-  if (apiPath.includes("/super-admin/")) return apiPath.includes("/plans") || apiPath.includes("/subscription") ? "SaaS" : apiPath.includes("chat") ? "Chat" : "Super Admin";
+  if (apiPath.includes("/super-admin/")) return superAdminTag(apiPath);
   if (apiPath.startsWith("/api/v1/tenant/")) return apiPath.endsWith("/chat") ? "Chat" : "Tenant Portal";
   if (apiPath.includes("/chat/")) return "Chat";
   if (apiPath.includes("/dashboard")) return "Owner Dashboard";
-  if (/\/(invoices|meter-readings|payment-submissions)(\/|$)/.test(apiPath)) return "Billing";
-  if (/\/(rooms|buildings|floors|catalogs)(\/|$)/.test(apiPath)) return "Rooms";
-  if (/\/(tenants|occupancies|invitations)(\/|$)/.test(apiPath)) return "Tenants";
-  if (/\/leases(\/|$)/.test(apiPath)) return "Contracts";
-  if (/\/(announcements|parcels|tickets)(\/|$)/.test(apiPath)) return "Operations";
-  return "Properties";
+  const matched = resourceTags.find(({ pattern }) => pattern.test(apiPath));
+  return matched?.tag ?? "Properties";
 }
 
 // รายชื่อ endpoint ที่แบ่งหน้า ต้องเติม page กับ pageSize ให้ในเอกสาร

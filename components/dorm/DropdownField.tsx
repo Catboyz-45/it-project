@@ -3,6 +3,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
 // ตัวเลือกหนึ่งรายการ disabled ไว้ใช้กับตัวเลือกที่แสดงให้เห็นแต่ยังเลือกไม่ได้
 export type DropdownOption = {
@@ -13,6 +14,32 @@ export type DropdownOption = {
 
 // ตัวเลือกแบบกำหนดหน้าตาเอง แทน select ของเบราว์เซอร์ที่แต่งสไตล์ได้จำกัด
 // แลกมาด้วยการต้องทำพฤติกรรมคีย์บอร์ดเองทั้งหมดตามมาตรฐาน listbox ของ ARIA
+// ตัวเลือกถัดไปตามปุ่มที่กด เมนูนี้ข้ามตัวเลือกที่ปิดอยู่ จึงเลื่อนบนรายการที่เปิดใช้งานได้เท่านั้น
+function nextOptionIndex(key: string, enabledIndexes: number[], activeIndex: number) {
+  const currentPosition = Math.max(0, enabledIndexes.indexOf(activeIndex));
+  return enabledIndexes[rovingIndex(key, currentPosition, enabledIndexes.length)];
+}
+
+// เริ่มหาจากตัวถัดจากที่โฟกัสอยู่แล้ววนกลับมา พิมพ์ตัวเดิมซ้ำจะได้ไปตัวถัดไปที่ขึ้นต้นเหมือนกัน
+function findByTypeahead(options: DropdownOption[], enabledIndexes: number[], activeIndex: number, query: string) {
+  const startPosition = Math.max(0, enabledIndexes.indexOf(activeIndex));
+  const searchOrder = [...enabledIndexes.slice(startPosition + 1), ...enabledIndexes.slice(0, startPosition + 1)];
+  return searchOrder.find((index) => options[index].label.trim().toLocaleLowerCase("th-TH").startsWith(query));
+}
+
+// ตัวเลือกที่จะโฟกัสตอนเพิ่งเปิดเมนู ค่าที่เลือกอยู่ถ้ามี ไม่มีก็ตัวแรก
+function openingIndex(preference: "first" | "last" | "selected", enabledIndexes: number[], selectedIndex: number) {
+  if (preference === "first") return enabledIndexes[0];
+  if (preference === "last") return enabledIndexes.at(-1) ?? enabledIndexes[0];
+  return selectedIndex >= 0 ? selectedIndex : enabledIndexes[0];
+}
+
+// ลูกศรขึ้นกับ End เปิดมาที่ตัวท้าย Home เปิดมาที่ตัวแรก ที่เหลือเปิดมาที่ค่าที่เลือกอยู่
+function openPreferenceFor(key: string): "first" | "last" | "selected" {
+  if (key === "ArrowUp" || key === "End") return "last";
+  return key === "Home" ? "first" : "selected";
+}
+
 export function DropdownField({
   ariaLabel,
   disabled = false,
@@ -21,7 +48,7 @@ export function DropdownField({
   onChange,
   options,
   value,
-}: {
+}: Readonly<{
   ariaLabel?: string;
   disabled?: boolean;
   label?: string;
@@ -29,7 +56,7 @@ export function DropdownField({
   onChange: (value: string) => void;
   options: DropdownOption[];
   value: string;
-}) {
+}>) {
   const id = useId();
   const menuRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -59,11 +86,7 @@ export function DropdownField({
     if (!enabledIndexes.length) return;
     // ปกติเปิดมาแล้วโฟกัสที่ค่าที่เลือกอยู่ ผู้ใช้จะได้รู้ว่าตอนนี้เป็นอะไร
     const selectedIndex = options.findIndex((option) => option.value === value && !option.disabled);
-    const index = preference === "first"
-      ? enabledIndexes[0]
-      : preference === "last"
-        ? enabledIndexes[enabledIndexes.length - 1]
-        : selectedIndex >= 0 ? selectedIndex : enabledIndexes[0];
+    const index = openingIndex(preference, enabledIndexes, selectedIndex);
     setIsOpen(true);
     focusOption(index);
   };
@@ -122,6 +145,34 @@ export function DropdownField({
     };
   }, [isOpen, options.length]);
 
+  // แป้นพิมพ์ในเมนู ปิดเมนู เลื่อนตัวเลือก และพิมพ์เพื่อค้นหา
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeAndRestoreFocus();
+      return;
+    }
+    // Tab ปิดเมนูแต่ไม่คืนโฟกัส ปล่อยให้ Tab พาไปช่องถัดไปตามปกติ
+    if (event.key === "Tab") {
+      setIsOpen(false);
+      return;
+    }
+    if (!enabledIndexes.length) return;
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      focusOption(nextOptionIndex(event.key, enabledIndexes, activeIndex));
+      return;
+    }
+    // เหลือแค่การพิมพ์ตัวอักษรเดี่ยว ๆ ปุ่มที่กดพร้อม Ctrl หรือ Cmd เป็นคำสั่งอื่น ไม่ใช่การพิมพ์
+    if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+    typeaheadRef.current += event.key.toLocaleLowerCase("th-TH");
+    if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+    // หยุดพิมพ์เกิน 0.7 วินาทีก็ล้างคำค้น ถือว่าเริ่มหาคำใหม่
+    typeaheadTimerRef.current = setTimeout(() => { typeaheadRef.current = ""; }, 700);
+    const match = findByTypeahead(options, enabledIndexes, activeIndex, typeaheadRef.current);
+    if (match !== undefined) focusOption(match);
+  };
+
   return (
     <div className="dropdown-field" ref={rootRef}>
       {/* ช่องซ่อนไว้ให้ฟอร์มธรรมดาส่งค่าไปได้ เพราะปุ่มข้างล่างไม่ใช่ select จริง */}
@@ -142,7 +193,7 @@ export function DropdownField({
           if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
             // กันหน้าเลื่อนตามลูกศรไปด้วย
             event.preventDefault();
-            openAndFocus(event.key === "ArrowUp" || event.key === "End" ? "last" : event.key === "Home" ? "first" : "selected");
+            openAndFocus(openPreferenceFor(event.key));
           }
         }}
         ref={triggerRef}
@@ -156,45 +207,7 @@ export function DropdownField({
           <div
             className={hasOverflow && canScrollMore ? "dropdown-menu has-scroll-indicator" : "dropdown-menu"}
             id={`${id}-listbox`}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                closeAndRestoreFocus();
-                return;
-              }
-              // Tab ปิดเมนูแต่ไม่คืนโฟกัส ปล่อยให้ Tab พาไปช่องถัดไปตามปกติ
-              if (event.key === "Tab") {
-                setIsOpen(false);
-                return;
-              }
-              if (!enabledIndexes.length) return;
-              if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-                event.preventDefault();
-                // % ทำให้วนกลับต้นเมื่อถึงท้าย และวนไปท้ายเมื่อถึงต้น
-                const currentPosition = Math.max(0, enabledIndexes.indexOf(activeIndex));
-                const nextIndex = event.key === "Home"
-                  ? enabledIndexes[0]
-                  : event.key === "End"
-                    ? enabledIndexes[enabledIndexes.length - 1]
-                    : event.key === "ArrowDown"
-                      ? enabledIndexes[(currentPosition + 1) % enabledIndexes.length]
-                      : enabledIndexes[(currentPosition - 1 + enabledIndexes.length) % enabledIndexes.length];
-                focusOption(nextIndex);
-                return;
-              }
-              // เหลือแค่การพิมพ์ตัวอักษรเดี่ยว ๆ ปุ่มที่กดพร้อม Ctrl หรือ Cmd เป็นคำสั่งอื่น ไม่ใช่การพิมพ์
-              if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
-              typeaheadRef.current += event.key.toLocaleLowerCase("th-TH");
-              if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
-              // หยุดพิมพ์เกิน 0.7 วินาทีก็ล้างคำค้น ถือว่าเริ่มหาคำใหม่
-              typeaheadTimerRef.current = setTimeout(() => { typeaheadRef.current = ""; }, 700);
-              const query = typeaheadRef.current;
-              const startPosition = Math.max(0, enabledIndexes.indexOf(activeIndex));
-              // เริ่มหาจากตัวถัดจากที่โฟกัสอยู่แล้ววนกลับมา พิมพ์ตัวเดิมซ้ำจะได้ไปตัวถัดไปที่ขึ้นต้นเหมือนกัน
-              const searchOrder = [...enabledIndexes.slice(startPosition + 1), ...enabledIndexes.slice(0, startPosition + 1)];
-              const match = searchOrder.find((index) => options[index].label.trim().toLocaleLowerCase("th-TH").startsWith(query));
-              if (match !== undefined) focusOption(match);
-            }}
+            onKeyDown={handleMenuKeyDown}
             ref={menuRef}
             role="listbox"
           >

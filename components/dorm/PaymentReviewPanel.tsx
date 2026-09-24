@@ -1,7 +1,7 @@
 "use client";
 // โหลดรายการและส่งผลตรวจสอบจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ExternalLink, FileWarning, LoaderCircle, ReceiptText, RefreshCw, Search, X, XCircle } from "lucide-react";
 import type { PaymentSubmissionStatus } from "@/lib/domain/enums";
 import { currency } from "@/lib/dorm-utils";
@@ -54,13 +54,13 @@ export function PaymentReviewPanel({
   onChanged,
   propertyId,
   readOnly = false,
-}: {
+}: Readonly<{
   // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดแท็บ
   initialPayments?: { data: PaymentSubmission[]; hasNextPage: boolean } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
-}) {
+}>) {
   const [payments, setPayments] = useState<PaymentSubmission[]>(initialPayments?.data ?? []);
   // ข้อมูลที่ส่งมาเป็นชุดของสถานะรอตรวจสอบหน้าแรก ตรงกับที่ effect จะยิงรอบแรกพอดี จึงข้ามรอบนั้นได้
   const skipInitialLoadRef = useRef(initialPayments !== null);
@@ -183,7 +183,19 @@ export function PaymentReviewPanel({
     }
   };
 
-  const submitRejection = (event: FormEvent<HTMLFormElement>) => {
+  // ถามยืนยันก่อนอนุมัติ เพราะอนุมัติแล้วบิลจะถูกปิดทันที
+  const approveSelected = () => {
+    if (!selectedPayment) return;
+    void confirm({
+      title: "ยืนยันรับชำระ?",
+      description: `บิล ${selectedPayment.invoice.invoiceNumber} · ${currency.format(Number(selectedPayment.amount))}`,
+      confirmLabel: "ยืนยันรับชำระ",
+    }).then((accepted) => {
+      if (accepted) void review(selectedPayment, "APPROVED");
+    });
+  };
+
+  const submitRejection = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (rejecting) void review(rejecting, "REJECTED", rejectionNote.trim());
   };
@@ -220,80 +232,166 @@ export function PaymentReviewPanel({
         </div>
       </div>
 
-      {/* ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีรายการในสถานะนี้ ต้องบอกคนละแบบ */}
-      {isLoading ? <div className="payment-review-loading" aria-live="polite"><LoaderCircle className="animate-spin" /> กำลังโหลดหลักฐานการชำระ...</div> : pageItems.length === 0 && query.trim() ? <SearchEmptyState description="ลองใช้เลขบิล เลขห้อง หรือชื่อผู้เช่าอื่น" title="ไม่พบรายการที่ค้นหา" /> : pageItems.length === 0 ? <div className="payment-review-loading"><Clock3 /><p>ไม่มีรายการในสถานะนี้</p></div> : (
-        <div className="payment-review-workspace">
-          <aside aria-label="คิวหลักฐานการชำระ" className="payment-review-queue">
-            <header><div><strong>คิวตรวจสอบ</strong><small>{visiblePayments.length} รายการ</small></div></header>
-            <div className="payment-review-list">
-              {/* aria-current บอกโปรแกรมอ่านหน้าจอว่ากำลังดูรายการไหน ไม่ใช่แค่ทำให้สีเข้ม */}
-              {pageItems.map((payment) => <button
-                aria-current={selectedPayment?.id === payment.id ? "true" : undefined}
-                className={`payment-review-item ${selectedPayment?.id === payment.id ? "active" : ""}`}
-                key={payment.id}
-                onClick={() => setSelectedPaymentId(payment.id)}
-                type="button"
-              >
-                <span className="payment-review-item-head"><strong>{payment.invoice.invoiceNumber}</strong><em className={`figma-status ${payment.status === "APPROVED" ? "normal" : payment.status === "PENDING_REVIEW" ? "warning" : ""}`}>{statusLabels[payment.status]}</em></span>
-                <span className="payment-review-item-person">ห้อง {payment.invoice.room.number} · {payment.tenantProfile.user.displayName}</span>
-                <span className="payment-review-item-meta"><strong>{currency.format(Number(payment.amount))}</strong><time>{new Date(payment.submittedAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</time></span>
-              </button>)}
-            </div>
-            <TablePagination page={page} setPage={setPage} totalItems={visiblePayments.length} totalPages={totalPages} />
-            {hasNextPage ? <div className="payment-review-load-more"><button className="secondary-button" disabled={isLoadingMore} onClick={() => void loadPayments(serverPage + 1, true)} type="button">{isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}</button></div> : null}
-          </aside>
-
-          {selectedPayment ? <PaymentInspectionPane
-            onApprove={() => { void confirm({ title: "ยืนยันรับชำระ?", description: `บิล ${selectedPayment.invoice.invoiceNumber} · ${currency.format(Number(selectedPayment.amount))}`, confirmLabel: "ยืนยันรับชำระ" }).then((accepted) => { if (accepted) void review(selectedPayment, "APPROVED"); }); }}
-            onReject={() => { setRejecting(selectedPayment); setRejectionNote(""); }}
-            payment={selectedPayment}
-            propertyId={propertyId}
-            readOnly={readOnly}
-            reviewing={reviewingId !== null}
-          /> : null}
-        </div>
-      )}
+      <PaymentReviewBody
+        hasNextPage={hasNextPage}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        onApprove={approveSelected}
+        onLoadMore={() => void loadPayments(serverPage + 1, true)}
+        onReject={() => { setRejecting(selectedPayment); setRejectionNote(""); }}
+        onSelect={setSelectedPaymentId}
+        page={page}
+        pageItems={pageItems}
+        propertyId={propertyId}
+        query={query}
+        readOnly={readOnly}
+        reviewing={reviewingId !== null}
+        selectedPayment={selectedPayment}
+        setPage={setPage}
+        totalCount={visiblePayments.length}
+        totalPages={totalPages}
+      />
     </article>
 
     {confirmationDialog}
     {/* บังคับกรอกเหตุผล ปุ่มยืนยันจะกดไม่ได้จนกว่าจะพิมพ์ */}
-    {rejecting ? (
-      <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" className="modal-sm" onClose={() => setRejecting(null)}>
-          <header className="modal-header">
-            <div><h2 id="reject-payment-title">ปฏิเสธหลักฐานการชำระ</h2><p id="reject-payment-description">บิล {rejecting.invoice.invoiceNumber} · ห้อง {rejecting.invoice.room.number}</p></div>
-            <IconButton disabled={reviewingId !== null} label="ปิด" onClick={() => setRejecting(null)} tooltip="ปิดหน้าต่างปฏิเสธหลักฐาน"><X /></IconButton>
-          </header>
-          <form className="modal-form" onSubmit={submitRejection}>
-            <label>
-              <span>เหตุผลที่ปฏิเสธ</span>
-              <textarea autoFocus maxLength={500} minLength={1} onChange={(event) => setRejectionNote(event.target.value)} placeholder="เช่น ยอดเงินไม่ตรง ภาพไม่ชัด หรือไม่พบรายการโอน" required value={rejectionNote} />
-            </label>
-            <footer className="modal-actions">
-              <button disabled={reviewingId !== null} onClick={() => setRejecting(null)} type="button">ยกเลิก</button>
-              <button aria-describedby={!reviewingId && !rejectionNote.trim() ? "payment-rejection-disabled-reason" : undefined} className="primary-button danger-confirm-button" disabled={reviewingId !== null || !rejectionNote.trim()} type="submit">{reviewingId ? "กำลังบันทึก..." : "ยืนยันปฏิเสธ"}</button>
-            </footer>
-            {!reviewingId && !rejectionNote.trim() ? <p className="disabled-reason justify-self-end" id="payment-rejection-disabled-reason">ระบุเหตุผลที่ปฏิเสธหลักฐานก่อนยืนยัน</p> : null}
-          </form>
-      </Dialog>
-    ) : null}
+    <RejectPaymentDialog
+      note={rejectionNote}
+      onClose={() => setRejecting(null)}
+      onSubmit={submitRejection}
+      payment={rejecting}
+      reviewing={reviewingId !== null}
+      setNote={setRejectionNote}
+    />
   </>;
 }
 
+// สีของป้ายสถานะ อนุมัติแล้วเป็นปกติ รอตรวจสอบเป็นคำเตือน ปฏิเสธไม่มีสี
+function paymentStatusTone(status: PaymentSubmissionStatus) {
+  if (status === "APPROVED") return "normal";
+  if (status === "PENDING_REVIEW") return "warning";
+  return "";
+}
+
+// เนื้อหาหลัก แยกกรณีกำลังโหลด ค้นไม่เจอ ไม่มีรายการในสถานะนี้ และมีรายการจริง
+function PaymentReviewBody({ hasNextPage, isLoading, isLoadingMore, onApprove, onLoadMore, onReject, onSelect, page, pageItems, propertyId, query, readOnly, reviewing, selectedPayment, setPage, totalCount, totalPages }: Readonly<{
+  hasNextPage: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  onApprove: () => void;
+  onLoadMore: () => void;
+  onReject: () => void;
+  onSelect: (paymentId: string) => void;
+  page: number;
+  pageItems: PaymentSubmission[];
+  propertyId: string;
+  query: string;
+  readOnly: boolean;
+  reviewing: boolean;
+  selectedPayment: PaymentSubmission | null;
+  setPage: (page: number) => void;
+  totalCount: number;
+  totalPages: number;
+}>) {
+  if (isLoading) return <div aria-live="polite" className="payment-review-loading"><LoaderCircle className="animate-spin" /> กำลังโหลดหลักฐานการชำระ...</div>;
+  // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีรายการในสถานะนี้ ต้องบอกคนละแบบ
+  if (pageItems.length === 0 && query.trim()) return <SearchEmptyState description="ลองใช้เลขบิล เลขห้อง หรือชื่อผู้เช่าอื่น" title="ไม่พบรายการที่ค้นหา" />;
+  if (pageItems.length === 0) return <div className="payment-review-loading"><Clock3 /><p>ไม่มีรายการในสถานะนี้</p></div>;
+
+  return <div className="payment-review-workspace">
+    <aside aria-label="คิวหลักฐานการชำระ" className="payment-review-queue">
+      <header><div><strong>คิวตรวจสอบ</strong><small>{totalCount} รายการ</small></div></header>
+      <div className="payment-review-list">
+        {pageItems.map((payment) => <PaymentQueueItem
+          isActive={selectedPayment?.id === payment.id}
+          key={payment.id}
+          onSelect={onSelect}
+          payment={payment}
+        />)}
+      </div>
+      <TablePagination page={page} setPage={setPage} totalItems={totalCount} totalPages={totalPages} />
+      {hasNextPage ? <div className="payment-review-load-more">
+        <button className="secondary-button" disabled={isLoadingMore} onClick={onLoadMore} type="button">
+          {isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}
+        </button>
+      </div> : null}
+    </aside>
+
+    {selectedPayment ? <PaymentInspectionPane
+      onApprove={onApprove}
+      onReject={onReject}
+      payment={selectedPayment}
+      propertyId={propertyId}
+      readOnly={readOnly}
+      reviewing={reviewing}
+    /> : null}
+  </div>;
+}
+
+// หนึ่งรายการในคิว aria-current บอกโปรแกรมอ่านหน้าจอว่ากำลังดูรายการไหน ไม่ใช่แค่ทำให้สีเข้ม
+function PaymentQueueItem({ isActive, onSelect, payment }: Readonly<{
+  isActive: boolean;
+  onSelect: (paymentId: string) => void;
+  payment: PaymentSubmission;
+}>) {
+  return <button
+    aria-current={isActive ? "true" : undefined}
+    className={`payment-review-item ${isActive ? "active" : ""}`}
+    onClick={() => onSelect(payment.id)}
+    type="button"
+  >
+    <span className="payment-review-item-head"><strong>{payment.invoice.invoiceNumber}</strong><em className={`figma-status ${paymentStatusTone(payment.status)}`}>{statusLabels[payment.status]}</em></span>
+    <span className="payment-review-item-person">ห้อง {payment.invoice.room.number} · {payment.tenantProfile.user.displayName}</span>
+    <span className="payment-review-item-meta"><strong>{currency.format(Number(payment.amount))}</strong><time>{new Date(payment.submittedAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</time></span>
+  </button>;
+}
+
+// กล่องปฏิเสธหลักฐาน บังคับกรอกเหตุผล ปุ่มยืนยันจะกดไม่ได้จนกว่าจะพิมพ์
+function RejectPaymentDialog({ note, onClose, onSubmit, payment, reviewing, setNote }: Readonly<{
+  note: string;
+  onClose: () => void;
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
+  payment: PaymentSubmission | null;
+  reviewing: boolean;
+  setNote: (value: string) => void;
+}>) {
+  if (!payment) return null;
+  const missingNote = !reviewing && !note.trim();
+
+  return <Dialog ariaDescribedBy="reject-payment-description" ariaLabelledBy="reject-payment-title" className="modal-sm" onClose={onClose}>
+    <header className="modal-header">
+      <div><h2 id="reject-payment-title">ปฏิเสธหลักฐานการชำระ</h2><p id="reject-payment-description">บิล {payment.invoice.invoiceNumber} · ห้อง {payment.invoice.room.number}</p></div>
+      <IconButton disabled={reviewing} label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างปฏิเสธหลักฐาน"><X /></IconButton>
+    </header>
+    <form className="modal-form" onSubmit={onSubmit}>
+      <label>
+        <span>เหตุผลที่ปฏิเสธ</span>
+        <textarea autoFocus maxLength={500} minLength={1} onChange={(event) => setNote(event.target.value)} placeholder="เช่น ยอดเงินไม่ตรง ภาพไม่ชัด หรือไม่พบรายการโอน" required value={note} />
+      </label>
+      <footer className="modal-actions">
+        <button disabled={reviewing} onClick={onClose} type="button">ยกเลิก</button>
+        <button aria-describedby={missingNote ? "payment-rejection-disabled-reason" : undefined} className="primary-button danger-confirm-button" disabled={reviewing || !note.trim()} type="submit">{reviewing ? "กำลังบันทึก..." : "ยืนยันปฏิเสธ"}</button>
+      </footer>
+      {missingNote ? <p className="disabled-reason justify-self-end" id="payment-rejection-disabled-reason">ระบุเหตุผลที่ปฏิเสธหลักฐานก่อนยืนยัน</p> : null}
+    </form>
+  </Dialog>;
+}
+
 // ฝั่งขวา แสดงสลิปกับข้อมูลให้เทียบยอด ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readOnly, reviewing }: {
+function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readOnly, reviewing }: Readonly<{
   onApprove: () => void;
   onReject: () => void;
   payment: PaymentSubmission;
   propertyId: string;
   readOnly: boolean;
   reviewing: boolean;
-}) {
+}>) {
   // ไฟล์สลิปผ่าน API ที่ตรวจสิทธิ์ก่อน ไม่ได้วางไว้ในโฟลเดอร์สาธารณะให้ใครก็เปิดได้
   const slipUrl = `/api/v1/admin/properties/${propertyId}/payment-submissions/${payment.id}/slip`;
   return <section aria-label={`รายละเอียดการชำระ ${payment.invoice.invoiceNumber}`} className="payment-inspection-pane">
     <header className="payment-inspection-header">
       <div><small>กำลังตรวจสอบ</small><h2>{payment.invoice.invoiceNumber}</h2><p>ห้อง {payment.invoice.room.number} · {payment.tenantProfile.user.displayName}</p></div>
-      <em className={`figma-status ${payment.status === "APPROVED" ? "normal" : payment.status === "PENDING_REVIEW" ? "warning" : ""}`}>{statusLabels[payment.status]}</em>
+      <em className={`figma-status ${paymentStatusTone(payment.status)}`}>{statusLabels[payment.status]}</em>
     </header>
     <div className="payment-inspection-facts">
       {/* วางยอดที่แจ้งกับยอดตามบิลติดกัน ผู้ตรวจจะได้เห็นทันทีว่าตรงกันหรือไม่ */}
@@ -316,6 +414,6 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
 }
 
 // การ์ดตัวเลขสรุปเล็ก ๆ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function PaymentSummary({ label, value }: { label: string; value: string }) {
+function PaymentSummary({ label, value }: Readonly<{ label: string; value: string }>) {
   return <article className="figma-summary-card compact"><div><small>{label}</small><strong>{value}</strong></div></article>;
 }

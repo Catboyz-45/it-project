@@ -6,7 +6,11 @@ import type { DocumentKind } from "@/lib/documents/types";
 
 // ช่อง {{key}} ที่จะถูกแทนด้วยข้อมูลจริง ยอมให้มีช่องว่างข้างในได้ เพราะคนแก้ Template อาจพิมพ์เว้นวรรค
 const placeholderPattern = /{{\s*([a-z][a-z0-9_]*)\s*}}/g;
-const embeddedImagePattern = /<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi;
+// แยกกรณี " กับ ' ออกจากกันแทนการใช้ backreference และใช้ [^"] / [^'] แทน .*?
+// เพราะแบบเดิม (["'])(.*?)\1 ทำให้ engine ต้องไล่ลองทุกตำแหน่งของเครื่องหมายคำพูด
+// กลายเป็น O(n²): HTML 128KB ใช้เวลา 6 วินาที และ Template ที่ API รับได้ใหญ่ถึง 2MB
+// ซึ่งพอจะบล็อก event loop ของ Node ทั้งเซิร์ฟเวอร์ได้จากคำขอเดียว
+const embeddedImagePattern = /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
 const embeddedImageDataPattern = /^data:image\/(png|jpeg|webp);base64,([a-z0-9+/=\s]+)$/i;
 // รูปฝังใน Template จำกัด 1 MB เพราะถูกเก็บเป็น base64 อยู่ในตัว HTML ไม่ใช่ไฟล์แยก
 const maxEmbeddedImageBytes = 1_000_000;
@@ -35,7 +39,8 @@ function hasValidImageSignature(type: string, bytes: Buffer) {
 // ตรวจรูปทุกรูปใน Template สามชั้น ต้องเป็น data URL ของชนิดที่อนุญาต ขนาดไม่เกิน และไบต์จริงตรงกับชนิด
 export function validateEmbeddedImages(html: string) {
   for (const match of html.matchAll(embeddedImagePattern)) {
-    const source = match[2];
+    // กลุ่มที่ 1 คือค่าที่อยู่ใน " ส่วนกลุ่มที่ 2 คือค่าที่อยู่ใน ' จะมีค่าแค่กลุ่มเดียวเสมอ
+    const source = match[1] ?? match[2];
     const dataMatch = source.match(embeddedImageDataPattern);
     // ไม่รับ URL จากภายนอก เพราะการดึงรูปจาก URL ที่ผู้ใช้กำหนดเป็นช่องทาง SSRF
     if (!dataMatch) throw new Error("รองรับเฉพาะรูป PNG, JPEG หรือ WebP ที่อัปโหลดจากเครื่อง");

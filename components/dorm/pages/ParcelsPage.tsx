@@ -1,10 +1,13 @@
 "use client";
 // เก็บฟอร์ม อัปโหลดไฟล์ และโหลดข้อมูลจากเบราว์เซอร์
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Ban, CheckCircle2, ImageUp, PackageCheck, Pencil, Plus } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
+// ชนิดของพัสดุอยู่ในฮุกเดียวกับการโหลด ส่งต่อให้ที่อื่นใช้ได้เหมือนเดิม
+export type { ParcelRecord } from "@/components/dorm/pages/useParcelList";
+import { type ParcelRecord, useParcelList } from "@/components/dorm/pages/useParcelList";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import type { Room } from "@/types/dorm";
 import { TablePagination, useTablePagination } from "@/components/dorm/TablePagination";
@@ -22,22 +25,6 @@ import { useActionFeedback } from "@/lib/client/use-action-feedback";
 // สองมุมมองของหน้านี้ รอรับกับประวัติที่รับไปแล้ว หน้าแม่เป็นคนบอกว่าอยู่มุมมองไหน
 export type ParcelView = "waiting" | "history";
 
-// cancelled ใช้กับรายการที่ลงทะเบียนผิด ยกเลิกแล้วไม่ลบทิ้ง เพื่อให้ตรวจย้อนหลังได้
-type ParcelStatus = "waiting" | "received" | "cancelled";
-
-// พัสดุหนึ่งชิ้น
-export type ParcelRecord = {
-  id: string;
-  imageUrl?: string;
-  note: string;
-  roomId: string;
-  tenantName: string;
-  receivedAt?: string;
-  registeredAt: string;
-  status: ParcelStatus;
-  // ส่งกลับไปตอนแก้ไข เซิร์ฟเวอร์จะปฏิเสธถ้ามีคนอื่นแก้ไปก่อนแล้ว กันแก้ทับกัน
-  updatedAt?: string;
-};
 
 // หน้าพัสดุ ลงทะเบียนพัสดุเข้า และบันทึกตอนผู้เช่ามารับ
 export function ParcelsPage({
@@ -49,7 +36,7 @@ export function ParcelsPage({
   propertyId,
   readOnly = false,
   rooms,
-}: {
+}: Readonly<{
   activeView: ParcelView;
   // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
   initialHasNextPage?: boolean;
@@ -59,7 +46,7 @@ export function ParcelsPage({
   propertyId: string;
   readOnly?: boolean;
   rooms: Room[];
-}) {
+}>) {
   const notify = useToast();
   const actionFeedback = useActionFeedback();
   const { confirm, confirmationDialog } = useConfirmation();
@@ -68,15 +55,17 @@ export function ParcelsPage({
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingParcel, setEditingParcel] = useState<ParcelRecord | null>(null);
   const [editNote, setEditNote] = useState("");
-  const [parcels, setParcels] = useState(initialParcels);
-  const [summary, setSummary] = useState(initialSummary ?? { today: 0, waiting: 0, received: 0, olderThanThreeDays: 0 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requestError, setRequestError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [serverPage, setServerPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
+  // รายการพัสดุ ตัวเลขสรุป และการแบ่งหน้าฝั่งเซิร์ฟเวอร์ อยู่ในฮุกของตัวเอง
+  const { hasNextPage, isLoading, isLoadingMore, loadParcels, parcels, serverPage, summary } = useParcelList({
+    initialHasNextPage,
+    initialParcels,
+    initialSummary,
+    onError: setRequestError,
+    propertyId,
+  });
   const [selectedFloor, setSelectedFloor] = useState(floors[0] ?? 1);
   const [form, setForm] = useState({
     imageUrl: "",
@@ -91,56 +80,6 @@ export function ParcelsPage({
   // รายการที่ยกเลิกไม่แสดงในทั้งสองมุมมอง เก็บไว้ในฐานข้อมูลเฉย ๆ
   const visibleParcels = activeView === "waiting" ? waitingParcels : receivedParcels;
   const { page, pageItems, setPage, totalPages } = useTablePagination(visibleParcels);
-  const loadParcels = useCallback(async (targetPage = 1, append = false) => {
-    if (append) setIsLoadingMore(true);
-    else setIsLoading(true);
-    setRequestError("");
-    try {
-      const response = await fetch(`/api/v1/admin/properties/${propertyId}/parcels?page=${targetPage}&pageSize=50`, { cache: "no-store" });
-      const payload = await response.json() as {
-        data?: Array<{
-          id: string; status: "WAITING" | "RECEIVED" | "CANCELLED"; note: string | null; updatedAt: string;
-          registeredAt: string; receivedAt: string | null; imageUrl: string | null;
-          recipientTenant: { id: string; user: { displayName: string } } | null;
-          room: { number: string; occupancies: Array<{ tenantProfile: { user: { displayName: string } } }> };
-        }>;
-        error?: string;
-        pageInfo?: { page: number; hasNextPage: boolean };
-        summary?: { today: number; waiting: number; received: number; olderThanThreeDays: number };
-      };
-      if (!response.ok || !payload.data || !payload.pageInfo) throw new Error(payload.error || "โหลดพัสดุไม่สำเร็จ");
-      const mapped: ParcelRecord[] = payload.data.map((item) => ({
-        id: item.id,
-        imageUrl: item.imageUrl ?? undefined,
-        note: item.note ?? "",
-        roomId: item.room.number,
-        tenantName: item.recipientTenant?.user.displayName ?? "พัสดุส่วนกลางของห้อง",
-        registeredAt: new Date(item.registeredAt).toLocaleString("th-TH"),
-        receivedAt: item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : undefined,
-        status: item.status === "WAITING" ? "waiting" : item.status === "RECEIVED" ? "received" : "cancelled",
-        updatedAt: item.updatedAt,
-      }));
-      setParcels((current) => append ? [...current, ...mapped] : mapped);
-      setServerPage(payload.pageInfo.page);
-      setHasNextPage(payload.pageInfo.hasNextPage);
-      if (payload.summary) setSummary(payload.summary);
-    } catch (error) {
-      setRequestError(error instanceof Error ? error.message : "โหลดพัสดุไม่สำเร็จ");
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [propertyId]);
-  // เซิร์ฟเวอร์ส่งรายการกับตัวเลขสรุปมาให้แล้วตั้งแต่เปิดหน้า จึงไม่ต้องยิงซ้ำ
-  // ไม่ได้ส่งมา (เช่นถูกเรียกจากที่อื่น) ค่อยโหลดเองเหมือนเดิม
-  const skipInitialLoadRef = useRef(initialSummary != null);
-  useEffect(() => {
-    if (skipInitialLoadRef.current) {
-      skipInitialLoadRef.current = false;
-      return;
-    }
-    void loadParcels();
-  }, [loadParcels]);
 
   const registerParcel = async () => {
     setIsSaving(true);
@@ -249,11 +188,7 @@ export function ParcelsPage({
         <div className="repair-board-head">
           <div>
             <h2>{activeView === "waiting" ? "พัสดุที่รอผู้เช่ารับ" : "ประวัติรับพัสดุ"}</h2>
-            <p>
-              {activeView === "waiting"
-                ? `${waitingParcels.length} รายการรอรับ · กดรับแล้วเมื่อส่งมอบแล้ว`
-                : `${receivedParcels.length} รายการรับแล้ว`}
-            </p>
+            <p>{boardSubtitle(activeView, waitingParcels.length, receivedParcels.length)}</p>
           </div>
           <PageHeaderActions>
             {!readOnly ? (
@@ -264,96 +199,34 @@ export function ParcelsPage({
           </PageHeaderActions>
         </div>
 
-        {!isLoading && pageItems.length > 0 ? (
-          <div className="parcel-table-wrap">
-            <table className="parcel-table status-scan-table">
-              <thead>
-                <tr><th scope="col">พัสดุ</th><th scope="col">ห้อง / ผู้รับ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่ลงทะเบียน</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
-              </thead>
-              <tbody>
-                {pageItems.map((parcel) => (
-                  <tr data-status={parcel.status} key={parcel.id}>
-                    <td data-label="พัสดุ">
-                      {parcel.imageUrl ? <div className="parcel-table-photo"><Image alt={`รูปพัสดุห้อง ${parcel.roomId}`} height={52} src={parcel.imageUrl} unoptimized width={52} /></div> : <span className="parcel-muted">—</span>}
-                    </td>
-                    <td data-label="ห้อง / ผู้รับ"><strong>ห้อง {parcel.roomId}</strong><small>{parcel.tenantName}</small></td>
-                    <td data-label="หมายเหตุ">{parcel.note || <span className="parcel-muted">ไม่มีหมายเหตุ</span>}</td>
-                    <td data-label="วันที่ลงทะเบียน"><time>{parcel.registeredAt}</time></td>
-                    <td data-label="สถานะ">
-                      <span className={`parcel-status ${parcel.status}`}>{parcel.status === "waiting" ? "รอรับ" : "รับแล้ว"}</span>
-                      {parcel.receivedAt ? <small>เมื่อ {parcel.receivedAt}</small> : null}
-                    </td>
-                    <td data-label="จัดการ">
-                      {parcel.status === "waiting" && !readOnly ? <ActionMenu label={`จัดการพัสดุห้อง ${parcel.roomId}`} items={[
-                        { disabled: actionFeedback.isPending, id: "received", label: actionFeedback.isPending ? "กำลังบันทึก..." : "บันทึกว่ารับแล้ว", icon: <CheckCircle2 size={16} />, onSelect: () => void markReceived(parcel.id) },
-                        { id: "edit", label: "แก้ไขหมายเหตุ", icon: <Pencil size={16} />, onSelect: () => { setEditingParcel(parcel); setEditNote(parcel.note); } },
-                        { id: "cancel", label: "ยกเลิกรายการ", icon: <Ban size={16} />, variant: "danger", onSelect: () => void cancelParcel(parcel) },
-                      ]} /> : <span className="parcel-muted">—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : !isLoading ? (
-          <div className="repair-empty">
-            <strong>{activeView === "waiting" ? "ยังไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติรับพัสดุ"}</strong><p>{activeView === "waiting" ? "พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ" : "พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่"}</p>
-            <span>{activeView === "waiting" ? "กดเพิ่มพัสดุเพื่อบันทึกรายการใหม่" : "รายการจะย้ายมาที่นี่หลังจากกดรับแล้ว"}</span>
-          </div>
-        ) : <LoadingSkeleton columns={6} count={4} label="กำลังโหลดรายการพัสดุ" variant="table" />}
+        <ParcelTable
+          actionFeedback={actionFeedback}
+          activeView={activeView}
+          isLoading={isLoading}
+          onCancel={cancelParcel}
+          onEdit={(parcel) => { setEditingParcel(parcel); setEditNote(parcel.note); }}
+          onMarkReceived={markReceived}
+          parcels={pageItems}
+          readOnly={readOnly}
+        />
         <TablePagination page={page} setPage={setPage} totalItems={visibleParcels.length} totalPages={totalPages} />
         {hasNextPage ? <LoadMoreButton isLoading={isLoadingMore} label="โหลดพัสดุเพิ่มเติม" onClick={() => void loadParcels(serverPage + 1, true)} /> : null}
       </article>
 
-      {isRegisterOpen && !readOnly ? (
-        <Dialog ariaDescribedBy="parcel-register-description" ariaLabelledBy="parcel-register-title" className="repair-flow-modal" closeOnBackdrop onClose={() => setIsRegisterOpen(false)}>
-            <div className="modal-header">
-              <div>
-                <small id="parcel-register-description">ลงทะเบียนพัสดุเข้าหอ</small>
-                <h2 id="parcel-register-title">เพิ่มพัสดุใหม่</h2>
-              </div>
-              <Button aria-label="ปิด" data-dialog-initial-focus onClick={() => setIsRegisterOpen(false)} variant="icon">
-                ×
-              </Button>
-            </div>
-            <div className="parcel-form modal-parcel-form">
-              <div className="modal-field">
-                <DropdownField
-                  label="ชั้น"
-                  value={String(selectedFloor)}
-                  onChange={(nextValue) => handleFloorChange(Number(nextValue))}
-                  options={floors.map((floor) => ({ value: String(floor), label: `ชั้น ${floor}` }))}
-                />
-              </div>
-              <div className="modal-field">
-                <DropdownField
-                  label="ห้อง"
-                  value={form.roomId}
-                  onChange={(nextValue) => setForm((current) => ({ ...current, roomId: nextValue }))}
-                  options={floorRooms.map((room) => ({ value: room.id, label: `ห้อง ${room.id}` }))}
-                />
-              </div>
-              <label>
-                <span>หมายเหตุ</span>
-                <input onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder="เช่น กล่องใหญ่ / ซองเอกสาร" value={form.note} />
-              </label>
-              <label className="parcel-photo-upload">
-                <span>รูปพัสดุ</span>
-                <input accept="image/*" onChange={(event) => handleImageUpload(event.target.files?.[0])} type="file" />
-                <strong><ImageUp size={16} /> {form.imageUrl ? "เลือกรูปแล้ว" : "อัปโหลดรูป"}</strong>
-              </label>
-            </div>
-            <div className="modal-actions">
-              <Button onClick={() => setIsRegisterOpen(false)} variant="secondary">
-                ยกเลิก
-              </Button>
-              <Button aria-describedby={!form.roomId ? "parcel-save-disabled-reason" : undefined} disabled={!form.roomId} isLoading={isSaving} loadingLabel="กำลังบันทึก..." onClick={() => void registerParcel()}>
-                บันทึกพัสดุ
-              </Button>
-            </div>
-            {!form.roomId ? <p className="disabled-reason justify-self-end" id="parcel-save-disabled-reason">เลือกห้องผู้รับก่อนบันทึกพัสดุ</p> : null}
-        </Dialog>
-      ) : null}
+      <ParcelRegisterDialog
+        floorRooms={floorRooms}
+        floors={floors}
+        form={form}
+        isOpen={isRegisterOpen && !readOnly}
+        isSaving={isSaving}
+        onClose={() => setIsRegisterOpen(false)}
+        onFloorChange={handleFloorChange}
+        onImageUpload={handleImageUpload}
+        onNoteChange={(note) => setForm((current) => ({ ...current, note }))}
+        onRoomChange={(roomId) => setForm((current) => ({ ...current, roomId }))}
+        onSubmit={registerParcel}
+        selectedFloor={selectedFloor}
+      />
       {editingParcel && !readOnly ? <Dialog ariaDescribedBy="parcel-edit-description" ariaLabelledBy="parcel-edit-title" className="modal-sm" onClose={() => setEditingParcel(null)}>
         <header className="modal-header"><div><h2 id="parcel-edit-title">แก้ไขพัสดุห้อง {editingParcel.roomId}</h2><p id="parcel-edit-description">แก้ไขได้เฉพาะรายการที่ยังรอรับ</p></div><Button aria-label="ปิด" onClick={() => setEditingParcel(null)} variant="icon">×</Button></header>
         <label className="modal-field"><span>หมายเหตุ</span><textarea maxLength={1000} onChange={(event) => setEditNote(event.target.value)} rows={4} value={editNote} /></label>
@@ -362,4 +235,139 @@ export function ParcelsPage({
       {confirmationDialog}
     </section>
   );
+}
+
+// คำบรรยายใต้หัวกระดาน ต่างกันตามมุมมองที่เปิดอยู่
+function boardSubtitle(activeView: ParcelView, waitingCount: number, receivedCount: number) {
+  return activeView === "waiting"
+    ? `${waitingCount} รายการรอรับ · กดรับแล้วเมื่อส่งมอบแล้ว`
+    : `${receivedCount} รายการรับแล้ว`;
+}
+
+// ตารางพัสดุ แยกกรณีกำลังโหลดและยังไม่มีรายการออกจากตารางจริง
+function ParcelTable({ actionFeedback, activeView, isLoading, onCancel, onEdit, onMarkReceived, parcels, readOnly }: Readonly<{
+  actionFeedback: ReturnType<typeof useActionFeedback>;
+  activeView: ParcelView;
+  isLoading: boolean;
+  onCancel: (parcel: ParcelRecord) => Promise<void>;
+  onEdit: (parcel: ParcelRecord) => void;
+  onMarkReceived: (parcelId: string) => Promise<void>;
+  parcels: ParcelRecord[];
+  readOnly: boolean;
+}>) {
+  if (isLoading) return <LoadingSkeleton columns={6} count={4} label="กำลังโหลดรายการพัสดุ" variant="table" />;
+  if (parcels.length === 0) return <ParcelEmptyState activeView={activeView} />;
+  return <div className="parcel-table-wrap">
+    <table className="parcel-table status-scan-table">
+      <thead>
+        <tr><th scope="col">พัสดุ</th><th scope="col">ห้อง / ผู้รับ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่ลงทะเบียน</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+      </thead>
+      <tbody>
+        {parcels.map((parcel) => <ParcelRow
+          actionFeedback={actionFeedback}
+          key={parcel.id}
+          onCancel={onCancel}
+          onEdit={onEdit}
+          onMarkReceived={onMarkReceived}
+          parcel={parcel}
+          readOnly={readOnly}
+        />)}
+      </tbody>
+    </table>
+  </div>;
+}
+
+function ParcelEmptyState({ activeView }: Readonly<{ activeView: ParcelView }>) {
+  if (activeView === "waiting") {
+    return <div className="repair-empty">
+      <strong>ยังไม่มีพัสดุรอรับ</strong><p>พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ</p>
+      <span>กดเพิ่มพัสดุเพื่อบันทึกรายการใหม่</span>
+    </div>;
+  }
+  return <div className="repair-empty">
+    <strong>ยังไม่มีประวัติรับพัสดุ</strong><p>พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่</p>
+    <span>รายการจะย้ายมาที่นี่หลังจากกดรับแล้ว</span>
+  </div>;
+}
+
+function ParcelRow({ actionFeedback, onCancel, onEdit, onMarkReceived, parcel, readOnly }: Readonly<{
+  actionFeedback: ReturnType<typeof useActionFeedback>;
+  onCancel: (parcel: ParcelRecord) => Promise<void>;
+  onEdit: (parcel: ParcelRecord) => void;
+  onMarkReceived: (parcelId: string) => Promise<void>;
+  parcel: ParcelRecord;
+  readOnly: boolean;
+}>) {
+  // จัดการได้เฉพาะรายการที่ยังรอรับ และต้องไม่ได้อยู่ในโหมดอ่านอย่างเดียว
+  const canManage = parcel.status === "waiting" && !readOnly;
+  return <tr data-status={parcel.status}>
+    <td data-label="พัสดุ">
+      {parcel.imageUrl ? <div className="parcel-table-photo"><Image alt={`รูปพัสดุห้อง ${parcel.roomId}`} height={52} src={parcel.imageUrl} unoptimized width={52} /></div> : <span className="parcel-muted">—</span>}
+    </td>
+    <td data-label="ห้อง / ผู้รับ"><strong>ห้อง {parcel.roomId}</strong><small>{parcel.tenantName}</small></td>
+    <td data-label="หมายเหตุ">{parcel.note || <span className="parcel-muted">ไม่มีหมายเหตุ</span>}</td>
+    <td data-label="วันที่ลงทะเบียน"><time>{parcel.registeredAt}</time></td>
+    <td data-label="สถานะ">
+      <span className={`parcel-status ${parcel.status}`}>{parcel.status === "waiting" ? "รอรับ" : "รับแล้ว"}</span>
+      {parcel.receivedAt ? <small>เมื่อ {parcel.receivedAt}</small> : null}
+    </td>
+    <td data-label="จัดการ">
+      {canManage ? <ActionMenu items={[
+        { disabled: actionFeedback.isPending, id: "received", label: actionFeedback.isPending ? "กำลังบันทึก..." : "บันทึกว่ารับแล้ว", icon: <CheckCircle2 size={16} />, onSelect: () => void onMarkReceived(parcel.id) },
+        { id: "edit", label: "แก้ไขหมายเหตุ", icon: <Pencil size={16} />, onSelect: () => onEdit(parcel) },
+        { id: "cancel", label: "ยกเลิกรายการ", icon: <Ban size={16} />, variant: "danger", onSelect: () => void onCancel(parcel) },
+      ]} label={`จัดการพัสดุห้อง ${parcel.roomId}`} /> : <span className="parcel-muted">—</span>}
+    </td>
+  </tr>;
+}
+
+type ParcelForm = { imageUrl: string; note: string; roomId: string };
+
+// กล่องลงทะเบียนพัสดุใหม่ เลือกชั้นก่อนแล้วค่อยเลือกห้อง
+function ParcelRegisterDialog({ floorRooms, floors, form, isOpen, isSaving, onClose, onFloorChange, onImageUpload, onNoteChange, onRoomChange, onSubmit, selectedFloor }: Readonly<{
+  floorRooms: Room[];
+  floors: number[];
+  form: ParcelForm;
+  isOpen: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onFloorChange: (floor: number) => void;
+  onImageUpload: (file: File | undefined) => void;
+  onNoteChange: (note: string) => void;
+  onRoomChange: (roomId: string) => void;
+  onSubmit: () => Promise<void>;
+  selectedFloor: number;
+}>) {
+  if (!isOpen) return null;
+  return <Dialog ariaDescribedBy="parcel-register-description" ariaLabelledBy="parcel-register-title" className="repair-flow-modal" closeOnBackdrop onClose={onClose}>
+    <div className="modal-header">
+      <div>
+        <small id="parcel-register-description">ลงทะเบียนพัสดุเข้าหอ</small>
+        <h2 id="parcel-register-title">เพิ่มพัสดุใหม่</h2>
+      </div>
+      <Button aria-label="ปิด" data-dialog-initial-focus onClick={onClose} variant="icon">×</Button>
+    </div>
+    <div className="parcel-form modal-parcel-form">
+      <div className="modal-field">
+        <DropdownField label="ชั้น" onChange={(nextValue) => onFloorChange(Number(nextValue))} options={floors.map((floor) => ({ value: String(floor), label: `ชั้น ${floor}` }))} value={String(selectedFloor)} />
+      </div>
+      <div className="modal-field">
+        <DropdownField label="ห้อง" onChange={onRoomChange} options={floorRooms.map((room) => ({ value: room.id, label: `ห้อง ${room.id}` }))} value={form.roomId} />
+      </div>
+      <label>
+        <span>หมายเหตุ</span>
+        <input onChange={(event) => onNoteChange(event.target.value)} placeholder="เช่น กล่องใหญ่ / ซองเอกสาร" value={form.note} />
+      </label>
+      <label className="parcel-photo-upload">
+        <span>รูปพัสดุ</span>
+        <input accept="image/*" onChange={(event) => onImageUpload(event.target.files?.[0])} type="file" />
+        <strong><ImageUp size={16} /> {form.imageUrl ? "เลือกรูปแล้ว" : "อัปโหลดรูป"}</strong>
+      </label>
+    </div>
+    <div className="modal-actions">
+      <Button onClick={onClose} variant="secondary">ยกเลิก</Button>
+      <Button aria-describedby={form.roomId ? undefined : "parcel-save-disabled-reason"} disabled={!form.roomId} isLoading={isSaving} loadingLabel="กำลังบันทึก..." onClick={() => void onSubmit()}>บันทึกพัสดุ</Button>
+    </div>
+    {form.roomId ? null : <p className="disabled-reason justify-self-end" id="parcel-save-disabled-reason">เลือกห้องผู้รับก่อนบันทึกพัสดุ</p>}
+  </Dialog>;
 }

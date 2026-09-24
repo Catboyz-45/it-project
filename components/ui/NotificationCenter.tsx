@@ -21,6 +21,98 @@ export type NotificationCenterItem = {
 };
 
 // กระดิ่งแจ้งเตือนบนแถบหัวเรื่อง รวมงานค้างของหน้าต่าง ๆ ไว้ที่เดียว
+// ผูก id กับจำนวนไว้ด้วยกัน พอจำนวนเปลี่ยนก็ถือว่าเป็นเรื่องใหม่ที่ยังไม่ได้อ่าน
+function fingerprintOf(item: NotificationCenterItem) {
+  return `${item.id}:${item.count}`;
+}
+
+// รายการในแผง ว่างเพราะไม่มีงานค้าง ไม่ใช่เพราะระบบพัง
+function NotificationList({ items, onSelect, readFingerprints }: Readonly<{
+  items: NotificationCenterItem[];
+  onSelect: (item: NotificationCenterItem) => void;
+  readFingerprints: string[];
+}>) {
+  if (items.length === 0) {
+    return <div className="grid justify-items-center px-6 py-10 text-center">
+      <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={24} /></span>
+      <strong className="mt-3">เรียบร้อยทั้งหมด</strong>
+      <p className="mt-1 text-sm text-[#73757d]">เมื่อมีรายการใหม่หรือรายการที่ต้องดำเนินการ จะแสดงที่นี่</p>
+    </div>;
+  }
+  return <>{items.map((item) => <NotificationRow
+    isUnread={!readFingerprints.includes(fingerprintOf(item))}
+    item={item}
+    key={item.id}
+    onSelect={onSelect}
+  />)}</>;
+}
+
+function NotificationRow({ isUnread, item, onSelect }: Readonly<{
+  isUnread: boolean;
+  item: NotificationCenterItem;
+  onSelect: (item: NotificationCenterItem) => void;
+}>) {
+  const actionLabel = item.href ? "เปิดหน้าที่เกี่ยวข้อง" : "เปิดรายการนี้";
+  // อ่านแล้วทำให้จางลง เพื่อให้เรื่องใหม่เด่นกว่าโดยไม่ต้องซ่อนของเก่า
+  const className = `notification-item interactive-card flex w-full items-start gap-3 rounded-xl border border-transparent p-3 text-left text-[#292a30] no-underline hover:bg-brand/5 hover:no-underline ${isUnread ? "bg-brand/[0.03]" : "opacity-70"}`;
+  const label = `${item.title} ${item.count} รายการ ${actionLabel}`;
+  const content = <>
+    <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{item.icon}</span>
+    <span className="min-w-0 flex-1">
+      <strong className="block text-sm">{item.title}</strong>
+      <small className="mt-1 block leading-5 text-[#73757d]">{item.description}</small>
+    </span>
+    <span className={isUnread ? "rounded-full bg-red-50 px-2 py-1 text-xs font-black text-red-600" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500"}>{item.count > 99 ? "99+" : item.count}</span>
+    <span className="sr-only">{actionLabel}</span>
+  </>;
+
+  // มี href ใช้ Link เพื่อให้เปิดแท็บใหม่หรือคัดลอกลิงก์ได้ ไม่มีก็เป็นปุ่มธรรมดา
+  if (item.href) {
+    return <Link aria-label={label} className={className} href={item.href} onClick={() => onSelect(item)}>{content}</Link>;
+  }
+  return <button aria-label={label} className={className} onClick={() => onSelect(item)} type="button">{content}</button>;
+}
+
+// หัวแผงแจ้งเตือน รวมปุ่มอ่านทั้งหมด ปุ่มรีเฟรช และปุ่มปิด
+function NotificationPanelHeader({ hasUnread, isLoading, onClose, onMarkAllRead, onRefresh, readOnly, total }: Readonly<{
+  hasUnread: boolean;
+  isLoading: boolean;
+  onClose: () => void;
+  onMarkAllRead: () => void;
+  onRefresh?: () => void | Promise<void>;
+  readOnly: boolean;
+  total: number;
+}>) {
+  return <header className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+    <div>
+      <h2 className="text-base font-black">การแจ้งเตือน</h2>
+      <p className="mt-0.5 text-xs text-[#73757d]">{total > 0 ? `${total} รายการที่ควรตรวจสอบ` : "ไม่มีรายการค้างอยู่"}</p>
+      {/* บอกล่วงหน้าว่าดูได้แต่กดทำอะไรไม่ได้ ดีกว่าปล่อยให้กดแล้วเจอปฏิเสธทีหลัง */}
+      {readOnly ? <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900"><LockKeyhole size={12} /> เปิดดูได้ แต่ยังดำเนินการไม่ได้</span> : null}
+    </div>
+    <div className="flex items-center gap-1">
+      {/* ซ่อนปุ่มนี้เมื่ออ่านครบแล้ว จะได้ไม่มีปุ่มที่กดไปก็ไม่เกิดอะไร */}
+      {hasUnread ? <IconButton label="ทำเครื่องหมายว่าอ่านทั้งหมด" onClick={onMarkAllRead}><CheckCheck size={18} /></IconButton> : null}
+      {onRefresh ? <IconButton
+        // ปิดปุ่มระหว่างโหลด กันกดรัวจนยิงหลายรอบ
+        disabled={isLoading}
+        label="อัปเดตการแจ้งเตือน"
+        onClick={() => void onRefresh()}
+      >
+        <RefreshCw aria-hidden="true" className={isLoading ? "animate-spin" : ""} size={17} />
+      </IconButton> : null}
+      <IconButton
+        // ขยายพื้นที่กดให้ถึงเกณฑ์นิ้วสัมผัสบนมือถือ
+        className="min-h-[45px] min-w-[45px]"
+        label="ปิดศูนย์การแจ้งเตือน"
+        onClick={onClose}
+      >
+        <X aria-hidden="true" size={18} />
+      </IconButton>
+    </div>
+  </header>;
+}
+
 export function NotificationCenter({
   isLoading = false,
   items,
@@ -29,13 +121,13 @@ export function NotificationCenter({
   readOnly = false,
   // แยก key ตามบทบาทหรือหอพัก ไม่งั้นสถานะอ่านแล้วจะปนกันข้ามบัญชี
   storageKey,
-}: {
+}: Readonly<{
   isLoading?: boolean;
   items: NotificationCenterItem[];
   onRefresh?: () => void | Promise<void>;
   readOnly?: boolean;
   storageKey: string;
-}) {
+}>) {
   const [isOpen, setIsOpen] = useState(false);
   const [readFingerprints, setReadFingerprints] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -46,10 +138,7 @@ export function NotificationCenter({
   // ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง
   const visibleItems = items.filter((item) => item.count > 0);
 
-  // ผูก id กับจำนวนไว้ด้วยกัน พอจำนวนเปลี่ยนก็ถือว่าเป็นเรื่องใหม่ที่ยังไม่ได้อ่าน
-  const fingerprint = (item: NotificationCenterItem) => `${item.id}:${item.count}`;
-
-  const unreadItems = visibleItems.filter((item) => !readFingerprints.includes(fingerprint(item)));
+  const unreadItems = visibleItems.filter((item) => !readFingerprints.includes(fingerprintOf(item)));
 
   // นับจากที่ยังไม่ได้อ่านเท่านั้น ตัวเลขบนกระดิ่งจะได้ลดลงเมื่อกดอ่าน
   const total = unreadItems.reduce((sum, item) => sum + item.count, 0);
@@ -97,7 +186,7 @@ export function NotificationCenter({
 
   // กดรายการไหนถือว่าอ่านแล้ว แล้วปิดแผงเพื่อให้เห็นหน้าปลายทาง
   const selectItem = (item: NotificationCenterItem) => {
-    markRead([fingerprint(item)]);
+    markRead([fingerprintOf(item)]);
     setIsOpen(false);
     item.onSelect?.();
   };
@@ -136,69 +225,19 @@ export function NotificationCenter({
           // -1 ให้โฟกัสด้วยโค้ดได้ แต่ผู้ใช้กด Tab มาโดนเองไม่ได้
           tabIndex={-1}
         >
-          <header className="flex items-center justify-between border-b border-black/10 px-5 py-4">
-            <div>
-              <h2 className="text-base font-black">การแจ้งเตือน</h2>
-              <p className="mt-0.5 text-xs text-[#73757d]">{total > 0 ? `${total} รายการที่ควรตรวจสอบ` : "ไม่มีรายการค้างอยู่"}</p>
-              {/* บอกล่วงหน้าว่าดูได้แต่กดทำอะไรไม่ได้ ดีกว่าปล่อยให้กดแล้วเจอปฏิเสธทีหลัง */}
-              {readOnly ? <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900"><LockKeyhole size={12} /> เปิดดูได้ แต่ยังดำเนินการไม่ได้</span> : null}
-            </div>
-            <div className="flex items-center gap-1">
-              {/* ซ่อนปุ่มนี้เมื่ออ่านครบแล้ว จะได้ไม่มีปุ่มที่กดไปก็ไม่เกิดอะไร */}
-              {unreadItems.length ? <IconButton label="ทำเครื่องหมายว่าอ่านทั้งหมด" onClick={() => markRead(visibleItems.map(fingerprint))}><CheckCheck size={18} /></IconButton> : null}
-              {onRefresh ? (
-                <IconButton
-                  // ปิดปุ่มระหว่างโหลด กันกดรัวจนยิงหลายรอบ
-                  disabled={isLoading}
-                  label="อัปเดตการแจ้งเตือน"
-                  onClick={() => void onRefresh()}
-                >
-                  <RefreshCw aria-hidden="true" className={isLoading ? "animate-spin" : ""} size={17} />
-                </IconButton>
-              ) : null}
-              <IconButton
-                // ขยายพื้นที่กดให้ถึงเกณฑ์นิ้วสัมผัสบนมือถือ
-                className="min-h-[45px] min-w-[45px]"
-                label="ปิดศูนย์การแจ้งเตือน"
-                onClick={() => setIsOpen(false)}
-              >
-                <X aria-hidden="true" size={18} />
-              </IconButton>
-            </div>
-          </header>
+          <NotificationPanelHeader
+            hasUnread={unreadItems.length > 0}
+            isLoading={isLoading}
+            onClose={() => setIsOpen(false)}
+            onMarkAllRead={() => markRead(visibleItems.map(fingerprintOf))}
+            onRefresh={onRefresh}
+            readOnly={readOnly}
+            total={total}
+          />
 
           {/* จำกัดความสูงแล้วให้เลื่อนข้างใน กันแผงยาวเกินจอตอนมีรายการเยอะ */}
           <div className="notification-list max-h-[min(520px,65vh)] overflow-y-auto p-2">
-            {visibleItems.length ? visibleItems.map((item) => {
-              const isUnread = !readFingerprints.includes(fingerprint(item));
-              // แยกเนื้อหาออกมา เพราะข้างล่างต้องใช้ซ้ำทั้งแบบลิงก์และแบบปุ่ม
-              const content = (
-                <>
-                  <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{item.icon}</span>
-                  <span className="min-w-0 flex-1">
-                    <strong className="block text-sm">{item.title}</strong>
-                    <small className="mt-1 block leading-5 text-[#73757d]">{item.description}</small>
-                  </span>
-                  <span className={isUnread ? "rounded-full bg-red-50 px-2 py-1 text-xs font-black text-red-600" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500"}>{item.count > 99 ? "99+" : item.count}</span>
-                </>
-              );
-              const actionLabel = item.href ? "เปิดหน้าที่เกี่ยวข้อง" : "เปิดรายการนี้";
-              // อ่านแล้วทำให้จางลง เพื่อให้เรื่องใหม่เด่นกว่าโดยไม่ต้องซ่อนของเก่า
-              const className = `notification-item interactive-card flex w-full items-start gap-3 rounded-xl border border-transparent p-3 text-left text-[#292a30] no-underline hover:bg-brand/5 hover:no-underline ${isUnread ? "bg-brand/[0.03]" : "opacity-70"}`;
-              // มี href ใช้ Link เพื่อให้เปิดแท็บใหม่หรือคัดลอกลิงก์ได้ ไม่มีก็เป็นปุ่มธรรมดา
-              return item.href ? (
-                <Link aria-label={`${item.title} ${item.count} รายการ ${actionLabel}`} className={className} href={item.href} key={item.id} onClick={() => selectItem(item)}>{content}<span className="sr-only">{actionLabel}</span></Link>
-              ) : (
-                <button aria-label={`${item.title} ${item.count} รายการ ${actionLabel}`} className={className} key={item.id} onClick={() => selectItem(item)} type="button">{content}<span className="sr-only">{actionLabel}</span></button>
-              );
-            }) : (
-              // บอกว่าว่างเพราะไม่มีงานค้าง ไม่ใช่เพราะระบบพัง
-              <div className="grid justify-items-center px-6 py-10 text-center">
-                <span className="grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={24} /></span>
-                <strong className="mt-3">เรียบร้อยทั้งหมด</strong>
-                <p className="mt-1 text-sm text-[#73757d]">เมื่อมีรายการใหม่หรือรายการที่ต้องดำเนินการ จะแสดงที่นี่</p>
-              </div>
-            )}
+            <NotificationList items={visibleItems} onSelect={selectItem} readFingerprints={readFingerprints} />
           </div>
         </section>
       ) : null}

@@ -8,7 +8,7 @@ import type { DocumentData } from "@/lib/documents/placeholders";
 import type { DocumentKind } from "@/lib/documents/types";
 
 // ปุ่มดูตัวอย่างกับสร้าง PDF ของเอกสาร ใช้ซ้ำได้ทั้งสัญญา ใบเสร็จ และใบแจ้งหนี้
-export function DocumentButtons({ data, kind, propertyId }: { data: DocumentData; kind: DocumentKind; propertyId: string }) {
+export function DocumentButtons({ data, kind, propertyId }: Readonly<{ data: DocumentData; kind: DocumentKind; propertyId: string }>) {
   // เก็บว่ากำลังทำอะไรอยู่ ไม่ใช่แค่ true/false เพราะต้องรู้ด้วยว่าปุ่มไหนกำลังทำงาน
   const [pendingAction, setPendingAction] = useState<"preview" | "generate" | null>(null);
   const [error, setError] = useState("");

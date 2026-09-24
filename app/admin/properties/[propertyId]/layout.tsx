@@ -12,10 +12,10 @@ import { getOwnerDashboardAggregation } from "@/lib/server/dashboard-aggregation
 export default async function PropertyWorkspaceLayout({
   children,
   params,
-}: {
+}: Readonly<{
   children: ReactNode;
   params: Promise<{ propertyId: string }>;
-}) {
+}>) {
   const { propertyId } = await params;
   // ตรวจสิทธิ์บนเซิร์ฟเวอร์ก่อนแตะข้อมูลใด ๆ ไม่เชื่อค่าที่ส่งมาจากฝั่งผู้ใช้
   const auth = await requirePageAuth();

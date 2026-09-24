@@ -9,7 +9,7 @@ import { requirePageAuth } from "@/lib/server/auth";
 import { tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
 import { getTenantAccount } from "@/lib/server/tenant-portal";
 
-export default async function TenantLayout({ children }: { children: ReactNode }) {
+export default async function TenantLayout({ children }: Readonly<{ children: ReactNode }>) {
   // ตรวจสิทธิ์บนเซิร์ฟเวอร์ก่อนแตะข้อมูลใด ๆ ไม่เชื่อค่าที่ส่งมาจากฝั่งผู้ใช้
   const auth = await requirePageAuth();
   // ไม่ใช่ผู้เช่าก็ส่งกลับหน้าแรก ให้ระบบพาไปยังพื้นที่ของบทบาทตัวเอง

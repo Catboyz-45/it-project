@@ -5,12 +5,12 @@ export function SuperAdminPageHeader({
   actions,
   description,
   title,
-}: {
+}: Readonly<{
   // ปุ่มด้านขวาของหัวเรื่อง เช่นปุ่มสร้างรายการใหม่ ไม่ส่งมาก็ไม่แสดงอะไร
   actions?: ReactNode;
   description: string;
   title: string;
-}) {
+}>) {
   return <header className="flex flex-wrap items-start justify-between gap-4">
     <div>
       <h1 className="text-2xl font-bold tracking-[-.02em] text-[#292a30]">{title}</h1>

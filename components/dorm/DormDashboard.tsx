@@ -1,36 +1,10 @@
 "use client";
 // ถือ state ของทั้งพื้นที่เจ้าของหอ และโหลดข้อมูลใหม่จากเบราว์เซอร์
 
-import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { RetryButton } from "@/components/ui/DataNavigation";
-import {
-  Building2,
-  AlertTriangle,
-  Banknote,
-  Check,
-  ChevronDown,
-  Droplets,
-  FileText,
-  Gauge,
-  HelpCircle,
-  Home,
-  LockKeyhole,
-  LogOut,
-  PackageCheck,
-  QrCode,
-  CreditCard,
-  Settings,
-  ChevronsUpDown,
-  Megaphone,
-  MessageSquare,
-  UserRound,
-  Wrench,
-  Zap,
-} from "lucide-react";
 import { ContractsPage } from "@/components/dorm/pages/ContractsPage";
 import {
   AnnouncementsPage,
@@ -56,28 +30,22 @@ import type { DashboardSummary, PageKey } from "@/types/navigation";
 import type { OwnerDashboardAggregation, OwnerWorkspaceReadModel } from "@/types/dashboard";
 import { ownerPageFromSegments, ownerPagePath } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
-import { platformProfile } from "@/lib/platform-profile";
-import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
+import { NotificationCenter } from "@/components/ui/NotificationCenter";
+import { useOwnerWorkspaceData } from "@/components/dorm/useOwnerWorkspaceData";
+import { buildNotificationCounts, buildOwnerNotifications } from "@/components/dorm/owner-notifications";
+import { SubscriptionAccessBanner, WorkspaceDataError } from "@/components/dorm/OwnerShellParts";
+import { type DashboardProperty, isSettingsArea, OwnerSidebar } from "@/components/dorm/OwnerSidebar";
+import {
+  type MeterReadingInput,
+  saveMetersRequest,
+  saveRoomRequest,
+  saveTenantDetailRequest,
+  saveTenantRequest,
+} from "@/components/dorm/owner-mutations";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
 
-// สามหน้านี้ไม่มีในเมนูหลัก มิเตอร์อยู่ในเมนูย่อย ส่วนประวัติซ่อมเข้าจากหน้าเรื่องร้องเรียน
-type MenuPageKey = Exclude<PageKey, "repairHistory" | "waterMeter" | "electricMeter">;
-const menuItems: Array<{ key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
-  { key: "overview", label: "แดชบอร์ด", icon: Home },
-  { key: "rooms", label: "ผังห้องพัก", icon: Building2 },
-  { key: "tenants", label: "ผู้เช่า", icon: UserRound },
-  { key: "contracts", label: "สัญญาเช่า", icon: FileText },
-];
-
-const secondaryMenuItems: Array<{ key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> }> = [
-  { key: "invoices", label: "บิลและการเงิน", icon: QrCode },
-  { key: "complaints", label: "ร้องเรียน", icon: Wrench },
-  { key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
-];
-
-// Record บังคับให้ทุกหน้ามีชื่อกำกับตั้งแต่ตอนคอมไพล์ เพิ่มหน้าใหม่แล้วลืมตั้งชื่อจะคอมไพล์ไม่ผ่าน
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
   rooms: { title: "ผังห้องพัก", subtitle: "ผังห้องแบบ Visual Floor Plan พร้อมสถานะและข้อมูลผู้เช่า" },
@@ -96,13 +64,6 @@ const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   properties: { title: "จัดการหอพัก", subtitle: "เลือกหอพักที่ต้องการจัดการ" },
   account: { title: "บัญชีและความปลอดภัย", subtitle: "จัดการข้อมูลโปรไฟล์ รหัสผ่าน และความปลอดภัยของบัญชี" },
   settings: { title: "ตั้งค่า", subtitle: "ตั้งค่าข้อมูลหอ ค่าใช้จ่าย โครงเอกสาร และข้อมูลสำหรับระบบ" },
-};
-
-type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
-// ฐานข้อมูลเก็บ "-" แทนค่าว่างในบางฟิลด์ แปลงกลับเป็น null ก่อนส่งขึ้นเซิร์ฟเวอร์
-const optionalTenantText = (value: string) => {
-  const normalized = value.trim();
-  return normalized && normalized !== "-" ? normalized : null;
 };
 
 // สิ่งที่หน้าต่าง ๆ ต้องใช้ร่วมกัน ส่งผ่าน context เพราะเปลือกอยู่ใน layout ส่วนหน้ามาทาง children
@@ -156,7 +117,7 @@ export function DormDashboard({
   initialAggregation,
   initialData,
   propertyId,
-}: {
+}: Readonly<{
   authenticatedEmail?: string;
   authenticatedUser?: string;
   availableProperties: DashboardProperty[];
@@ -164,7 +125,7 @@ export function DormDashboard({
   initialAggregation: OwnerDashboardAggregation;
   initialData: OwnerWorkspaceReadModel;
   propertyId: string;
-}) {
+}>) {
   const router = useRouter();
   // อ่านหน้าปัจจุบันจาก URL แทนการรับเป็น prop เพราะ layout ไม่รู้พารามิเตอร์ของ route ลูก
   const pathname = usePathname();
@@ -172,19 +133,13 @@ export function DormDashboard({
     pathname.replace(new RegExp(`^/admin/properties/${propertyId}/?`), "").split("/").filter(Boolean),
   ) ?? "overview";
   const [currentUser, setCurrentUser] = useState(authenticatedUser ?? "");
-  const [isMetersMenuOpen, setIsMetersMenuOpen] = useState(true);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [parcelView] = useState<ParcelView>("waiting");
   const [shouldOpenComplaintAdd, setShouldOpenComplaintAdd] = useState(false);
-  const [rooms, setRooms] = useState<Room[]>(initialData.rooms);
-  const [tenants, setTenants] = useState<Tenant[]>(initialData.tenants);
-  const [invoices, setInvoices] = useState<Invoice[]>(initialData.invoices);
-  const [repairTickets, setRepairTickets] = useState(initialData.repairs);
-  const [dashboardData, setDashboardData] = useState(initialData);
-  const [dataError, setDataError] = useState("");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [aggregation, setAggregation] = useState<OwnerDashboardAggregation | null>(initialAggregation);
-  const [accessError, setAccessError] = useState("");
+  // ข้อมูลร่วมทั้งหมดและการโหลดใหม่อยู่ในฮุก เปลือกนี้เหลือหน้าที่ประกอบหน้าจอ
+  const {
+    accessError, aggregation, dashboardData, dataError, invoices, isRefreshing,
+    refreshDashboard, repairTickets, rooms, setDataError, setTenants, tenants,
+  } = useOwnerWorkspaceData({ initialAggregation, initialData, propertyId });
   const [unreadTicketReplies, setUnreadTicketReplies] = useState(0);
   const [openChatSignal, setOpenChatSignal] = useState(0);
   const [selectedRoomId, setSelectedRoomId] = useState(initialData.rooms[0]?.id ?? "");
@@ -192,8 +147,6 @@ export function DormDashboard({
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [tenantModalMode] = useState<"add" | "edit">("edit");
   const [detailTenantId, setDetailTenantId] = useState<string | null>(null);
-  const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
   // หาไม่เจอก็ใช้หอแรกแทน กันหัวข้อว่างเปล่าตอนข้อมูลยังมาไม่ครบ
   const activeProperty = availableProperties.find((property) => property.id === propertyId) ?? availableProperties[0];
 
@@ -209,18 +162,14 @@ export function DormDashboard({
   });
   const isReadOnly = blocksSubscriptionMutations(accessState);
   const isInGracePeriod = accessState === "grace";
-  // เตือนล่วงหน้า 30 วัน 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน
-  const isSubscriptionExpiringSoon = Boolean(aggregation?.subscription)
-    && new Date(aggregation!.subscription!.expiresAt).getTime() > Date.now()
-    && new Date(aggregation!.subscription!.expiresAt).getTime() - Date.now() <= 30 * 86_400_000;
+  // ตรวจสิทธิ์ไม่สำเร็จกับกำลังตรวจอยู่ ต่างจากหมดอายุจริง จึงต้องบอกคนละข้อความ
+  const unresolvedAccess = accessState === "loading" || accessState === "error";
   const readOnlyMessage = "แพ็กเกจหมดอายุแล้ว พื้นที่นี้เปิดให้อ่านข้อมูลเท่านั้น กรุณาต่ออายุแพ็กเกจ";
 
   // เรียกก่อนทุกการกระทำที่เปลี่ยนข้อมูล คืน false พร้อมขึ้นข้อความบอกเหตุผล
   const ensureWritable = () => {
     if (!isReadOnly) return true;
-    setDataError(accessState === "loading" || accessState === "error"
-      ? "ยังตรวจสอบสิทธิ์การใช้งานไม่ได้ กรุณาลองโหลดข้อมูลใหม่"
-      : readOnlyMessage);
+    setDataError(unresolvedAccess ? "ยังตรวจสอบสิทธิ์การใช้งานไม่ได้ กรุณาลองโหลดข้อมูลใหม่" : readOnlyMessage);
     return false;
   };
 
@@ -228,56 +177,6 @@ export function DormDashboard({
   const navigateTo = useCallback((page: PageKey) => {
     router.push(ownerPagePath(propertyId, page));
   }, [propertyId, router]);
-
-  // โหลดข้อมูลร่วมใหม่ทั้งชุด เรียกหลังทุกการแก้ไข เพื่อให้ทุกหน้าเห็นข้อมูลตรงกัน
-  const refreshDashboard = useCallback(async () => {
-    setIsRefreshing(true);
-    setDataError("");
-    setAccessError("");
-    const loadJson = async <T,>(url: string, fallbackMessage: string) => {
-      const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
-      const payload = await response.json() as { data?: T; error?: string };
-      if (!response.ok || payload.data === undefined || payload.data === null) {
-        throw new Error(payload.error || fallbackMessage);
-      }
-      return payload.data;
-    };
-    const [workspaceResult, aggregationResult] = await Promise.allSettled([
-      loadJson<OwnerWorkspaceReadModel>(
-        `/api/v1/admin/properties/${propertyId}/dashboard`,
-        "โหลดข้อมูลหอพักไม่สำเร็จ",
-      ),
-      loadJson<OwnerDashboardAggregation>(
-        `/api/v1/admin/properties/${propertyId}/dashboard/summary`,
-        "โหลดข้อมูลสรุปไม่สำเร็จ",
-      ),
-    ]);
-    const errors: string[] = [];
-    if (workspaceResult.status === "fulfilled") {
-      const workspace = workspaceResult.value;
-      setDashboardData(workspace);
-      setRooms(workspace.rooms);
-      setTenants(workspace.tenants);
-      setInvoices(workspace.invoices);
-      setRepairTickets(workspace.repairs);
-    } else {
-      errors.push(workspaceResult.reason instanceof Error
-        ? workspaceResult.reason.message
-        : "โหลดข้อมูลหอพักไม่สำเร็จ");
-    }
-    if (aggregationResult.status === "fulfilled") {
-      setAggregation(aggregationResult.value);
-    } else {
-      setAggregation(null);
-      const aggregationError = aggregationResult.reason instanceof Error
-        ? aggregationResult.reason.message
-        : "โหลดข้อมูลสรุปไม่สำเร็จ";
-      setAccessError(aggregationError);
-      errors.push(aggregationError);
-    }
-    setDataError(errors.join(" · "));
-    setIsRefreshing(false);
-  }, [propertyId]);
 
   // จำไว้ว่าข้อมูลในมือเป็นของหอไหน layout ดึงมาให้ตั้งแต่ฝั่งเซิร์ฟเวอร์แล้ว จึงเริ่มที่หอปัจจุบันเลย
   const [loadedPropertyId, setLoadedPropertyId] = useState(propertyId);
@@ -304,21 +203,6 @@ export function DormDashboard({
 
   useEffect(() => { void refreshUnreadTicketReplies(); }, [refreshUnreadTicketReplies]);
 
-  useEffect(() => {
-    if (!isAccountMenuOpen) return;
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (!accountMenuRef.current?.contains(event.target as Node)) setIsAccountMenuOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsAccountMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isAccountMenuOpen]);
 
 
   const summary: DashboardSummary | null = aggregation ? {
@@ -327,92 +211,40 @@ export function DormDashboard({
     revenue: aggregation.finance.collected,
     pending: aggregation.finance.outstanding,
   } : null;
-  const notificationCounts: Partial<Record<PageKey, number>> = aggregation ? {
-    subscription: !aggregation.subscription
-      || new Date(aggregation.subscription.expiresAt).getTime() - Date.now() <= 30 * 86_400_000
-      ? 1
-      : 0,
-    overview: aggregation.pendingOccupancies
-      + aggregation.finance.pendingPayments
-      + aggregation.finance.overdueInvoices
-      + aggregation.operations.openTickets
-      + aggregation.operations.waitingParcels
-      + aggregation.operations.unreadTenantMessages
-      + aggregation.operations.expiringLeases
-      + (!aggregation.subscription
-        || new Date(aggregation.subscription.expiresAt).getTime() - Date.now() <= 30 * 86_400_000
-        ? 1
-        : 0),
-    tenants: aggregation.pendingOccupancies,
-    contracts: aggregation.operations.expiringLeases,
-    invoices: aggregation.finance.pendingPayments + aggregation.finance.overdueInvoices,
-    complaints: unreadTicketReplies || aggregation.operations.openTickets,
-    parcels: aggregation.operations.waitingParcels,
-  } : {};
+  const notificationCounts = buildNotificationCounts(aggregation, unreadTicketReplies);
 
-  // ป้ายตัวเลขบนเมนู ซ่อนไปเลยเมื่อไม่มีอะไรค้าง
-  const menuBadge = (page: PageKey) => {
-    const count = notificationCounts[page] ?? 0;
-    return count > 0
-      ? <span className="notification-badge" aria-label={`${count} รายการ${isReadOnly ? "สำหรับตรวจสอบ" : "ที่ต้องดำเนินการ"}`}>{count > 99 ? "99+" : count}</span>
-      : null;
+
+  const ownerNotifications = buildOwnerNotifications({
+    accessState,
+    aggregation,
+    isReadOnly,
+    onOpenChat: () => setOpenChatSignal((current) => current + 1),
+    propertyId,
+    unreadTicketReplies,
+  });
+
+  // รูปแบบเดียวกันทั้งสามหน้าต่าง สำเร็จแล้วปิดหน้าต่างและโหลดข้อมูลใหม่ พังก็ขึ้นข้อความไว้บนหน้า
+  const runMutation = async (send: () => Promise<void>, onDone: () => void, fallbackMessage: string) => {
+    try {
+      await send();
+      onDone();
+      await refreshDashboard();
+    } catch (error: unknown) {
+      setDataError(error instanceof Error ? error.message : fallbackMessage);
+    }
   };
 
-  // รายการในกระดิ่งแจ้งเตือน ข้อความต่างกันตามสิทธิ์ เพราะโหมดอ่านอย่างเดียวทำอะไรต่อไม่ได้
-  const ownerNotifications: NotificationCenterItem[] = aggregation ? [
-    { id: "pending-occupancies", count: aggregation.pendingOccupancies, title: "คำขอเข้าพักที่ยังรอดำเนินการ", description: isReadOnly ? "เปิดดูรายละเอียดได้ การอนุมัติจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "ตรวจสอบข้อมูลผู้เช่าก่อนอนุมัติเข้าพัก", href: `${ownerPagePath(propertyId, "tenants")}?tab=pending`, icon: <UserRound size={19} /> },
-    { id: "pending-payments", count: aggregation.finance.pendingPayments, title: "หลักฐานชำระเงินที่ยังรอตรวจสอบ", description: isReadOnly ? "เปิดดูหลักฐานได้ การยืนยันรับชำระจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "ตรวจสอบสลิปและยืนยันการรับชำระ", href: `${ownerPagePath(propertyId, "invoices")}?tab=payments`, icon: <Banknote size={19} /> },
-    { id: "overdue-invoices", count: aggregation.finance.overdueInvoices, title: "บิลเกินกำหนดชำระ", description: isReadOnly ? "เปิดดูรายการและยอดค้างชำระได้ในโหมดอ่านอย่างเดียว" : "ติดตามบิลที่ยังไม่ได้รับชำระ", href: ownerPagePath(propertyId, "invoices"), icon: <AlertTriangle size={19} /> },
-    { id: "open-tickets", count: aggregation.operations.openTickets, title: "เรื่องแจ้งที่ยังไม่เสร็จ", description: isReadOnly ? "เปิดดูสถานะและประวัติได้ การอัปเดตจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "ติดตามงานซ่อมและเรื่องร้องเรียนจากผู้เช่า", href: ownerPagePath(propertyId, "complaints"), icon: <Wrench size={19} /> },
-    { id: "ticket-replies", count: unreadTicketReplies, title: "ข้อความตอบกลับเรื่องแจ้ง", description: isReadOnly ? "เปิดอ่านข้อความและประวัติเดิมได้ในโหมดอ่านอย่างเดียว" : "มีข้อความใหม่จากผู้เช่าที่ยังไม่ได้อ่าน", href: ownerPagePath(propertyId, "complaints"), icon: <MessageSquare size={19} /> },
-    { id: "waiting-parcels", count: aggregation.operations.waitingParcels, title: "พัสดุที่ยังรอผู้เช่ารับ", description: isReadOnly ? "เปิดดูรายการได้ การบันทึกรับพัสดุจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ" : "รายการพัสดุที่ยังไม่ได้ส่งมอบ", href: ownerPagePath(propertyId, "parcels"), icon: <PackageCheck size={19} /> },
-    { id: "tenant-messages", count: aggregation.operations.unreadTenantMessages, title: "ข้อความใหม่จากผู้เช่า", description: isReadOnly ? "เปิดอ่านประวัติข้อความได้ แต่ยังตอบกลับไม่ได้" : "เปิดกล่องข้อความเพื่อตอบกลับผู้เช่า", onSelect: () => setOpenChatSignal((current) => current + 1), icon: <MessageSquare size={19} /> },
-    { id: "expiring-leases", count: aggregation.operations.expiringLeases, title: "สัญญาใกล้หมดอายุ", description: isReadOnly ? "คำนวณจากวันสิ้นสุดสัญญา เปิดดูรายละเอียดได้ในโหมดอ่านอย่างเดียว" : "คำนวณจากวันสิ้นสุดอัตโนมัติ โปรดตรวจสอบและเตรียมต่อสัญญา", href: ownerPagePath(propertyId, "contracts"), icon: <FileText size={19} /> },
-    {
-      id: "subscription",
-      count: !aggregation.subscription || new Date(aggregation.subscription.expiresAt).getTime() - Date.now() <= 30 * 86_400_000 ? 1 : 0,
-      title: aggregation.subscription
-        ? accessState === "read-only" ? "แพ็กเกจหมดอายุแล้ว" : "แพ็กเกจใกล้หมดอายุ"
-        : "ยังไม่มีแพ็กเกจที่ใช้งานได้",
-      description: accessState === "read-only" ? "เปิดหน้าสมาชิกเพื่อเลือกแพ็กเกจและต่ออายุการใช้งาน" : "ตรวจสอบแพ็กเกจและดำเนินการต่ออายุ",
-      href: ownerPagePath(propertyId, "subscription"),
-      icon: <CreditCard size={19} />,
-    },
-  ] : [];
-
-  // บันทึกมิเตอร์ทั้งชุดในคำขอเดียว ห้องเยอะจะได้ไม่ต้องยิงทีละห้อง
-  const saveMeters = async (readings: Array<{ roomId: string; type: "WATER" | "ELECTRICITY"; billingMonth: string; previousReading?: number; currentReading: number }>) => {
-    // โยน error แทนการคืนค่า เพราะหน้าที่เรียกต้องรู้ว่าไม่สำเร็จเพื่อคงร่างไว้ให้ผู้ใช้
+  // ทุกตัวด้านล่างเป็นแค่ตัวเชื่อม คำขอจริงอยู่ใน owner-mutations ส่วนการตรวจสิทธิ์จริงอยู่ที่เซิร์ฟเวอร์
+  // โยน error ต่อแทนการกลืน เพราะหน้าที่เรียกต้องรู้ว่าไม่สำเร็จเพื่อคงร่างไว้ให้ผู้ใช้
+  const saveMeters = async (readings: MeterReadingInput[]) => {
     if (!ensureWritable()) throw new Error(readOnlyMessage);
-    const response = await fetch(`/api/v1/admin/properties/${propertyId}/meter-readings/bulk`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ readings }),
-    });
-    if (!response.ok) {
-      throw new Error(((await response.json()) as { error?: string }).error || "บันทึกมิเตอร์ไม่สำเร็จ");
-    }
+    await saveMetersRequest(propertyId, readings);
     await refreshDashboard();
   };
 
   const saveRoomEdit = ({ room }: RoomEditPayload) => {
     if (!ensureWritable()) return;
-    if (!room.databaseId) {
-      setDataError("ไม่พบรหัสห้องในฐานข้อมูล");
-      return;
-    }
-    void fetch(`/api/v1/admin/properties/${propertyId}/rooms/${room.databaseId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roomType: room.roomType, monthlyRent: room.rent,
-        floorId: room.floorId,
-        ...(room.status === "occupied" ? {} : { status: room.status === "maintenance" ? "MAINTENANCE" : "AVAILABLE" }),
-        furniture: room.furniture,
-      }),
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "บันทึกห้องไม่สำเร็จ");
-      setIsRoomModalOpen(false);
-      await refreshDashboard();
-    }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกห้องไม่สำเร็จ"));
+    void runMutation(() => saveRoomRequest(propertyId, room), () => setIsRoomModalOpen(false), "บันทึกห้องไม่สำเร็จ");
   };
 
   const saveTenantEdit = ({ tenant }: TenantEditPayload) => {
@@ -421,56 +253,15 @@ export function DormDashboard({
       setDataError("ผู้เช่าต้องสมัครด้วยรหัสเชิญ แล้วเจ้าของหอจึงอนุมัติการเข้าพัก");
       return;
     }
-    void fetch(`/api/v1/admin/properties/${propertyId}/tenants/${tenant.id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: tenant.name,
-        phone: tenant.phone,
-        address: optionalTenantText(tenant.address),
-        emergencyName: optionalTenantText(tenant.guardianName),
-        emergencyPhone: optionalTenantText(tenant.guardianPhone),
-      }),
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "บันทึกผู้เช่าไม่สำเร็จ");
-      setIsTenantModalOpen(false);
-      await refreshDashboard();
-    }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกผู้เช่าไม่สำเร็จ"));
+    void runMutation(() => saveTenantRequest(propertyId, tenant), () => setIsTenantModalOpen(false), "บันทึกผู้เช่าไม่สำเร็จ");
   };
 
   const saveTenantDetail = (tenant: Tenant) => {
     if (!ensureWritable()) return;
-    const vehicleType = tenant.vehicleType === "รถจักรยานยนต์" ? "MOTORCYCLE"
-      : tenant.vehicleType === "รถยนต์" ? "CAR"
-        : tenant.vehicleType === "รถจักรยาน" ? "BICYCLE"
-          : tenant.vehicleType === "อื่น ๆ" ? "OTHER"
-            : null;
-    void fetch(`/api/v1/admin/properties/${propertyId}/tenants/${tenant.id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: tenant.name,
-        phone: tenant.phone,
-        address: optionalTenantText(tenant.address),
-        emergencyName: optionalTenantText(tenant.guardianName),
-        emergencyPhone: optionalTenantText(tenant.guardianPhone),
-        vehicle: vehicleType ? {
-          type: vehicleType,
-          licensePlate: tenant.vehiclePlate,
-          province: tenant.vehicleProvince || null,
-          brandModel: tenant.vehicleBrand || null,
-          color: tenant.vehicleColor || null,
-          detail: tenant.vehicleDetail || null,
-        } : null,
-      }),
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "บันทึกผู้เช่าไม่สำเร็จ");
-      setDetailTenantId(null);
-      await refreshDashboard();
-    }).catch((error: unknown) => setDataError(error instanceof Error ? error.message : "บันทึกผู้เช่าไม่สำเร็จ"));
+    void runMutation(() => saveTenantDetailRequest(propertyId, tenant), () => setDetailTenantId(null), "บันทึกผู้เช่าไม่สำเร็จ");
   };
 
-  // สามหน้านี้ใช้ SettingsPage ร่วมกัน จึงถือเป็นพื้นที่ตั้งค่าเดียวกันทั้งหมด
-  // ไม่ว่าจะเข้าจากเมนูตั้งค่าหรือเปิด URL ตรง และใช้โครงหน้าคนละแบบกับหน้าอื่น
-  const isSettingsArea = ["settings", "invitations", "subscription"].includes(activePage);
+  const inSettingsArea = isSettingsArea(activePage);
 
   // PageHeaderSlotProvider เปิดช่องให้หน้าย่อยส่งปุ่มของตัวเองขึ้นมาแสดงบนแถบหัวเรื่อง
   const workspaceValue: OwnerWorkspaceValue = {
@@ -509,178 +300,32 @@ export function DormDashboard({
   return (
     <OwnerWorkspaceContext.Provider value={workspaceValue}>
     <PageHeaderSlotProvider>
-    <main className={isSettingsArea ? "shell shell-settings" : "shell"}>
-      <aside className="sidebar" aria-label="เมนูหลัก">
-        <div className="sidebar-property">
-          <button aria-expanded={isPropertyMenuOpen} className="brand" onClick={() => setIsPropertyMenuOpen((current) => !current)} type="button">
-            <span className="brand-platform-mark">
-              <Image alt="" aria-hidden="true" className="size-full object-contain" height={40} src={platformProfile.logoPath} width={40} />
-            </span>
-            <span className="brand-copy">
-              <strong>{activeProperty.shortName}</strong>
-              <small>ระบบบริหารหอพัก</small>
-            </span>
-            <ChevronsUpDown className="brand-switch-icon" size={17} />
-          </button>
-          {isPropertyMenuOpen ? (
-            <div className="property-menu sidebar-property-menu" role="menu">
-              <p>เลือกหอพัก</p>
-              {availableProperties.map((property) => (
-                <button key={property.id} onClick={() => {
-                  setIsPropertyMenuOpen(false);
-                  // สลับหอพักต้องโหลดใหม่ทั้งหน้าโดยตั้งใจ เพื่อทิ้ง state และแคชข้อมูลของหอเดิมให้หมด
-                  // ไม่ใช้ router.push() ที่จะพาข้อมูลข้ามหอพักติดไปด้วย
-                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-                  if (property.id !== propertyId) window.location.assign(`/admin/properties/${property.id}`);
-                }} role="menuitem" type="button">
-                  <span className="property-avatar">{property.shortName.slice(0, 1)}</span>
-                  <span><strong>{property.shortName}</strong>{property.rooms !== undefined ? <small>{property.rooms} ห้อง</small> : null}</span>
-                  {property.id === propertyId ? <Check size={16} /> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <nav>
-          {menuItems.map(({ key, label, icon: Icon }) => (
-            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} href={ownerPagePath(propertyId, key)} key={key}>
-              <Icon size={18} />
-              <span>{label}</span>
-              {menuBadge(key)}
-            </Link>
-          ))}
-          <div className="sidebar-group">
-            <button
-              aria-expanded={isMetersMenuOpen}
-              onClick={() => setIsMetersMenuOpen((current) => !current)}
-              type="button"
-            >
-              <Gauge size={18} />
-              <span>ค่าน้ำและค่าไฟ</span>
-              <ChevronDown className={isMetersMenuOpen ? "sidebar-chevron open" : "sidebar-chevron"} size={17} />
-            </button>
-            {/* คงไว้ใน DOM เสมอแล้วสลับคลาสแทนการถอดออก ไม่งั้นความสูงกระโดดทันทีจนไม่มีอะไรให้ค่อย ๆ กาง */}
-            <div aria-hidden={!isMetersMenuOpen} className={isMetersMenuOpen ? "sidebar-subnav open" : "sidebar-subnav"}>
-              <div>
-                {/* ปิดอยู่ก็ต้องกด Tab ข้ามไป ไม่งั้นโฟกัสจะหายเข้าไปในเมนูที่มองไม่เห็น */}
-                <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")} tabIndex={isMetersMenuOpen ? undefined : -1}>
-                  <Droplets size={17} />
-                  <span>มิเตอร์น้ำ</span>
-                </Link>
-                <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")} tabIndex={isMetersMenuOpen ? undefined : -1}>
-                  <Zap size={17} />
-                  <span>มิเตอร์ไฟ</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-          {secondaryMenuItems.map(({ key, label, icon: Icon }) => (
-            <Link className={activePage === key || (activePage === "repairHistory" && key === "complaints") ? "active" : ""} href={ownerPagePath(propertyId, key)} key={key}>
-              <Icon size={18} />
-              <span>{label}</span>
-              {menuBadge(key)}
-            </Link>
-          ))}
-          <Link className={activePage === "announcements" ? "active" : ""} href={ownerPagePath(propertyId, "announcements")}>
-            <Megaphone size={18} />
-            <span>ประกาศ/ข่าวสาร</span>
-          </Link>
-        </nav>
-        <div className="sidebar-footer" ref={accountMenuRef}>
-          {isAccountMenuOpen ? (
-            <div className="account-menu" role="menu">
-              <p>
-                <strong>{activeProperty.shortName}</strong>
-                <span>{currentUser}</span>
-                {authenticatedEmail ? <small>{authenticatedEmail}</small> : null}
-              </p>
-              <button onClick={() => {
-                navigateTo("account");
-                setIsAccountMenuOpen(false);
-              }} type="button"><UserRound size={18} /> บัญชีและความปลอดภัย</button>
-              <button onClick={() => {
-                navigateTo("settings");
-                setIsAccountMenuOpen(false);
-              }} type="button"><Settings size={18} /> ตั้งค่าระบบ</button>
-              <span />
-              <button onClick={() => {
-                navigateTo("help");
-                setIsAccountMenuOpen(false);
-              }} type="button"><HelpCircle size={18} /> ช่วยเหลือ</button>
-              <span />
-              <button className="danger" onClick={() => {
-                void fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
-                  // ออกจากระบบต้องโหลดใหม่ทั้งหน้า เพื่อทิ้ง state และแคช RSC ของผู้ใช้เดิมทั้งหมด
-                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-                  .finally(() => window.location.assign("/login"));
-              }} type="button"><LogOut size={18} /> ออกจากระบบ</button>
-            </div>
-          ) : null}
-          <button
-            aria-expanded={isAccountMenuOpen}
-            aria-label="เปิดเมนูตั้งค่า"
-            className={["settings", "invitations", "subscription"].includes(activePage) ? "active" : ""}
-            onClick={() => setIsAccountMenuOpen((current) => !current)}
-            type="button"
-          >
-            <UserRound size={18} />
-            <span>ตั้งค่า</span>
-          </button>
-        </div>
-      </aside>
+    <main className={inSettingsArea ? "shell shell-settings" : "shell"}>
+      <OwnerSidebar
+        accountEmail={authenticatedEmail ?? ""}
+        accountName={currentUser}
+        activePage={activePage}
+        activeProperty={activeProperty}
+        availableProperties={availableProperties}
+        isReadOnly={isReadOnly}
+        navigateTo={navigateTo}
+        notificationCounts={notificationCounts}
+        propertyId={propertyId}
+      />
 
-      <section className={`${isSettingsArea ? "workspace settings-workspace" : "workspace"}${isReadOnly ? " workspace-read-only" : ""}`}>
+      <section className={`${inSettingsArea ? "workspace settings-workspace" : "workspace"}${isReadOnly ? " workspace-read-only" : ""}`}>
         <LiveAnnouncement message={`เปิดหน้า ${pageTitles[activePage].title}`} />
-        {accessState === "loading" ? (
-          <div className="subscription-access-banner grace" role="status">
-            <span><CreditCard aria-hidden="true" /></span>
-            <div>
-              <strong>กำลังตรวจสอบสิทธิ์การใช้งาน</strong>
-              <p>ระบบปิดการแก้ไขข้อมูลไว้ชั่วคราวระหว่างตรวจสอบสถานะแพ็กเกจ</p>
-            </div>
-          </div>
-        ) : accessState === "error" ? (
-          <div className="subscription-access-banner grace" role="alert">
-            <span><AlertTriangle aria-hidden="true" /></span>
-            <div>
-              <strong>ยังตรวจสอบสิทธิ์การใช้งานไม่ได้</strong>
-              <p>ระบบปิดการแก้ไขข้อมูลไว้ชั่วคราวเพื่อความปลอดภัย กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่</p>
-            </div>
-            <button className="primary-button" disabled={isRefreshing} onClick={() => void refreshDashboard()} type="button">
-              {isRefreshing ? "กำลังตรวจสอบ..." : "ลองตรวจสอบใหม่"}
-            </button>
-          </div>
-        ) : accessState === "read-only" ? (
-          <div className="subscription-access-banner read-only" role="alert">
-            <span><LockKeyhole aria-hidden="true" /></span>
-            <div>
-              <strong>พื้นที่นี้อยู่ในโหมดอ่านอย่างเดียว</strong>
-              <p>ยังดู ค้นหา และดาวน์โหลดข้อมูลเดิมได้ แต่ไม่สามารถเพิ่ม แก้ไข อนุมัติ หรือสร้างรายการใหม่</p>
-            </div>
-            <Link className="primary-button" href={ownerPagePath(propertyId, "subscription")}>ต่ออายุแพ็กเกจ</Link>
-          </div>
-        ) : isInGracePeriod && aggregation?.subscription ? (
-          <div className="subscription-access-banner grace" role="status">
-            <span><CreditCard aria-hidden="true" /></span>
-            <div>
-              <strong>อยู่ในช่วงผ่อนผันหลังแพ็กเกจหมดอายุ</strong>
-              <p>
-                ยังแก้ไขข้อมูลได้ถึง {aggregation.subscription.graceEndsAt
-                  ? new Date(aggregation.subscription.graceEndsAt).toLocaleDateString("th-TH")
-                  : "-"} หลังจากนั้นระบบจะเปลี่ยนเป็นโหมดอ่านอย่างเดียว
-              </p>
-            </div>
-            <Link className="primary-button" href={ownerPagePath(propertyId, "subscription")}>ต่ออายุแพ็กเกจ</Link>
-          </div>
-        ) : isSubscriptionExpiringSoon && aggregation?.subscription ? (
-          <div className="form-alert" role="status">
-            แพ็กเกจ {aggregation.subscription.planName} ใกล้หมดอายุวันที่ {new Date(aggregation.subscription.expiresAt).toLocaleDateString("th-TH")}
-            {" · "}<Link href={ownerPagePath(propertyId, "subscription")}>ตรวจสอบและต่ออายุ</Link>
-          </div>
-        ) : null}
-        {dataError ? <div className="form-alert error" role="alert"><span>{dataError}</span><RetryButton onClick={() => void refreshDashboard()} /></div> : null}
-        {isRefreshing ? <div aria-atomic="true" className="document-editor-state" role="status">กำลังอัปเดตข้อมูล...</div> : null}
-        {!isSettingsArea ? (
+        <SubscriptionAccessBanner
+          accessState={accessState}
+          aggregation={aggregation}
+          isInGracePeriod={isInGracePeriod}
+          isRefreshing={isRefreshing}
+          onRetry={() => void refreshDashboard()}
+          propertyId={propertyId}
+        />
+        <WorkspaceDataError message={dataError} onRetry={() => void refreshDashboard()} />
+        {isRefreshing ? <output aria-atomic="true" className="document-editor-state">กำลังอัปเดตข้อมูล...</output> : null}
+        {!inSettingsArea ? (
           <header className="topbar">
             <div>
               <h1>{pageTitles[activePage].title}</h1>
@@ -764,6 +409,158 @@ export type OwnerInitialParcels = {
   summary: { today: number; waiting: number; received: number; olderThanThreeDays: number };
 };
 
+type OwnerSectionProps = {
+  initialLeases?: { data: unknown[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
+  initialParcels?: OwnerInitialParcels | null;
+  initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
+  initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
+  initialPendingRequests?: Parameters<typeof TenantsPage>[0]["initialPendingRequests"];
+  initialPayments?: Parameters<typeof InvoicesPage>[0]["initialPayments"];
+  initialComplaints?: Complaint[] | null;
+  initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
+  initialSubscriptionData?: Parameters<typeof SettingsPage>[0]["initialSubscriptionData"];
+  invoiceView?: "invoices" | "payments";
+  page: PageKey;
+};
+
+// ข้อมูลทุกอย่างที่ตัวประกอบหน้าหนึ่งหน้าต้องใช้ ทั้งที่ Server Component ส่งมาและที่อยู่ใน context
+type SectionContext = Required<Omit<OwnerSectionProps, "page">> & { page: PageKey; workspace: OwnerWorkspaceValue };
+
+// เปิดมาที่หัวข้อไหนของหน้าตั้งค่า ขึ้นกับว่าเข้ามาจาก URL ไหน
+function settingsSectionFor(page: PageKey) {
+  if (page === "account") return "account";
+  if (page === "invitations") return "invitations";
+  if (page === "subscription") return "subscription";
+  return "general";
+}
+
+// หน้าภาพรวมต้องมีข้อมูลสรุป ซึ่งมาจากคนละคำสั่งกับข้อมูลหลัก จึงพลาดได้เองโดยที่หน้าอื่นยังใช้ได้ปกติ
+function OverviewSection({ workspace }: Readonly<{ workspace: OwnerWorkspaceValue }>) {
+  const { aggregation, invoices, isReadOnly, isRefreshing, navigateTo, onOpenChat, refreshDashboard, rooms, summary, tenants } = workspace;
+  if (!summary || !aggregation) {
+    return <div className="dashboard-empty-state" role="alert">
+      <p>{isRefreshing ? "กำลังโหลดข้อมูลสรุป..." : "ไม่สามารถโหลดข้อมูลสรุปจากระบบได้"}</p>
+      {!isRefreshing ? <RetryButton label="ลองโหลดข้อมูลสรุปใหม่" onClick={() => void refreshDashboard()} /> : null}
+    </div>;
+  }
+  return <OverviewPage
+    aggregation={aggregation}
+    invoices={invoices}
+    onOpenChat={onOpenChat}
+    readOnly={isReadOnly}
+    rooms={rooms}
+    setActivePage={navigateTo}
+    summary={summary}
+    tenants={tenants}
+  />;
+}
+
+// แต่ละหน้าเป็นตัวประกอบของตัวเอง เขียนเป็นตารางแทนบันได if ที่ยาวเกินจะอ่านรวดเดียว
+const sectionRenderers: Partial<Record<PageKey, (context: SectionContext) => ReactNode>> = {
+  overview: ({ workspace }) => <OverviewSection workspace={workspace} />,
+  rooms: ({ workspace }) => <RoomsPage
+    invoices={workspace.invoices}
+    onEditRoom={workspace.onEditRoom}
+    readOnly={workspace.isReadOnly}
+    rooms={workspace.rooms}
+    selectedRoom={workspace.selectedRoom}
+    setSelectedRoomId={workspace.setSelectedRoomId}
+  />,
+  tenants: ({ initialPendingRequests, initialTenants, workspace }) => <TenantsPage
+    filteredTenants={initialTenants?.data ?? workspace.tenants}
+    initialPageInfo={initialTenants?.pageInfo ?? null}
+    initialPendingRequests={initialPendingRequests}
+    onChanged={workspace.refreshDashboard}
+    onOpenTenantDetail={workspace.onOpenTenantDetail}
+    propertyId={workspace.propertyId}
+    readOnly={workspace.isReadOnly}
+    setSelectedRoomId={workspace.setSelectedRoomId}
+  />,
+  contracts: ({ initialLeases, workspace }) => <ContractsPage
+    initialLeases={initialLeases?.data as Parameters<typeof ContractsPage>[0]["initialLeases"] ?? null}
+    initialPageInfo={initialLeases?.pageInfo ?? null}
+    propertyId={workspace.propertyId}
+    propertyName={workspace.activeProperty.name}
+    readOnly={workspace.isReadOnly}
+    rooms={workspace.rooms}
+  />,
+  waterMeter: ({ page, workspace }) => <MetersPage
+    mode={page === "waterMeter" ? "water" : "electric"}
+    onSaveMeters={workspace.saveMeters}
+    propertyId={workspace.propertyId}
+    readOnly={workspace.isReadOnly}
+  />,
+  invoices: ({ initialPayments, invoiceView, workspace }) => <InvoicesPage
+    initialPayments={initialPayments}
+    initialView={invoiceView}
+    invoices={workspace.invoices}
+    onChanged={workspace.refreshDashboard}
+    propertyId={workspace.propertyId}
+    propertyName={workspace.activeProperty.name}
+    readOnly={workspace.isReadOnly}
+    rooms={workspace.rooms}
+  />,
+  repairHistory: ({ initialRepairHistory, workspace }) => <RepairHistoryPage
+    initialPageInfo={initialRepairHistory?.pageInfo ?? null}
+    propertyId={workspace.propertyId}
+    tickets={initialRepairHistory?.tickets ?? workspace.repairTickets}
+  />,
+  complaints: ({ initialComplaints, workspace }) => <ComplaintsPage
+    complaints={initialComplaints ?? workspace.dashboardData.complaints}
+    initialLoaded={initialComplaints !== null}
+    onAddRequestHandled={workspace.onAddComplaintHandled}
+    onChanged={workspace.refreshDashboard}
+    onUnreadChanged={workspace.onUnreadChanged}
+    openAddOnMount={workspace.openAddComplaint}
+    propertyId={workspace.propertyId}
+    readOnly={workspace.isReadOnly}
+  />,
+  parcels: ({ initialParcels, workspace }) => <ParcelsPage
+    activeView={workspace.parcelView}
+    initialHasNextPage={initialParcels?.hasNextPage ?? false}
+    initialParcels={initialParcels?.items ?? workspace.dashboardData.parcels}
+    initialSummary={initialParcels?.summary ?? null}
+    onChanged={workspace.refreshDashboard}
+    propertyId={workspace.propertyId}
+    readOnly={workspace.isReadOnly}
+    rooms={workspace.rooms}
+  />,
+  // ประกาศไม่ได้ดึงจากเซิร์ฟเวอร์ เพราะการแปลงต้องจับคู่เลขห้องกับรหัสห้องจาก rooms ฝั่งนี้
+  // ซึ่ง Server Component ของหน้าไม่มีให้ ต้องยิงถามเพิ่มจนได้ไม่คุ้มเสีย
+  announcements: ({ workspace }) => <AnnouncementsPage
+    initialAnnouncements={workspace.dashboardData.announcements}
+    onChanged={workspace.refreshDashboard}
+    propertyId={workspace.propertyId}
+    readOnly={workspace.isReadOnly}
+    recipientRoomCount={workspace.rooms.filter((room) => room.status === "occupied").length}
+    rooms={workspace.rooms}
+  />,
+  help: () => <HelpPage />,
+  properties: ({ workspace }) => <PropertiesPage activePropertyId={workspace.propertyId} properties={workspace.availableProperties} />,
+  // หน้าบัญชีกับหน้าตั้งค่าใช้คอมโพเนนต์เดียวกัน ต่างกันที่เปิดมาที่หัวข้อไหนและแก้ได้แค่ไหน
+  // บัญชีเป็นข้อมูลของตัวผู้ใช้เอง จึงแก้ได้แม้หอจะอยู่ในโหมดอ่านอย่างเดียว
+  account: ({ initialInvitations, initialSubscriptionData, page, workspace }) => <SettingsPage
+    accountEmail={workspace.accountEmail}
+    accountName={workspace.accountName}
+    initialInvitations={initialInvitations}
+    initialSubscriptionData={initialSubscriptionData}
+    initialSection={settingsSectionFor(page)}
+    initialSettings={workspace.dashboardData.settings}
+    onAccountNameChange={workspace.onAccountNameChange}
+    onDataChanged={workspace.refreshDashboard}
+    propertyId={workspace.propertyId}
+    readOnly={page === "account" ? false : workspace.isReadOnly}
+    rooms={workspace.rooms}
+    subscription={workspace.aggregation?.subscription ?? null}
+  />,
+};
+
+// มิเตอร์สองหน้าและหน้าตั้งค่าสี่หน้าใช้ตัวประกอบร่วมกัน ชี้มาที่ตัวเดียวกันแทนการเขียนซ้ำ
+sectionRenderers.electricMeter = sectionRenderers.waterMeter;
+sectionRenderers.settings = sectionRenderers.account;
+sectionRenderers.invitations = sectionRenderers.account;
+sectionRenderers.subscription = sectionRenderers.account;
+
 export function OwnerSectionPanel({
   initialLeases = null,
   initialParcels = null,
@@ -776,150 +573,22 @@ export function OwnerSectionPanel({
   initialSubscriptionData = null,
   invoiceView = "invoices",
   page,
-}: {
-  initialLeases?: { data: unknown[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
-  initialParcels?: OwnerInitialParcels | null;
-  initialRepairHistory?: { pageInfo: { page: number; pageSize: number; hasNextPage: boolean }; tickets: OwnerWorkspaceReadModel["repairs"] } | null;
-  initialTenants?: { data: Tenant[]; pageInfo: { page: number; pageSize: number; hasNextPage: boolean } } | null;
-  initialPendingRequests?: Parameters<typeof TenantsPage>[0]["initialPendingRequests"];
-  initialPayments?: Parameters<typeof InvoicesPage>[0]["initialPayments"];
-  initialComplaints?: Complaint[] | null;
-  initialInvitations?: Parameters<typeof SettingsPage>[0]["initialInvitations"];
-  initialSubscriptionData?: Parameters<typeof SettingsPage>[0]["initialSubscriptionData"];
-  invoiceView?: "invoices" | "payments";
-  page: PageKey;
-}) {
+}: OwnerSectionProps) {
   const workspace = useOwnerWorkspace();
-  const {
-    accountEmail, accountName, activeProperty, aggregation, availableProperties, dashboardData,
-    invoices, isReadOnly, isRefreshing, navigateTo, onAccountNameChange, onAddComplaintHandled,
-    onEditRoom, onOpenChat, onOpenTenantDetail, onUnreadChanged, openAddComplaint, parcelView,
-    propertyId, refreshDashboard, repairTickets, rooms, saveMeters, selectedRoom, setSelectedRoomId,
-    summary, tenants,
-  } = workspace;
-
-  if (page === "overview") {
-    // ตัวเลขสรุปมาจากคนละคำสั่งกับข้อมูลหลัก จึงพลาดได้เองโดยที่หน้าอื่นยังใช้ได้ปกติ
-    if (!summary || !aggregation) {
-      return <div className="dashboard-empty-state" role="alert">
-        <p>{isRefreshing ? "กำลังโหลดข้อมูลสรุป..." : "ไม่สามารถโหลดข้อมูลสรุปจากระบบได้"}</p>
-        {!isRefreshing ? <RetryButton label="ลองโหลดข้อมูลสรุปใหม่" onClick={() => void refreshDashboard()} /> : null}
-      </div>;
-    }
-    return <OverviewPage
-      aggregation={aggregation}
-      invoices={invoices}
-      onOpenChat={onOpenChat}
-      readOnly={isReadOnly}
-      rooms={rooms}
-      setActivePage={navigateTo}
-      summary={summary}
-      tenants={tenants}
-    />;
-  }
-  if (page === "rooms") {
-    return <RoomsPage
-      invoices={invoices}
-      onEditRoom={onEditRoom}
-      readOnly={isReadOnly}
-      rooms={rooms}
-      selectedRoom={selectedRoom}
-      setSelectedRoomId={setSelectedRoomId}
-    />;
-  }
-  if (page === "tenants") {
-    return <TenantsPage
-      filteredTenants={initialTenants?.data ?? tenants}
-      initialPageInfo={initialTenants?.pageInfo ?? null}
-      initialPendingRequests={initialPendingRequests}
-      onChanged={refreshDashboard}
-      onOpenTenantDetail={onOpenTenantDetail}
-      propertyId={propertyId}
-      readOnly={isReadOnly}
-      setSelectedRoomId={setSelectedRoomId}
-    />;
-  }
-  if (page === "contracts") {
-    return <ContractsPage
-      initialLeases={initialLeases?.data as Parameters<typeof ContractsPage>[0]["initialLeases"] ?? null}
-      initialPageInfo={initialLeases?.pageInfo ?? null}
-      propertyId={propertyId}
-      propertyName={activeProperty.name}
-      readOnly={isReadOnly}
-      rooms={rooms}
-    />;
-  }
-  if (page === "waterMeter" || page === "electricMeter") {
-    return <MetersPage
-      mode={page === "waterMeter" ? "water" : "electric"}
-      onSaveMeters={saveMeters}
-      propertyId={propertyId}
-      readOnly={isReadOnly}
-    />;
-  }
-  if (page === "invoices") return <InvoicesPage initialPayments={initialPayments} initialView={invoiceView} invoices={invoices} onChanged={refreshDashboard} propertyId={propertyId} propertyName={activeProperty.name} readOnly={isReadOnly} rooms={rooms} />;
-  if (page === "repairHistory") {
-    return <RepairHistoryPage
-      initialPageInfo={initialRepairHistory?.pageInfo ?? null}
-      propertyId={propertyId}
-      tickets={initialRepairHistory?.tickets ?? repairTickets}
-    />;
-  }
-  if (page === "complaints") {
-    return <ComplaintsPage
-      complaints={initialComplaints ?? dashboardData.complaints}
-      initialLoaded={initialComplaints !== null}
-      onAddRequestHandled={onAddComplaintHandled}
-      onChanged={refreshDashboard}
-      onUnreadChanged={onUnreadChanged}
-      openAddOnMount={openAddComplaint}
-      propertyId={propertyId}
-      readOnly={isReadOnly}
-    />;
-  }
-  if (page === "parcels") {
-    return <ParcelsPage
-      activeView={parcelView}
-      initialHasNextPage={initialParcels?.hasNextPage ?? false}
-      initialParcels={initialParcels?.items ?? dashboardData.parcels}
-      initialSummary={initialParcels?.summary ?? null}
-      onChanged={refreshDashboard}
-      propertyId={propertyId}
-      readOnly={isReadOnly}
-      rooms={rooms}
-    />;
-  }
-  if (page === "announcements") {
-    // ประกาศไม่ได้ดึงจากเซิร์ฟเวอร์ เพราะการแปลงต้องจับคู่เลขห้องกับรหัสห้องจาก rooms ฝั่งนี้
-    // ซึ่ง Server Component ของหน้าไม่มีให้ ต้องยิงถามเพิ่มจนได้ไม่คุ้มเสีย
-    return <AnnouncementsPage
-      initialAnnouncements={dashboardData.announcements}
-      onChanged={refreshDashboard}
-      propertyId={propertyId}
-      readOnly={isReadOnly}
-      recipientRoomCount={rooms.filter((room) => room.status === "occupied").length}
-      rooms={rooms}
-    />;
-  }
-  if (page === "help") return <HelpPage />;
-  if (page === "properties") return <PropertiesPage activePropertyId={propertyId} properties={availableProperties} />;
-  // หน้าบัญชีกับหน้าตั้งค่าใช้คอมโพเนนต์เดียวกัน ต่างกันที่เปิดมาที่หัวข้อไหนและแก้ได้แค่ไหน
-  // บัญชีเป็นข้อมูลของตัวผู้ใช้เอง จึงแก้ได้แม้หอจะอยู่ในโหมดอ่านอย่างเดียว
-  if (page === "account" || page === "settings" || page === "invitations" || page === "subscription") {
-    return <SettingsPage
-      accountEmail={accountEmail}
-      accountName={accountName}
-      initialInvitations={initialInvitations}
-      initialSubscriptionData={initialSubscriptionData}
-      initialSection={page === "account" ? "account" : page === "invitations" ? "invitations" : page === "subscription" ? "subscription" : "general"}
-      initialSettings={dashboardData.settings}
-      onAccountNameChange={onAccountNameChange}
-      onDataChanged={refreshDashboard}
-      propertyId={propertyId}
-      readOnly={page === "account" ? false : isReadOnly}
-      rooms={rooms}
-      subscription={aggregation?.subscription ?? null}
-    />;
-  }
-  return null;
+  const render = sectionRenderers[page];
+  if (!render) return null;
+  return render({
+    initialComplaints,
+    initialInvitations,
+    initialLeases,
+    initialParcels,
+    initialPayments,
+    initialPendingRequests,
+    initialRepairHistory,
+    initialSubscriptionData,
+    initialTenants,
+    invoiceView,
+    page,
+    workspace,
+  });
 }

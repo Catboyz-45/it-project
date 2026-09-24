@@ -29,11 +29,11 @@ function AnimatedNumber({
   format = (value) => value.toLocaleString("th-TH"),
   label,
   value,
-}: {
+}: Readonly<{
   format?: (value: number) => string;
   label: string;
   value: number;
-}) {
+}>) {
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
@@ -65,82 +65,57 @@ function AnimatedNumber({
 }
 
 // หน้าแรกของเจ้าของหอ รวมตัวเลขสำคัญกับงานที่ต้องทำไว้ที่เดียว
-export function OverviewPage({
-  aggregation,
-  invoices,
-  onOpenChat,
-  readOnly = false,
-  rooms,
-  setActivePage,
-  summary,
-  tenants,
-}: {
-  aggregation: OwnerDashboardAggregation;
-  invoices: Invoice[];
-  onOpenChat: () => void;
-  readOnly?: boolean;
-  rooms: Room[];
-  setActivePage: (page: PageKey) => void;
-  summary: DashboardSummary;
-  tenants: Tenant[];
-}) {
-  // บิลเรียงตามเดือนมาแล้ว ตัวสุดท้ายจึงเป็นรอบล่าสุด
-  const latestMonth = invoices.at(-1)?.month;
-  const currentInvoices = latestMonth ? invoices.filter((invoice) => invoice.month === latestMonth) : [];
-  const overdueInvoices = currentInvoices.filter((invoice) => invoice.status === "overdue");
-  const pendingInvoices = currentInvoices.filter((invoice) => invoice.status === "pending");
-  const nearContracts = tenants.filter((tenant) => {
-    if (!tenant.contractEnd) return false;
-    const remainingDays = daysUntilLeaseExpiry(tenant.contractEnd);
-    return remainingDays !== null && remainingDays >= 0 && remainingDays <= LEASE_EXPIRY_NOTICE_DAYS;
-  });
-  const availableRooms = rooms.filter((room) => room.status === "available").length;
-  const maintenanceRooms = rooms.filter((room) => room.status === "maintenance").length;
-  // รวมยอดรายรับแยกตามเดือนและแยกตามประเภท ค่าเช่า ค่าน้ำ ค่าไฟ และอื่น ๆ
-  const revenueBars = Array.from(invoices.reduce((groups, invoice) => {
+// สัญญาที่จะหมดอายุภายในช่วงที่ตั้งไว้ และยังไม่หมดจริง
+function isLeaseExpiringSoon(tenant: Tenant) {
+  if (!tenant.contractEnd) return false;
+  const remainingDays = daysUntilLeaseExpiry(tenant.contractEnd);
+  return remainingDays !== null && remainingDays >= 0 && remainingDays <= LEASE_EXPIRY_NOTICE_DAYS;
+}
+
+type RevenueBar = { label: string; rent: number; water: number; electric: number; other: number };
+
+// รวมยอดรายรับแยกตามเดือนและแยกตามประเภท ค่าเช่า ค่าน้ำ ค่าไฟ และอื่น ๆ
+// เก็บ 12 เดือนหลังสุดพอ ย้อนไกลกว่านั้นไปดูในหน้ารายงานแทน
+function groupRevenueByMonth(invoices: Invoice[]): RevenueBar[] {
+  const groups = new Map<string, RevenueBar>();
+  for (const invoice of invoices) {
     const item = groups.get(invoice.month) ?? { label: invoice.month, rent: 0, water: 0, electric: 0, other: 0 };
     item.rent += invoice.rent;
     item.water += invoice.water;
     item.electric += invoice.electricity;
     item.other += invoice.service;
     groups.set(invoice.month, item);
-    return groups;
-  // เก็บ 12 เดือนหลังสุดพอ ย้อนไกลกว่านั้นไปดูในหน้ารายงานแทน
-  }, new Map<string, { label: string; rent: number; water: number; electric: number; other: number }>()).values()).slice(-12);
-  const latestRevenue = revenueBars.at(-1);
-  const latestRevenueTotal = latestRevenue
-    ? latestRevenue.rent + latestRevenue.water + latestRevenue.electric + latestRevenue.other
-    : 0;
-  // จุดตัดของวงกลมสถานะห้อง ส่วนที่สองต้องบวกต่อจากส่วนแรก เพราะ conic-gradient นับจากจุดเริ่มเสมอ
-  const occupiedEnd = percent(summary.occupied, rooms.length);
-  const availableEnd = occupiedEnd + percent(availableRooms, rooms.length);
-  const roomStatusItems = [
-    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-paid" },
-    { label: "ว่าง", value: availableRooms, className: "badge badge-pending" },
-    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-scheduled" },
-  ];
-  const urgentItems = [
-    {
-      action: readOnly ? "ดูรายการ" : "ตรวจบิล",
-      detail: `${overdueInvoices.length} ห้องค้างชำระ รวม ${currency.format(overdueInvoices.reduce((sum, invoice) => sum + totalInvoice(invoice), 0))}`,
-      onClick: () => setActivePage("invoices"),
-      title: "บิลค้างชำระ",
-    },
-    {
-      action: "ดูสัญญา",
-      detail: `${nearContracts.length} สัญญาใกล้หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`,
-      onClick: () => setActivePage("contracts"),
-      title: "สัญญาใกล้หมด",
-    },
-  ];
-  // รวมงานค้างจากทุกส่วนไว้ในรายการเดียว จะได้เพิ่มหรือเรียงใหม่ได้โดยไม่ต้องแก้ JSX
-  const workItems: Array<{
-    count: number;
-    detail: string;
-    icon: ReactNode;
-    page: PageKey | null;
-    title: string;
-  }> = [
+  }
+  return Array.from(groups.values()).slice(-12);
+}
+
+type WorkItem = { count: number; detail: string; icon: ReactNode; page: PageKey | null; title: string };
+
+// เตือนล่วงหน้า 30 วัน และเตือนตลอดถ้ายังไม่มีแพ็กเกจเลย นับเป็น 1 เพราะเป็นเรื่องเดียว
+function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscription"]): WorkItem {
+  if (!subscription) {
+    return {
+      count: 1,
+      detail: "เลือกแพ็กเกจเพื่อเปิดใช้งานระบบ",
+      icon: <CreditCard size={20} />,
+      page: "subscription",
+      title: "แพ็กเกจใกล้หมดอายุ",
+    };
+  }
+  const remainingDays = calendarDaysUntil(subscription.expiresAt);
+  return {
+    count: remainingDays <= 30 ? 1 : 0,
+    detail: `แพ็กเกจหมดอายุ ${new Date(subscription.expiresAt).toLocaleDateString("th-TH")}`,
+    icon: <CreditCard size={20} />,
+    page: "subscription",
+    title: remainingDays < 0 ? "แพ็กเกจหมดอายุแล้ว" : "แพ็กเกจใกล้หมดอายุ",
+  };
+}
+
+// รวมงานค้างจากทุกส่วนไว้ในรายการเดียว จะได้เพิ่มหรือเรียงใหม่ได้โดยไม่ต้องแก้ JSX
+// โหมดอ่านอย่างเดียวบอกได้แค่ว่าเข้าไปดูอะไร ไม่ใช่ให้ไปทำอะไร
+function buildWorkItems(aggregation: OwnerDashboardAggregation, readOnly: boolean): WorkItem[] {
+  return [
     {
       count: aggregation.pendingOccupancies,
       detail: readOnly ? "ดูรายละเอียดคำขอเข้าพัก" : "ตรวจสอบและอนุมัติคำขอเข้าพัก",
@@ -190,22 +165,155 @@ export function OverviewPage({
       page: null,
       title: "ข้อความที่ยังไม่ได้อ่าน",
     },
+    subscriptionWorkItem(aggregation.subscription),
+  ];
+}
+
+// รายการงานค้าง ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง
+function OwnerWorkList({ items, onOpenChat, onOpenPage }: Readonly<{
+  items: WorkItem[];
+  onOpenChat: () => void;
+  onOpenPage: (page: PageKey) => void;
+}>) {
+  const pending = items.filter((item) => item.count > 0);
+  if (pending.length === 0) return <div className="dashboard-empty-state">ไม่มีรายการเร่งด่วนที่ต้องดำเนินการในขณะนี้</div>;
+  return <div className="work-item-grid">
+    {pending.map((item) => <OwnerWorkCard item={item} key={item.title} onOpenChat={onOpenChat} onOpenPage={onOpenPage} />)}
+  </div>;
+}
+
+// ส่วนใหญ่กดแล้วไปหน้าอื่น ยกเว้นข้อความที่เปิดหน้าต่างแชทแทน
+function OwnerWorkCard({ item, onOpenChat, onOpenPage }: Readonly<{
+  item: WorkItem;
+  onOpenChat: () => void;
+  onOpenPage: (page: PageKey) => void;
+}>) {
+  const page = item.page;
+  const actionLabel = page ? `เปิดหน้า${item.title}` : "เปิดหน้าต่างข้อความ";
+  return <button
+    aria-label={`${item.title} ${item.count} รายการ ${actionLabel}`}
+    className="interactive-card"
+    onClick={() => page ? onOpenPage(page) : onOpenChat()}
+    type="button"
+  >
+    <span className="work-item-icon">{item.icon}</span>
+    <span className="work-item-copy">
+      <strong>{item.title}</strong>
+      <small>{item.detail}</small>
+    </span>
+    <span className="work-item-count">{item.count > 99 ? "99+" : item.count}</span>
+    <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
+    <span className="sr-only">{actionLabel}</span>
+  </button>;
+}
+
+// สรุปรายรับของรอบล่าสุด แยกตามประเภทค่าใช้จ่าย
+function RevenueSummary({ bar, total }: Readonly<{ bar: RevenueBar | undefined; total: number }>) {
+  if (!bar) return <div className="dashboard-empty-state">ยังไม่มีข้อมูลบิลสำหรับสรุปรายรับ</div>;
+  return <section aria-label={`สรุปรายรับรอบ ${bar.label}`} className="revenue-summary">
+    <div className="revenue-summary-total">
+      <span>ยอดรวมรอบนี้</span>
+      <strong>{currency.format(total)}</strong>
+    </div>
+    <dl className="revenue-breakdown">
+      <div className="rent"><dt>ค่าเช่า</dt><dd>{currency.format(bar.rent)}</dd></div>
+      <div className="water"><dt>ค่าน้ำ</dt><dd>{currency.format(bar.water)}</dd></div>
+      <div className="electric"><dt>ค่าไฟ</dt><dd>{currency.format(bar.electric)}</dd></div>
+      <div className="other"><dt>อื่น ๆ</dt><dd>{currency.format(bar.other)}</dd></div>
+    </dl>
+  </section>;
+}
+
+// วาดวงกลมด้วย conic-gradient ของ CSS เบากว่าดึงไลบรารีกราฟมาทั้งตัวเพื่อวงเดียว
+function RoomStatusChart({ availableEnd, availableRooms, items, maintenanceRooms, occupiedEnd, occupiedRooms, totalRooms }: Readonly<{
+  availableEnd: number;
+  availableRooms: number;
+  items: Array<{ label: string; value: number; className: string }>;
+  maintenanceRooms: number;
+  occupiedEnd: number;
+  occupiedRooms: number;
+  totalRooms: number;
+}>) {
+  const background = totalRooms > 0
+    ? `conic-gradient(#35ed7e 0 ${occupiedEnd}%, #fbbf24 ${occupiedEnd}% ${availableEnd}%, #ec48bd ${availableEnd}% 100%)`
+    : "#dedfe4";
+  return <>
+    <div
+      aria-label={`มีผู้เช่า ${occupiedRooms} ห้อง ห้องว่าง ${availableRooms} ห้อง ซ่อมบำรุง ${maintenanceRooms} ห้อง`}
+      className="room-status-donut"
+      style={{ background }}
+    />
+    <div className="room-status-overview">
+      {items.map((item) => <div key={item.label}>
+        <span className={item.className}>{item.label}</span>
+        <strong>{item.value}</strong>
+        <small>{percent(item.value, totalRooms)}%</small>
+      </div>)}
+    </div>
+  </>;
+}
+
+// ข้อความมุมขวาของหัวข้องานที่ต้องทำ โหมดอ่านอย่างเดียวบอกได้แค่ว่าให้เข้าไปตรวจสอบ
+function pendingWorkLabel(pendingWorkCount: number, readOnly: boolean) {
+  if (pendingWorkCount === 0) return "ไม่มีรายการค้าง";
+  return `${pendingWorkCount} รายการ${readOnly ? "สำหรับตรวจสอบ" : "รอดำเนินการ"}`;
+}
+
+export function OverviewPage({
+  aggregation,
+  invoices,
+  onOpenChat,
+  readOnly = false,
+  rooms,
+  setActivePage,
+  summary,
+  tenants,
+}: Readonly<{
+  aggregation: OwnerDashboardAggregation;
+  invoices: Invoice[];
+  onOpenChat: () => void;
+  readOnly?: boolean;
+  rooms: Room[];
+  setActivePage: (page: PageKey) => void;
+  summary: DashboardSummary;
+  tenants: Tenant[];
+}>) {
+  // บิลเรียงตามเดือนมาแล้ว ตัวสุดท้ายจึงเป็นรอบล่าสุด
+  const latestMonth = invoices.at(-1)?.month;
+  const currentInvoices = latestMonth ? invoices.filter((invoice) => invoice.month === latestMonth) : [];
+  const overdueInvoices = currentInvoices.filter((invoice) => invoice.status === "overdue");
+  const pendingInvoices = currentInvoices.filter((invoice) => invoice.status === "pending");
+  const nearContracts = tenants.filter(isLeaseExpiringSoon);
+  const availableRooms = rooms.filter((room) => room.status === "available").length;
+  const maintenanceRooms = rooms.filter((room) => room.status === "maintenance").length;
+  const revenueBars = groupRevenueByMonth(invoices);
+  const latestRevenue = revenueBars.at(-1);
+  const latestRevenueTotal = latestRevenue
+    ? latestRevenue.rent + latestRevenue.water + latestRevenue.electric + latestRevenue.other
+    : 0;
+  // จุดตัดของวงกลมสถานะห้อง ส่วนที่สองต้องบวกต่อจากส่วนแรก เพราะ conic-gradient นับจากจุดเริ่มเสมอ
+  const occupiedEnd = percent(summary.occupied, rooms.length);
+  const availableEnd = occupiedEnd + percent(availableRooms, rooms.length);
+  const roomStatusItems = [
+    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-paid" },
+    { label: "ว่าง", value: availableRooms, className: "badge badge-pending" },
+    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-scheduled" },
+  ];
+  const urgentItems = [
     {
-      // เตือนล่วงหน้า 30 วัน และเตือนตลอดถ้ายังไม่มีแพ็กเกจเลย นับเป็น 1 เพราะเป็นเรื่องเดียว
-      count: !aggregation.subscription
-        || calendarDaysUntil(aggregation.subscription.expiresAt) <= 30
-        ? 1
-        : 0,
-      detail: aggregation.subscription
-        ? `แพ็กเกจหมดอายุ ${new Date(aggregation.subscription.expiresAt).toLocaleDateString("th-TH")}`
-        : "เลือกแพ็กเกจเพื่อเปิดใช้งานระบบ",
-      icon: <CreditCard size={20} />,
-      page: "subscription",
-      title: aggregation.subscription && calendarDaysUntil(aggregation.subscription.expiresAt) < 0
-        ? "แพ็กเกจหมดอายุแล้ว"
-        : "แพ็กเกจใกล้หมดอายุ",
+      action: readOnly ? "ดูรายการ" : "ตรวจบิล",
+      detail: `${overdueInvoices.length} ห้องค้างชำระ รวม ${currency.format(overdueInvoices.reduce((sum, invoice) => sum + totalInvoice(invoice), 0))}`,
+      onClick: () => setActivePage("invoices"),
+      title: "บิลค้างชำระ",
+    },
+    {
+      action: "ดูสัญญา",
+      detail: `${nearContracts.length} สัญญาใกล้หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`,
+      onClick: () => setActivePage("contracts"),
+      title: "สัญญาใกล้หมด",
     },
   ];
+  const workItems = buildWorkItems(aggregation, readOnly);
   // ไม่มีงานค้างเลยก็แสดงข้อความว่าง แทนที่จะโชว์กล่องเปล่า
   const pendingWorkCount = workItems.reduce((total, item) => total + item.count, 0);
 
@@ -221,35 +329,12 @@ export function OverviewPage({
       </AppSection>
 
       <AppSection
-        aside={pendingWorkCount > 0 ? `${pendingWorkCount} รายการ${readOnly ? "สำหรับตรวจสอบ" : "รอดำเนินการ"}` : "ไม่มีรายการค้าง"}
+        aside={pendingWorkLabel(pendingWorkCount, readOnly)}
         description="รายการที่ต้องเข้าไปจัดการในตอนนี้"
         icon={<ListChecks />}
         title={readOnly ? "รายการที่ควรตรวจสอบ" : "งานที่ต้องทำ"}
       >
-          {pendingWorkCount > 0 ? (
-            <div className="work-item-grid">
-              {/* ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง */}
-              {workItems.filter((item) => item.count > 0).map((item) => {
-                const content = <>
-                  <span className="work-item-icon">{item.icon}</span>
-                  <span className="work-item-copy">
-                    <strong>{item.title}</strong>
-                    <small>{item.detail}</small>
-                  </span>
-                  <span className="work-item-count">{item.count > 99 ? "99+" : item.count}</span>
-                  <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
-                </>;
-                // ส่วนใหญ่กดแล้วไปหน้าอื่น ยกเว้นข้อความที่เปิดหน้าต่างแชทแทน
-                return item.page ? (
-                  <button aria-label={`${item.title} ${item.count} รายการ เปิดหน้า${item.title}`} className="interactive-card" key={item.title} onClick={() => setActivePage(item.page!)} type="button">{content}<span className="sr-only">เปิดหน้า{item.title}</span></button>
-                ) : (
-                  <button aria-label={`${item.title} ${item.count} รายการ เปิดหน้าต่างข้อความ`} className="interactive-card" key={item.title} onClick={onOpenChat} type="button">{content}<span className="sr-only">เปิดหน้าต่างข้อความ</span></button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="dashboard-empty-state">ไม่มีรายการเร่งด่วนที่ต้องดำเนินการในขณะนี้</div>
-          )}
+          <OwnerWorkList items={workItems} onOpenChat={onOpenChat} onOpenPage={setActivePage} />
       </AppSection>
 
       <section className="grid dashboard-panel-stagger">
@@ -260,20 +345,7 @@ export function OverviewPage({
           icon={<Landmark />}
           title="สรุปรายรับรอบล่าสุด"
         >
-          {latestRevenue ? (
-            <section className="revenue-summary" aria-label={`สรุปรายรับรอบ ${latestRevenue.label}`}>
-              <div className="revenue-summary-total">
-                <span>ยอดรวมรอบนี้</span>
-                <strong>{currency.format(latestRevenueTotal)}</strong>
-              </div>
-              <dl className="revenue-breakdown">
-                <div className="rent"><dt>ค่าเช่า</dt><dd>{currency.format(latestRevenue.rent)}</dd></div>
-                <div className="water"><dt>ค่าน้ำ</dt><dd>{currency.format(latestRevenue.water)}</dd></div>
-                <div className="electric"><dt>ค่าไฟ</dt><dd>{currency.format(latestRevenue.electric)}</dd></div>
-                <div className="other"><dt>อื่น ๆ</dt><dd>{currency.format(latestRevenue.other)}</dd></div>
-              </dl>
-            </section>
-          ) : <div className="dashboard-empty-state">ยังไม่มีข้อมูลบิลสำหรับสรุปรายรับ</div>}
+          <RevenueSummary bar={latestRevenue} total={latestRevenueTotal} />
         </AppSection>
 
         <AppSection
@@ -282,21 +354,15 @@ export function OverviewPage({
           icon={<Building2 />}
           title="สถานะห้อง"
         >
-          <div
-            className="room-status-donut"
-            aria-label={`มีผู้เช่า ${summary.occupied} ห้อง ห้องว่าง ${availableRooms} ห้อง ซ่อมบำรุง ${maintenanceRooms} ห้อง`}
-            // วาดวงกลมด้วย conic-gradient ของ CSS เบากว่าดึงไลบรารีกราฟมาทั้งตัวเพื่อวงเดียว
-            style={{ background: rooms.length > 0 ? `conic-gradient(#35ed7e 0 ${occupiedEnd}%, #fbbf24 ${occupiedEnd}% ${availableEnd}%, #ec48bd ${availableEnd}% 100%)` : "#dedfe4" }}
+          <RoomStatusChart
+            availableEnd={availableEnd}
+            availableRooms={availableRooms}
+            items={roomStatusItems}
+            maintenanceRooms={maintenanceRooms}
+            occupiedEnd={occupiedEnd}
+            occupiedRooms={summary.occupied}
+            totalRooms={rooms.length}
           />
-          <div className="room-status-overview">
-            {roomStatusItems.map((item) => (
-              <div key={item.label}>
-                <span className={item.className}>{item.label}</span>
-                <strong>{item.value}</strong>
-                <small>{percent(item.value, rooms.length)}%</small>
-              </div>
-            ))}
-          </div>
         </AppSection>
 
         <AppSection

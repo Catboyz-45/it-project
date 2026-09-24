@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -39,7 +39,7 @@ export function RoomEditModal({
   onClose,
   onSave,
   readOnly = false,
-}: {
+}: Readonly<{
   room: Room;
   tenant?: Tenant;
   floorOptions: Array<{ id: string; number: number }>;
@@ -47,7 +47,7 @@ export function RoomEditModal({
   onClose: () => void;
   onSave: (payload: RoomEditPayload) => void;
   readOnly?: boolean;
-}) {
+}>) {
   const [status, setStatus] = useState<RoomStatus>(room.status);
   const [rent, setRent] = useState(String(room.rent));
   const [floorId, setFloorId] = useState(room.floorId ?? "");
@@ -114,7 +114,7 @@ export function RoomEditModal({
     setFurniture((current) => (current.includes(item) ? current.filter((value) => value !== item) : [...current, item]));
   };
 
-  const submitForm = (event: FormEvent<HTMLFormElement>) => {
+  const submitForm = (event: SyntheticEvent<HTMLFormElement>) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     // กันไว้อีกชั้น เผื่อมีทางกดส่งที่เล็ดลอดจาก fieldset ที่ปิดไว้

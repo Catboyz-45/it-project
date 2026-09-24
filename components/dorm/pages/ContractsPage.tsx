@@ -1,7 +1,7 @@
 "use client";
 // เก็บฟอร์ม โหลดข้อมูล และอัปโหลดไฟล์จากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -148,7 +148,7 @@ async function responseData<T>(response: Response): Promise<T> {
 // หน้าสัญญาเช่า สร้าง แก้ไข ต่ออายุ เปลี่ยนสถานะ และแนบไฟล์ที่ลงนามแล้ว
 // initialLeases กับ initialPageInfo ส่งมาจาก Server Component ของหน้านี้
 // มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า ส่วนการค้นหาและเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
-export function ContractsPage({ initialLeases = null, initialPageInfo = null, propertyId, propertyName, readOnly = false, rooms }: { initialLeases?: Lease[] | null; initialPageInfo?: ServerPageInfo | null; propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }) {
+export function ContractsPage({ initialLeases = null, initialPageInfo = null, propertyId, propertyName, readOnly = false, rooms }: Readonly<{ initialLeases?: Lease[] | null; initialPageInfo?: ServerPageInfo | null; propertyId: string; propertyName: string; readOnly?: boolean; rooms: Room[] }>) {
   const searchParams = useSearchParams();
   // กันเปิดฟอร์มซ้ำ เพราะ effect ที่อ่านค่าจาก URL อาจทำงานหลายรอบ
   const moveRoomDraftHandled = useRef(false);
@@ -296,7 +296,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
   };
 
   // ใช้ตัวเดียวกันทั้งสร้าง แก้ไข และต่ออายุ ต่างกันที่ URL กับข้อมูลที่ส่ง
-  const saveLease = async (event: FormEvent<HTMLFormElement>) => {
+  const saveLease = async (event: SyntheticEvent<HTMLFormElement>) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     if (isSaving || actionFeedback.isPending) return;
@@ -312,36 +312,15 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
     setIsSaving(true);
     setError("");
     try {
-      const operation = renewingLease ? "ต่อสัญญา" : editingLease ? "บันทึกสัญญาเวอร์ชันใหม่" : "สร้างสัญญา";
+      const operation = leaseOperationLabel(editingLease, renewingLease);
       await actionFeedback.runAction(async () => {
-      const url = renewingLease
-        ? `/api/v1/admin/properties/${propertyId}/leases/${renewingLease.id}/renew`
-        : editingLease
-          ? `/api/v1/admin/properties/${propertyId}/leases/${editingLease.id}`
-          : `/api/v1/admin/properties/${propertyId}/leases`;
+      const url = leaseSaveUrl(propertyId, editingLease, renewingLease);
       const response = await fetch(url, {
         method: editingLease ? "PATCH" : "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         // แก้ไขต้องส่ง expectedVersion ไปด้วย ส่วนต่ออายุกับสร้างใหม่ไม่ต้อง เพราะไม่ได้แตะของเดิม
-        body: JSON.stringify(editingLease ? {
-          expectedVersion: editingLease.currentVersion,
-          startDate: form.startDate,
-          endDate: form.endDate,
-          monthlyRent: Number(form.monthlyRent),
-          depositAmount: Number(form.depositAmount),
-        } : renewingLease ? {
-          startDate: form.startDate,
-          endDate: form.endDate,
-          monthlyRent: Number(form.monthlyRent),
-          depositAmount: Number(form.depositAmount),
-        } : {
-          roomId: form.roomId,
-          startDate: form.startDate,
-          endDate: form.endDate,
-          monthlyRent: Number(form.monthlyRent),
-          depositAmount: Number(form.depositAmount),
-        }),
+        body: JSON.stringify(leaseSaveBody(form, editingLease, renewingLease)),
       });
       await responseData<Lease>(response);
       setEditingLease(null);
@@ -464,132 +443,301 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
           <div><Search size={16} /><input aria-label="ค้นหาสัญญา" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเลขสัญญา ห้อง ชื่อ หรืออีเมลผู้เช่า..." value={query} /></div>
         </div>
 
-        {isLoading ? (
-          <LoadingSkeleton columns={8} count={5} label="กำลังโหลดสัญญา" tableClassName="contract-table" variant="table" />
-        ) : leases.length === 0 && query.trim() ? (
-          <SearchEmptyState
-            description="ลองใช้เลขสัญญา เลขห้อง ชื่อ หรืออีเมลอื่น"
-            title="ไม่พบสัญญาที่ค้นหา"
-          />
-        ) : leases.length === 0 ? (
-          <div className="document-editor-state">
-            <FileText />
-            <p>ยังไม่มีสัญญา สร้างสัญญาได้เมื่อห้องมีผู้เช่าหลักที่อนุมัติแล้ว</p>
-          </div>
-        ) : (
-          <div className="figma-table-wrap">
-          <table className="figma-grid-table contract-table">
-            <thead>
-              <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">Version</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
-            </thead>
-            <tbody>
-            {leases.map((lease) => {
-              const tenant = lease.tenants.find((item) => item.isPrimary)?.occupancy.tenantProfile.user;
-              const canRenew = ["ACTIVE", "EXPIRING", "EXPIRED"].includes(lease.status);
-              const displayStatus = leaseDisplayStatus(lease.status, lease.endDate);
-              return <tr className="figma-table-row" data-status={displayStatus} key={lease.id}>
-                <td className="tenant-name-cell">{lease.leaseNumber}</td>
-                <td>{lease.room.number}</td>
-                <td>{tenant?.displayName ?? "-"}</td>
-                <td>{currency.format(Number(lease.monthlyRent))}</td>
-                <td className="muted-cell">{dateDisplay(lease.startDate)} – {dateDisplay(lease.endDate)}</td>
-                <td>v{lease.currentVersion}</td>
-                <td><em className={`figma-status ${displayStatus === "ACTIVE" ? "normal" : displayStatus === "EXPIRING" ? "warning" : ""}`}>{statusLabels[displayStatus]}</em></td>
-                <td className="contract-actions">
-                  {!readOnly && displayStatus === "EXPIRING" ? (
-                    <button
-                      aria-label={`ต่อสัญญา ${lease.leaseNumber}`}
-                      className="primary-button contract-renew-button"
-                      disabled={isSaving}
-                      onClick={() => openRenew(lease)}
-                      type="button"
-                    >
-                      <FilePlus2 aria-hidden="true" size={16} /> ต่อสัญญา
-                    </button>
-                  ) : null}
-                  {!readOnly && ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) ? (
-                    <input accept="application/pdf,.pdf" className="sr-only" disabled={isSaving} onChange={(event) => { void uploadSignedDocument(lease, event.target.files?.[0]); event.target.value = ""; }} ref={(node) => { if (node) signedDocumentInputs.current.set(lease.id, node); else signedDocumentInputs.current.delete(lease.id); }} type="file" />
-                  ) : null}
-                  {tenant || lease.signedStorageKey || (!readOnly && (canRenew || ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) || leaseStatusTransitions[lease.status].length > 0)) ? <ActionMenu
-                    items={[
-                      ...(tenant ? [
-                        { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างสัญญา (PDF)", onSelect: () => void requestContractPdf(lease, tenant.displayName, "preview") },
-                        ...(!readOnly ? [
-                          { disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF สัญญา", onSelect: () => void requestContractPdf(lease, tenant.displayName, "generate") },
-                        ] : []),
-                      ] : []),
-                      ...(!readOnly && canRenew && displayStatus !== "EXPIRING" ? [
-                        { disabled: isSaving, icon: <FilePlus2 aria-hidden="true" size={16} />, id: "renew", label: "ต่อสัญญา", onSelect: () => openRenew(lease) },
-                      ] : []),
-                      ...(!readOnly && ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) ? [
-                        { disabled: isSaving, icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขและสร้างเวอร์ชันใหม่", onSelect: () => openEdit(lease) },
-                        { disabled: isSaving, icon: <Upload aria-hidden="true" size={16} />, id: "upload", label: "อัปโหลด PDF ที่ลงนามแล้ว", onSelect: () => signedDocumentInputs.current.get(lease.id)?.click() },
-                      ] : []),
-                      ...(lease.signedStorageKey ? [{ icon: <Download aria-hidden="true" size={16} />, id: "download", label: "เปิดเอกสารลงนาม", onSelect: () => window.open(`/api/v1/admin/properties/${propertyId}/leases/${lease.id}/signed-document`, "_blank", "noopener,noreferrer") }] : []),
-                      ...(!readOnly ? leaseStatusTransitions[lease.status].filter((status) => status !== "EXPIRING").map((status) => ({
-                        disabled: isSaving || (status === "ACTIVE" && !lease.signedStorageKey),
-                        icon: <Settings2 aria-hidden="true" size={16} />,
-                        id: `status-${status}`,
-                        label: status === "ACTIVE" && !lease.signedStorageKey ? `${transitionLabels[status]} (ต้องอัปโหลดเอกสารก่อน)` : transitionLabels[status] ?? status,
-                        onSelect: () => void transition(lease, status),
-                        variant: status === "CANCELLED" ? "danger" as const : undefined,
-                      })) : []),
-                    ]}
-                    label={`จัดการสัญญา ${lease.leaseNumber}`}
-                  /> : null}
-                </td>
-              </tr>;
-            })}
-            </tbody>
-          </table>
-          </div>
-        )}
+        <LeaseTable
+          actionFeedback={actionFeedback}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          leases={leases}
+          onEdit={openEdit}
+          onRenew={openRenew}
+          onRequestPdf={requestContractPdf}
+          onTransition={transition}
+          onUploadSigned={uploadSignedDocument}
+          propertyId={propertyId}
+          query={query}
+          readOnly={readOnly}
+          signedDocumentInputs={signedDocumentInputs}
+        />
         <ServerTablePagination currentItemCount={leases.length} disabled={isLoading} onPageChange={(nextPage) => void loadLeases(nextPage)} pageInfo={pageInfo} />
       </article>
 
-      {(isCreateOpen || editingLease || renewingLease) ? (
-        <Dialog ariaDescribedBy="lease-form-description" ariaLabelledBy="lease-form-title" onClose={closeForm}>
-            <header className="modal-header">
-              <div>
-                <h2 id="lease-form-title">{renewingLease ? "ต่อสัญญา" : editingLease ? "แก้ไขสัญญา" : "สร้างสัญญาใหม่"}</h2>
-                <p id="lease-form-description">{renewingLease ? `สร้างสัญญารอบใหม่ต่อจาก ${renewingLease.leaseNumber} โดยเก็บฉบับเดิมไว้` : editingLease ? `การบันทึกจะสร้าง version ${editingLease.currentVersion + 1}` : "เลือกห้องที่มีผู้เช่าหลักและกำหนดรายละเอียดสัญญา"}</p>
-              </div>
-              <IconButton disabled={isSaving} label="ปิด" onClick={closeForm} tooltip="ปิดหน้าต่างสัญญา"><X /></IconButton>
-            </header>
-            <form className="modal-form" onSubmit={saveLease}>
-              <div className="modal-grid">
-                <DropdownField disabled={Boolean(editingLease || renewingLease) || isSaving} label="ห้อง" onChange={(value) => {
-    const room = occupiedRooms.find((item) => item.databaseId === value);
-                  setForm((current) => ({ ...current, roomId: value, monthlyRent: room ? String(room.rent) : current.monthlyRent }));
-                }} options={[{ label: "เลือกห้อง", value: "" }, ...occupiedRooms.flatMap((room) => room.databaseId ? [{ label: `ห้อง ${room.id}`, value: room.databaseId }] : [])]} value={form.roomId} />
-                <label><span>ค่าเช่าต่อเดือน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required step="0.01" type="number" value={form.monthlyRent} /></label>
-                <DatePickerField
-                  label="วันเริ่มสัญญา"
-                  minDate={renewingLease ? parseFormDate(renewalDates(renewingLease.endDate).startDate) : earliestLeaseDate}
-                  onChange={(value) => setForm((current) => ({ ...current, startDate: value }))}
-                  value={form.startDate}
-                />
-                <DatePickerField
-                  label="วันสิ้นสุดสัญญา"
-                  minDate={form.startDate ? parseFormDate(form.startDate) : earliestLeaseDate}
-                  onChange={(value) => setForm((current) => ({ ...current, endDate: value }))}
-                  value={form.endDate}
-                />
-                <label><span>เงินประกัน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, depositAmount: event.target.value }))} required step="0.01" type="number" value={form.depositAmount} /></label>
-              </div>
-              <footer className="modal-actions">
-                <button disabled={isSaving} onClick={closeForm} type="button">ยกเลิก</button>
-                <button className="primary-button" disabled={isSaving} type="submit">{isSaving ? "กำลังบันทึก..." : renewingLease ? "สร้างสัญญาต่ออายุ" : editingLease ? "บันทึก version ใหม่" : "สร้างสัญญา"}</button>
-              </footer>
-            </form>
-        </Dialog>
-      ) : null}
+      <LeaseFormDialog
+        earliestLeaseDate={earliestLeaseDate}
+        editingLease={editingLease}
+        form={form}
+        isOpen={isCreateOpen || editingLease !== null || renewingLease !== null}
+        isSaving={isSaving}
+        occupiedRooms={occupiedRooms}
+        onClose={closeForm}
+        onSubmit={saveLease}
+        renewingLease={renewingLease}
+        setForm={setForm}
+      />
       {confirmationDialog}
     </section>
   );
 }
 
 // การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ContractSummary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: string }) {
+function ContractSummary({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: string }>) {
   return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
+}
+
+type LeaseTenant = { displayName: string };
+type LeaseRowActions = Readonly<{
+  actionFeedback: ReturnType<typeof useActionFeedback>;
+  isSaving: boolean;
+  onEdit: (lease: Lease) => void;
+  onRenew: (lease: Lease) => void;
+  onRequestPdf: (lease: Lease, tenantName: string, action: "generate" | "preview") => Promise<void>;
+  onTransition: (lease: Lease, status: LeaseStatus) => Promise<void>;
+  onUploadSigned: (lease: Lease, file: File | undefined) => Promise<void>;
+  propertyId: string;
+  readOnly: boolean;
+  signedDocumentInputs: React.RefObject<Map<string, HTMLInputElement>>;
+}>;
+
+// ตารางสัญญา แยกกรณีกำลังโหลด ค้นไม่เจอ ยังไม่มีสัญญา และมีรายการจริง
+function LeaseTable({ isLoading, leases, query, ...actions }: LeaseRowActions & Readonly<{
+  isLoading: boolean;
+  leases: Lease[];
+  query: string;
+}>) {
+  if (isLoading) return <LoadingSkeleton columns={8} count={5} label="กำลังโหลดสัญญา" tableClassName="contract-table" variant="table" />;
+  if (leases.length === 0 && query.trim()) {
+    return <SearchEmptyState description="ลองใช้เลขสัญญา เลขห้อง ชื่อ หรืออีเมลอื่น" title="ไม่พบสัญญาที่ค้นหา" />;
+  }
+  if (leases.length === 0) {
+    return <div className="document-editor-state">
+      <FileText />
+      <p>ยังไม่มีสัญญา สร้างสัญญาได้เมื่อห้องมีผู้เช่าหลักที่อนุมัติแล้ว</p>
+    </div>;
+  }
+  return <div className="figma-table-wrap">
+    <table className="figma-grid-table contract-table">
+      <thead>
+        <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">Version</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+      </thead>
+      <tbody>
+        {leases.map((lease) => <LeaseRow key={lease.id} lease={lease} {...actions} />)}
+      </tbody>
+    </table>
+  </div>;
+}
+
+// สีของป้ายสถานะ ใช้งานอยู่เป็นปกติ ใกล้หมดอายุเป็นคำเตือน ที่เหลือไม่มีสี
+function leaseStatusTone(displayStatus: string) {
+  if (displayStatus === "ACTIVE") return "normal";
+  if (displayStatus === "EXPIRING") return "warning";
+  return "";
+}
+
+// ปุ่มในเมนูจัดการของสัญญาหนึ่งฉบับ ประกอบเป็นข้อมูลก่อนแล้วค่อยส่งให้ ActionMenu
+// แต่ละกลุ่มขึ้นกับสิทธิ์และสถานะคนละชุด จึงแยกคิดทีละกลุ่มแล้วต่อกัน
+type LeaseMenuContext = LeaseRowActions & {
+  canRenew: boolean;
+  displayStatus: string;
+  lease: Lease;
+  tenant: LeaseTenant | undefined;
+};
+
+function leaseMenuItems(context: LeaseMenuContext) {
+  return [...documentMenuItems(context), ...lifecycleMenuItems(context), ...statusMenuItems(context)];
+}
+
+// ดูตัวอย่างและดาวน์โหลด PDF ต้องรู้ชื่อผู้เช่าหลักก่อนถึงจะออกเอกสารได้
+function documentMenuItems({ actionFeedback, lease, onRequestPdf, propertyId, readOnly, tenant }: LeaseMenuContext) {
+  const items = [];
+  if (tenant) {
+    items.push({ disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างสัญญา (PDF)", onSelect: () => void onRequestPdf(lease, tenant.displayName, "preview") });
+    if (!readOnly) {
+      items.push({ disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF สัญญา", onSelect: () => void onRequestPdf(lease, tenant.displayName, "generate") });
+    }
+  }
+  if (lease.signedStorageKey) {
+    items.push({ icon: <Download aria-hidden="true" size={16} />, id: "download", label: "เปิดเอกสารลงนาม", onSelect: () => window.open(`/api/v1/admin/properties/${propertyId}/leases/${lease.id}/signed-document`, "_blank", "noopener,noreferrer") });
+  }
+  return items;
+}
+
+// ต่อสัญญา แก้ไข และอัปโหลดฉบับลงนาม ทั้งหมดทำได้เฉพาะตอนไม่ได้อยู่ในโหมดอ่านอย่างเดียว
+function lifecycleMenuItems({ canRenew, displayStatus, isSaving, lease, onEdit, onRenew, readOnly, signedDocumentInputs }: LeaseMenuContext) {
+  if (readOnly) return [];
+  const items = [];
+  // ใกล้หมดอายุมีปุ่มต่อสัญญาอยู่นอกเมนูแล้ว ไม่ต้องใส่ซ้ำ
+  if (canRenew && displayStatus !== "EXPIRING") {
+    items.push({ disabled: isSaving, icon: <FilePlus2 aria-hidden="true" size={16} />, id: "renew", label: "ต่อสัญญา", onSelect: () => onRenew(lease) });
+  }
+  if (["DRAFT", "PENDING_SIGNATURE"].includes(lease.status)) {
+    items.push(
+      { disabled: isSaving, icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขและสร้างเวอร์ชันใหม่", onSelect: () => onEdit(lease) },
+      { disabled: isSaving, icon: <Upload aria-hidden="true" size={16} />, id: "upload", label: "อัปโหลด PDF ที่ลงนามแล้ว", onSelect: () => signedDocumentInputs.current.get(lease.id)?.click() },
+    );
+  }
+  return items;
+}
+
+// เปลี่ยนสถานะตามเส้นทางที่อนุญาต EXPIRING เป็นสถานะที่ระบบคำนวณเอง ไม่ให้คนเลือก
+function statusMenuItems({ isSaving, lease, onTransition, readOnly }: LeaseMenuContext) {
+  if (readOnly) return [];
+  return leaseStatusTransitions[lease.status]
+    .filter((status) => status !== "EXPIRING")
+    .map((status) => {
+      // เปิดใช้สัญญาได้ต่อเมื่อมีเอกสารลงนามแล้ว
+      const needsDocument = status === "ACTIVE" && !lease.signedStorageKey;
+      return {
+        disabled: isSaving || needsDocument,
+        icon: <Settings2 aria-hidden="true" size={16} />,
+        id: `status-${status}`,
+        label: needsDocument ? `${transitionLabels[status]} (ต้องอัปโหลดเอกสารก่อน)` : transitionLabels[status] ?? status,
+        onSelect: () => void onTransition(lease, status),
+        variant: status === "CANCELLED" ? "danger" as const : undefined,
+      };
+    });
+}
+
+function LeaseRow({ lease, ...actions }: LeaseRowActions & Readonly<{ lease: Lease }>) {
+  const { isSaving, onRenew, onUploadSigned, readOnly, signedDocumentInputs } = actions;
+  const tenant = lease.tenants.find((item) => item.isPrimary)?.occupancy.tenantProfile.user;
+  const canRenew = ["ACTIVE", "EXPIRING", "EXPIRED"].includes(lease.status);
+  const displayStatus = leaseDisplayStatus(lease.status, lease.endDate);
+  const menuItems = leaseMenuItems({ ...actions, canRenew, displayStatus, lease, tenant });
+
+  return <tr className="figma-table-row" data-status={displayStatus}>
+    <td className="tenant-name-cell">{lease.leaseNumber}</td>
+    <td>{lease.room.number}</td>
+    <td>{tenant?.displayName ?? "-"}</td>
+    <td>{currency.format(Number(lease.monthlyRent))}</td>
+    <td className="muted-cell">{dateDisplay(lease.startDate)} – {dateDisplay(lease.endDate)}</td>
+    <td>v{lease.currentVersion}</td>
+    <td><em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{statusLabels[displayStatus]}</em></td>
+    <td className="contract-actions">
+      {!readOnly && displayStatus === "EXPIRING" ? <button
+        aria-label={`ต่อสัญญา ${lease.leaseNumber}`}
+        className="primary-button contract-renew-button"
+        disabled={isSaving}
+        onClick={() => onRenew(lease)}
+        type="button"
+      >
+        <FilePlus2 aria-hidden="true" size={16} /> ต่อสัญญา
+      </button> : null}
+      {!readOnly && ["DRAFT", "PENDING_SIGNATURE"].includes(lease.status) ? <input
+        accept="application/pdf,.pdf"
+        className="sr-only"
+        disabled={isSaving}
+        onChange={(event) => { void onUploadSigned(lease, event.target.files?.[0]); event.target.value = ""; }}
+        ref={(node) => {
+          if (node) signedDocumentInputs.current.set(lease.id, node);
+          else signedDocumentInputs.current.delete(lease.id);
+        }}
+        type="file"
+      /> : null}
+      {menuItems.length > 0 ? <ActionMenu items={menuItems} label={`จัดการสัญญา ${lease.leaseNumber}`} /> : null}
+    </td>
+  </tr>;
+}
+
+// หัวเรื่องของกล่องสัญญา ต่างกันตามว่ากำลังสร้าง แก้ไข หรือต่ออายุ
+function leaseFormTitle(editingLease: Lease | null, renewingLease: Lease | null) {
+  if (renewingLease) return "ต่อสัญญา";
+  return editingLease ? "แก้ไขสัญญา" : "สร้างสัญญาใหม่";
+}
+
+function leaseFormDescription(editingLease: Lease | null, renewingLease: Lease | null) {
+  if (renewingLease) return `สร้างสัญญารอบใหม่ต่อจาก ${renewingLease.leaseNumber} โดยเก็บฉบับเดิมไว้`;
+  if (editingLease) return `การบันทึกจะสร้าง version ${editingLease.currentVersion + 1}`;
+  return "เลือกห้องที่มีผู้เช่าหลักและกำหนดรายละเอียดสัญญา";
+}
+
+function leaseSubmitLabel(editingLease: Lease | null, isSaving: boolean, renewingLease: Lease | null) {
+  if (isSaving) return "กำลังบันทึก...";
+  if (renewingLease) return "สร้างสัญญาต่ออายุ";
+  return editingLease ? "บันทึก version ใหม่" : "สร้างสัญญา";
+}
+
+// กล่องกรอกสัญญา ใช้ร่วมกันทั้งสร้างใหม่ แก้ไข และต่ออายุ
+function LeaseFormDialog({ earliestLeaseDate, editingLease, form, isOpen, isSaving, occupiedRooms, onClose, onSubmit, renewingLease, setForm }: Readonly<{
+  earliestLeaseDate: Date;
+  editingLease: Lease | null;
+  form: LeaseForm;
+  isOpen: boolean;
+  isSaving: boolean;
+  occupiedRooms: Room[];
+  onClose: () => void;
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
+  renewingLease: Lease | null;
+  setForm: React.Dispatch<React.SetStateAction<LeaseForm>>;
+}>) {
+  if (!isOpen) return null;
+
+  // เลือกห้องแล้วเติมค่าเช่าของห้องนั้นให้อัตโนมัติ ผู้ใช้ยังแก้ทับได้
+  const changeRoom = (value: string) => {
+    const room = occupiedRooms.find((item) => item.databaseId === value);
+    setForm((current) => ({ ...current, roomId: value, monthlyRent: room ? String(room.rent) : current.monthlyRent }));
+  };
+
+  // ห้องที่ยังไม่มี databaseId คือข้อมูลที่ยังไม่ถูกบันทึกลงฐาน เลือกไปก็สร้างสัญญาไม่ได้
+  const roomOptions = [
+    { label: "เลือกห้อง", value: "" },
+    ...occupiedRooms.flatMap((room) => room.databaseId ? [{ label: `ห้อง ${room.id}`, value: room.databaseId }] : []),
+  ];
+
+  return <Dialog ariaDescribedBy="lease-form-description" ariaLabelledBy="lease-form-title" onClose={onClose}>
+    <header className="modal-header">
+      <div>
+        <h2 id="lease-form-title">{leaseFormTitle(editingLease, renewingLease)}</h2>
+        <p id="lease-form-description">{leaseFormDescription(editingLease, renewingLease)}</p>
+      </div>
+      <IconButton disabled={isSaving} label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างสัญญา"><X /></IconButton>
+    </header>
+    <form className="modal-form" onSubmit={onSubmit}>
+      <div className="modal-grid">
+        <DropdownField disabled={editingLease !== null || renewingLease !== null || isSaving} label="ห้อง" onChange={changeRoom} options={roomOptions} value={form.roomId} />
+        <label><span>ค่าเช่าต่อเดือน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required step="0.01" type="number" value={form.monthlyRent} /></label>
+        <DatePickerField
+          label="วันเริ่มสัญญา"
+          minDate={renewingLease ? parseFormDate(renewalDates(renewingLease.endDate).startDate) : earliestLeaseDate}
+          onChange={(value) => setForm((current) => ({ ...current, startDate: value }))}
+          value={form.startDate}
+        />
+        <DatePickerField
+          label="วันสิ้นสุดสัญญา"
+          minDate={form.startDate ? parseFormDate(form.startDate) : earliestLeaseDate}
+          onChange={(value) => setForm((current) => ({ ...current, endDate: value }))}
+          value={form.endDate}
+        />
+        <label><span>เงินประกัน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, depositAmount: event.target.value }))} required step="0.01" type="number" value={form.depositAmount} /></label>
+      </div>
+      <footer className="modal-actions">
+        <button disabled={isSaving} onClick={onClose} type="button">ยกเลิก</button>
+        <button className="primary-button" disabled={isSaving} type="submit">{leaseSubmitLabel(editingLease, isSaving, renewingLease)}</button>
+      </footer>
+    </form>
+  </Dialog>;
+}
+
+// ฟอร์มเดียวใช้ทำสามอย่าง สร้างใหม่ แก้ไข และต่ออายุ ทั้งสามยิงคนละปลายทางและส่งคนละฟิลด์
+function leaseOperationLabel(editingLease: Lease | null, renewingLease: Lease | null) {
+  if (renewingLease) return "ต่อสัญญา";
+  return editingLease ? "บันทึกสัญญาเวอร์ชันใหม่" : "สร้างสัญญา";
+}
+
+function leaseSaveUrl(propertyId: string, editingLease: Lease | null, renewingLease: Lease | null) {
+  const base = `/api/v1/admin/properties/${propertyId}/leases`;
+  if (renewingLease) return `${base}/${renewingLease.id}/renew`;
+  return editingLease ? `${base}/${editingLease.id}` : base;
+}
+
+// แก้ไขต้องส่ง expectedVersion ไปด้วย ส่วนต่ออายุกับสร้างใหม่ไม่ต้อง เพราะไม่ได้แตะของเดิม
+// สร้างใหม่เท่านั้นที่ต้องบอกห้อง อีกสองแบบผูกกับสัญญาเดิมอยู่แล้ว
+function leaseSaveBody(form: LeaseForm, editingLease: Lease | null, renewingLease: Lease | null) {
+  const period = {
+    startDate: form.startDate,
+    endDate: form.endDate,
+    monthlyRent: Number(form.monthlyRent),
+    depositAmount: Number(form.depositAmount),
+  };
+  if (editingLease) return { expectedVersion: editingLease.currentVersion, ...period };
+  if (renewingLease) return period;
+  return { roomId: form.roomId, ...period };
 }

@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
-import { FormEvent, useState } from "react";
+import { SyntheticEvent, useState } from "react";
 import { CheckCircle2, ChevronRight, LockKeyhole, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
@@ -13,7 +13,7 @@ import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPa
 type Message = { message: string; tone: "error" | "success" } | null;
 
 // หน้าบัญชีแบบย่อ ใช้กับผู้เช่าและผู้ดูแลระบบ ที่ไม่มีหน้าตั้งค่าหอพักเต็มรูปแบบ
-export function BasicAccountPanel({ displayName: initialDisplayName, email }: { displayName: string; email: string }) {
+export function BasicAccountPanel({ displayName: initialDisplayName, email }: Readonly<{ displayName: string; email: string }>) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
   // แก้บนสำเนา ชื่อจริงบนหน้าจะเปลี่ยนเมื่อบันทึกสำเร็จเท่านั้น
   const [draftName, setDraftName] = useState(initialDisplayName);
@@ -25,7 +25,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
   const [isSaving, setIsSaving] = useState(false);
   const notify = useToast();
 
-  const saveProfile = async (event: FormEvent) => {
+  const saveProfile = async (event: SyntheticEvent) => {
     event.preventDefault();
     setIsSaving(true);
     setProfileMessage(null);
@@ -50,7 +50,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: { 
   };
 
   // เปลี่ยนรหัสผ่าน เซิร์ฟเวอร์จะยกเลิก session ทั้งหมดแล้วบังคับให้เข้าใหม่
-  const changePassword = async (event: FormEvent) => {
+  const changePassword = async (event: SyntheticEvent) => {
     event.preventDefault();
     setPasswordMessage(null);
     // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ครหัสเดิมด้วย

@@ -21,50 +21,69 @@ function resolveRef(schema) {
 // ตรวจว่าตัวอย่างที่เขียนไว้ตรงกับ schema ของตัวเองจริงไหม
 // ตัวอย่างที่ผิดแย่กว่าไม่มีตัวอย่าง เพราะคนจะลอกไปใช้แล้วยิงไม่ผ่าน
 // ส่ง location ต่อลงไปทุกชั้น พังตรงไหนจะได้ชี้จุดได้เป๊ะ
+// ตัวนี้ทำหน้าที่แค่เลือกว่าจะส่งต่อให้ตัวตรวจแบบไหน รายละเอียดอยู่ในฟังก์ชันด้านล่าง
 function validateExample(schema, value, location, seen = new Set()) {
   if (!schema) return [];
-  if (schema.$ref) {
-    // จำ ref ที่เคยเข้าไปแล้ว กัน schema ที่อ้างถึงตัวเองจนวนไม่รู้จบ
-    const marker = `${schema.$ref}:${location}`;
-    if (seen.has(marker)) return [];
-    return validateExample(resolveRef(schema), value, location, new Set([...seen, marker]));
-  }
-  if (schema.anyOf) {
-    // anyOf ผ่านแค่แบบเดียวก็พอ
-    const alternatives = schema.anyOf.map((candidate) => validateExample(candidate, value, location, seen));
-    return alternatives.some((errors) => errors.length === 0)
-      ? []
-      : [`${location} does not match anyOf`];
-  }
-  if (schema.oneOf) {
-    const alternatives = schema.oneOf.map((candidate) => validateExample(candidate, value, location, seen));
-    // oneOf ต้องตรงแบบเดียวเป๊ะ ๆ ตรงหลายแบบก็ผิด เพราะแปลว่า schema เขียนกำกวม
-    const matching = alternatives.filter((errors) => errors.length === 0);
-    return matching.length === 1 ? [] : [`${location} must match exactly one oneOf schema`];
-  }
+  if (schema.$ref) return validateRef(schema, value, location, seen);
+  if (schema.anyOf) return validateAnyOf(schema, value, location, seen);
+  if (schema.oneOf) return validateOneOf(schema, value, location, seen);
   if (schema.enum && !schema.enum.includes(value)) return [`${location} is not in the documented enum`];
+  if (schema.type === "object") return validateObject(schema, value, location, seen);
+  if (schema.type === "array") return validateArray(schema, value, location, seen);
+  return validateScalar(schema, value, location);
+}
+
+function validateRef(schema, value, location, seen) {
+  // จำ ref ที่เคยเข้าไปแล้ว กัน schema ที่อ้างถึงตัวเองจนวนไม่รู้จบ
+  const marker = `${schema.$ref}:${location}`;
+  if (seen.has(marker)) return [];
+  return validateExample(resolveRef(schema), value, location, new Set([...seen, marker]));
+}
+
+// anyOf ผ่านแค่แบบเดียวก็พอ
+function validateAnyOf(schema, value, location, seen) {
+  const alternatives = schema.anyOf.map((candidate) => validateExample(candidate, value, location, seen));
+  return alternatives.some((errors) => errors.length === 0) ? [] : [`${location} does not match anyOf`];
+}
+
+// oneOf ต้องตรงแบบเดียวเป๊ะ ๆ ตรงหลายแบบก็ผิด เพราะแปลว่า schema เขียนกำกวม
+function validateOneOf(schema, value, location, seen) {
+  const alternatives = schema.oneOf.map((candidate) => validateExample(candidate, value, location, seen));
+  const matching = alternatives.filter((errors) => errors.length === 0);
+  return matching.length === 1 ? [] : [`${location} must match exactly one oneOf schema`];
+}
+
+function validateObject(schema, value, location, seen) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [`${location} must be an object`];
+  const errors = [];
+  for (const required of schema.required ?? []) {
+    if (!Object.hasOwn(value, required)) errors.push(`${location}.${required} is required`);
+  }
+  for (const [key, child] of Object.entries(value)) {
+    errors.push(...validateProperty(schema, key, child, location, seen));
+  }
+  return errors;
+}
+
+// ฟิลด์หนึ่งตัวในอ็อบเจกต์ ถ้าไม่ได้ประกาศไว้ต้องดูว่า schema ยอมให้มีฟิลด์นอกรายการไหม
+function validateProperty(schema, key, child, location, seen) {
+  const at = `${location}.${key}`;
+  if (schema.properties?.[key]) return validateExample(schema.properties[key], child, at, seen);
+  if (schema.additionalProperties === false) return [`${at} is not documented`];
+  if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
+    return validateExample(schema.additionalProperties, child, at, seen);
+  }
+  return [];
+}
+
+function validateArray(schema, value, location, seen) {
+  if (!Array.isArray(value)) return [`${location} must be an array`];
+  return value.flatMap((item, index) => validateExample(schema.items, item, `${location}[${index}]`, seen));
+}
+
+// ชนิดพื้นฐาน ตรวจแค่ว่าชนิดของค่าตรงกับที่ schema บอกไว้
+function validateScalar(schema, value, location) {
   if (schema.type === "null") return value === null ? [] : [`${location} must be null`];
-  if (schema.type === "object") {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return [`${location} must be an object`];
-    const errors = [];
-    for (const required of schema.required ?? []) {
-      if (!Object.hasOwn(value, required)) errors.push(`${location}.${required} is required`);
-    }
-    for (const [key, child] of Object.entries(value)) {
-      if (schema.properties?.[key]) {
-        errors.push(...validateExample(schema.properties[key], child, `${location}.${key}`, seen));
-      } else if (schema.additionalProperties === false) {
-        errors.push(`${location}.${key} is not documented`);
-      } else if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
-        errors.push(...validateExample(schema.additionalProperties, child, `${location}.${key}`, seen));
-      }
-    }
-    return errors;
-  }
-  if (schema.type === "array") {
-    if (!Array.isArray(value)) return [`${location} must be an array`];
-    return value.flatMap((item, index) => validateExample(schema.items, item, `${location}[${index}]`, seen));
-  }
   if (schema.type === "string" && typeof value !== "string") return [`${location} must be a string`];
   if (schema.type === "integer" && !Number.isInteger(value)) return [`${location} must be an integer`];
   if (schema.type === "number" && typeof value !== "number") return [`${location} must be a number`];

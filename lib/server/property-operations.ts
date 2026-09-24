@@ -82,10 +82,11 @@ export async function updateAnnouncement(propertyId: string, announcementId: str
   return getDatabase().$transaction(async (database) => {
     const current = await database.announcement.findFirst({ where: { id: announcementId, propertyId }, select: { id: true, updatedAt: true, audience: true } });
     if (!current) throw new ApiError(404, "ไม่พบประกาศ");
+    // แยกสองฟิลด์ที่ไม่ได้เก็บลงตารางประกาศออก expectedUpdatedAt ใช้แค่ตรวจการแก้ชนกัน
+    // ส่วน roomIds เก็บอยู่คนละตาราง ที่เหลือใน data คือคอลัมน์ของตารางนี้ล้วน ๆ
+    const { expectedUpdatedAt, roomIds, ...data } = input;
     // เทียบเวลาที่แก้ล่าสุด ไม่ตรงแปลว่ามีคนอื่นแก้ไปก่อนแล้ว
-    if (current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new ApiError(409, "ประกาศถูกแก้ไข กรุณาโหลดใหม่");
-    const { expectedUpdatedAt: _, roomIds, ...data } = input;
-    void _;
+    if (current.updatedAt.getTime() !== expectedUpdatedAt.getTime()) throw new ApiError(409, "ประกาศถูกแก้ไข กรุณาโหลดใหม่");
     if (roomIds || input.audience) await database.announcementRoom.deleteMany({ where: { announcementId } });
     return database.announcement.update({
       where: { id: announcementId },
@@ -340,6 +341,45 @@ export async function listTenantTickets(tenantProfileId: string, viewerUserId: s
   })), pagination, total);
 }
 
+// ด่านตรวจก่อนแก้เรื่องแจ้ง ทั้งการชนกันของการแก้ไข สถานะที่ปิดแล้ว และเส้นทางสถานะที่อนุญาต
+function assertTicketUpdatable(ticket: { priority: string; status: keyof typeof ticketTransitions; updatedAt: Date }, input: UpdateTicketInput) {
+  if (input.expectedUpdatedAt && ticket.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
+    throw new ApiError(409, "เรื่องร้องเรียนถูกแก้ไขแล้ว กรุณาโหลดข้อมูลใหม่");
+  }
+  // เรื่องที่ปิดแล้วเปลี่ยนได้แค่สถานะ เนื้อหาและความสำคัญต้องคงไว้เป็นหลักฐาน
+  const editsContent = input.title !== undefined || input.detail !== undefined || input.priority !== undefined;
+  if (["RESOLVED", "CANCELLED"].includes(ticket.status) && editsContent) {
+    throw new ApiError(409, "ไม่สามารถแก้ไขเรื่องที่ปิดแล้วได้");
+  }
+  if (input.status && !(ticketTransitions[ticket.status] as readonly string[]).includes(input.status)) {
+    throw new ApiError(409, "ไม่สามารถเปลี่ยนสถานะรายการแบบนี้ได้");
+  }
+}
+
+// ฟิลด์ที่จะเขียนทับ ส่งมาเฉพาะที่ระบุ ไม่ส่งมาก็ไม่แตะของเดิม
+function ticketUpdateData(input: UpdateTicketInput) {
+  return {
+    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.priority !== undefined ? { priority: input.priority } : {}),
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.detail !== undefined ? { detail: input.detail } : {}),
+    ...(input.status === "RESOLVED" ? { resolvedAt: new Date() } : {}),
+    ...(input.status === "CANCELLED" ? { cancelledAt: new Date() } : {}),
+  };
+}
+
+// บันทึกไว้ในไทม์ไลน์เฉพาะค่าที่เปลี่ยนจริง ส่งค่าเดิมซ้ำมาก็ไม่ต้องจด
+function ticketChangeEvents(ticket: { priority: string; status: string }, input: UpdateTicketInput, ticketId: string, actorUserId: string) {
+  const events = [];
+  if (input.status && input.status !== ticket.status) {
+    events.push({ ticketId, type: "STATUS_CHANGED" as const, actorUserId, fromValue: ticket.status, toValue: input.status });
+  }
+  if (input.priority && input.priority !== ticket.priority) {
+    events.push({ ticketId, type: "PRIORITY_CHANGED" as const, actorUserId, fromValue: ticket.priority, toValue: input.priority });
+  }
+  return events;
+}
+
 export async function updateTicket(
   propertyId: string,
   ticketId: string,
@@ -352,35 +392,22 @@ export async function updateTicket(
       select: { id: true, status: true, priority: true, updatedAt: true },
     });
     if (!ticket) throw new ApiError(404, "ไม่พบรายการแจ้งเรื่อง");
-    if (input.expectedUpdatedAt && ticket.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) throw new ApiError(409, "เรื่องร้องเรียนถูกแก้ไขแล้ว กรุณาโหลดข้อมูลใหม่");
-    if (["RESOLVED", "CANCELLED"].includes(ticket.status) && (input.title !== undefined || input.detail !== undefined || input.priority !== undefined)) throw new ApiError(409, "ไม่สามารถแก้ไขเรื่องที่ปิดแล้วได้");
-    if (input.status && !(ticketTransitions[ticket.status] as readonly string[]).includes(input.status)) {
-      throw new ApiError(409, "ไม่สามารถเปลี่ยนสถานะรายการแบบนี้ได้");
-    }
+    assertTicketUpdatable(ticket, input);
+
     const result = await database.serviceTicket.updateMany({
       where: { id: ticket.id, ...(input.expectedUpdatedAt ? { updatedAt: input.expectedUpdatedAt } : {}) },
-      data: {
-        ...(input.status !== undefined ? { status: input.status } : {}),
-        ...(input.priority !== undefined ? { priority: input.priority } : {}),
-        ...(input.title !== undefined ? { title: input.title } : {}),
-        ...(input.detail !== undefined ? { detail: input.detail } : {}),
-        ...(input.status === "RESOLVED" ? { resolvedAt: new Date() } : {}),
-        ...(input.status === "CANCELLED" ? { cancelledAt: new Date() } : {}),
-      },
+      data: ticketUpdateData(input),
     });
+    // แก้ไม่โดนแถวเลย แปลว่ามีคนบันทึกแทรกไปก่อนระหว่างที่เราตรวจอยู่
     if (result.count !== 1) throw new ApiError(409, "เรื่องร้องเรียนถูกแก้ไขแล้ว กรุณาโหลดข้อมูลใหม่");
-    const updated = await database.serviceTicket.findUniqueOrThrow({ where: { id: ticket.id }, select: { id: true, status: true, priority: true, updatedAt: true } });
-    const events = [];
-    if (input.status && input.status !== ticket.status) events.push({
-      ticketId: ticket.id, type: "STATUS_CHANGED" as const, actorUserId,
-      fromValue: ticket.status, toValue: input.status,
-    });
-    if (input.priority && input.priority !== ticket.priority) events.push({
-      ticketId: ticket.id, type: "PRIORITY_CHANGED" as const, actorUserId,
-      fromValue: ticket.priority, toValue: input.priority,
-    });
+
+    const events = ticketChangeEvents(ticket, input, ticket.id, actorUserId);
     if (events.length) await database.ticketEvent.createMany({ data: events });
-    return updated;
+
+    return database.serviceTicket.findUniqueOrThrow({
+      where: { id: ticket.id },
+      select: { id: true, status: true, priority: true, updatedAt: true },
+    });
   });
 }
 

@@ -7,7 +7,7 @@ import { AppSection } from "@/components/ui/AppSection";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { SyntheticEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Expand,
   FileText,
   Gauge,
   Home,
@@ -30,7 +29,6 @@ import {
   QrCode,
   ReceiptText,
   Send,
-  Shrink,
   Upload,
   UserRound,
   Wrench,
@@ -40,6 +38,8 @@ import { TicketReplyThread } from "@/components/dorm/TicketReplyThread";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
+import { useChatThread } from "@/components/chat/use-chat-thread";
+import { WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
@@ -53,10 +53,11 @@ import { currency } from "@/lib/dorm-utils";
 import { formatStatus } from "@/lib/ui-labels";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
-import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
+import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
+import { listAnnouncement } from "@/components/tenant/LoadMoreList";
 
 // บัญชีผู้เช่าหนึ่งคน คนหนึ่งอาจมีหลายการเข้าพัก เช่นย้ายห้องหรือเช่าหลายห้อง
 type Account = {
@@ -286,15 +287,97 @@ function useTenantPortal() {
 
 // เปลือกของทั้งพื้นที่ผู้เช่า อยู่ใน layout จึงไม่ถูกถอดตอนเปลี่ยนแท็บ
 // ข้อมูลร่วมอย่างห้องและยอดแจ้งเตือนจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
+// ตัวเลขบนป้ายของแต่ละแท็บ หน้าหลักรวมทุกอย่าง ส่วนแท็บอื่นนับเฉพาะของตัวเอง
+function tabNotificationCount(tab: TenantTab, summary: TenantNotificationSummary | null) {
+  if (!summary) return 0;
+  if (tab === "invoices") return summary.unpaidInvoices;
+  if (tab === "parcels") return summary.waitingParcels;
+  // มีคำตอบใหม่ให้โชว์จำนวนคำตอบก่อน เพราะเป็นเรื่องที่ต้องเข้าไปอ่าน ไม่ใช่แค่รออยู่
+  if (tab === "tickets") return summary.unreadTicketReplies || summary.openTickets;
+  if (tab === "chat") return summary.unreadMessages;
+  if (tab === "home") {
+    return summary.unpaidInvoices + summary.waitingParcels + summary.openTickets + summary.unreadMessages + summary.unreadTicketReplies;
+  }
+  return 0;
+}
+
+// รายการในกระดิ่งแจ้งเตือนของผู้เช่า ไม่มีข้อมูลสรุปก็ยังไม่มีอะไรให้แจ้ง
+function buildTenantNotifications(summary: TenantNotificationSummary | null): NotificationCenterItem[] {
+  if (!summary) return [];
+  return [
+    { id: "unpaid-invoices", count: summary.unpaidInvoices, title: "บิลที่รอชำระ", description: "ตรวจสอบยอดและกำหนดชำระของบิลล่าสุด", href: tenantPagePath("invoices"), icon: <ReceiptText size={19} /> },
+    { id: "waiting-parcels", count: summary.waitingParcels, title: "มีพัสดุรอรับ", description: "ติดต่อหอพักเพื่อรับพัสดุของคุณ", href: tenantPagePath("parcels"), icon: <Package size={19} /> },
+    { id: "open-tickets", count: summary.openTickets, title: "เรื่องแจ้งที่กำลังดำเนินการ", description: "ติดตามสถานะงานซ่อมหรือเรื่องร้องเรียน", href: tenantPagePath("tickets"), icon: <Wrench size={19} /> },
+    { id: "ticket-replies", count: summary.unreadTicketReplies, title: "มีคำตอบใหม่ในเรื่องแจ้ง", description: "เปิดอ่านคำตอบล่าสุดจากผู้ดูแลหอ", href: tenantPagePath("tickets"), icon: <MessageSquare size={19} /> },
+    { id: "messages", count: summary.unreadMessages, title: "ข้อความใหม่จากหอพัก", description: "เปิดอ่านข้อความจากผู้ดูแลหอ", href: tenantPagePath("chat"), icon: <MessageSquare size={19} /> },
+  ];
+}
+
+// ลิงก์หนึ่งอันในเมนูด้านข้าง พร้อมป้ายจำนวนที่ต้องตรวจสอบ
+function TenantNavLink({ count, icon, isActive, label, tab }: Readonly<{
+  count: number;
+  icon: ReactNode;
+  isActive: boolean;
+  label: string;
+  tab: TenantTab;
+}>) {
+  return <Link aria-current={isActive ? "page" : undefined} className={isActive ? "active" : ""} href={tenantPagePath(tab)}>
+    {icon}{label}
+    {count > 0 ? <span aria-label={`${count} รายการที่ต้องตรวจสอบ`} className="notification-badge">{count > 99 ? "99+" : count}</span> : null}
+  </Link>;
+}
+
+// แถบบอกสถานะสิทธิ์การใช้งานของหอ แสดงได้ทีละกรณีเท่านั้น
+function TenantAccessBanner({ accessState, onRetry }: Readonly<{
+  accessState: SubscriptionUiAccessState;
+  onRetry: () => void;
+}>) {
+  if (accessState === "loading") {
+    return <output className="subscription-access-banner grace mx-auto mt-5 max-w-[1400px]">
+      <span><LoaderCircle aria-hidden="true" className="animate-spin" /></span>
+      <div>
+        <strong>กำลังตรวจสอบสิทธิ์การใช้งาน</strong>
+        <p>ระบบปิดการส่งข้อมูลใหม่ไว้ชั่วคราวระหว่างตรวจสอบสถานะแพ็กเกจ</p>
+      </div>
+    </output>;
+  }
+  if (accessState === "error") {
+    return <div className="subscription-access-banner grace mx-auto mt-5 max-w-[1400px]" role="alert">
+      <span><AlertCircle aria-hidden="true" /></span>
+      <div>
+        <strong>ยังตรวจสอบสิทธิ์การใช้งานไม่ได้</strong>
+        <p>ระบบปิดการส่งข้อมูลใหม่ไว้ชั่วคราว กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง</p>
+      </div>
+      <button className="primary-button" onClick={onRetry} type="button">ลองตรวจสอบใหม่</button>
+    </div>;
+  }
+  if (accessState === "read-only") {
+    return <div className="subscription-access-banner read-only mx-auto mt-5 max-w-[1400px]" role="alert">
+      <span><AlertCircle aria-hidden="true" /></span>
+      <div>
+        <strong>หอพักนี้อยู่ในโหมดอ่านอย่างเดียว</strong>
+        <p>คุณยังดูห้อง บิล สัญญา ประกาศ พัสดุ และประวัติเดิมได้ แต่ยังส่งสลิป แจ้งเรื่อง หรือส่งข้อความใหม่ไม่ได้</p>
+      </div>
+    </div>;
+  }
+  return null;
+}
+
+// บนมือถือพื้นที่แคบ สองแท็บนี้จึงใช้คำสั้นกว่าบนเมนูปกติ
+const mobileTabLabels: Partial<Record<TenantTab, string>> = {
+  invoices: "บิล",
+  tickets: "แจ้งเรื่อง",
+};
+
 export function TenantPortal({
   children,
   initialAccount,
   initialSelectedOccupancyId,
-}: {
+}: Readonly<{
   children: ReactNode;
   initialAccount: Account;
   initialSelectedOccupancyId: string | null;
-}) {
+}>) {
   const router = useRouter();
   // อ่านแท็บจาก URL แทนการรับเป็น prop เพราะ layout ไม่รู้พารามิเตอร์ของ route ลูก
   const pathname = usePathname();
@@ -320,27 +403,8 @@ export function TenantPortal({
   });
   // เป็นแค่การซ่อนปุ่มให้ผู้ใช้รู้ตัว ส่วนการบังคับจริงอยู่ที่เซิร์ฟเวอร์ทุกครั้ง
   const isReadOnly = blocksSubscriptionMutations(accessState);
-  // ตัวเลขบนป้ายของแต่ละแท็บ หน้าหลักรวมทุกอย่าง ส่วนแท็บอื่นนับเฉพาะของตัวเอง
-  const notificationCount = (tab: TenantTab) => {
-    const summary = notificationResource.data;
-    if (!summary) return 0;
-    if (tab === "invoices") return summary.unpaidInvoices;
-    if (tab === "parcels") return summary.waitingParcels;
-    // มีคำตอบใหม่ให้โชว์จำนวนคำตอบก่อน เพราะเป็นเรื่องที่ต้องเข้าไปอ่าน ไม่ใช่แค่รออยู่
-    if (tab === "tickets") return summary.unreadTicketReplies || summary.openTickets;
-    if (tab === "chat") return summary.unreadMessages;
-    if (tab === "home") {
-      return summary.unpaidInvoices + summary.waitingParcels + summary.openTickets + summary.unreadMessages + summary.unreadTicketReplies;
-    }
-    return 0;
-  };
-  const tenantNotifications: NotificationCenterItem[] = notificationResource.data ? [
-    { id: "unpaid-invoices", count: notificationResource.data.unpaidInvoices, title: "บิลที่รอชำระ", description: "ตรวจสอบยอดและกำหนดชำระของบิลล่าสุด", href: tenantPagePath("invoices"), icon: <ReceiptText size={19} /> },
-    { id: "waiting-parcels", count: notificationResource.data.waitingParcels, title: "มีพัสดุรอรับ", description: "ติดต่อหอพักเพื่อรับพัสดุของคุณ", href: tenantPagePath("parcels"), icon: <Package size={19} /> },
-    { id: "open-tickets", count: notificationResource.data.openTickets, title: "เรื่องแจ้งที่กำลังดำเนินการ", description: "ติดตามสถานะงานซ่อมหรือเรื่องร้องเรียน", href: tenantPagePath("tickets"), icon: <Wrench size={19} /> },
-    { id: "ticket-replies", count: notificationResource.data.unreadTicketReplies, title: "มีคำตอบใหม่ในเรื่องแจ้ง", description: "เปิดอ่านคำตอบล่าสุดจากผู้ดูแลหอ", href: tenantPagePath("tickets"), icon: <MessageSquare size={19} /> },
-    { id: "messages", count: notificationResource.data.unreadMessages, title: "ข้อความใหม่จากหอพัก", description: "เปิดอ่านข้อความจากผู้ดูแลหอ", href: tenantPagePath("chat"), icon: <MessageSquare size={19} /> },
-  ] : [];
+  const notificationCount = (tab: TenantTab) => tabNotificationCount(tab, notificationResource.data);
+  const tenantNotifications = buildTenantNotifications(notificationResource.data);
   // สลับห้องที่กำลังดู เซิร์ฟเวอร์เก็บไว้ในคุกกี้เพื่อให้เปิดครั้งหน้ายังอยู่ห้องเดิม
   const switchOccupancy = async (occupancyId: string) => {
     setIsSwitching(true);
@@ -388,14 +452,7 @@ export function TenantPortal({
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
         {navigationTabs.map(({ id, icon: Icon, label }) => (
-          <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
-            <Icon size={19} />{label}
-            {notificationCount(id) > 0 ? (
-              <span className="notification-badge" aria-label={`${notificationCount(id)} รายการที่ต้องตรวจสอบ`}>
-                {notificationCount(id) > 99 ? "99+" : notificationCount(id)}
-              </span>
-            ) : null}
-          </Link>
+          <TenantNavLink count={notificationCount(id)} icon={<Icon size={19} />} isActive={activeTab === id} key={id} label={label} tab={id} />
         ))}
       </nav>
       <SidebarAccountMenu
@@ -423,26 +480,7 @@ export function TenantPortal({
           /> : null}
         </div>
       </header>
-    {accessState === "loading" ? <div className="subscription-access-banner grace mx-auto mt-5 max-w-[1400px]" role="status">
-      <span><LoaderCircle className="animate-spin" aria-hidden="true" /></span>
-      <div>
-        <strong>กำลังตรวจสอบสิทธิ์การใช้งาน</strong>
-        <p>ระบบปิดการส่งข้อมูลใหม่ไว้ชั่วคราวระหว่างตรวจสอบสถานะแพ็กเกจ</p>
-      </div>
-    </div> : accessState === "error" ? <div className="subscription-access-banner grace mx-auto mt-5 max-w-[1400px]" role="alert">
-      <span><AlertCircle aria-hidden="true" /></span>
-      <div>
-        <strong>ยังตรวจสอบสิทธิ์การใช้งานไม่ได้</strong>
-        <p>ระบบปิดการส่งข้อมูลใหม่ไว้ชั่วคราว กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง</p>
-      </div>
-      <button className="primary-button" onClick={() => void notificationResource.reload()} type="button">ลองตรวจสอบใหม่</button>
-    </div> : accessState === "read-only" ? <div className="subscription-access-banner read-only mx-auto mt-5 max-w-[1400px]" role="alert">
-      <span><AlertCircle aria-hidden="true" /></span>
-      <div>
-        <strong>หอพักนี้อยู่ในโหมดอ่านอย่างเดียว</strong>
-        <p>คุณยังดูห้อง บิล สัญญา ประกาศ พัสดุ และประวัติเดิมได้ แต่ยังส่งสลิป แจ้งเรื่อง หรือส่งข้อความใหม่ไม่ได้</p>
-      </div>
-    </div> : null}
+    <TenantAccessBanner accessState={accessState} onRetry={() => void notificationResource.reload()} />
     {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
     <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6">
       <section className="min-w-0">{children}</section>
@@ -455,7 +493,7 @@ export function TenantPortal({
             <Icon aria-hidden="true" size={21} />
             {notificationCount(id) > 0 ? <span className="tenant-mobile-nav-badge">{notificationCount(id) > 99 ? "99+" : notificationCount(id)}</span> : null}
           </span>
-          <span>{id === "invoices" ? "บิล" : id === "tickets" ? "แจ้งเรื่อง" : label}</span>
+          <span>{mobileTabLabels[id] ?? label}</span>
         </Link>
       ))}
       <details className="tenant-mobile-more">
@@ -511,12 +549,12 @@ export function TenantSectionPanel({
   initialSummary = null,
   initialTickets = null,
   tab,
-}: {
+}: Readonly<{
   initialInvoices?: TenantInitialViews<Invoice> | null;
   initialSummary?: TenantHomeSummary | null;
   initialTickets?: TenantInitialViews<Ticket> | null;
   tab: TenantTab;
-}) {
+}>) {
   // เรียก context ครั้งเดียวบนสุด hook ห้ามอยู่หลัง early return
   const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
   // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
@@ -533,20 +571,37 @@ export function TenantSectionPanel({
     />;
   }
   // บิลกับสัญญาเป็นเรื่องของผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทน
-  if (tab === "invoices") return isPrimary ? <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้" />;
-  if (tab === "lease") return isPrimary ? <LeasePanel /> : <RestrictedPanel message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้" />;
+  if (tab === "invoices") {
+    return <PrimaryOnly isPrimary={isPrimary} message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้">
+      <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} />
+    </PrimaryOnly>;
+  }
+  if (tab === "lease") {
+    return <PrimaryOnly isPrimary={isPrimary} message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้"><LeasePanel /></PrimaryOnly>;
+  }
   if (tab === "announcements") return <AnnouncementsPanel />;
   if (tab === "parcels") return <ParcelsPanel />;
   if (tab === "tickets") return <TicketsPanel initialViews={initialTickets} onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
-  if (tab === "chat") {
-    // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
-    if (roomResource.isLoading) return <Loading />;
-    if (roomResource.error || !roomResource.data) {
-      return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
-    }
-    return <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
-  }
+  if (tab === "chat") return <TenantChatSection isReadOnly={isReadOnly} roomResource={roomResource} />;
   return null;
+}
+
+// บางแท็บเปิดได้เฉพาะผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทนที่จะเห็นหน้าว่าง
+function PrimaryOnly({ children, isPrimary, message }: Readonly<{ children: ReactNode; isPrimary: boolean; message: string }>) {
+  if (!isPrimary) return <RestrictedPanel message={message} />;
+  return <>{children}</>;
+}
+
+// แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
+function TenantChatSection({ isReadOnly, roomResource }: Readonly<{
+  isReadOnly: boolean;
+  roomResource: ReturnType<typeof useTenantPortal>["roomResource"];
+}>) {
+  if (roomResource.isLoading) return <Loading />;
+  if (roomResource.error || !roomResource.data) {
+    return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
+  }
+  return <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
 }
 
 // แท็บบัญชีของฉัน แก้ข้อมูลติดต่อและเปลี่ยนรหัสผ่าน
@@ -554,11 +609,11 @@ function AccountPanel({
   account,
   onUpdated,
   refreshAccount,
-}: {
+}: Readonly<{
   account: Account;
   onUpdated: (account: Account) => void;
   refreshAccount: () => Promise<void>;
-}) {
+}>) {
   const [profile, setProfile] = useState({
     displayName: account.user.displayName,
     phone: account.phone,
@@ -587,7 +642,7 @@ function AccountPanel({
   const isPasswordDirty = Object.values(password).some(Boolean);
   useUnsavedChanges((isProfileDirty || isPasswordDirty) && !isSavingProfile && !isSavingPassword);
 
-  const saveProfile = async (event: FormEvent) => {
+  const saveProfile = async (event: SyntheticEvent) => {
     event.preventDefault();
     setIsSavingProfile(true);
     setProfileError("");
@@ -612,7 +667,7 @@ function AccountPanel({
     }
   };
 
-  const changePassword = async (event: FormEvent) => {
+  const changePassword = async (event: SyntheticEvent) => {
     event.preventDefault();
     setPasswordError("");
     if (password.newPassword !== password.confirmPassword) {
@@ -656,7 +711,7 @@ function AccountPanel({
         <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{account.phone || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
         <div className="account-detail-row"><strong>ที่อยู่</strong><span>{account.address || "ยังไม่ระบุ"}</span><small>ข้อมูลส่วนตัว</small></div>
         <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{account.emergencyPhone || "ยังไม่ระบุเบอร์"}</small></div>
-        {profileMessage ? <p className="account-settings-message success" role="status">{profileMessage}</p> : null}
+        {profileMessage ? <output className="account-settings-message success block">{profileMessage}</output> : null}
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
       </section>
 
@@ -724,12 +779,12 @@ function AccountPanel({
 }
 
 // รับคำเชิญเข้าห้องเพิ่ม ใช้ตอนผู้เช่าเดิมได้รหัสเชิญของอีกห้องมา
-function AcceptInvitationForm({ onAccepted }: { onAccepted: () => Promise<void> }) {
+function AcceptInvitationForm({ onAccepted }: Readonly<{ onAccepted: () => Promise<void> }>) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     event.preventDefault();
     setIsSending(true); setError(""); setMessage("");
     try {
@@ -761,13 +816,13 @@ function AcceptInvitationForm({ onAccepted }: { onAccepted: () => Promise<void> 
     <button className="primary-button justify-center" disabled={isSending} type="submit">
       {isSending ? <LoaderCircle className="animate-spin" size={16} /> : null} รับคำเชิญ
     </button>
-    {message ? <small className="text-emerald-700" role="status">{message}</small> : null}
+    {message ? <output className="text-emerald-700">{message}</output> : null}
     {error ? <small className="text-red-600" role="alert">{error}</small> : null}
   </form>;
 }
 
 // หน้าจอตอนสมัครแล้วแต่ยังไม่ได้รับอนุมัติ ยังเข้าใช้งานส่วนอื่นไม่ได้
-function PendingState({ account }: { account: Account }) {
+function PendingState({ account }: Readonly<{ account: Account }>) {
   const latest = account.occupancies[0];
   return <Panel title="สถานะการเข้าพัก"><div className="empty-state"><Clock3 size={40} /><strong>{latest?.status === "PENDING" ? "รอเจ้าของหออนุมัติ" : "ยังไม่มีการเข้าพักที่ใช้งาน"}</strong><p>เมื่อได้รับอนุมัติแล้ว คุณจะเข้าถึงข้อมูลห้องและบริการของหอได้</p></div></Panel>;
 }
@@ -790,13 +845,13 @@ function HomePanel({
   isPrimary,
   notificationResource,
   roomResource,
-}: {
+}: Readonly<{
   account: Account;
   initialSummary?: TenantHomeSummary | null;
   isPrimary: boolean;
   notificationResource: ReturnType<typeof useApiResource<TenantNotificationSummary>>;
   roomResource: ReturnType<typeof useApiResource<RoomData>>;
-}) {
+}>) {
   const invoices = useApiResource<Invoice[]>("/api/v1/tenant/invoices?page=1&pageSize=5", isPrimary, initialSummary?.invoices ?? null);
   const parcels = useApiResource<Parcel[]>("/api/v1/tenant/parcels?page=1&pageSize=5", true, initialSummary?.parcels ?? null);
   const tickets = useApiResource<Ticket[]>("/api/v1/tenant/tickets?page=1&pageSize=5", true, initialSummary?.tickets ?? null);
@@ -834,15 +889,11 @@ function HomePanel({
       <div className="figma-summary-grid three">
         <HomePriorityCard
           tone="orange"
-          detail={isPrimary
-            ? unpaidInvoice
-              ? `ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`
-              : "ไม่มีบิลที่ต้องชำระ"
-            : "ผู้พักร่วมไม่ต้องดำเนินการ"}
+          detail={unpaidInvoiceDetail(isPrimary, unpaidInvoice)}
           href={tenantPagePath("invoices")}
           icon={<ReceiptText />}
           label="ยอดที่ต้องชำระ"
-          value={isPrimary ? unpaidInvoice ? currency.format(Number(unpaidInvoice.total)) : "ไม่มี" : "-"}
+          value={unpaidInvoiceValue(isPrimary, unpaidInvoice)}
         />
         <HomePriorityCard
           tone="blue"
@@ -866,37 +917,13 @@ function HomePanel({
     </AppSection>
 
     <AppSection description="รายการที่ต้องเข้าไปจัดการในตอนนี้" icon={<ListChecks />} title="งานที่ต้องทำ">
-      <div className="work-item-grid">
-        {isPrimary && unpaidInvoice ? (
-          <HomeTask
-            detail={`บิล ${unpaidInvoice.invoiceNumber} ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`}
-            href={tenantPagePath("invoices")}
-            icon={<ReceiptText size={20} />}
-            label={unpaidInvoice.status === "OVERDUE" ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
-          />
-        ) : null}
-        {(summary?.waitingParcels ?? 0) > 0 ? (
-          <HomeTask detail={`มีพัสดุรอรับ ${summary?.waitingParcels ?? 0} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" />
-        ) : null}
-        {(summary?.openTickets ?? 0) > 0 ? (
-          <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${summary?.openTickets ?? 0} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" />
-        ) : null}
-        {(summary?.unreadMessages ?? 0) > 0 ? (
-          <HomeTask detail={`มีข้อความที่ยังไม่ได้อ่าน ${summary?.unreadMessages ?? 0} ข้อความ`} href={tenantPagePath("chat")} icon={<MessageSquare size={20} />} label="อ่านข้อความจากหอพัก" />
-        ) : null}
-        {(!isPrimary || !unpaidInvoice)
-          && (summary?.waitingParcels ?? 0) === 0
-          && (summary?.openTickets ?? 0) === 0
-          && (summary?.unreadMessages ?? 0) === 0
-          && !notificationResource.isLoading ? (
-            <div className="empty-state min-h-36">
-              <Clock3 size={32} />
-              <strong>ไม่มีรายการที่ต้องดำเนินการ</strong>
-              <p>เมื่อมีบิล พัสดุ หรือการอัปเดต ระบบจะแสดงที่นี่</p>
-            </div>
-          ) : null}
-        {notificationResource.isLoading ? <Loading /> : null}
-      </div>
+      <HomeTaskList
+        isLoading={notificationResource.isLoading}
+        isPrimary={isPrimary}
+        openTicket={openTicket}
+        summary={summary}
+        unpaidInvoice={unpaidInvoice}
+      />
     </AppSection>
 
     <AppSection description="รายละเอียดห้องที่กำลังเข้าพัก" icon={<Home />} title="ข้อมูลห้อง">
@@ -923,16 +950,61 @@ function HomePanel({
   </div>;
 }
 
+// ผู้พักร่วมไม่มีบิลของตัวเอง ส่วนผู้เช่าหลักดูว่ามีบิลค้างอยู่ไหม
+function unpaidInvoiceDetail(isPrimary: boolean, invoice: Invoice | undefined) {
+  if (!isPrimary) return "ผู้พักร่วมไม่ต้องดำเนินการ";
+  if (!invoice) return "ไม่มีบิลที่ต้องชำระ";
+  return `ครบกำหนด ${new Date(invoice.dueDate).toLocaleDateString("th-TH")}`;
+}
+
+function unpaidInvoiceValue(isPrimary: boolean, invoice: Invoice | undefined) {
+  if (!isPrimary) return "-";
+  return invoice ? currency.format(Number(invoice.total)) : "ไม่มี";
+}
+
+// รายการงานที่ต้องเข้าไปจัดการ ไม่มีอะไรค้างเลยก็แสดงสถานะว่างแทน
+function HomeTaskList({ isLoading, isPrimary, openTicket, summary, unpaidInvoice }: Readonly<{
+  isLoading: boolean;
+  isPrimary: boolean;
+  openTicket: Ticket | undefined;
+  summary: TenantNotificationSummary | null;
+  unpaidInvoice: Invoice | undefined;
+}>) {
+  const waitingParcels = summary?.waitingParcels ?? 0;
+  const openTickets = summary?.openTickets ?? 0;
+  const unreadMessages = summary?.unreadMessages ?? 0;
+  const showInvoiceTask = isPrimary && Boolean(unpaidInvoice);
+  const nothingToDo = !showInvoiceTask && waitingParcels === 0 && openTickets === 0 && unreadMessages === 0 && !isLoading;
+
+  return <div className="work-item-grid">
+    {showInvoiceTask && unpaidInvoice ? <HomeTask
+      detail={`บิล ${unpaidInvoice.invoiceNumber} ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`}
+      href={tenantPagePath("invoices")}
+      icon={<ReceiptText size={20} />}
+      label={unpaidInvoice.status === "OVERDUE" ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
+    /> : null}
+    {waitingParcels > 0 ? <HomeTask detail={`มีพัสดุรอรับ ${waitingParcels} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" /> : null}
+    {openTickets > 0 ? <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${openTickets} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" /> : null}
+    {unreadMessages > 0 ? <HomeTask detail={`มีข้อความที่ยังไม่ได้อ่าน ${unreadMessages} ข้อความ`} href={tenantPagePath("chat")} icon={<MessageSquare size={20} />} label="อ่านข้อความจากหอพัก" /> : null}
+    {nothingToDo ? <div className="empty-state min-h-36">
+      <Clock3 size={32} />
+      <strong>ไม่มีรายการที่ต้องดำเนินการ</strong>
+      <p>เมื่อมีบิล พัสดุ หรือการอัปเดต ระบบจะแสดงที่นี่</p>
+    </div> : null}
+    {isLoading ? <Loading /> : null}
+  </div>;
+}
+
 // ใช้การ์ดตัวเลขใบเดียวกับฝั่งเจ้าของหอและผู้ดูแลระบบ ต่างกันแค่กดแล้วไปหน้าอื่นได้
 // เดิมเป็นการ์ดพื้นสีพาสเทลเต็มใบ ซึ่งเป็นคนละภาษากับอีกสองโรล
-function HomePriorityCard({ detail, href, icon, label, tone, value }: {
+function HomePriorityCard({ detail, href, icon, label, tone, value }: Readonly<{
   detail: string;
   href: string;
   icon: ReactNode;
   label: string;
   tone: string;
   value: string;
-}) {
+}>) {
   // span ต้องเป็นลูกโดยตรงของการ์ด ถึงจะได้กรอบไอคอนแบบเดียวกับอีกสองโรล
   return <Link className={`figma-summary-card tone-${tone} pr-12 hover:border-[#c8c9d0]`} href={href}>
     <div className="min-w-0"><small>{label}</small><strong>{value}</strong><small className="mt-1.5 block">{detail}</small></div>
@@ -942,12 +1014,12 @@ function HomePriorityCard({ detail, href, icon, label, tone, value }: {
 }
 
 // รายการงานหนึ่งบรรทัด ใช้โครงและคลาสเดียวกับหน้าแรกของเจ้าของหอและผู้ดูแลระบบ
-function HomeTask({ detail, href, icon, label }: {
+function HomeTask({ detail, href, icon, label }: Readonly<{
   detail: string;
   href: string;
   icon: ReactNode;
   label: string;
-}) {
+}>) {
   return <Link href={href}>
     <span className="work-item-icon">{icon}</span>
     <span className="work-item-copy">
@@ -968,13 +1040,13 @@ function TenantHistoryTabs({
   id,
   onChange,
   view,
-}: {
+}: Readonly<{
   currentLabel: string;
   historyLabel: string;
   id: string;
   onChange: (view: TenantRecordView) => void;
   view: TenantRecordView;
-}) {
+}>) {
   const handleKeyDown = useTablistKeyboard(["current", "history"] as const, onChange);
   const tabs = [
     { label: currentLabel, value: "current" as const },
@@ -987,7 +1059,7 @@ function TenantHistoryTabs({
   </div>;
 }
 
-function TenantHistoryTable({ children, title, total }: { children: ReactNode; title: string; total: number | null }) {
+function TenantHistoryTable({ children, title, total }: Readonly<{ children: ReactNode; title: string; total: number | null }>) {
   return <section className="figma-table-card">
     <header className="additional-card-head">
       <div><h2>{title}</h2><p>{total === null ? "กำลังนับรายการ..." : `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`}</p></div>
@@ -996,7 +1068,7 @@ function TenantHistoryTable({ children, title, total }: { children: ReactNode; t
   </section>;
 }
 
-function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }) {
+function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }>) {
   const [view, setView] = useState<TenantRecordView>("current");
   const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current", 20, initialViews?.current ?? null);
   const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history", 20, initialViews?.history ?? null, view === "history");
@@ -1004,90 +1076,197 @@ function InvoicesPanel({ initialViews, readOnly }: { initialViews?: TenantInitia
   const reloadInvoiceHistory = historyResource.reload;
   const resource = view === "current" ? currentResource : historyResource;
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+
   const changeView = (nextView: TenantRecordView) => {
     setExpandedInvoiceId(null);
     setView(nextView);
   };
+
+  // บิลใบเดียวอาจถูกแก้จากทั้งสองมุมมอง โหลดใหม่ทั้งคู่จะได้ไม่ค้างของเก่า
   const reloadInvoices = useCallback(async () => {
     await Promise.all([reloadCurrentInvoices(), reloadInvoiceHistory()]);
   }, [reloadCurrentInvoices, reloadInvoiceHistory]);
+
+  const toggleExpanded = (invoiceId: string) => {
+    setExpandedInvoiceId((current) => current === invoiceId ? null : invoiceId);
+  };
+
   return <div className="grid gap-5">
     <TenantHistoryTabs currentLabel="บิลปัจจุบัน" historyLabel="ประวัติบิล" id="tenant-invoices" onChange={changeView} view={view} />
     <div aria-labelledby={`tenant-invoices-tab-${view}`} aria-live="polite" id="tenant-invoices-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading && !resource.data.length ? <Loading columns={6} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length === 0 ? <Empty icon={<ReceiptText />} description={view === "current" ? "เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" : "บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่"} text={view === "current" ? "ไม่มีบิลที่ต้องดำเนินการ" : "ยังไม่มีประวัติบิล"} /> : view === "history" ? <TenantHistoryTable title="ประวัติบิล" total={historyResource.total}>
-      <table>
-        <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
-        <tbody>{resource.data.map((invoice) => {
-          const isExpanded = expandedInvoiceId === invoice.id;
-          const panelId = `tenant-invoice-details-${invoice.id}`;
-          const completedAt = invoice.paidAt ?? invoice.cancelledAt;
-          return <Fragment key={invoice.id}>
-            <tr>
-              <th className="px-6 py-4 text-sm font-bold" scope="row">{invoice.invoiceNumber}</th>
-              <td>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</td>
-              <td><strong>{currency.format(Number(invoice.total))}</strong></td>
-              <td><Status value={invoice.status} /></td>
-              <td>{completedAt ? new Date(completedAt).toLocaleDateString("th-TH") : "—"}</td>
-              <td><button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
-            </tr>
-            {isExpanded ? <tr><td className="p-0!" colSpan={6}><InvoiceDetails id={panelId} invoice={invoice} onChanged={reloadInvoices} readOnly={readOnly} /></td></tr> : null}
-          </Fragment>;
-        })}</tbody>
-      </table>
-    </TenantHistoryTable> : <div className="grid gap-3">
-      {resource.data.map((invoice) => {
-        const isExpanded = expandedInvoiceId === invoice.id;
-        const panelId = `tenant-invoice-details-${invoice.id}`;
-        return <article className={`panel overflow-hidden p-0 transition ${isExpanded ? "border-brand" : ""}`} key={invoice.id}>
-          <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)} type="button">
-            <span><strong className="block text-lg">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · ครบกำหนด {new Date(invoice.dueDate).toLocaleDateString("th-TH")}</small></span>
-            <span className="flex shrink-0 items-center gap-4 text-right">
-              <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><Status value={invoice.status} /></span>
-              <span className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" title={isExpanded ? "ยุบรายละเอียด" : "ขยายรายละเอียด"}><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></span>
-            </span>
-          </button>
-          {isExpanded ? <InvoiceDetails id={panelId} invoice={invoice} onChanged={reloadInvoices} readOnly={readOnly} /> : null}
-        </article>;
-      })}
-    </div>}
-    {!resource.isLoading && !resource.error ? <PaginationActions resource={resource} /> : null}
+      <InvoicesBody
+        expandedInvoiceId={expandedInvoiceId}
+        historyTotal={historyResource.total}
+        onChanged={reloadInvoices}
+        onToggle={toggleExpanded}
+        readOnly={readOnly}
+        resource={resource}
+        view={view}
+      />
+      {!resource.isLoading && !resource.error ? <PaginationActions resource={resource} /> : null}
     </div>
   </div>;
 }
 
-function InvoiceDetails({ id, invoice, onChanged, readOnly }: { id: string; invoice: Invoice; onChanged: () => Promise<void>; readOnly: boolean }) {
+type InvoiceListProps = Readonly<{
+  expandedInvoiceId: string | null;
+  historyTotal: number | null;
+  onChanged: () => Promise<void>;
+  onToggle: (invoiceId: string) => void;
+  readOnly: boolean;
+  resource: PaginatedResource<Invoice>;
+  view: TenantRecordView;
+}>;
+
+// เลือกว่าจะแสดงอะไรในแผงบิล กำลังโหลด พัง ว่าง ประวัติ หรือรายการปัจจุบัน
+function InvoicesBody(props: InvoiceListProps) {
+  const { resource, view } = props;
+  if (resource.isLoading && !resource.data.length) return <Loading columns={6} variant={view === "history" ? "table" : "list"} />;
+  if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
+  if (resource.data.length === 0) {
+    return view === "current"
+      ? <Empty description="เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" icon={<ReceiptText />} text="ไม่มีบิลที่ต้องดำเนินการ" />
+      : <Empty description="บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่" icon={<ReceiptText />} text="ยังไม่มีประวัติบิล" />;
+  }
+  if (view === "history") return <InvoiceHistoryTable {...props} />;
+  return <InvoiceCards {...props} />;
+}
+
+// มุมมองประวัติเป็นตาราง กดแถวแล้วกางรายละเอียดออกมาเป็นแถวถัดไป
+function InvoiceHistoryTable({ expandedInvoiceId, historyTotal, onChanged, onToggle, readOnly, resource }: InvoiceListProps) {
+  return <TenantHistoryTable title="ประวัติบิล" total={historyTotal}>
+    <table>
+      <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
+      <tbody>{resource.data.map((invoice) => {
+        const isExpanded = expandedInvoiceId === invoice.id;
+        const panelId = `tenant-invoice-details-${invoice.id}`;
+        const completedAt = invoice.paidAt ?? invoice.cancelledAt;
+        return <Fragment key={invoice.id}>
+          <tr>
+            <th className="px-6 py-4 text-sm font-bold" scope="row">{invoice.invoiceNumber}</th>
+            <td>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</td>
+            <td><strong>{currency.format(Number(invoice.total))}</strong></td>
+            <td><Status value={invoice.status} /></td>
+            <td>{completedAt ? new Date(completedAt).toLocaleDateString("th-TH") : "—"}</td>
+            <td><button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggle(invoice.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
+          </tr>
+          {isExpanded ? <tr><td className="p-0!" colSpan={6}><InvoiceDetails id={panelId} invoice={invoice} onChanged={onChanged} readOnly={readOnly} /></td></tr> : null}
+        </Fragment>;
+      })}</tbody>
+    </table>
+  </TenantHistoryTable>;
+}
+
+// มุมมองปัจจุบันเป็นการ์ด กดแล้วกางรายละเอียดอยู่ในการ์ดเดิม
+function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resource }: InvoiceListProps) {
+  return <div className="grid gap-3">
+    {resource.data.map((invoice) => {
+      const isExpanded = expandedInvoiceId === invoice.id;
+      const panelId = `tenant-invoice-details-${invoice.id}`;
+      return <article className={`panel overflow-hidden p-0 transition ${isExpanded ? "border-brand" : ""}`} key={invoice.id}>
+        <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => onToggle(invoice.id)} type="button">
+          <span><strong className="block text-lg">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · ครบกำหนด {new Date(invoice.dueDate).toLocaleDateString("th-TH")}</small></span>
+          <span className="flex shrink-0 items-center gap-4 text-right">
+            <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><Status value={invoice.status} /></span>
+            <span className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" title={isExpanded ? "ยุบรายละเอียด" : "ขยายรายละเอียด"}><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></span>
+          </span>
+        </button>
+        {isExpanded ? <InvoiceDetails id={panelId} invoice={invoice} onChanged={onChanged} readOnly={readOnly} /> : null}
+      </article>;
+    })}
+  </div>;
+}
+
+function InvoiceDetails({ id, invoice, onChanged, readOnly }: Readonly<{ id: string; invoice: Invoice; onChanged: () => Promise<void>; readOnly: boolean }>) {
   const detail = useApiResource<InvoiceDetail>(`/api/v1/tenant/invoices/${invoice.id}`);
   const submissions = useApiResource<Submission[]>(`/api/v1/tenant/invoices/${invoice.id}/payment-submissions`);
-  const [file, setFile] = useState<File | null>(null);
-  const [error, setError] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  // ชำระได้เฉพาะบิลที่ยังค้างอยู่ บิลที่จ่ายแล้วหรือยกเลิกแล้วเปิดดูได้อย่างเดียว
   const payable = ["PENDING", "OVERDUE"].includes(invoice.status);
-  const submit = async () => {
-    if (!file) return;
-    setIsSending(true); setError("");
-    try {
-      const body = new FormData(); body.set("file", file);
-      const response = await fetch(`/api/v1/tenant/invoices/${invoice.id}/payment-submissions`, { method: "POST", credentials: "same-origin", body });
-      await apiData(response);
-      setFile(null);
-      await Promise.all([submissions.reload(), onChanged()]);
-    } catch (uploadError) { setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ"); }
-    finally { setIsSending(false); }
-  };
+
   return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e4e4e7] bg-[#fcfcfe] p-5" id={id}>
-    {detail.isLoading ? <Loading /> : detail.data ? <div className="grid gap-2">{detail.data.items.map((item) => <div className="flex justify-between gap-3 rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{item.description} × {item.quantity}</span><strong>{currency.format(Number(item.amount))}</strong></div>)}<div className="flex justify-between p-3 text-lg"><span>ค่าปรับ</span><strong>{currency.format(Number(detail.data.lateFee))}</strong></div></div> : <ErrorState error={detail.error} retry={() => void detail.reload()} />}
-    {payable && !readOnly ? <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
-      <PromptPayQr invoice={invoice} />
-      <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
-      {error ? <p className="form-alert error" role="alert">{error}</p> : null}
-      <button aria-describedby={!file && !isSending ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button"><Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}</button>
-      {!file && !isSending ? <p className="disabled-reason" id="payment-slip-disabled-reason">เลือกไฟล์สลิปก่อนส่งหลักฐานการชำระเงิน</p> : null}
-    </div> : payable && readOnly ? <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice> : null}
-    <div className="mt-5"><strong>ประวัติหลักฐาน</strong>{submissions.data?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}><span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span><span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span></div>)}{submissions.data?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}</div>
+    <InvoiceLineItems detail={detail} />
+    <InvoicePaymentBox
+      invoice={invoice}
+      onSubmitted={async () => { await Promise.all([submissions.reload(), onChanged()]); }}
+      payable={payable}
+      readOnly={readOnly}
+    />
+    <SubmissionHistory submissions={submissions.data} />
   </section>;
 }
 
-function PromptPayQr({ invoice }: { invoice: Invoice }) {
+// รายการค่าใช้จ่ายในบิล กำลังโหลด โหลดได้ หรือโหลดไม่สำเร็จ
+function InvoiceLineItems({ detail }: Readonly<{ detail: ReturnType<typeof useApiResource<InvoiceDetail>> }>) {
+  if (detail.isLoading) return <Loading />;
+  if (!detail.data) return <ErrorState error={detail.error} retry={() => void detail.reload()} />;
+  return <div className="grid gap-2">
+    {detail.data.items.map((item) => <div className="flex justify-between gap-3 rounded-xl bg-[#f3f3f5] p-3" key={item.id}>
+      <span>{item.description} × {item.quantity}</span>
+      <strong>{currency.format(Number(item.amount))}</strong>
+    </div>)}
+    <div className="flex justify-between p-3 text-lg"><span>ค่าปรับ</span><strong>{currency.format(Number(detail.data.lateFee))}</strong></div>
+  </div>;
+}
+
+// กล่องชำระเงิน มี QR พร้อมเพย์และช่องอัปโหลดสลิป
+function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly<{
+  invoice: Invoice;
+  onSubmitted: () => Promise<void>;
+  payable: boolean;
+  readOnly: boolean;
+}>) {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  if (!payable) return null;
+  if (readOnly) return <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice>;
+
+  const submit = async () => {
+    if (!file) return;
+    setIsSending(true);
+    setError("");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const response = await fetch(`/api/v1/tenant/invoices/${invoice.id}/payment-submissions`, { method: "POST", credentials: "same-origin", body });
+      await apiData(response);
+      setFile(null);
+      await onSubmitted();
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // ยังไม่ได้เลือกไฟล์ก็กดส่งไม่ได้ และต้องบอกเหตุผลไว้ให้เห็นด้วย
+  const missingFile = !file && !isSending;
+
+  return <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
+    <PromptPayQr invoice={invoice} />
+    <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
+    {error ? <p className="form-alert error" role="alert">{error}</p> : null}
+    <button aria-describedby={missingFile ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button">
+      <Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}
+    </button>
+    {missingFile ? <p className="disabled-reason" id="payment-slip-disabled-reason">เลือกไฟล์สลิปก่อนส่งหลักฐานการชำระเงิน</p> : null}
+  </div>;
+}
+
+// ประวัติสลิปที่เคยส่งไป พร้อมเหตุผลเมื่อถูกปฏิเสธ
+function SubmissionHistory({ submissions }: Readonly<{ submissions: Submission[] | null }>) {
+  return <div className="mt-5">
+    <strong>ประวัติหลักฐาน</strong>
+    {submissions?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}>
+      <span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span>
+      <span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span>
+    </div>)}
+    {submissions?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}
+  </div>;
+}
+
+function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
   const promptPay = useApiResource<{ invoiceNumber: string; amount: string; payload: string }>(`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr?format=json`);
   if (promptPay.isLoading) return <Loading />;
   if (promptPay.error || !promptPay.data) return <div className="form-alert error">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
@@ -1110,7 +1289,7 @@ function LeasePanel() {
   </div>;
 }
 
-function TenantLeaseCard({ lease, title }: { lease: Lease; title: string }) {
+function TenantLeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) {
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
     <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>
@@ -1161,7 +1340,7 @@ type Ticket = {
     fromValue: string | null; toValue: string | null; createdAt: string;
   }>;
 };
-function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialViews?: TenantInitialViews<Ticket> | null; onUnreadChanged: () => Promise<void>; readOnly: boolean }) {
+function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: Readonly<{ initialViews?: TenantInitialViews<Ticket> | null; onUnreadChanged: () => Promise<void>; readOnly: boolean }>) {
   const [view, setView] = useState<TenantRecordView>("current");
   const currentResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=current", 20, initialViews?.current ?? null);
   const historyResource = usePaginatedResource<Ticket>("/api/v1/tenant/tickets?view=history", 20, initialViews?.history ?? null, view === "history");
@@ -1170,64 +1349,147 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: { initialView
   const reloadTicketHistory = historyResource.reload;
   const [isOpen, setIsOpen] = useState(false);
   const [openReplyTicketId, setOpenReplyTicketId] = useState<string | null>(null);
+
+  // เรื่องเดียวกันอาจย้ายมุมมองหลังเปลี่ยนสถานะ โหลดใหม่ทั้งคู่จะได้ไม่ค้างของเก่า
   const reloadTickets = useCallback(async () => {
     await Promise.all([reloadCurrentTickets(), reloadTicketHistory()]);
   }, [reloadCurrentTickets, reloadTicketHistory]);
+
   const changeView = (nextView: TenantRecordView) => {
     setOpenReplyTicketId(null);
     setView(nextView);
   };
-  return <div className="grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />{!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}</div>
+
+  const markRead = () => {
+    void resource.reload();
+    void onUnreadChanged();
+  };
+
+  const toggleReply = (ticketId: string) => {
+    setOpenReplyTicketId((current) => current === ticketId ? null : ticketId);
+  };
+
+  return <div className="grid gap-5">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <TenantHistoryTabs currentLabel="กำลังดำเนินการ" historyLabel="ประวัติเรื่อง" id="tenant-tickets" onChange={changeView} view={view} />
+      {!readOnly ? <PageHeaderActions><button className="primary-button" onClick={() => setIsOpen(true)} type="button"><Wrench size={17} /> แจ้งเรื่อง</button></PageHeaderActions> : null}
+    </div>
     {readOnly ? <ReadOnlyNotice>ดูสถานะ ประวัติ และไฟล์แนบเดิมได้ แต่ไม่สามารถสร้างหรือตอบกลับรายการได้</ReadOnlyNotice> : null}
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
-    {resource.isLoading && !resource.data.length ? <Loading columns={5} variant={view === "history" ? "table" : "list"} /> : resource.error && !resource.data.length ? <ErrorState error={resource.error} retry={() => void resource.reload()} /> : resource.data.length ? view === "history" ? <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyResource.total}>
-      <table>
-        <thead><tr><th scope="col">หัวข้อ</th><th scope="col">ประเภท</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
-        <tbody>{resource.data.map((ticket) => {
-          const isExpanded = openReplyTicketId === ticket.id;
-          const detailsId = `tenant-ticket-history-${ticket.id}`;
-          return <Fragment key={ticket.id}>
-            <tr>
-              <th className="px-6 py-4 text-sm font-bold" scope="row">{ticket.title}</th>
-              <td>{ticket.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</td>
-              <td>{new Date(ticket.createdAt).toLocaleString("th-TH")}</td>
-              <td><Status value={ticket.status} /></td>
-              <td><button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => setOpenReplyTicketId(isExpanded ? null : ticket.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
-            </tr>
-            {isExpanded ? <tr><td className="p-0!" colSpan={5}><div className="p-5" id={detailsId}><TicketDetailsContent onRead={() => { void resource.reload(); void onUnreadChanged(); }} readOnly={readOnly} showReplyThread ticket={ticket} /></div></td></tr> : null}
-          </Fragment>;
-        })}</tbody>
-      </table>
-    </TenantHistoryTable> : resource.data.map((ticket) => <Panel key={ticket.id} title={ticket.title}><TicketDetailsContent onRead={() => { void resource.reload(); void onUnreadChanged(); }} readOnly={readOnly} showReplyThread={openReplyTicketId === ticket.id} ticket={ticket} toggleReply={() => setOpenReplyTicketId((current) => current === ticket.id ? null : ticket.id)} /></Panel>) : <Empty icon={<Wrench />} text={view === "current" ? "ไม่มีเรื่องที่กำลังดำเนินการ" : "ยังไม่มีประวัติเรื่อง"} />}
-    {resource.error && resource.data.length ? <p className="form-alert error" role="alert">{resource.error}</p> : null}
-    <PaginationActions resource={resource} />
+      <TicketsBody
+        historyTotal={historyResource.total}
+        onRead={markRead}
+        onToggleReply={toggleReply}
+        openReplyTicketId={openReplyTicketId}
+        readOnly={readOnly}
+        resource={resource}
+        view={view}
+      />
+      {resource.error && resource.data.length ? <p className="form-alert error" role="alert">{resource.error}</p> : null}
+      <PaginationActions resource={resource} />
     </div>
     {isOpen && !readOnly ? <TicketDialog onClose={() => setIsOpen(false)} onCreated={reloadTickets} /> : null}
   </div>;
 }
 
-function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggleReply }: {
+type TicketListProps = Readonly<{
+  historyTotal: number | null;
+  onRead: () => void;
+  onToggleReply: (ticketId: string) => void;
+  openReplyTicketId: string | null;
+  readOnly: boolean;
+  resource: PaginatedResource<Ticket>;
+  view: TenantRecordView;
+}>;
+
+// เลือกว่าจะแสดงอะไรในแผงเรื่องแจ้ง กำลังโหลด พัง ว่าง ประวัติ หรือรายการปัจจุบัน
+function TicketsBody(props: TicketListProps) {
+  const { resource, view } = props;
+  if (resource.isLoading && !resource.data.length) return <Loading columns={5} variant={view === "history" ? "table" : "list"} />;
+  if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
+  if (resource.data.length === 0) {
+    return <Empty icon={<Wrench />} text={view === "current" ? "ไม่มีเรื่องที่กำลังดำเนินการ" : "ยังไม่มีประวัติเรื่อง"} />;
+  }
+  if (view === "history") return <TicketHistoryTable {...props} />;
+  return <TicketCards {...props} />;
+}
+
+// มุมมองประวัติเป็นตาราง กดแถวแล้วกางรายละเอียดออกมาเป็นแถวถัดไป
+function TicketHistoryTable({ historyTotal, onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
+  return <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyTotal}>
+    <table>
+      <thead><tr><th scope="col">หัวข้อ</th><th scope="col">ประเภท</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
+      <tbody>{resource.data.map((ticket) => {
+        const isExpanded = openReplyTicketId === ticket.id;
+        const detailsId = `tenant-ticket-history-${ticket.id}`;
+        return <Fragment key={ticket.id}>
+          <tr>
+            <th className="px-6 py-4 text-sm font-bold" scope="row">{ticket.title}</th>
+            <td>{ticketTypeLabel(ticket.type)}</td>
+            <td>{new Date(ticket.createdAt).toLocaleString("th-TH")}</td>
+            <td><Status value={ticket.status} /></td>
+            <td><button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggleReply(ticket.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
+          </tr>
+          {isExpanded ? <tr><td className="p-0!" colSpan={5}><div className="p-5" id={detailsId}>
+            <TicketDetailsContent onRead={onRead} readOnly={readOnly} showReplyThread ticket={ticket} />
+          </div></td></tr> : null}
+        </Fragment>;
+      })}</tbody>
+    </table>
+  </TenantHistoryTable>;
+}
+
+// มุมมองปัจจุบันเป็นการ์ด เปิดการตอบกลับได้ทีละเรื่อง
+function TicketCards({ onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
+  return <>
+    {resource.data.map((ticket) => <Panel key={ticket.id} title={ticket.title}>
+      <TicketDetailsContent
+        onRead={onRead}
+        readOnly={readOnly}
+        showReplyThread={openReplyTicketId === ticket.id}
+        ticket={ticket}
+        toggleReply={() => onToggleReply(ticket.id)}
+      />
+    </Panel>)}
+  </>;
+}
+
+// เรื่องแจ้งมีสองประเภท แจ้งซ่อมกับร้องเรียน
+function ticketTypeLabel(type: Ticket["type"]) {
+  return type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน";
+}
+
+// คำบรรยายของเหตุการณ์หนึ่งบรรทัดในไทม์ไลน์ของเรื่องแจ้ง
+function ticketEventLabel(event: Ticket["events"][number]) {
+  if (event.type === "CREATED") return "สร้างรายการ";
+  if (event.type === "STATUS_CHANGED") return `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}`;
+  if (event.type === "PRIORITY_CHANGED") return `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}`;
+  if (event.type === "REPLY_ADDED") return "มีข้อความตอบกลับ";
+  return "แนบไฟล์";
+}
+
+function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggleReply }: Readonly<{
   onRead: () => void;
   readOnly: boolean;
   showReplyThread: boolean;
   ticket: Ticket;
   toggleReply?: () => void;
-}) {
+}>) {
   return <>
-    <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticket.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
+    <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {event.type === "CREATED" ? "สร้างรายการ" : event.type === "STATUS_CHANGED" ? `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "PRIORITY_CHANGED" ? `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}` : event.type === "REPLY_ADDED" ? "มีข้อความตอบกลับ" : "แนบไฟล์"}</li>)}</ol>
+    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {ticketEventLabel(event)}</li>)}</ol>
     {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
   </>;
 }
 
-function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
+function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; onCreated: () => Promise<void> }>) {
   const [form, setForm] = useState({ type: "REPAIR", title: "", detail: "", priority: "NORMAL", isAnonymous: false });
   const [file, setFile] = useState<File | null>(null); const [error, setError] = useState(""); const [saving, setSaving] = useState(false);
   const [createdTicketId, setCreatedTicketId] = useState<string | null>(null);
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     event.preventDefault(); setSaving(true); setError("");
     try {
       let ticketId = createdTicketId;
@@ -1246,7 +1508,7 @@ function TicketDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
     <div className="modal-grid"><DropdownField label="ประเภท" onChange={(value) => setForm({ ...form, type: value })} options={[{ label: "แจ้งซ่อม", value: "REPAIR" }, { label: "ร้องเรียน", value: "COMPLAINT" }]} value={form.type} /><DropdownField label="ความเร่งด่วน" onChange={(value) => setForm({ ...form, priority: value })} options={[{ label: "ปกติ", value: "NORMAL" }, { label: "ด่วน", value: "URGENT" }]} value={form.priority} /></div>
     <label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} required value={form.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setForm({ ...form, detail: event.target.value })} required value={form.detail} /></label>
     {form.type === "COMPLAINT" ? <label className="flex items-center gap-2"><input checked={form.isAnonymous} className="size-5 min-h-0" onChange={(event) => setForm({ ...form, isAnonymous: event.target.checked })} type="checkbox" /> ไม่แสดงชื่อกับผู้ดูแลหอ</label> : null}
-    <label><span>แนบไฟล์ (ไม่บังคับ)</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => { const next = event.target.files?.[0] ?? null; if (next && next.size > 5 * 1024 * 1024) { setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB"); event.target.value = ""; setFile(null); return; } setError(""); setFile(next); }} type="file" /></label>{error ? <p className="form-alert error">{error}</p> : null}<footer className="modal-actions"><button onClick={onClose} type="button">ปิด</button><button className="primary-button" disabled={saving} type="submit">{saving ? "กำลังส่ง..." : createdTicketId ? "ลองอัปโหลดไฟล์อีกครั้ง" : "ส่งเรื่อง"}</button></footer>
+    <label><span>แนบไฟล์ (ไม่บังคับ)</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => { const next = event.target.files?.[0] ?? null; if (next && next.size > 5 * 1024 * 1024) { setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB"); event.target.value = ""; setFile(null); return; } setError(""); setFile(next); }} type="file" /></label>{error ? <p className="form-alert error">{error}</p> : null}<footer className="modal-actions"><button onClick={onClose} type="button">ปิด</button><button className="primary-button" disabled={saving} type="submit">{ticketSubmitLabel(createdTicketId, saving)}</button></footer>
   </form></Dialog>;
 }
 
@@ -1256,163 +1518,48 @@ function TenantChat({
   propertyId,
   readOnly,
   variant = "page",
-}: {
+}: Readonly<{
   onClose?: () => void;
   propertyId: string;
   readOnly: boolean;
   variant?: "page" | "widget";
-}) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]); const [conversationId, setConversationId] = useState<string | null>(null); const [text, setText] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(true); const [loadingOlder, setLoadingOlder] = useState(false); const [hasOlderMessages, setHasOlderMessages] = useState(false); const [sending, setSending] = useState(false); const endRef = useRef<HTMLDivElement>(null); const scrollRef = useRef<HTMLDivElement>(null); const shouldScrollToEndRef = useRef(true);
-  const [attachment, setAttachment] = useState<File | null>(null);
+}>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const load = useCallback(async () => { setLoading(true); setError(""); try { const response = await fetch("/api/v1/tenant/chat", { cache: "no-store" }); const payload = await response.json() as { conversationId?: string; hasMore?: boolean; messages?: ChatMessage[]; error?: string }; if (!response.ok || !payload.messages || !payload.conversationId) throw new Error(payload.error || "โหลดแชตไม่สำเร็จ"); setMessages(payload.messages); setHasOlderMessages(payload.hasMore ?? false); setConversationId(payload.conversationId); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "โหลดแชตไม่สำเร็จ"); } finally { setLoading(false); } }, []);
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (!conversationId) return; const stream = new EventSource(`/api/v1/chat/conversations/${conversationId}/stream?propertyId=${encodeURIComponent(propertyId)}&after=${encodeURIComponent(new Date().toISOString())}`); stream.onmessage = (event) => { const message = JSON.parse(event.data) as ChatMessage; setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]); }; stream.onerror = () => setError("การเชื่อมต่อข้อความขัดข้อง ระบบกำลังเชื่อมต่อใหม่"); return () => stream.close(); }, [conversationId, propertyId]);
-  useEffect(() => {
-    if (shouldScrollToEndRef.current) endRef.current?.scrollIntoView({ behavior: "smooth" });
-    shouldScrollToEndRef.current = true;
-  }, [messages]);
-  const loadOlder = async () => {
-    const oldest = messages[0];
-    if (!oldest || loadingOlder) return;
-    setLoadingOlder(true); setError("");
-    const container = scrollRef.current;
-    const previousHeight = container?.scrollHeight ?? 0;
-    try {
-      const search = new URLSearchParams({ beforeMessageId: oldest.id, limit: "50" });
-      const response = await fetch(`/api/v1/tenant/chat?${search}`, { cache: "no-store" });
-      const payload = await response.json() as { hasMore?: boolean; messages?: ChatMessage[]; error?: string };
-      if (!response.ok || !payload.messages) throw new Error(payload.error || "โหลดข้อความก่อนหน้าไม่สำเร็จ");
-      shouldScrollToEndRef.current = false;
-      setMessages((current) => [
-        ...payload.messages!.filter((item) => !current.some((existing) => existing.id === item.id)),
-        ...current,
-      ]);
-      setHasOlderMessages(payload.hasMore ?? false);
-      requestAnimationFrame(() => {
-        if (container) container.scrollTop += container.scrollHeight - previousHeight;
-      });
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "โหลดข้อความก่อนหน้าไม่สำเร็จ");
-    } finally { setLoadingOlder(false); }
-  };
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
-    const body = text.trim();
-    if ((!body && !attachment) || !conversationId) return;
-    setSending(true); setError("");
-    try {
-      const clientId = crypto.randomUUID();
-      const response = attachment
-        ? await fetch(`/api/v1/chat/conversations/${conversationId}/attachments`, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "x-property-id": propertyId },
-          body: (() => {
-            const formData = new FormData();
-            formData.set("propertyId", propertyId);
-            formData.set("body", body);
-            formData.set("clientId", clientId);
-            formData.set("file", attachment);
-            return formData;
-          })(),
-        })
-        : await fetch("/api/v1/tenant/chat", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body, clientId }),
-        });
-      const payload = await response.json() as { message?: ChatMessage; error?: string };
-      if (!response.ok || !payload.message) throw new Error(payload.error || "ส่งข้อความไม่สำเร็จ");
-      setMessages((current) => current.some((item) => item.id === payload.message!.id) ? current : [...current, payload.message!]);
-      setText("");
-      setAttachment(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "ส่งข้อความไม่สำเร็จ");
-    } finally { setSending(false); }
-  };
-  const messageList = (
-    <div className={variant === "widget" ? "tenant-quick-chat-messages" : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-xl bg-[#f3f3f5] p-4"} ref={scrollRef}>
-      {loading ? <Loading /> : messages.length === 0 ? (
-        <p className="m-auto text-center text-sm text-[#62646c]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p>
-      ) : <>
-        {hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={loadingOlder} label="โหลดข้อความก่อนหน้า" onClick={() => void loadOlder()} /> : null}
-        {messages.map((message) => (
-          <article className={`chat-message ${message.senderRole === "TENANT" ? "from-tenant" : "from-admin"}`} key={message.id}>
-            <strong>{message.senderName}</strong>
-            {message.body ? <p>{message.body}</p> : null}
-            {message.attachment ? message.attachment.mimeType.startsWith("image/") ? (
-              <a className="chat-image-attachment" href={message.attachment.url} rel="noreferrer" target="_blank">
-                <Image alt={message.attachment.name} height={240} src={message.attachment.url} unoptimized width={320} />
-              </a>
-            ) : (
-              <a className="chat-file-attachment" href={message.attachment.url} rel="noreferrer" target="_blank">
-                <FileText aria-hidden="true" size={22} />
-                <span><strong>{message.attachment.name}</strong><small>{(message.attachment.size / 1024).toFixed(1)} KB</small></span>
-              </a>
-            ) : null}
-            <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString("th-TH")}</time>
-          </article>
-        ))}
-      </>}
-      <div ref={endRef} />
-    </div>
-  );
+  const {
+    attachment, endRef, error, fileInputRef, hasOlderMessages, isLoading, isLoadingOlder,
+    isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
+    setAttachment, setError, setMessage,
+  } = useChatThread<ChatMessage>({
+    endpoint: "/api/v1/tenant/chat",
+    propertyId,
+    requireConversationId: true,
+    streaming: true,
+  });
 
-  const composer = readOnly ? (
-    <div className={variant === "widget" ? "p-3" : undefined}>
-      <ReadOnlyNotice>อ่านประวัติข้อความได้ แต่ไม่สามารถส่งข้อความใหม่ได้</ReadOnlyNotice>
-    </div>
-  ) : (
-    <form className={variant === "widget" ? "chat-composer" : "tenant-chat-composer"} onSubmit={send}>
-      {attachment ? <div className="chat-attachment-preview">
-        <FileText aria-hidden="true" size={18} />
-        <span>{attachment.name}</span>
-        <IconButton label="นำไฟล์แนบออก" onClick={() => {
-          setAttachment(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        }} size="sm"><X aria-hidden="true" size={16} /></IconButton>
-      </div> : null}
-      <div className="flex gap-2">
-        <input
-          accept="image/png,image/jpeg,image/webp,application/pdf"
-          className="chat-file-input"
-          onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            if (file && file.size > 5 * 1024 * 1024) {
-              setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
-              event.target.value = "";
-              return;
-            }
-            setError("");
-            setAttachment(file);
-          }}
-          ref={fileInputRef}
-          type="file"
-        />
-        <IconButton className="chat-attach-button" disabled={sending} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}>
-          <Paperclip aria-hidden="true" size={18} />
-        </IconButton>
-        <input
-          aria-label="ข้อความถึงหอพัก"
-          className="min-w-0 flex-1 rounded-xl border border-[#d7d8df] px-4"
-          maxLength={4000}
-          onChange={(event) => setText(event.target.value)}
-          placeholder="พิมพ์ข้อความ..."
-          value={text}
-        />
-        <button aria-label={sending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} className={variant === "widget" ? undefined : "primary-button"} disabled={sending || (!text.trim() && !attachment)} type="submit">
-          {sending ? <LoaderCircle className="animate-spin" size={17} /> : <Send aria-hidden="true" size={17} />}
-          {variant === "page" ? <span>{sending ? "กำลังส่ง..." : "ส่ง"}</span> : null}
-        </button>
-      </div>
-      {variant === "page" && !text.trim() && !attachment && !sending ? <p className="disabled-reason mt-2">พิมพ์ข้อความหรือแนบไฟล์ก่อนกดส่ง</p> : null}
-    </form>
-  );
+  const messageList = <TenantChatMessages
+    endRef={endRef}
+    hasOlderMessages={hasOlderMessages}
+    isLoading={isLoading}
+    isLoadingOlder={isLoadingOlder}
+    messages={messages}
+    onLoadOlder={() => void loadOlderMessages()}
+    scrollRef={scrollRef}
+    variant={variant}
+  />;
+
+  const composer = <TenantChatComposer
+    attachment={attachment}
+    fileInputRef={fileInputRef}
+    isSending={isSending}
+    message={message}
+    onSubmit={sendMessage}
+    readOnly={readOnly}
+    setAttachment={setAttachment}
+    setError={setError}
+    setMessage={setMessage}
+    variant={variant}
+  />;
 
   if (variant === "widget") {
     return <aside aria-label="แชทกับหอพัก" aria-modal="false" className={`chat-widget tenant-chat-widget${isExpanded ? " expanded" : ""}`} role="dialog">
@@ -1425,17 +1572,12 @@ function TenantChat({
           </span>
         </div>
         <div className="chat-header-actions">
-          <div className="chat-options">
-            <IconButton aria-expanded={isOptionsOpen} label="ตัวเลือกหน้าต่างแชท" onClick={() => setIsOptionsOpen((current) => !current)}>
-              <MoreHorizontal aria-hidden="true" size={21} />
-            </IconButton>
-            {isOptionsOpen ? <div className="chat-options-menu">
-              <button onClick={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }} type="button">
-                {isExpanded ? <Shrink aria-hidden="true" size={18} /> : <Expand aria-hidden="true" size={18} />}
-                {isExpanded ? "ย่อหน้าต่าง" : "ขยายหน้าต่าง"}
-              </button>
-            </div> : null}
-          </div>
+          <WindowOptionsMenu
+            isExpanded={isExpanded}
+            isMenuOpen={isOptionsOpen}
+            onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
+            onToggleMenu={() => setIsOptionsOpen((current) => !current)}
+          />
           <button aria-label="ปิดช่องแชท" onClick={onClose} type="button"><X aria-hidden="true" size={20} /></button>
         </div>
       </header>
@@ -1454,19 +1596,134 @@ function TenantChat({
   </div>;
 }
 
-function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: { children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }) {
-  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  return <div className="grid gap-5"><LiveAnnouncement message={resource.isLoadingMore ? "กำลังโหลดรายการเพิ่มเติม" : `กำลังแสดง ${resource.data.length.toLocaleString("th-TH")} รายการ${resource.hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
+// ไฟล์แนบในข้อความ รูปแสดงเป็นภาพตัวอย่าง ไฟล์อื่นแสดงเป็นลิงก์พร้อมขนาด
+function TenantChatAttachment({ attachment }: Readonly<{ attachment: ChatMessage["attachment"] }>) {
+  if (!attachment) return null;
+  if (attachment.mimeType.startsWith("image/")) {
+    return <a className="chat-image-attachment" href={attachment.url} rel="noreferrer" target="_blank">
+      <Image alt={attachment.name} height={240} src={attachment.url} unoptimized width={320} />
+    </a>;
+  }
+  return <a className="chat-file-attachment" href={attachment.url} rel="noreferrer" target="_blank">
+    <FileText aria-hidden="true" size={22} />
+    <span><strong>{attachment.name}</strong><small>{(attachment.size / 1024).toFixed(1)} KB</small></span>
+  </a>;
 }
-function PaginationActions<T>({ resource }: { resource: PaginatedResource<T> }) {
+
+// รายการข้อความ หน้าเต็มกับหน้าต่างมุมจอใช้คลาสคนละชุด
+function TenantChatMessages({ endRef, hasOlderMessages, isLoading, isLoadingOlder, messages, onLoadOlder, scrollRef, variant }: Readonly<{
+  endRef: React.RefObject<HTMLDivElement | null>;
+  hasOlderMessages: boolean;
+  isLoading: boolean;
+  isLoadingOlder: boolean;
+  messages: ChatMessage[];
+  onLoadOlder: () => void;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  variant: "page" | "widget";
+}>) {
+  const className = variant === "widget"
+    ? "tenant-quick-chat-messages"
+    : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-xl bg-[#f3f3f5] p-4";
+  return <div className={className} ref={scrollRef}>
+    {isLoading ? <Loading /> : null}
+    {!isLoading && messages.length === 0 ? <p className="m-auto text-center text-sm text-[#62646c]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p> : null}
+    {!isLoading && hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={isLoadingOlder} label="โหลดข้อความก่อนหน้า" onClick={onLoadOlder} /> : null}
+    {messages.map((item) => <article className={`chat-message ${item.senderRole === "TENANT" ? "from-tenant" : "from-admin"}`} key={item.id}>
+      <strong>{item.senderName}</strong>
+      {item.body ? <p>{item.body}</p> : null}
+      <TenantChatAttachment attachment={item.attachment} />
+      <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString("th-TH")}</time>
+    </article>)}
+    <div ref={endRef} />
+  </div>;
+}
+
+// ช่องพิมพ์ข้อความของผู้เช่า โหมดอ่านอย่างเดียวแสดงป้ายแทนฟอร์ม
+function TenantChatComposer({ attachment, fileInputRef, isSending, message, onSubmit, readOnly, setAttachment, setError, setMessage, variant }: Readonly<{
+  attachment: File | null;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isSending: boolean;
+  message: string;
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
+  readOnly: boolean;
+  setAttachment: (file: File | null) => void;
+  setError: (value: string) => void;
+  setMessage: (value: string) => void;
+  variant: "page" | "widget";
+}>) {
+  if (readOnly) {
+    return <div className={variant === "widget" ? "p-3" : undefined}>
+      <ReadOnlyNotice>อ่านประวัติข้อความได้ แต่ไม่สามารถส่งข้อความใหม่ได้</ReadOnlyNotice>
+    </div>;
+  }
+
+  const clearAttachment = () => {
+    setAttachment(null);
+    // ล้างค่า input ด้วย ไม่งั้นเลือกไฟล์ชื่อเดิมซ้ำจะไม่เกิด onChange
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // ตรวจขนาดตั้งแต่ตอนเลือก จะได้ไม่เสียเวลาอัปโหลดแล้วโดนปฏิเสธ ส่วนเซิร์ฟเวอร์ตรวจซ้ำอยู่ดี
+  const pickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (file && file.size > 5 * 1024 * 1024) {
+      setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
+      event.target.value = "";
+      return;
+    }
+    setError("");
+    setAttachment(file);
+  };
+
+  const nothingToSend = !message.trim() && !attachment;
+
+  return <form className={variant === "widget" ? "chat-composer" : "tenant-chat-composer"} onSubmit={onSubmit}>
+    {attachment ? <div className="chat-attachment-preview">
+      <FileText aria-hidden="true" size={18} />
+      <span>{attachment.name}</span>
+      <IconButton label="นำไฟล์แนบออก" onClick={clearAttachment} size="sm"><X aria-hidden="true" size={16} /></IconButton>
+    </div> : null}
+    <div className="flex gap-2">
+      <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
+      <IconButton className="chat-attach-button" disabled={isSending} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}>
+        <Paperclip aria-hidden="true" size={18} />
+      </IconButton>
+      <input
+        aria-label="ข้อความถึงหอพัก"
+        className="min-w-0 flex-1 rounded-xl border border-[#d7d8df] px-4"
+        maxLength={4000}
+        onChange={(event) => setMessage(event.target.value)}
+        placeholder="พิมพ์ข้อความ..."
+        value={message}
+      />
+      <button aria-label={isSending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} className={variant === "widget" ? undefined : "primary-button"} disabled={isSending || nothingToSend} type="submit">
+        {isSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send aria-hidden="true" size={17} />}
+        {variant === "page" ? <span>{isSending ? "กำลังส่ง..." : "ส่ง"}</span> : null}
+      </button>
+    </div>
+    {variant === "page" && nothingToSend && !isSending ? <p className="disabled-reason mt-2">พิมพ์ข้อความหรือแนบไฟล์ก่อนกดส่ง</p> : null}
+  </form>;
+}
+
+function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: Readonly<{ children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }>) {
+  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />; if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
+  return <div className="grid gap-5"><LiveAnnouncement message={listAnnouncement({ hasNextPage: resource.hasNextPage, isLoading: resource.isLoadingMore, total: resource.data.length })} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
+}
+function PaginationActions<T>({ resource }: Readonly<{ resource: PaginatedResource<T> }>) {
   if (!resource.hasNextPage) return null;
   return <button className="secondary-button mx-auto" disabled={resource.isLoadingMore} onClick={() => void resource.loadMore()} type="button">
     {resource.isLoadingMore ? <><LoaderCircle className="animate-spin" size={17} /> กำลังโหลด...</> : "โหลดรายการเพิ่มเติม"}
   </button>;
 }
 // มุมมองประวัติแสดงเป็นตาราง ส่วนรายการปัจจุบันเป็นการ์ด โครงหลอกจึงต้องเปลี่ยนตามมุมมองที่เปิดอยู่
-function Loading({ columns, variant = "list" }: { columns?: number; variant?: "list" | "table" }) {
+function Loading({ columns, variant = "list" }: Readonly<{ columns?: number; variant?: "list" | "table" }>) {
   return <LoadingSkeleton columns={columns} count={3} label="กำลังโหลดข้อมูล" variant={variant} />;
 }
-function ErrorState({ error, retry }: { error: string; retry: () => void }) { return <div className="form-alert error" role="alert"><span>{error || "โหลดข้อมูลไม่สำเร็จ"}</span><RetryButton onClick={retry} /></div>; }
-function RestrictedPanel({ message }: { message: string }) { return <Empty icon={<QrCode />} text={message} />; }
+function ErrorState({ error, retry }: Readonly<{ error: string; retry: () => void }>) { return <div className="form-alert error" role="alert"><span>{error || "โหลดข้อมูลไม่สำเร็จ"}</span><RetryButton onClick={retry} /></div>; }
+function RestrictedPanel({ message }: Readonly<{ message: string }>) { return <Empty icon={<QrCode />} text={message} />; }
+
+// เรื่องถูกสร้างไปแล้วแต่ไฟล์แนบพลาด กดอีกครั้งคือลองอัปโหลดไฟล์ ไม่ใช่สร้างเรื่องซ้ำ
+function ticketSubmitLabel(createdTicketId: string | null, saving: boolean) {
+  if (saving) return "กำลังส่ง...";
+  return createdTicketId ? "ลองอัปโหลดไฟล์อีกครั้ง" : "ส่งเรื่อง";
+}

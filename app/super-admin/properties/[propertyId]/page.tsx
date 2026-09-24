@@ -8,9 +8,9 @@ import { getDatabase } from "@/lib/server/db";
 // หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน อ่านอย่างเดียว ไม่มีปุ่มแก้ไข
 export default async function PropertyDetailPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ propertyId: string }>;
-}) {
+}>) {
   // เช็คบทบาทซ้ำที่หน้านี้ด้วย ถึงแม้ layout จะเช็คไปแล้ว เพราะหน้านี้อ่านข้อมูลของทุกหอ
   const auth = await requirePageAuth();
   if (auth.role !== "SUPER_ADMIN") redirect("/admin");

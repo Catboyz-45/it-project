@@ -16,7 +16,7 @@ export function ConfirmationDialog({
   title,
   // danger ทำให้เป็นสีแดงพร้อมไอคอนเตือน ใช้กับการลบหรือสิ่งที่ย้อนกลับไม่ได้
   variant = "default",
-}: {
+}: Readonly<{
   confirmLabel?: string;
   confirmDisabled?: boolean;
   description: string;
@@ -24,7 +24,7 @@ export function ConfirmationDialog({
   onConfirm: () => void;
   title: string;
   variant?: "default" | "danger";
-}) {
+}>) {
   // Esc กับคลิกพื้นหลังวิ่งมาที่นี่ ต้องไม่ยอมให้ปิดตอนกำลังทำงานอยู่
   const requestClose = useCallback(() => { if (!confirmDisabled) onCancel(); }, [confirmDisabled, onCancel]);
   return <Dialog

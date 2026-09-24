@@ -7,7 +7,7 @@ import { getPropertySubscriptionAccess } from "@/lib/server/subscription-guard";
 import { ownerPagePath } from "@/lib/navigation-routes";
 
 // หน้าแก้แม่แบบเอกสาร ตรวจสิทธิ์ครบทุกชั้นก่อน แล้วค่อยส่งต่อให้ตัวแก้ไข
-export default async function DocumentEditorPage({ params, searchParams }: { params: Promise<{ kind: string }>; searchParams: Promise<{ propertyId?: string }> }) {
+export default async function DocumentEditorPage({ params, searchParams }: Readonly<{ params: Promise<{ kind: string }>; searchParams: Promise<{ propertyId?: string }> }>) {
   const auth = await requirePageAuth();
   const { kind } = await params;
   // รับเฉพาะสองชนิดนี้ ใช้วิธีระบุรายชื่อที่อนุญาต ไม่ใช่ไล่กันของที่ไม่อนุญาต

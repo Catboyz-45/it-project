@@ -11,7 +11,7 @@ const sendSchema = z.object({
   tenantName: z.string().trim().min(1).max(160),
   roomNumber: z.string().trim().min(1).max(30),
   body: z.string().trim().min(1).max(4000),
-  clientId: z.string().uuid(),
+  clientId: z.uuid(),
 }).strict();
 
 // ประวัติข้อความของทางเดิม

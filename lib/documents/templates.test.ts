@@ -54,6 +54,20 @@ describe("document templates", () => {
     expect(sanitized).not.toContain("onerror");
   });
 
+  it("finds an embedded image regardless of which quote style wraps the source", () => {
+    expect(() => sanitizeTemplate("<img src='https://example.com/a.png'>")).toThrow("รองรับเฉพาะรูป");
+    expect(() => sanitizeTemplate('<img alt="x" src = "https://example.com/a.png" width="5">')).toThrow("รองรับเฉพาะรูป");
+  });
+
+  // Template ที่ผู้ใช้ส่งมามีได้ถึง 2MB ก่อนหน้านี้ตัวจับรูปเป็น O(n²) ทำให้ HTML ที่จงใจ
+  // ใส่เครื่องหมายคำพูดจำนวนมากโดยไม่ปิดแท็ก บล็อก event loop ของทั้งเซิร์ฟเวอร์ได้
+  it("scans a hostile template without super-linear slowdown", () => {
+    const hostile = `<img src="${'"'.repeat(200_000)}`;
+    const startedAt = performance.now();
+    sanitizeTemplate(hostile);
+    expect(performance.now() - startedAt).toBeLessThan(1000);
+  });
+
   it("rejects placeholders outside the kind allowlist", () => {
     expect(validateTemplatePlaceholders("invoice", "<p>{{tenant_name}} {{tenant_password}}</p>")).toEqual(["tenant_password"]);
   });

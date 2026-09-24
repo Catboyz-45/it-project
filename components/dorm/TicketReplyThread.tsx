@@ -1,7 +1,7 @@
 "use client";
 // โหลดและส่งข้อความจากเบราว์เซอร์ พร้อมเก็บสถานะของฟอร์ม
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LoaderCircle, MessageSquareReply, Send } from "lucide-react";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
@@ -26,12 +26,12 @@ export function TicketReplyThread({
   onRead,
   readOnly = false,
   viewerRole,
-}: {
+}: Readonly<{
   endpoint: string;
   onRead?: () => void;
   readOnly?: boolean;
   viewerRole: "PROPERTY_ADMIN" | "TENANT";
-}) {
+}>) {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -89,7 +89,7 @@ export function TicketReplyThread({
   // โหลดครั้งแรกเมื่อเปิด และโหลดใหม่เมื่อเปลี่ยนไปดูรายการอื่น
   useEffect(() => { void load(); }, [load]);
 
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     const message = body.trim();

@@ -87,7 +87,7 @@ export default async function SuperAdminPage() {
 }
 
 // การ์ดตัวเลขใบเดียวกับที่ฝั่งเจ้าของหอใช้ tone คุมสีของไอคอนอย่างเดียว ไม่ได้คุมสีตัวเลข
-function Stat({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: React.ReactNode }) {
+function Stat({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: React.ReactNode }>) {
   return <article className={`figma-summary-card tone-${tone}`}>
     <div><small>{label}</small><strong>{value}</strong></div>
     <span>{icon}</span>

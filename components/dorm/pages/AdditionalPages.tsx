@@ -68,7 +68,7 @@ function todayInputValue() {
 }
 
 // หน้าประกาศ ส่งถึงทั้งหอหรือเจาะจงอาคาร ชั้น หรือห้อง และตั้งเวลาเผยแพร่ได้
-export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: {
+export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: Readonly<{
   initialAnnouncements: Announcement[];
   // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
   initialLoaded?: boolean;
@@ -77,7 +77,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
   readOnly?: boolean;
   recipientRoomCount: number;
   rooms: Room[];
-}) {
+}>) {
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,13 +122,13 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
         id: item.id,
         title: item.title,
         content: item.content,
-        audience: item.audience === "ALL_TENANTS" ? "ผู้เช่าทุกห้อง" : item.audience === "BUILDING" ? `อาคาร ${item.building?.name ?? "-"}` : item.audience === "FLOOR" ? `${item.floor?.label ?? `ชั้น ${item.floor?.number ?? "-"}`}` : `${item.rooms.length} ห้อง`,
+        audience: audienceLabel(item),
         audienceType: item.audience as AnnouncementAudience,
         buildingId: item.building?.id,
         floorId: item.floor?.id,
         roomIds: item.rooms.map(({ room }) => rooms.find((candidate) => candidate.id === room.number)?.databaseId).filter((id): id is string => Boolean(id)),
         date: new Date(item.publishAt ?? item.publishedAt ?? item.createdAt).toLocaleString("th-TH"),
-        status: item.status === "SCHEDULED" ? "ตั้งเวลา" : item.status === "DRAFT" ? "ฉบับร่าง" : "เผยแพร่แล้ว",
+        status: announcementStatusLabels[item.status] ?? "เผยแพร่แล้ว",
         updatedAt: item.updatedAt,
         publishAt: item.publishAt,
       }));
@@ -194,8 +194,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
       setFormError("กรุณาเลือกวันที่เผยแพร่");
       return;
     }
-    // เลือกขอบเขตแบบเจาะจงแล้วต้องระบุด้วยว่าอาคารไหน ชั้นไหน หรือห้องไหน
-    if ((form.audience === "BUILDING" && !form.buildingId) || (form.audience === "FLOOR" && !form.floorId) || (form.audience === "ROOM" && form.roomIds.length === 0)) {
+    if (isAudienceIncomplete(form)) {
       setFormError("กรุณาเลือกกลุ่มผู้รับประกาศให้ครบ");
       return;
     }
@@ -203,22 +202,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
     setIsSaving(true);
     try {
       const current = editingId ? announcements.find((item) => item.id === editingId) : undefined;
-      const response = await fetch(`/api/v1/admin/properties/${propertyId}/announcements${editingId ? `/${editingId}` : ""}`, {
-        method: editingId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title, content, audience: form.audience,
-          buildingId: form.audience === "BUILDING" ? form.buildingId : undefined,
-          floorId: form.audience === "FLOOR" ? form.floorId : undefined,
-          roomIds: form.audience === "ROOM" ? form.roomIds : [],
-          status: form.publishMode === "now" ? "PUBLISHED" : "SCHEDULED",
-          // ตั้งเวลาไว้ 9 โมงเช้าตามเวลาไทย เพราะฟอร์มให้เลือกแค่วัน ไม่ได้ให้เลือกเวลา
-          ...(form.publishMode === "scheduled" ? { publishAt: new Date(`${form.publishDate}T09:00:00+07:00`).toISOString() } : {}),
-          // แก้ไขต้องแนบเวลาที่แก้ล่าสุดไปด้วย สร้างใหม่ไม่ต้องเพราะยังไม่มีของเดิมให้ชน
-          ...(editingId ? { expectedUpdatedAt: current?.updatedAt } : {}),
-        }),
-      });
-      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "บันทึกประกาศไม่สำเร็จ");
+      await saveAnnouncementRequest(propertyId, { content, editingId, expectedUpdatedAt: current?.updatedAt, form, title });
       resetForm();
       setIsCreateOpen(false);
       await loadAnnouncements();
@@ -232,6 +216,18 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
 
   const deleteAnnouncement = (announcement: Announcement) => {
     setAnnouncementToDelete(announcement);
+  };
+
+  // ไม่ได้ลบจริง แต่เปลี่ยนสถานะเป็น ARCHIVED เพื่อให้ตรวจย้อนหลังได้
+  const archiveAnnouncement = async (announcement: Announcement) => {
+    try {
+      await archiveAnnouncementRequest(propertyId, announcement);
+      setAnnouncementToDelete(null);
+      await loadAnnouncements();
+      await onChanged();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "เก็บประกาศไม่สำเร็จ");
+    }
   };
 
   return (
@@ -251,143 +247,275 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
             </button>
           ) : null}
         </PageHeaderActions>
-        <div className="figma-table-wrap">
-          <table className="figma-table">
-            <thead><tr><th scope="col">หัวข้อ</th><th scope="col">กลุ่มผู้รับ</th><th scope="col">วันที่เผยแพร่</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => (
-              <tr key={item.id}>
-                <td><strong>{item.title}</strong></td>
-                <td>{item.audience}</td><td>{item.date}</td>
-                <td><span className={`badge ${item.status === "เผยแพร่แล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td>
-                <td>
-                  {!readOnly ? <ActionMenu
-                    items={[
-                      { id: "edit", label: "แก้ไข", onSelect: () => openEditForm(item) },
-                      { id: "delete", label: "ลบ", onSelect: () => deleteAnnouncement(item), variant: "danger" },
-                    ]}
-                    label={`จัดการประกาศ ${item.title}`}
-                  /> : null}
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <AnnouncementTable items={pageItems} onDelete={deleteAnnouncement} onEdit={openEditForm} readOnly={readOnly} />
         <TablePagination page={page} setPage={setPage} totalItems={announcements.length} totalPages={totalPages} />
         {hasNextPage ? <LoadMoreButton isLoading={isLoadingMore} label="โหลดประกาศเพิ่มเติม" onClick={() => void loadAnnouncements(serverPage + 1, true)} /> : null}
       </article>
-      {isCreateOpen ? (
-        <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" className="modal-md" onClose={() => { resetForm(); setIsCreateOpen(false); }}>
-          <form className="modal-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void saveAnnouncement();
-            }}
-          >
-            <header className="modal-header">
-              <div><h2 id="create-announcement-title">{editingId ? "แก้ไขประกาศ" : "สร้างประกาศใหม่"}</h2><p id="create-announcement-description">กำหนดเนื้อหา กลุ่มผู้รับ และเวลาที่ต้องการเผยแพร่</p></div>
-              <IconButton label="ปิด" onClick={() => {
-                resetForm();
-                setIsCreateOpen(false);
-              }} tooltip="ปิดหน้าต่างประกาศ">×</IconButton>
-            </header>
-
-            <label>
-              <span>หัวข้อประกาศ</span>
-              <input
-                maxLength={120}
-                onChange={(event) => {
-                  setForm((current) => ({ ...current, title: event.target.value }));
-                  setFormError("");
-                }}
-                placeholder="เช่น แจ้งปิดน้ำชั่วคราว"
-                required
-                value={form.title}
-              />
-            </label>
-
-            <label>
-              <span>เนื้อหาประกาศ</span>
-              <textarea
-                maxLength={2000}
-                onChange={(event) => {
-                  setForm((current) => ({ ...current, content: event.target.value }));
-                  setFormError("");
-                }}
-                placeholder="รายละเอียดที่ต้องการแจ้งผู้เช่า"
-                required
-                rows={6}
-                value={form.content}
-              />
-            </label>
-
-            <DropdownField
-              label="กลุ่มผู้รับ"
-              onChange={(audience) => setForm((current) => ({ ...current, audience: audience as AnnouncementAudience, buildingId: "", floorId: "", roomIds: [] }))}
-              options={[{ label: "ผู้เช่าทุกห้อง", value: "ALL_TENANTS" }, { label: "เฉพาะอาคาร", value: "BUILDING" }, { label: "เฉพาะชั้น", value: "FLOOR" }, { label: "เลือกห้อง", value: "ROOM" }]}
-              value={form.audience}
-            />
-
-            {form.audience === "BUILDING" ? <DropdownField label="อาคาร" onChange={(buildingId) => setForm((current) => ({ ...current, buildingId }))} options={Array.from(new Map(rooms.flatMap((room) => room.buildingId ? [[room.buildingId, { label: room.buildingName ?? room.buildingId, value: room.buildingId }] as const] : [])).values())} value={form.buildingId} /> : null}
-            {form.audience === "FLOOR" ? <DropdownField label="ชั้น" onChange={(floorId) => setForm((current) => ({ ...current, floorId }))} options={Array.from(new Map(rooms.flatMap((room) => room.floorId ? [[room.floorId, { label: `${room.buildingName ?? "อาคาร"} · ชั้น ${room.floor}`, value: room.floorId }] as const] : [])).values())} value={form.floorId} /> : null}
-            {form.audience === "ROOM" ? <fieldset><legend>ห้องที่ได้รับประกาศ</legend><div className="max-h-48 overflow-y-auto rounded-xl border border-[#d7d8df] p-3">{rooms.filter((room) => room.databaseId && room.status === "occupied").map((room) => <label className="flex items-center gap-2 py-1" key={room.databaseId}><input checked={form.roomIds.includes(room.databaseId!)} onChange={(event) => setForm((current) => ({ ...current, roomIds: event.target.checked ? [...current.roomIds, room.databaseId!] : current.roomIds.filter((id) => id !== room.databaseId) }))} type="checkbox" />ห้อง {room.id} · {room.buildingName ?? "-"} ชั้น {room.floor}</label>)}</div></fieldset> : null}
-            <p className="text-sm text-[#73757d]">ผู้รับประมาณ {form.audience === "ALL_TENANTS" ? recipientRoomCount : form.audience === "BUILDING" ? rooms.filter((room) => room.status === "occupied" && room.buildingId === form.buildingId).length : form.audience === "FLOOR" ? rooms.filter((room) => room.status === "occupied" && room.floorId === form.floorId).length : form.roomIds.length} ห้อง</p>
-
-            <fieldset>
-              <legend>การเผยแพร่</legend>
-              <label>
-                <input checked={form.publishMode === "now"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "now" }))} type="radio" />
-                เผยแพร่ทันที
-              </label>
-              <label>
-                <input checked={form.publishMode === "scheduled"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "scheduled" }))} type="radio" />
-                ตั้งเวลาเผยแพร่
-              </label>
-            </fieldset>
-
-            {form.publishMode === "scheduled" ? (
-              <DatePickerField
-                label="วันที่เผยแพร่"
-                onChange={(value) => setForm((current) => ({ ...current, publishDate: value }))}
-                value={form.publishDate}
-              />
-            ) : null}
-
-            {formError ? <p role="alert">{formError}</p> : null}
-
-            <footer className="modal-actions">
-              <button onClick={() => {
-                resetForm();
-                setIsCreateOpen(false);
-              }} type="button">ยกเลิก</button>
-              <button disabled={isSaving} type="submit">{isSaving ? "กำลังบันทึก..." : editingId ? "บันทึกการแก้ไข" : "สร้างประกาศ"}</button>
-            </footer>
-          </form>
-        </Dialog>
-      ) : null}
-      {announcementToDelete ? (
-        <ConfirmationDialog
-          confirmLabel="ลบประกาศ"
-          description={`ประกาศ “${announcementToDelete.title}” จะถูกลบออกจากรายการ`}
-          onCancel={() => setAnnouncementToDelete(null)}
-          onConfirm={() => {
-            const target = announcementToDelete;
-            void fetch(`/api/v1/admin/properties/${propertyId}/announcements/${target.id}`, {
-              method: "PATCH", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "ARCHIVED", expectedUpdatedAt: target.updatedAt }),
-            }).then(async (response) => {
-              if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "เก็บประกาศไม่สำเร็จ");
-              setAnnouncementToDelete(null);
-              await loadAnnouncements();
-              await onChanged();
-            }).catch((error: unknown) => setFormError(error instanceof Error ? error.message : "เก็บประกาศไม่สำเร็จ"));
-          }}
-          title="ลบประกาศนี้หรือไม่?"
-          variant="danger"
-        />
-      ) : null}
+      <AnnouncementFormDialog
+        editingId={editingId}
+        form={form}
+        formError={formError}
+        isOpen={isCreateOpen}
+        isSaving={isSaving}
+        onClose={() => { resetForm(); setIsCreateOpen(false); }}
+        onSubmit={saveAnnouncement}
+        recipientRoomCount={recipientRoomCount}
+        rooms={rooms}
+        setForm={setForm}
+        setFormError={setFormError}
+      />
+      {announcementToDelete ? <ConfirmationDialog
+        confirmLabel="ลบประกาศ"
+        description={`ประกาศ “${announcementToDelete.title}” จะถูกลบออกจากรายการ`}
+        onCancel={() => setAnnouncementToDelete(null)}
+        onConfirm={() => void archiveAnnouncement(announcementToDelete)}
+        title="ลบประกาศนี้หรือไม่?"
+        variant="danger"
+      /> : null}
     </section>
   );
 }
+
+type AnnouncementForm = {
+  audience: AnnouncementAudience;
+  buildingId: string;
+  floorId: string;
+  roomIds: string[];
+  content: string;
+  publishDate: string;
+  publishMode: "now" | "scheduled";
+  title: string;
+};
+
+// เลือกขอบเขตแบบเจาะจงแล้วต้องระบุด้วยว่าอาคารไหน ชั้นไหน หรือห้องไหน
+function isAudienceIncomplete(form: AnnouncementForm) {
+  if (form.audience === "BUILDING") return !form.buildingId;
+  if (form.audience === "FLOOR") return !form.floorId;
+  if (form.audience === "ROOM") return form.roomIds.length === 0;
+  return false;
+}
+
+// จำนวนห้องที่จะได้รับประกาศตามขอบเขตที่เลือกไว้
+function recipientCount(form: AnnouncementForm, rooms: Room[], allTenantsCount: number) {
+  if (form.audience === "ALL_TENANTS") return allTenantsCount;
+  if (form.audience === "BUILDING") return rooms.filter((room) => room.status === "occupied" && room.buildingId === form.buildingId).length;
+  if (form.audience === "FLOOR") return rooms.filter((room) => room.status === "occupied" && room.floorId === form.floorId).length;
+  return form.roomIds.length;
+}
+
+// สร้างหรือแก้ไขประกาศ แก้ไขใช้ PATCH ไปที่ id เดิม ส่วนสร้างใหม่ใช้ POST
+async function saveAnnouncementRequest(propertyId: string, { content, editingId, expectedUpdatedAt, form, title }: {
+  content: string;
+  editingId: string | null;
+  expectedUpdatedAt: string | undefined;
+  form: AnnouncementForm;
+  title: string;
+}) {
+  // แก้ประกาศเดิมยิงไปที่ id ของประกาศนั้น ส่วนประกาศใหม่ยิงไปที่ตัวรายการ
+  const path = editingId ? `/announcements/${editingId}` : "/announcements";
+  const response = await fetch(`/api/v1/admin/properties/${propertyId}${path}`, {
+    method: editingId ? "PATCH" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      content,
+      audience: form.audience,
+      buildingId: form.audience === "BUILDING" ? form.buildingId : undefined,
+      floorId: form.audience === "FLOOR" ? form.floorId : undefined,
+      roomIds: form.audience === "ROOM" ? form.roomIds : [],
+      status: form.publishMode === "now" ? "PUBLISHED" : "SCHEDULED",
+      // ตั้งเวลาไว้ 9 โมงเช้าตามเวลาไทย เพราะฟอร์มให้เลือกแค่วัน ไม่ได้ให้เลือกเวลา
+      ...(form.publishMode === "scheduled" ? { publishAt: new Date(`${form.publishDate}T09:00:00+07:00`).toISOString() } : {}),
+      // แก้ไขต้องแนบเวลาที่แก้ล่าสุดไปด้วย สร้างใหม่ไม่ต้องเพราะยังไม่มีของเดิมให้ชน
+      ...(editingId ? { expectedUpdatedAt } : {}),
+    }),
+  });
+  if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "บันทึกประกาศไม่สำเร็จ");
+}
+
+// ไม่ได้ลบจริง แต่เปลี่ยนสถานะเป็น ARCHIVED เพื่อให้ตรวจย้อนหลังได้
+async function archiveAnnouncementRequest(propertyId: string, announcement: Announcement) {
+  const response = await fetch(`/api/v1/admin/properties/${propertyId}/announcements/${announcement.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "ARCHIVED", expectedUpdatedAt: announcement.updatedAt }),
+  });
+  if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "เก็บประกาศไม่สำเร็จ");
+}
+
+// ตารางประกาศทั้งหมดของหอ
+function AnnouncementTable({ items, onDelete, onEdit, readOnly }: Readonly<{
+  items: Announcement[];
+  onDelete: (announcement: Announcement) => void;
+  onEdit: (announcement: Announcement) => void;
+  readOnly: boolean;
+}>) {
+  return <div className="figma-table-wrap">
+    <table className="figma-table">
+      <thead><tr><th scope="col">หัวข้อ</th><th scope="col">กลุ่มผู้รับ</th><th scope="col">วันที่เผยแพร่</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
+      <tbody>{items.map((item) => <tr key={item.id}>
+        <td><strong>{item.title}</strong></td>
+        <td>{item.audience}</td>
+        <td>{item.date}</td>
+        <td><span className={`badge ${item.status === "เผยแพร่แล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td>
+        <td>
+          {!readOnly ? <ActionMenu
+            items={[
+              { id: "edit", label: "แก้ไข", onSelect: () => onEdit(item) },
+              { id: "delete", label: "ลบ", onSelect: () => onDelete(item), variant: "danger" },
+            ]}
+            label={`จัดการประกาศ ${item.title}`}
+          /> : null}
+        </td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
+}
+
+// ช่องเลือกขอบเขตผู้รับ เปลี่ยนตามกลุ่มที่เลือกไว้
+function AudienceScopeField({ form, rooms, setForm }: Readonly<{
+  form: AnnouncementForm;
+  rooms: Room[];
+  setForm: React.Dispatch<React.SetStateAction<AnnouncementForm>>;
+}>) {
+  if (form.audience === "BUILDING") {
+    const options = Array.from(new Map(rooms.flatMap((room) => room.buildingId ? [[room.buildingId, { label: room.buildingName ?? room.buildingId, value: room.buildingId }] as const] : [])).values());
+    return <DropdownField label="อาคาร" onChange={(buildingId) => setForm((current) => ({ ...current, buildingId }))} options={options} value={form.buildingId} />;
+  }
+  if (form.audience === "FLOOR") {
+    const options = Array.from(new Map(rooms.flatMap((room) => room.floorId ? [[room.floorId, { label: `${room.buildingName ?? "อาคาร"} · ชั้น ${room.floor}`, value: room.floorId }] as const] : [])).values());
+    return <DropdownField label="ชั้น" onChange={(floorId) => setForm((current) => ({ ...current, floorId }))} options={options} value={form.floorId} />;
+  }
+  if (form.audience === "ROOM") {
+    const selectable = rooms.filter((room) => room.databaseId && room.status === "occupied");
+    return <fieldset>
+      <legend>ห้องที่ได้รับประกาศ</legend>
+      <div className="max-h-48 overflow-y-auto rounded-xl border border-[#d7d8df] p-3">
+        {selectable.map((room) => <label className="flex items-center gap-2 py-1" key={room.databaseId}>
+          <input checked={form.roomIds.includes(room.databaseId!)} onChange={(event) => setForm((current) => ({
+            ...current,
+            roomIds: event.target.checked ? [...current.roomIds, room.databaseId!] : current.roomIds.filter((id) => id !== room.databaseId),
+          }))} type="checkbox" />
+          ห้อง {room.id} · {room.buildingName ?? "-"} ชั้น {room.floor}
+        </label>)}
+      </div>
+    </fieldset>;
+  }
+  return null;
+}
+
+// กล่องสร้างหรือแก้ไขประกาศ
+function AnnouncementFormDialog({ editingId, form, formError, isOpen, isSaving, onClose, onSubmit, recipientRoomCount, rooms, setForm, setFormError }: Readonly<{
+  editingId: string | null;
+  form: AnnouncementForm;
+  formError: string;
+  isOpen: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: () => Promise<void>;
+  recipientRoomCount: number;
+  rooms: Room[];
+  setForm: React.Dispatch<React.SetStateAction<AnnouncementForm>>;
+  setFormError: (message: string) => void;
+}>) {
+  if (!isOpen) return null;
+
+  const editField = (patch: Partial<AnnouncementForm>) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setFormError("");
+  };
+
+  return <Dialog ariaDescribedBy="create-announcement-description" ariaLabelledBy="create-announcement-title" className="modal-md" onClose={onClose}>
+    <form className="modal-form" onSubmit={(event) => { event.preventDefault(); void onSubmit(); }}>
+      <header className="modal-header">
+        <div><h2 id="create-announcement-title">{editingId ? "แก้ไขประกาศ" : "สร้างประกาศใหม่"}</h2><p id="create-announcement-description">กำหนดเนื้อหา กลุ่มผู้รับ และเวลาที่ต้องการเผยแพร่</p></div>
+        <IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างประกาศ">×</IconButton>
+      </header>
+
+      <label>
+        <span>หัวข้อประกาศ</span>
+        <input maxLength={120} onChange={(event) => editField({ title: event.target.value })} placeholder="เช่น แจ้งปิดน้ำชั่วคราว" required value={form.title} />
+      </label>
+
+      <label>
+        <span>เนื้อหาประกาศ</span>
+        <textarea maxLength={2000} onChange={(event) => editField({ content: event.target.value })} placeholder="รายละเอียดที่ต้องการแจ้งผู้เช่า" required rows={6} value={form.content} />
+      </label>
+
+      <DropdownField
+        label="กลุ่มผู้รับ"
+        onChange={(audience) => setForm((current) => ({ ...current, audience: audience as AnnouncementAudience, buildingId: "", floorId: "", roomIds: [] }))}
+        options={[{ label: "ผู้เช่าทุกห้อง", value: "ALL_TENANTS" }, { label: "เฉพาะอาคาร", value: "BUILDING" }, { label: "เฉพาะชั้น", value: "FLOOR" }, { label: "เลือกห้อง", value: "ROOM" }]}
+        value={form.audience}
+      />
+
+      <AudienceScopeField form={form} rooms={rooms} setForm={setForm} />
+      <p className="text-sm text-[#73757d]">ผู้รับประมาณ {recipientCount(form, rooms, recipientRoomCount)} ห้อง</p>
+
+      <fieldset>
+        <legend>การเผยแพร่</legend>
+        <label>
+          <input checked={form.publishMode === "now"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "now" }))} type="radio" />
+          เผยแพร่ทันที
+        </label>
+        <label>
+          <input checked={form.publishMode === "scheduled"} name="publishMode" onChange={() => setForm((current) => ({ ...current, publishMode: "scheduled" }))} type="radio" />
+          ตั้งเวลาเผยแพร่
+        </label>
+      </fieldset>
+
+      {form.publishMode === "scheduled" ? <DatePickerField
+        label="วันที่เผยแพร่"
+        onChange={(value) => setForm((current) => ({ ...current, publishDate: value }))}
+        value={form.publishDate}
+      /> : null}
+
+      {formError ? <p role="alert">{formError}</p> : null}
+
+      <footer className="modal-actions">
+        <button onClick={onClose} type="button">ยกเลิก</button>
+        <button disabled={isSaving} type="submit">{announcementSubmitLabel(editingId, isSaving)}</button>
+      </footer>
+    </form>
+  </Dialog>;
+}
+
+function announcementSubmitLabel(editingId: string | null, isSaving: boolean) {
+  if (isSaving) return "กำลังบันทึก...";
+  return editingId ? "บันทึกการแก้ไข" : "สร้างประกาศ";
+}
+
+// กลุ่มผู้รับประกาศ เจาะจงอาคารหรือชั้นก็บอกชื่อไปเลย เลือกทีละห้องก็บอกจำนวน
+function audienceLabel(item: {
+  audience: string;
+  building?: { name: string } | null;
+  floor?: { label: string | null; number: number } | null;
+  rooms: unknown[];
+}) {
+  if (item.audience === "ALL_TENANTS") return "ผู้เช่าทุกห้อง";
+  if (item.audience === "BUILDING") return `อาคาร ${item.building?.name ?? "-"}`;
+  if (item.audience === "FLOOR") return item.floor?.label ?? `ชั้น ${item.floor?.number ?? "-"}`;
+  return `${item.rooms.length} ห้อง`;
+}
+
+// ค่าใน enum ของฐานข้อมูลเป็นตัวพิมพ์ใหญ่ ส่วนหน้าจอใช้คำไทย เก็บเป็นตารางแทนบันได ternary
+const announcementStatusLabels: Record<string, Announcement["status"]> = {
+  SCHEDULED: "ตั้งเวลา",
+  DRAFT: "ฉบับร่าง",
+};
+
+const complaintStatusLabels: Record<string, Complaint["status"]> = {
+  RESOLVED: "แก้ไขแล้ว",
+  CANCELLED: "ยกเลิกแล้ว",
+  ACKNOWLEDGED: "กำลังตรวจสอบ",
+  IN_PROGRESS: "กำลังตรวจสอบ",
+};
+
+// เลื่อนสถานะทีละขั้น สถานะที่ไม่อยู่ในตารางแปลว่าปิดงานไปแล้ว ไม่มีขั้นถัดไป
+const nextComplaintStatus: Record<string, string> = {
+  "รับเรื่องแล้ว": "ACKNOWLEDGED",
+  "กำลังตรวจสอบ": "RESOLVED",
+};
 
 export type Complaint = {
   id: string;
@@ -412,7 +540,7 @@ export function ComplaintsPage({
   onUnreadChanged,
   propertyId,
   readOnly = false,
-}: {
+}: Readonly<{
   // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
   initialLoaded?: boolean;
   complaints: Complaint[];
@@ -422,7 +550,7 @@ export function ComplaintsPage({
   onUnreadChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
-}) {
+}>) {
   const [complaints, setComplaints] = useState(initialComplaints);
   const [formError, setFormError] = useState("");
   const [serverPage, setServerPage] = useState(1);
@@ -458,7 +586,7 @@ export function ComplaintsPage({
         owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
         date: new Date(item.createdAt).toLocaleString("th-TH"),
         hasUnreadReply: item.hasUnreadReply,
-        status: item.status === "RESOLVED" ? "แก้ไขแล้ว" : item.status === "CANCELLED" ? "ยกเลิกแล้ว" : item.status === "ACKNOWLEDGED" || item.status === "IN_PROGRESS" ? "กำลังตรวจสอบ" : "รับเรื่องแล้ว",
+        status: complaintStatusLabels[item.status] ?? "รับเรื่องแล้ว",
         detail: item.detail, priority: item.priority, updatedAt: item.updatedAt,
       }));
       setComplaints((current) => append ? [...current, ...mapped] : mapped);
@@ -483,8 +611,7 @@ export function ComplaintsPage({
 
   // เลื่อนไปสถานะถัดไปทีละขั้น ปุ่มเดียวไม่ต้องให้ผู้ใช้เลือกเองว่าจะไปสถานะไหน
   const advanceStatus = async (complaint: Complaint) => {
-    const status = complaint.status === "รับเรื่องแล้ว" ? "ACKNOWLEDGED"
-      : complaint.status === "กำลังตรวจสอบ" ? "RESOLVED" : null;
+    const status = nextComplaintStatus[complaint.status] ?? null;
     // ปิดงานไปแล้วก็ไม่มีขั้นถัดไป
     if (!status) return;
     setFormError("");
@@ -624,6 +751,12 @@ const helpTopics = [
 ];
 
 // ศูนย์ช่วยเหลือ ค้นหาและอ่านคู่มือการใช้งาน
+// รวมทุกคำในหัวข้อช่วยเหลือเป็นสตริงเดียวสำหรับค้นหา
+function topicSearchText(topic: (typeof helpTopics)[number]) {
+  const articleText = topic.articles.map((article) => `${article.title} ${article.body.join(" ")}`).join(" ");
+  return `${topic.title} ${topic.summary} ${articleText}`;
+}
+
 export function HelpPage() {
   const [query, setQuery] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -632,9 +765,7 @@ export function HelpPage() {
   const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
   // ค้นทั้งหัวข้อ คำโปรย และเนื้อหาข้างในทุกบทความ ต่อเป็นสตริงเดียวแล้วค่อยหา
   const filteredTopics = helpTopics.filter((topic) =>
-    `${topic.title} ${topic.summary} ${topic.articles.map((article) => `${article.title} ${article.body.join(" ")}`).join(" ")}`
-      .toLocaleLowerCase("th-TH")
-      .includes(normalizedQuery),
+    topicSearchText(topic).toLocaleLowerCase("th-TH").includes(normalizedQuery),
   );
 
   // เปิดบทความแล้วเลื่อนหน้าไปหา เพราะบนมือถือเนื้อหาอยู่ใต้รายการหัวข้อ
@@ -701,10 +832,10 @@ export function HelpPage() {
 export function PropertiesPage({
   activePropertyId,
   properties,
-}: {
+}: Readonly<{
   activePropertyId: string;
   properties: Array<{ id: string; name: string; shortName: string; rooms?: number }>;
-}) {
+}>) {
   return (
     <section className="additional-page">
       <div className="property-page-head"><div><h2>หอพักทั้งหมด</h2><p>เลือกหอพักที่ต้องการบริหารจัดการ</p></div></div>
@@ -718,6 +849,6 @@ export function PropertiesPage({
 }
 
 // การ์ดตัวเลขสรุปที่ใช้ร่วมกันในไฟล์นี้ จึงไม่ต้อง export
-function Summary({ icon, label, tone, value }: { icon: ReactNode; label: string; tone: string; value: string }) {
+function Summary({ icon, label, tone, value }: Readonly<{ icon: ReactNode; label: string; tone: string; value: string }>) {
   return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }
