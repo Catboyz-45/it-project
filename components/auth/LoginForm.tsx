@@ -1,14 +1,14 @@
 "use client";
 // เก็บค่าที่กรอกและส่งคำขอเข้าสู่ระบบจากเบราว์เซอร์
 
-import { FormEvent, useEffect, useState } from "react";
+import { SyntheticEvent, useEffect, useState } from "react";
 import { ArrowRight, Check, Copy, Crown, Eye, EyeOff, UserRound } from "lucide-react";
 
 // บัญชีทดลองสำหรับเดโม เซิร์ฟเวอร์ส่งมาเฉพาะตอนเปิดใช้ในสภาพแวดล้อมที่ไม่ใช่ production
 type DemoAccount = { label: string; email: string; password: string };
 
 // ฟอร์มเข้าสู่ระบบ ใช้ร่วมกันทุกบทบาท เซิร์ฟเวอร์เป็นคนบอกว่าจะพาไปหน้าไหนต่อ
-export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] }) {
+export function LoginForm({ demoAccounts = [] }: Readonly<{ demoAccounts?: DemoAccount[] }>) {
   const [email, setEmail] = useState(demoAccounts[0]?.email ?? "");
   const [password, setPassword] = useState(demoAccounts[0]?.password ?? "");
   const [error, setError] = useState("");
@@ -18,7 +18,7 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
   // ปุ่มเริ่มต้นกดไม่ได้จนกว่า JavaScript ฝั่งเบราว์เซอร์จะทำงาน กันกดตอนฟอร์มยังส่งไม่ได้
   useEffect(() => setIsReady(true), []);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);

@@ -8,7 +8,7 @@ import { verifyPassword } from "@/lib/server/password";
 import { hasAcceptedRequiredPolicies } from "@/lib/server/legal-policies";
 
 const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email().max(254),
+  email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   password: z.string().min(1).max(256),
 }).strict();
 
@@ -20,6 +20,14 @@ function requestIp(request: NextRequest) {
 
 // เข้าสู่ระบบ ตรวจรหัสผ่านแล้วสร้าง session
 // เซิร์ฟเวอร์เป็นคนตัดสินว่าจะพาไปหน้าไหน เพราะแต่ละบทบาทไปคนละที่
+// ปลายทางหลังเข้าระบบ ด่านที่ต้องผ่านก่อนมาก่อนเสมอ แล้วค่อยแยกตามบทบาท
+function loginDestination(user: { mustChangePassword: boolean; role: string }, requiredPoliciesAccepted: boolean) {
+  if (user.mustChangePassword) return "/change-password";
+  if (!requiredPoliciesAccepted) return "/legal/accept";
+  if (user.role === "SUPER_ADMIN") return "/super-admin";
+  return user.role === "TENANT" ? "/tenant" : "/admin";
+}
+
 export async function POST(request: NextRequest) {
   try {
     // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
@@ -41,9 +49,7 @@ export async function POST(request: NextRequest) {
     }
     await clearLoginFailures(input.email, ip);
     const requiredPoliciesAccepted = await hasAcceptedRequiredPolicies(user.id);
-    const redirectTo = user.mustChangePassword ? "/change-password" : !requiredPoliciesAccepted ? "/legal/accept" : user.role === "SUPER_ADMIN"
-      ? "/super-admin"
-      : user.role === "TENANT" ? "/tenant" : "/admin";
+    const redirectTo = loginDestination(user, requiredPoliciesAccepted);
     const response = apiSuccessResponse(request, { redirectTo }, undefined, {
       userId: user.id, action: "AUTH_LOGIN", targetType: "User", targetId: user.id,
     });

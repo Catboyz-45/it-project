@@ -23,7 +23,7 @@ export function RetryButton({
   label = "ลองใหม่",
   loadingLabel = "กำลังลองใหม่...",
   onClick,
-}: ActionProps) {
+}: Readonly<ActionProps>) {
   return (
     <Button
       // trim กันช่องว่างท้ายเวลาไม่ได้ส่ง className มา
@@ -48,7 +48,7 @@ export function LoadMoreButton({
   label = "โหลดเพิ่มเติม",
   loadingLabel = "กำลังโหลด...",
   onClick,
-}: ActionProps) {
+}: Readonly<ActionProps>) {
   return (
     // ห่อด้วย div เพราะต้องจัดปุ่มให้อยู่กลางและมีเส้นคั่นเหนือรายการ
     <div className={`data-load-more ${className}`.trim()}>

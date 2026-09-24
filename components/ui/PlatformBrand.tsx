@@ -16,7 +16,7 @@ export function PlatformBrand({
   context,
   imageClassName = "size-11",
   showTagline = false,
-}: PlatformBrandProps) {
+}: Readonly<PlatformBrandProps>) {
   return (
     // min-w-0 จำเป็นสำหรับให้ truncate ข้างในทำงาน
     <div className={`flex min-w-0 items-center gap-3 ${className}`}>

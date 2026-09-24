@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { leaseStatusSchema } from "@/lib/domain/enums";
 
-// กฎของช่องจำนวนเงิน finite กัน Infinity กับ NaN ส่วนเพดานกันกรอกเกินจริงจนผิดสังเกต
-const money = z.coerce.number().finite().min(0).max(10_000_000);
+// กฎของช่องจำนวนเงิน Zod 4 ปัดตก Infinity กับ NaN ให้เองอยู่แล้ว จึงไม่ต้องเรียก finite()
+// ที่เลิกใช้แล้ว ส่วนเพดานกันกรอกเกินจริงจนผิดสังเกต
+const money = z.coerce.number().min(0).max(10_000_000);
 
 // สร้างสัญญาใหม่ ไม่มีช่องสถานะ เพราะสัญญาต้องเกิดเป็นร่างเสมอ
 export const createLeaseSchema = z.object({

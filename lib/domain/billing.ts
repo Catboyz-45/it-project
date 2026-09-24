@@ -14,8 +14,8 @@ export const meterReadingInputSchema = z.object({
   roomId: z.string().cuid(),
   type: meterTypeSchema,
   billingMonth: billingMonthSchema,
-  previousReading: z.coerce.number().finite().min(0).max(1_000_000_000).optional(),
-  currentReading: z.coerce.number().finite().min(0).max(1_000_000_000),
+  previousReading: z.coerce.number().min(0).max(1_000_000_000).optional(),
+  currentReading: z.coerce.number().min(0).max(1_000_000_000),
 // เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน เพราะมิเตอร์เดินหน้าอย่างเดียว
 }).strict().refine(
   (value) => value.previousReading === undefined || value.currentReading >= value.previousReading,

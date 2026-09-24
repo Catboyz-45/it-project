@@ -11,7 +11,7 @@ const PageHeaderSlotContext = createContext<HTMLElement | null>(null);
 const PageHeaderSlotSetterContext = createContext<((element: HTMLElement | null) => void) | null>(null);
 
 // ครอบ shell ไว้ เพื่อเปิดช่องฝากปุ่มให้ทุกหน้าย่อยที่อยู่ข้างใน
-export function PageHeaderSlotProvider({ children }: { children: ReactNode }) {
+export function PageHeaderSlotProvider({ children }: Readonly<{ children: ReactNode }>) {
   // เก็บเป็น state ไม่ใช่ ref เพราะต้องให้หน้าย่อย render ใหม่ตอนช่องพร้อมใช้
   const [slot, setSlot] = useState<HTMLElement | null>(null);
 
@@ -33,7 +33,7 @@ export function PageHeaderTarget() {
 }
 
 // หน้าย่อยห่อปุ่มด้วยตัวนี้ แล้วปุ่มจะไปโผล่บนแถบหัวเรื่องแทนที่จะอยู่ตรงที่เขียน
-export function PageHeaderActions({ children }: { children: ReactNode }) {
+export function PageHeaderActions({ children }: Readonly<{ children: ReactNode }>) {
   const slot = useContext(PageHeaderSlotContext);
 
   // รอบแรกช่องยังไม่ถูกวาง จึงยังไม่แสดงอะไร แล้วค่อยโผล่เมื่อ provider รู้ค่า element

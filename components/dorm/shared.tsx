@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import { Plus, QrCode } from "lucide-react";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import type { Invoice, Room, Tenant } from "@/types/dorm";
+import { roomTypeLabel } from "@/lib/ui-labels";
 
 // การ์ดตัวเลขสรุปบนหน้าภาพรวม tone คุมแค่สี ไม่มีผลกับข้อมูล
-export function Metric({ icon, label, value, detail, tone = "indigo" }: { icon: ReactNode; label: string; value: ReactNode; detail: string; tone?: "blue" | "green" | "indigo" | "orange" | "red" }) {
+export function Metric({ icon, label, value, detail, tone = "indigo" }: Readonly<{ icon: ReactNode; label: string; value: ReactNode; detail: string; tone?: "blue" | "green" | "indigo" | "orange" | "red" }>) {
   return (
     /* ข้อความก่อน ไอคอนทีหลัง ให้อ่านเรียงเหมือนการ์ดตัวเลขของอีกสองโรล */
     <article className={`metric tone-${tone}`}>
@@ -21,7 +22,7 @@ export function Metric({ icon, label, value, detail, tone = "indigo" }: { icon: 
 }
 
 // หัวเรื่องของแผง พร้อมข้อความประกอบด้านขวา ใช้ให้หัวข้อทุกแผงหน้าตาเหมือนกัน
-export function PanelTitle({ title, action }: { title: string; action: string }) {
+export function PanelTitle({ title, action }: Readonly<{ title: string; action: string }>) {
   return (
     <div className="panel-title">
       <h2>{title}</h2>
@@ -31,7 +32,7 @@ export function PanelTitle({ title, action }: { title: string; action: string })
 }
 
 // ผังห้องแบบตาราง กดเลือกห้องแล้วรายละเอียดข้าง ๆ จะเปลี่ยนตาม
-export function RoomGrid({ rooms, selectedRoomId, onSelectRoom }: { rooms: Room[]; selectedRoomId: string; onSelectRoom: (roomId: string) => void }) {
+export function RoomGrid({ rooms, selectedRoomId, onSelectRoom }: Readonly<{ rooms: Room[]; selectedRoomId: string; onSelectRoom: (roomId: string) => void }>) {
   return (
     <div className="room-grid">
       {/* ใช้ button ไม่ใช่ div เพราะกดได้ คีย์บอร์ดกับโปรแกรมอ่านหน้าจอจะได้ใช้งานได้ */}
@@ -47,14 +48,14 @@ export function RoomGrid({ rooms, selectedRoomId, onSelectRoom }: { rooms: Room[
 }
 
 // รายละเอียดห้องที่เลือกอยู่ ไม่มีผู้เช่าก็แสดงว่าว่าง
-export function RoomDetailPanel({ onEditTenant, selectedRoom, selectedTenant }: { onEditTenant?: () => void; selectedRoom: Room; selectedTenant?: Tenant }) {
+export function RoomDetailPanel({ onEditTenant, selectedRoom, selectedTenant }: Readonly<{ onEditTenant?: () => void; selectedRoom: Room; selectedTenant?: Tenant }>) {
   return (
     <article className="panel">
       <PanelTitle title={`ห้อง ${selectedRoom.id}`} action={selectedTenant ? selectedTenant.name : "ยังว่าง"} />
       {/* dl/dt/dd เพราะเป็นคู่ชื่อกับค่า โปรแกรมอ่านหน้าจอจะอ่านจับคู่ให้ถูก */}
       <dl className="detail-list">
         <div><dt>สถานะ</dt><dd><span className={getStatusClass(selectedRoom.status)}>{statusText[selectedRoom.status]}</span></dd></div>
-        <div><dt>ประเภท</dt><dd>{selectedRoom.roomType === "air" ? "ห้องแอร์" : selectedRoom.roomType === "fan" ? "ห้องพัดลม" : selectedRoom.roomType}</dd></div>
+        <div><dt>ประเภท</dt><dd>{roomTypeLabel(selectedRoom.roomType)}</dd></div>
         <div><dt>ค่าเช่า</dt><dd>{currency.format(selectedRoom.rent)}</dd></div>
         <div><dt>เบอร์โทร</dt><dd>{selectedTenant?.phone ?? "-"}</dd></div>
         <div><dt>สัญญาถึง</dt><dd>{selectedTenant?.contractEnd ?? "-"}</dd></div>
@@ -69,7 +70,7 @@ export function RoomDetailPanel({ onEditTenant, selectedRoom, selectedTenant }: 
 }
 
 // รายการบิลแบบย่อ ใช้บนหน้าภาพรวม ส่วนหน้าบิลเต็มใช้ตารางแยกต่างหาก
-export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
+export function InvoiceList({ invoices }: Readonly<{ invoices: Invoice[] }>) {
   return (
     <div className="invoice-list">
       {invoices.map((invoice) => (

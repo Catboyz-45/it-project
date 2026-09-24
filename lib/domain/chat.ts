@@ -3,7 +3,7 @@ import { z } from "zod";
 // แยกออกมาเป็นตัวย่อย เพราะทั้งข้อความธรรมดาและข้อความที่แนบไฟล์ใช้กฎเดียวกัน
 export const chatMessageBodySchema = z.string().trim().max(4000);
 // id ที่ฝั่งเบราว์เซอร์สร้าง เซิร์ฟเวอร์ใช้กันบันทึกซ้ำถ้าคำขอถูกส่งมาสองรอบ
-export const chatClientIdSchema = z.string().uuid();
+export const chatClientIdSchema = z.uuid();
 
 export const sendChatMessageSchema = z.object({
   // เช็คความยาวหลังตัดช่องว่างแล้ว ข้อความที่มีแต่เว้นวรรคจึงไม่ผ่าน

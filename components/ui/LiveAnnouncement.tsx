@@ -8,10 +8,10 @@ export function LiveAnnouncement({
   message,
   // polite = รอจังหวะว่าง / assertive = ขัดจังหวะทันที ใช้เฉพาะเรื่องด่วน
   politeness = "polite",
-}: {
+}: Readonly<{
   message: string;
   politeness?: "assertive" | "polite";
-}) {
+}>) {
   // แยกจาก message เพราะต้องล้างเป็นค่าว่างก่อนหนึ่งจังหวะ
   const [announcement, setAnnouncement] = useState("");
   // เก็บใน ref เพื่อยกเลิกได้ถ้า message เปลี่ยนก่อนครบเวลา

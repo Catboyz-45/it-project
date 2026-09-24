@@ -39,13 +39,13 @@ export function PendingTenantApprovals({
   onChanged,
   propertyId,
   readOnly = false,
-}: {
+}: Readonly<{
   // ส่งมาจาก Server Component ของหน้านี้ มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดแท็บ
   initialRequests?: { data: PendingOccupancy[]; hasNextPage: boolean } | null;
   onChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
-}) {
+}>) {
   const [requests, setRequests] = useState<PendingOccupancy[]>(initialRequests?.data ?? []);
   const skipInitialLoadRef = useRef(initialRequests !== null);
   const [query, setQuery] = useState("");
@@ -168,44 +168,7 @@ export function PendingTenantApprovals({
         <div><Search size={16} /><input aria-label="ค้นหาคำขอเข้าพัก" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อ อีเมล เบอร์โทร หรือห้อง..." value={query} /></div>
       </div>
 
-      {isLoading ? (
-        <LoadingSkeleton columns={8} count={4} label="กำลังโหลดคำขอเข้าพัก" tableClassName="approval-table" variant="table" />
-      // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ
-      ) : pageItems.length === 0 && query.trim() ? (
-        <SearchEmptyState description="ลองใช้ชื่อ อีเมล เบอร์โทร หรือเลขห้องอื่น" title="ไม่พบคำขอที่ค้นหา" />
-      ) : pageItems.length === 0 ? (
-        <div className="document-editor-state"><Clock3 /><p>ไม่มีคำขอเข้าพักที่รอตรวจสอบ</p></div>
-      ) : (
-        <div className="figma-table-wrap">
-        <table className="figma-grid-table approval-table">
-          <thead>
-            <tr className="figma-table-head"><th scope="col">ผู้สมัคร</th><th scope="col">ห้อง</th><th scope="col">ประเภท</th><th scope="col">อีเมล</th><th scope="col">เบอร์โทร</th><th scope="col">สมัครเมื่อ</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
-          </thead>
-          <tbody>
-          {pageItems.map((request) => (
-            <tr className="figma-table-row" key={request.id}>
-              <td className="tenant-name-cell">{request.tenantProfile.user.displayName}</td>
-              <td>{request.room.number}</td>
-              <td>{request.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</td>
-              <td className="muted-cell">{request.tenantProfile.user.email}</td>
-              <td>{request.tenantProfile.phone}</td>
-              <td className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</td>
-              <td><em className="figma-status warning">รอตรวจสอบ</em></td>
-              <td className="contract-actions">
-                {/* ซ่อนปุ่มจัดการทั้งหมดในโหมดอ่านอย่างเดียว ไม่ใช่แค่ทำให้กดไม่ได้ */}
-                {!readOnly ? <span className="icon-button-group">
-                  {/* ใส่ชื่อผู้สมัครใน label เพราะทุกแถวมีปุ่มหน้าตาเหมือนกันหมด */}
-                  <IconButton disabled={reviewingId !== null} label={`อนุมัติ ${request.tenantProfile.user.displayName}`} onClick={() => void review(request, "ACTIVE")} tooltip="อนุมัติ"><UserCheck size={17} /></IconButton>
-                  <IconButton disabled={reviewingId !== null} label={`ปฏิเสธ ${request.tenantProfile.user.displayName}`} onClick={() => void review(request, "REJECTED")} tooltip="ปฏิเสธ" variant="danger"><UserX size={17} /></IconButton>
-                </span> : null}
-                {reviewingId === request.id ? <Check className="animate-pulse" size={16} /> : null}
-              </td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
-        </div>
-      )}
+      <ApprovalsBody hasQuery={Boolean(query.trim())} isLoading={isLoading} onReview={review} pageItems={pageItems} readOnly={readOnly} reviewingId={reviewingId} />
       <TablePagination page={page} setPage={setPage} totalItems={visibleRequests.length} totalPages={totalPages} />
       {hasNextPage ? <div className="p-4 text-center">
         <button className="secondary-button" disabled={isLoadingMore} onClick={() => void loadRequests(serverPage + 1, true)} type="button">
@@ -218,6 +181,55 @@ export function PendingTenantApprovals({
 }
 
 // การ์ดตัวเลขสรุปเล็ก ๆ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ApprovalSummary({ label, value }: { label: string; value: string }) {
+function ApprovalSummary({ label, value }: Readonly<{ label: string; value: string }>) {
   return <article className="figma-summary-card compact"><div><small>{label}</small><strong>{value}</strong></div></article>;
+}
+
+// ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ
+function PendingEmptyState({ hasQuery }: Readonly<{ hasQuery: boolean }>) {
+  if (hasQuery) return <SearchEmptyState description="ลองใช้ชื่อ อีเมล เบอร์โทร หรือเลขห้องอื่น" title="ไม่พบคำขอที่ค้นหา" />;
+  return <div className="document-editor-state"><Clock3 /><p>ไม่มีคำขอเข้าพักที่รอตรวจสอบ</p></div>;
+}
+
+// เนื้อของตาราง แยกกรณีกำลังโหลดกับว่างออกมาก่อน ที่เหลือคือรายการจริง
+function ApprovalsBody({ hasQuery, isLoading, onReview, pageItems, readOnly, reviewingId }: Readonly<{
+  hasQuery: boolean;
+  isLoading: boolean;
+  onReview: (request: PendingOccupancy, status: "ACTIVE" | "REJECTED") => Promise<void>;
+  pageItems: PendingOccupancy[];
+  readOnly: boolean;
+  // id ของแถวที่กำลังส่งผลตรวจอยู่ null คือยังไม่มีแถวไหนกำลังทำงาน
+  reviewingId: string | null;
+}>) {
+  if (isLoading) return <LoadingSkeleton columns={8} count={4} label="กำลังโหลดคำขอเข้าพัก" tableClassName="approval-table" variant="table" />;
+  if (pageItems.length === 0) return <PendingEmptyState hasQuery={hasQuery} />;
+  return <div className="figma-table-wrap">
+    <table className="figma-grid-table approval-table">
+      <thead>
+        <tr className="figma-table-head"><th scope="col">ผู้สมัคร</th><th scope="col">ห้อง</th><th scope="col">ประเภท</th><th scope="col">อีเมล</th><th scope="col">เบอร์โทร</th><th scope="col">สมัครเมื่อ</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+      </thead>
+      <tbody>
+      {pageItems.map((request) => (
+        <tr className="figma-table-row" key={request.id}>
+          <td className="tenant-name-cell">{request.tenantProfile.user.displayName}</td>
+          <td>{request.room.number}</td>
+          <td>{request.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</td>
+          <td className="muted-cell">{request.tenantProfile.user.email}</td>
+          <td>{request.tenantProfile.phone}</td>
+          <td className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</td>
+          <td><em className="figma-status warning">รอตรวจสอบ</em></td>
+          <td className="contract-actions">
+            {/* ซ่อนปุ่มจัดการทั้งหมดในโหมดอ่านอย่างเดียว ไม่ใช่แค่ทำให้กดไม่ได้ */}
+            {!readOnly ? <span className="icon-button-group">
+              {/* ใส่ชื่อผู้สมัครใน label เพราะทุกแถวมีปุ่มหน้าตาเหมือนกันหมด */}
+              <IconButton disabled={reviewingId !== null} label={`อนุมัติ ${request.tenantProfile.user.displayName}`} onClick={() => void onReview(request, "ACTIVE")} tooltip="อนุมัติ"><UserCheck size={17} /></IconButton>
+              <IconButton disabled={reviewingId !== null} label={`ปฏิเสธ ${request.tenantProfile.user.displayName}`} onClick={() => void onReview(request, "REJECTED")} tooltip="ปฏิเสธ" variant="danger"><UserX size={17} /></IconButton>
+            </span> : null}
+            {reviewingId === request.id ? <Check className="animate-pulse" size={16} /> : null}
+          </td>
+        </tr>
+      ))}
+      </tbody>
+    </table>
+  </div>;
 }

@@ -8,6 +8,12 @@ import { getSubscriptionPaymentSlip } from "@/lib/server/subscription-orders";
 type Context = { params: Promise<{ paymentId: string }> };
 
 // เปิดไฟล์สลิปค่าสมาชิก ตรวจสิทธิ์ก่อนอ่านไฟล์
+// นามสกุลของไฟล์ที่ส่งกลับ ชนิดที่ไม่อยู่ในตารางถือว่าเป็นรูป JPEG ตามที่ระบบรับไว้
+const slipExtensions: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/png": "png",
+};
+
 export async function GET(request: NextRequest, context: Context) {
   try {
     const auth = await requireRequestAuth(request);
@@ -16,7 +22,7 @@ export async function GET(request: NextRequest, context: Context) {
     if (!paymentId.success) throw new ApiError(404, "ไม่พบหลักฐานการชำระ");
     const payment = await getSubscriptionPaymentSlip(paymentId.data);
     const file = await getStorageAdapter().get(payment.storageKey);
-    const extension = payment.mimeType === "application/pdf" ? "pdf" : payment.mimeType === "image/png" ? "png" : "jpg";
+    const extension = slipExtensions[payment.mimeType] ?? "jpg";
     return new NextResponse(new Uint8Array(file.body), {
       headers: {
         "Cache-Control": "private, no-store",

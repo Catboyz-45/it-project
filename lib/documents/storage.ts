@@ -11,6 +11,14 @@ export interface StorageAdapter {
   delete(key: string): Promise<void>;
 }
 
+// นามสกุลที่ safeStorageKey ยอมให้ผ่าน มีแค่ไม่กี่แบบ ที่ไม่อยู่ในตารางคือ PDF
+const contentTypeByExtension: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+};
+
 // ป้องกัน path traversal ใช้วิธีระบุรูปแบบที่อนุญาต ไม่ใช่ไล่ห้ามทีละแบบ
 // ต้องขึ้นต้นด้วยตัวอักษรหรือตัวเลข มีได้เฉพาะอักขระที่กำหนด และลงท้ายด้วยนามสกุลที่รู้จัก
 // เช็ค ".." ซ้ำอีกชั้น กันการไต่ออกไปนอกโฟลเดอร์ที่ตั้งใจ
@@ -49,9 +57,7 @@ class LocalStorageAdapter implements StorageAdapter {
     const body = await readFile(this.resolve(key));
     // เดาชนิดไฟล์จากนามสกุล ซึ่ง safeStorageKey จำกัดไว้แล้วว่ามีได้แค่ไม่กี่แบบ
     const extension = path.extname(key).toLowerCase();
-    const contentType = extension === ".png" ? "image/png"
-      : extension === ".jpg" || extension === ".jpeg" ? "image/jpeg"
-      : extension === ".webp" ? "image/webp" : "application/pdf";
+    const contentType = contentTypeByExtension[extension] ?? "application/pdf";
     return { body, contentType, size: body.byteLength };
   }
 

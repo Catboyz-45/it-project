@@ -3,6 +3,7 @@ import { LegalAcceptanceForm } from "@/components/legal/LegalAcceptanceForm";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { getPageAuth } from "@/lib/server/auth";
 import { hasAcceptedRequiredPolicies } from "@/lib/server/legal-policies";
+import { roleHomePath } from "@/lib/navigation-routes";
 
 // ด่านให้กดยอมรับนโยบาย สำหรับบัญชีที่แอดมินสร้างให้ หรือบัญชีเก่าที่มีก่อนระบบนโยบาย
 export default async function AcceptPoliciesPage() {
@@ -11,7 +12,7 @@ export default async function AcceptPoliciesPage() {
   if (!auth) redirect("/login");
   // เปลี่ยนรหัสชั่วคราวมาก่อน ไม่งั้นจะติดสองด่านพร้อมกันแล้ววนไปมา
   if (auth.mustChangePassword) redirect("/change-password");
-  const roleHome = auth.role === "SUPER_ADMIN" ? "/super-admin" : auth.role === "TENANT" ? "/tenant" : "/admin";
+  const roleHome = roleHomePath(auth.role);
   // ยอมรับครบแล้วก็ไม่ต้องถามซ้ำ ส่งกลับหน้าแรกตามบทบาทเลย
   if (await hasAcceptedRequiredPolicies(auth.userId)) redirect(roleHome);
   return <main className="legal-gate-shell">

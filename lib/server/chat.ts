@@ -3,6 +3,18 @@ import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/
 import { ApiError } from "@/lib/server/api";
 import type { ChatConversationType, ChatSenderRole } from "@/generated/prisma/client";
 
+// บัญชีคนส่งถูกลบไปแล้วก็ยังแสดงบทบาทได้ ข้อความจะได้ไม่กลายเป็นของคนไม่มีชื่อ
+const senderRoleLabels: Record<string, string> = {
+  TENANT: "ผู้เช่า",
+  SUPER_ADMIN: "Super Admin",
+};
+
+// แต่ละบทบาทมีช่องเก็บเวลาอ่านล่าสุดของตัวเอง จะได้นับข้อความใหม่แยกกันได้
+function readFieldFor(role: string) {
+  if (role === "TENANT") return "lastTenantReadAt" as const;
+  return role === "SUPER_ADMIN" ? "lastSuperAdminReadAt" as const : "lastAdminReadAt" as const;
+}
+
 export type ChatMessageDto = {
   id: string;
   tenantId: string;
@@ -46,10 +58,7 @@ export function toChatMessageDto(message: SelectedMessage): ChatMessageDto {
     body: message.body,
     senderRole: message.senderRole,
     // บัญชีคนส่งถูกลบไปแล้วก็ยังแสดงบทบาทได้ ข้อความจะได้ไม่กลายเป็นของคนไม่มีชื่อ
-    senderName: message.senderUser?.displayName ?? (
-      message.senderRole === "TENANT" ? "ผู้เช่า"
-        : message.senderRole === "SUPER_ADMIN" ? "Super Admin" : "ผู้ดูแล"
-    ),
+    senderName: message.senderUser?.displayName ?? senderRoleLabels[message.senderRole] ?? "ผู้ดูแล",
     createdAt: message.createdAt.toISOString(),
     attachment: message.attachmentName && message.attachmentMime && message.attachmentSize !== null
       ? {
@@ -223,8 +232,7 @@ export async function listConversations(
 ) {
   if (actor.role === "TENANT" && type !== "TENANT_PROPERTY") throw new ApiError(403, "คุณไม่มีสิทธิ์ดำเนินการ");
   if (actor.role === "SUPER_ADMIN" && type !== "PROPERTY_SUPPORT") throw new ApiError(403, "คุณไม่มีสิทธิ์ดำเนินการ");
-  const readField = actor.role === "TENANT" ? "lastTenantReadAt"
-    : actor.role === "SUPER_ADMIN" ? "lastSuperAdminReadAt" : "lastAdminReadAt";
+  const readField = readFieldFor(actor.role);
   const rows = await getDatabase().chatConversation.findMany({
     where: {
       propertyId: actor.propertyId,
@@ -405,8 +413,7 @@ export async function markConversationRead(conversationId: string, actor: Conver
   if (!conversation) throw new ApiError(404, "ไม่พบบทสนทนา");
   assertConversationAccess(conversation, actor);
   // แต่ละฝ่ายมีเวลาที่อ่านล่าสุดของตัวเอง จำนวนที่ยังไม่ได้อ่านจึงคิดแยกกันได้
-  const field = actor.role === "TENANT" ? "lastTenantReadAt"
-    : actor.role === "SUPER_ADMIN" ? "lastSuperAdminReadAt" : "lastAdminReadAt";
+  const field = readFieldFor(actor.role);
   await getDatabase().chatConversation.update({
     where: { id: conversation.id },
     data: { [field]: new Date() },

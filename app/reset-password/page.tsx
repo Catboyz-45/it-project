@@ -2,7 +2,7 @@
 import { SetPasswordForm } from "@/components/auth/PasswordFlowForm";
 
 // หน้าตั้งรหัสใหม่จากลิงก์ในอีเมล ตัวโทเคนติดมากับ query string
-export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
+export default async function ResetPasswordPage({ searchParams }: Readonly<{ searchParams: Promise<{ token?: string }> }>) {
   // Next 16 ส่ง searchParams มาเป็น Promise ต้อง await ก่อนใช้
   const { token } = await searchParams;
   // ไม่มีโทเคนก็ขึ้นข้อความสั้น ๆ พอ ส่วนการตรวจว่าโทเคนใช้ได้จริงไหมทำตอนกดส่งที่ฝั่งเซิร์ฟเวอร์

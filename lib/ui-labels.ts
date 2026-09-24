@@ -108,6 +108,34 @@ export function formatAuditAction(action: string) {
   return "เหตุการณ์ระบบ";
 }
 
+const auditResultLabels: Record<string, string> = {
+  SUCCESS: "สำเร็จ",
+  FAILURE: "ไม่สำเร็จ",
+};
+
 export function formatAuditResult(result: string) {
-  return result === "SUCCESS" ? "สำเร็จ" : result === "FAILURE" ? "ไม่สำเร็จ" : "ไม่ทราบผล";
+  return auditResultLabels[result] ?? "ไม่ทราบผล";
+}
+
+// ชนิดรถที่ผู้เช่าแจ้งไว้ ไม่มีรถหรือชนิดที่ไม่รู้จักถือว่าไม่มีรถ
+const vehicleTypeLabels: Record<string, string> = {
+  MOTORCYCLE: "รถจักรยานยนต์",
+  CAR: "รถยนต์",
+  BICYCLE: "รถจักรยาน",
+  OTHER: "อื่น ๆ",
+};
+
+export function formatVehicleType(type: string | null | undefined) {
+  if (!type) return "ไม่มีรถ";
+  return vehicleTypeLabels[type] ?? "ไม่มีรถ";
+}
+
+// แปลงประเภทห้องเป็นคำไทย ค่าที่ไม่รู้จักก็แสดงตามเดิม ดีกว่าโชว์ว่างเปล่า
+const roomTypeLabels: Record<string, string> = {
+  air: "ห้องแอร์",
+  fan: "ห้องพัดลม",
+};
+
+export function roomTypeLabel(roomType: string) {
+  return roomTypeLabels[roomType] ?? roomType;
 }

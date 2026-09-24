@@ -1,5 +1,6 @@
 import type { OwnerWorkspaceReadModel } from "@/types/dashboard";
 import { getDatabase } from "@/lib/server/db";
+import { formatVehicleType } from "@/lib/ui-labels";
 
 // ก้อนนี้เป็นภาพรวมของพื้นที่ทำงาน ไม่ใช่ endpoint สำหรับดูประวัติหรือส่งออกข้อมูล
 // ทุกรายการจึงต้องมีเพดาน ข้อมูลครบ ๆ ให้ไปเอาจาก API ที่แบ่งหน้าของแต่ละเรื่องแทน
@@ -9,6 +10,20 @@ const DASHBOARD_OCCUPANCY_LIMIT = 2_400;
 const DASHBOARD_INVOICE_LIMIT = 1_200;
 const DASHBOARD_METER_READING_LIMIT = DASHBOARD_ROOM_LIMIT * 2;
 const DASHBOARD_CONFIG_LIMIT = 200;
+
+// ค่าใน enum ของฐานข้อมูลเป็นตัวพิมพ์ใหญ่ ส่วนหน้าจอใช้คำของตัวเอง
+// เก็บเป็นตารางแทนการไล่ ternary เพราะเป็นการจับคู่ค่า ไม่ใช่ตรรกะ
+const roomStatusLabels: Partial<Record<string, "occupied" | "maintenance" | "available">> = {
+  OCCUPIED: "occupied",
+  MAINTENANCE: "maintenance",
+};
+
+const invoiceStatusLabels: Partial<Record<string, "draft" | "paid" | "overdue" | "cancelled" | "pending">> = {
+  DRAFT: "draft",
+  PAID: "paid",
+  OVERDUE: "overdue",
+  CANCELLED: "cancelled",
+};
 
 export async function getDashboardReadModel(propertyId: string): Promise<OwnerWorkspaceReadModel> {
   const now = new Date();
@@ -92,7 +107,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
     rent: Number(room.monthlyRent),
     roomType: room.roomType,
     furniture: room.furnitureItems.map((item) => item.furnitureOption.name),
-    status: room.status === "OCCUPIED" ? "occupied" as const : room.status === "MAINTENANCE" ? "maintenance" as const : "available" as const,
+    status: roomStatusLabels[room.status] ?? "available",
     tenantId: primaryByRoom.get(room.id)?.tenantProfileId,
     waterMeter: Number(latestReading(room.id, "WATER")?.currentReading ?? 0),
     electricMeter: Number(latestReading(room.id, "ELECTRICITY")?.currentReading ?? 0),
@@ -100,11 +115,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
   const uiTenants = occupancies.map((item) => {
     const lease = item.leases[0]?.lease;
     const vehicle = item.tenantProfile.vehicle;
-    const vehicleType = vehicle?.type === "MOTORCYCLE" ? "รถจักรยานยนต์"
-      : vehicle?.type === "CAR" ? "รถยนต์"
-        : vehicle?.type === "BICYCLE" ? "รถจักรยาน"
-          : vehicle?.type === "OTHER" ? "อื่น ๆ"
-            : "ไม่มีรถ";
+    const vehicleType = formatVehicleType(vehicle?.type);
     return {
       id: item.tenantProfileId,
       role: item.role,
@@ -153,7 +164,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
       water: itemAmount(invoice, "WATER"),
       electricity: itemAmount(invoice, "ELECTRICITY"),
       service: invoice.items.filter((item) => !["RENT", "WATER", "ELECTRICITY"].includes(item.type)).reduce((sum, item) => sum + Number(item.amount), 0),
-      status: invoice.status === "DRAFT" ? "draft" : invoice.status === "PAID" ? "paid" : invoice.status === "OVERDUE" ? "overdue" : invoice.status === "CANCELLED" ? "cancelled" : "pending",
+      status: invoiceStatusLabels[invoice.status] ?? "pending",
     })),
     repairs: [],
     complaints: [],

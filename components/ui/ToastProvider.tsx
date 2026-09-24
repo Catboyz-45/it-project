@@ -15,7 +15,7 @@ type ToastItem = ToastInput & { id: string };
 const ToastContext = createContext<((input: ToastInput) => void) | null>(null);
 
 // ครอบทั้งแอปไว้ที่ layout เพื่อให้ทุกหน้าเรียกแจ้งเตือนได้โดยไม่ต้องมี state ของตัวเอง
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const notify = useCallback((input: ToastInput) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const money = z.coerce.number().finite().min(0).max(10_000_000);
+const money = z.coerce.number().min(0).max(10_000_000);
 
 // แก้ข้อมูลหอ ทุกช่องเป็น optional เพราะแก้ทีละช่องได้ แต่ต้องมีอย่างน้อยหนึ่งช่อง
 export const updatePropertySchema = z.object({
@@ -14,7 +14,7 @@ export const updatePropertySettingsSchema = z.object({
   lessorName: z.string().trim().max(160).nullable().optional(),
   address: z.string().trim().min(1).max(1000),
   contactPhone: z.string().trim().min(1).max(30),
-  contactEmail: z.string().trim().toLowerCase().email().max(254).nullable().optional(),
+  contactEmail: z.string().trim().toLowerCase().pipe(z.email().max(254)).nullable().optional(),
   // เบอร์โทร 10 หลักหรือเลขประจำตัว 13 หลัก เอาเฉพาะตัวเลข เพราะต้องเอาไปสร้าง QR พร้อมเพย์
   promptPayId: z.string().trim().regex(/^[0-9]{10,15}$/).nullable().optional(),
   waterUnitRate: money,

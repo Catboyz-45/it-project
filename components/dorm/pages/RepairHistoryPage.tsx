@@ -20,7 +20,7 @@ type RepairHistoryPageProps = {
 };
 
 // หน้าประวัติงานซ่อมที่ปิดเรื่องแล้ว แยกจากหน้าเรื่องร้องเรียนที่ยังทำอยู่
-export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets: initialTickets }: RepairHistoryPageProps) {
+export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets: initialTickets }: Readonly<RepairHistoryPageProps>) {
   const [tickets, setTickets] = useState(initialTickets);
   const [pageInfo, setPageInfo] = useState<ServerPageInfo>(initialPageInfo ?? { page: 1, pageSize: 20, hasNextPage: false });
   // เซิร์ฟเวอร์ส่งหน้าแรกมาแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
@@ -75,7 +75,12 @@ export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets:
   // กรองซ้ำอีกชั้น เผื่อข้อมูลชุดแรกจากเซิร์ฟเวอร์มีงานที่ยังไม่ปิดปนมา
   const completedTickets = useMemo(() => tickets.filter((ticket) => ticket.status === "done"), [tickets]);
   // ตัวแรกของเลขห้องคือชั้น เช่นห้อง 301 อยู่ชั้น 3 Set ตัดชั้นที่ซ้ำกันออก
-  const floors = useMemo(() => Array.from(new Set(completedTickets.map((ticket) => ticket.roomId.charAt(0)))).sort(), [completedTickets]);
+  // numeric: true เรียงชั้น 10 ไว้หลังชั้น 9 ไม่ใช่หลังชั้น 1 แบบเรียงตามตัวอักษร
+  const floors = useMemo(
+    () => Array.from(new Set(completedTickets.map((ticket) => ticket.roomId.charAt(0))))
+      .sort((left, right) => left.localeCompare(right, "th", { numeric: true })),
+    [completedTickets],
+  );
   const [selectedFloor, setSelectedFloor] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState("all");
   const [query, setQuery] = useState("");
@@ -178,15 +183,18 @@ export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets:
                 <small>{ticket.completedAt ? `ปิดงาน ${ticket.completedAt}` : `อัปเดต ${ticket.updatedAt}`}</small>
               </div>
             ))
-          // ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีประวัติเลย ต้องบอกคนละแบบ
-          ) : query.trim() || selectedFloor !== "all" || selectedRoom !== "all" ? (
-            <SearchEmptyState description="ลองเปลี่ยนคำค้นหา ชั้น หรือห้องที่ต้องการดู" title="ไม่พบประวัติการซ่อม" />
           ) : (
-            <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong><p>งานซ่อมที่ปิดเรื่องแล้วจะมาเก็บไว้ที่นี่</p></div>
+            <RepairHistoryEmptyState hasFilter={Boolean(query.trim()) || selectedFloor !== "all" || selectedRoom !== "all"} />
           )}
         </div>
         <ServerTablePagination currentItemCount={tickets.length} disabled={isLoading} onPageChange={(nextPage) => void loadTickets(nextPage)} pageInfo={pageInfo} />
       </article>
     </section>
   );
+}
+
+// ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีประวัติเลย ต้องบอกคนละแบบ
+function RepairHistoryEmptyState({ hasFilter }: Readonly<{ hasFilter: boolean }>) {
+  if (hasFilter) return <SearchEmptyState description="ลองเปลี่ยนคำค้นหา ชั้น หรือห้องที่ต้องการดู" title="ไม่พบประวัติการซ่อม" />;
+  return <div className="empty-state"><strong>ยังไม่มีประวัติการซ่อม</strong><p>งานซ่อมที่ปิดเรื่องแล้วจะมาเก็บไว้ที่นี่</p></div>;
 }

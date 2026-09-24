@@ -4,7 +4,7 @@ import { PlatformBrand } from "@/components/ui/PlatformBrand";
 
 // โครงหน้าของเอกสารกฎหมายทุกฉบับ ข้อกำหนด ความเป็นส่วนตัว และคุกกี้ใช้ตัวนี้ร่วมกัน
 // เนื้อหาส่งเข้ามาทาง children ส่วนหัวและท้ายหน้าเหมือนกันหมด
-export function LegalDocumentPage({ children, title, version }: { children: ReactNode; title: string; version: string }) {
+export function LegalDocumentPage({ children, title, version }: Readonly<{ children: ReactNode; title: string; version: string }>) {
   return <main className="legal-document-shell">
     <article className="legal-document-card">
       <header className="legal-document-header">

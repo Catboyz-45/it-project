@@ -10,6 +10,7 @@ import { propertyRepository } from "@/lib/repositories/property-repository";
 import { tenantRepository } from "@/lib/repositories/tenant-repository";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
+import { formatVehicleType } from "@/lib/ui-labels";
 
 export async function getPropertyWorkspace(propertyId: string) {
   const property = await propertyRepository.findWorkspace(propertyId);
@@ -108,11 +109,7 @@ export async function listPropertyTenants(
     data: result.data.map((item) => {
       const lease = item.leases[0]?.lease;
       const vehicle = item.tenantProfile.vehicle;
-      const vehicleType = vehicle?.type === "MOTORCYCLE" ? "รถจักรยานยนต์"
-        : vehicle?.type === "CAR" ? "รถยนต์"
-          : vehicle?.type === "BICYCLE" ? "รถจักรยาน"
-            : vehicle?.type === "OTHER" ? "อื่น ๆ"
-              : "ไม่มีรถ";
+      const vehicleType = formatVehicleType(vehicle?.type);
       return {
         id: item.tenantProfile.id,
         role: item.role,

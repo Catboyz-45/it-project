@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกในฟอร์มไว้ในสถานะฝั่งเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -26,14 +26,14 @@ export function TenantEditModal({
   tenant,
   onClose,
   onSave,
-}: {
+}: Readonly<{
   mode?: "add" | "edit";
   room: Room;
   rooms?: Room[];
   tenant?: Tenant;
   onClose: () => void;
   onSave: (payload: TenantEditPayload) => void;
-}) {
+}>) {
   // โหมดแก้ไขไม่ต้องส่งรายการห้องมา เพราะแก้อยู่ห้องเดียว
   const allRooms = useMemo(() => rooms ?? [room], [room, rooms]);
   // ย้ายคนเข้าได้เฉพาะห้องว่าง กันเผลอใส่ผู้เช่าซ้อนห้องที่มีคนอยู่แล้ว
@@ -89,7 +89,7 @@ export function TenantEditModal({
     if (nextRoom && tenant) setDeposit(String(tenant.deposit));
   };
 
-  const submitForm = (event: FormEvent<HTMLFormElement>) => {
+  const submitForm = (event: SyntheticEvent<HTMLFormElement>) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     if (mode === "add" && availableRooms.length === 0) return;
@@ -132,34 +132,15 @@ export function TenantEditModal({
 
         <form className="modal-form" onSubmit={submitForm}>
           <div className="modal-grid">
-            {mode === "add" ? (
-              availableRooms.length > 0 ? (
-                <>
-                  <div className="modal-field">
-                    <DropdownField
-                      label="ชั้น"
-                      value={String(selectedFloor)}
-                      onChange={changeFloor}
-                      options={floors.map((floor) => ({ value: String(floor), label: `ชั้น ${floor}` }))}
-                    />
-                  </div>
-                  <div className="modal-field">
-                    <DropdownField
-                      label="ห้องว่าง"
-                      value={selectedTenantRoom.id}
-                      onChange={changeRoom}
-                      options={roomsOnSelectedFloor.map((item) => ({ value: item.id, label: `ห้อง ${item.id}` }))}
-                    />
-                  </div>
-                </>
-              // บอกทางแก้ไปเลยว่าต้องไปปรับสถานะห้องก่อน ไม่ใช่แค่บอกว่าไม่มีห้องว่าง
-              ) : (
-                <div className="modal-summary full-width">
-                  <span>ไม่มีห้องว่างสำหรับเพิ่มผู้เช่าใหม่</span>
-                  <strong>กรุณาปรับสถานะห้องเป็นว่างก่อน</strong>
-                </div>
-              )
-            ) : null}
+            {mode === "add" ? <RoomPickerFields
+              availableRooms={availableRooms}
+              changeFloor={changeFloor}
+              changeRoom={changeRoom}
+              floors={floors}
+              roomsOnSelectedFloor={roomsOnSelectedFloor}
+              selectedFloor={selectedFloor}
+              selectedRoomId={selectedTenantRoom.id}
+            /> : null}
 
             <label>
               <span>ชื่อผู้เช่า</span>
@@ -197,4 +178,31 @@ export function TenantEditModal({
         </form>
     </Dialog>{confirmationDialog}</>
   );
+}
+
+// ช่องเลือกชั้นและห้อง มีเฉพาะตอนเพิ่มผู้เช่าใหม่ แก้ไขผู้เช่าเดิมไม่ต้องย้ายห้องที่นี่
+// ไม่มีห้องว่างก็บอกทางแก้ไปเลยว่าต้องไปปรับสถานะห้องก่อน ไม่ใช่แค่บอกว่าไม่มี
+function RoomPickerFields({ availableRooms, changeFloor, changeRoom, floors, roomsOnSelectedFloor, selectedFloor, selectedRoomId }: Readonly<{
+  availableRooms: Room[];
+  changeFloor: (value: string) => void;
+  changeRoom: (value: string) => void;
+  floors: number[];
+  roomsOnSelectedFloor: Room[];
+  selectedFloor: number;
+  selectedRoomId: string;
+}>) {
+  if (availableRooms.length === 0) {
+    return <div className="modal-summary full-width">
+      <span>ไม่มีห้องว่างสำหรับเพิ่มผู้เช่าใหม่</span>
+      <strong>กรุณาปรับสถานะห้องเป็นว่างก่อน</strong>
+    </div>;
+  }
+  return <>
+    <div className="modal-field">
+      <DropdownField label="ชั้น" onChange={changeFloor} options={floors.map((floor) => ({ value: String(floor), label: `ชั้น ${floor}` }))} value={String(selectedFloor)} />
+    </div>
+    <div className="modal-field">
+      <DropdownField label="ห้องว่าง" onChange={changeRoom} options={roomsOnSelectedFloor.map((item) => ({ value: item.id, label: `ห้อง ${item.id}` }))} value={selectedRoomId} />
+    </div>
+  </>;
 }

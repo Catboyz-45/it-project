@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
+import type { PageKey } from "@/types/navigation";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
@@ -12,13 +13,27 @@ import { listAdminTickets, listParcels } from "@/lib/server/property-operations"
 import { listPaymentSubmissions } from "@/lib/server/payments";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
+// ค่าใน enum ของฐานข้อมูลเป็นตัวพิมพ์ใหญ่ ส่วนหน้าจอใช้คำของตัวเอง
+// เก็บเป็นตารางแทนบันได ternary เพราะเป็นการจับคู่ค่า ไม่ใช่ตรรกะ
+const parcelStatusLabels: Record<string, "waiting" | "received" | "cancelled"> = {
+  WAITING: "waiting",
+  RECEIVED: "received",
+};
+
+const ticketStatusLabels: Record<string, "แก้ไขแล้ว" | "ยกเลิกแล้ว" | "กำลังตรวจสอบ" | "รับเรื่องแล้ว"> = {
+  RESOLVED: "แก้ไขแล้ว",
+  CANCELLED: "ยกเลิกแล้ว",
+  ACKNOWLEDGED: "กำลังตรวจสอบ",
+  IN_PROGRESS: "กำลังตรวจสอบ",
+};
+
 export default async function PropertyWorkspaceSectionPage({
   params,
   searchParams,
-}: {
+}: Readonly<{
   params: Promise<{ propertyId: string; section: string[] }>;
   searchParams: Promise<{ tab?: string | string[] }>;
-}) {
+}>) {
   const { propertyId, section } = await params;
   const { tab } = await searchParams;
   const activePage = ownerPageFromSegments(section);
@@ -33,7 +48,32 @@ export default async function PropertyWorkspaceSectionPage({
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้ขอมาเพื่อเอา userId เท่านั้น
   const auth = ["repairHistory", "complaints"].includes(activePage) ? await requirePageAuth() : null;
   // ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
-  const [initialParcels, initialLeases, initialRepairHistory, initialTenants, initialPendingRequests, initialPayments, initialComplaints, initialInvitations, initialSubscriptionData] = await Promise.all([
+  const initial = await loadSectionData({ activePage, auth, invoiceView, propertyId, tab });
+  return <OwnerSectionPanel
+    initialComplaints={initial.complaints}
+    initialInvitations={initial.invitations}
+    // Prisma คืน Decimal กับ Date ที่ข้ามไปฝั่งเบราว์เซอร์ตรง ๆ ไม่ได้ แปลงเป็น JSON ธรรมดาก่อน
+    initialLeases={initial.leases ? JSON.parse(JSON.stringify(initial.leases)) : null}
+    initialParcels={initial.parcels}
+    initialPayments={initial.payments}
+    initialPendingRequests={initial.pendingRequests}
+    initialRepairHistory={initial.repairHistory}
+    initialSubscriptionData={initial.subscription}
+    initialTenants={initial.tenants ? JSON.parse(JSON.stringify(initial.tenants)) : null}
+    invoiceView={invoiceView}
+    page={activePage}
+  />;
+}
+
+// ดึงพร้อมกัน แต่ละหน้าใช้แค่ของตัวเอง หน้าอื่นได้ null ไปแล้วโหลดเองเหมือนเดิม
+async function loadSectionData({ activePage, auth, invoiceView, propertyId, tab }: {
+  activePage: PageKey;
+  auth: { userId: string } | null;
+  invoiceView: "invoices" | "payments";
+  propertyId: string;
+  tab?: string | string[];
+}) {
+  const [parcels, leases, repairHistory, tenants, pendingRequests, payments, complaints, invitations, subscription] = await Promise.all([
     activePage === "parcels" ? loadParcels(propertyId) : null,
     // สัญญาเปิดมาที่หน้าแรกโดยไม่มีคำค้น ตรงกับที่แผงยิงเองตอน mount
     activePage === "contracts" ? listLeases(propertyId, { page: 1, pageSize: 20 }) : null,
@@ -47,19 +87,7 @@ export default async function PropertyWorkspaceSectionPage({
     activePage === "invitations" ? loadInvitations(propertyId) : null,
     activePage === "subscription" ? loadSubscription(propertyId) : null,
   ]);
-  return <OwnerSectionPanel
-    initialSubscriptionData={initialSubscriptionData}
-    initialInvitations={initialInvitations}
-    initialComplaints={initialComplaints}
-    initialTenants={initialTenants ? JSON.parse(JSON.stringify(initialTenants)) : null}
-    initialPendingRequests={initialPendingRequests}
-    initialPayments={initialPayments}
-    initialRepairHistory={initialRepairHistory}
-    initialLeases={initialLeases ? JSON.parse(JSON.stringify(initialLeases)) : null}
-    initialParcels={initialParcels}
-    invoiceView={invoiceView}
-    page={activePage}
-  />;
+  return { complaints, invitations, leases, parcels, payments, pendingRequests, repairHistory, subscription, tenants };
 }
 
 // แปลงให้เป็นรูปเดียวกับที่หน้าจอใช้ ซึ่งปกติได้มาจาก API หลัง hydrate เสร็จ
@@ -75,7 +103,7 @@ async function loadParcels(propertyId: string) {
       tenantName: item.recipientTenant?.user.displayName ?? "พัสดุส่วนกลางของห้อง",
       registeredAt: item.registeredAt.toLocaleString("th-TH"),
       receivedAt: item.receivedAt ? item.receivedAt.toLocaleString("th-TH") : undefined,
-      status: item.status === "WAITING" ? "waiting" as const : item.status === "RECEIVED" ? "received" as const : "cancelled" as const,
+      status: parcelStatusLabels[item.status] ?? "cancelled",
       updatedAt: item.updatedAt.toISOString(),
     })),
     summary: result.summary,
@@ -111,10 +139,7 @@ async function loadComplaints(propertyId: string, userId: string) {
     owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
     date: new Date(item.createdAt).toLocaleString("th-TH"),
     hasUnreadReply: item.hasUnreadReply,
-    status: item.status === "RESOLVED" ? "แก้ไขแล้ว" as const
-      : item.status === "CANCELLED" ? "ยกเลิกแล้ว" as const
-      : item.status === "ACKNOWLEDGED" || item.status === "IN_PROGRESS" ? "กำลังตรวจสอบ" as const
-      : "รับเรื่องแล้ว" as const,
+    status: ticketStatusLabels[item.status] ?? "รับเรื่องแล้ว",
   }));
 }
 

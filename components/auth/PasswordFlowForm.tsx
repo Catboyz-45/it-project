@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
-import { FormEvent, useState } from "react";
+import { SyntheticEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // ขอลิงก์ตั้งรหัสผ่านใหม่ ตอบข้อความเดียวกันเสมอไม่ว่าอีเมลนั้นมีอยู่จริงหรือไม่
@@ -11,7 +11,7 @@ export function ForgotPasswordForm() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault(); setLoading(true); setError("");
     try {
@@ -26,7 +26,7 @@ export function ForgotPasswordForm() {
   };
   return <form className="login-form" onSubmit={submit}>
     <label>อีเมล <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" required type="email" value={email} /></label>
-    {message ? <p className="form-alert" role="status">{message}</p> : null}
+    {message ? <output className="form-alert block">{message}</output> : null}
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <button className="primary-button" disabled={loading} type="submit">{loading ? "กำลังส่ง..." : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>
   </form>;
@@ -34,13 +34,13 @@ export function ForgotPasswordForm() {
 
 // ตั้งรหัสผ่านใหม่ ใช้สองกรณี มาจากลิงก์ในอีเมล หรือถูกบังคับให้เปลี่ยนตอนเข้าสู่ระบบ
 // forced ไม่ต้องมี token เพราะยืนยันตัวตนจากคุกกี้ session ที่มีอยู่แล้ว
-export function SetPasswordForm({ token, forced = false }: { token?: string; forced?: boolean }) {
+export function SetPasswordForm({ token, forced = false }: Readonly<{ token?: string; forced?: boolean }>) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent) => {
     event.preventDefault();
     // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ค token กับความแข็งแรงของรหัสด้วย
     if (password !== confirm) { setError("รหัสผ่านทั้งสองช่องไม่ตรงกัน"); return; }

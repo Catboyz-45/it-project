@@ -15,9 +15,9 @@ const pageSize = 20;
 
 export default async function TenantParcelsPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ view?: string }>;
-}) {
+}>) {
   const auth = await requirePageAuth();
   const selectedId = (await cookies()).get(tenantOccupancyCookieName)?.value;
   const occupancy = auth.tenantProfileId
@@ -38,20 +38,22 @@ export default async function TenantParcelsPage({
   return <div className="grid gap-5">
     <RecordViewTabs currentLabel="พัสดุรอรับ" historyLabel="ประวัติการรับ" id="tenant-parcels" path="/tenant/parcels" view={view} />
     <div aria-labelledby={`tenant-parcels-tab-${view}`} id="tenant-parcels-panel" role="tabpanel" tabIndex={0}>
-      {view === "history" ? (
-        <div className="grid gap-5">
-          <ParcelHistoryTable items={items} total={result.pageInfo.total ?? null} />
-        </div>
-      ) : items.length ? (
-        <div className="grid gap-5">
-          {items.map((item) => <ParcelCard key={item.id} {...item} />)}
-          <LoadMoreParcels
-            initialCount={items.length}
-            initialHasNextPage={result.pageInfo.hasNextPage}
-            pageSize={pageSize}
-          />
-        </div>
-      ) : <Empty description="พัสดุที่หอรับไว้ให้จะมาแสดงที่นี่" icon={<Package />} text="ไม่มีพัสดุรอรับ" />}
+      {view === "history"
+        ? <div className="grid gap-5"><ParcelHistoryTable items={items} total={result.pageInfo.total ?? null} /></div>
+        : <ParcelWaitingList hasNextPage={result.pageInfo.hasNextPage} items={items} pageSize={pageSize} />}
     </div>
+  </div>;
+}
+
+// รายการพัสดุที่ยังรอรับ ไม่มีเลยก็บอกว่ายังไม่มี ไม่ใช่โชว์กล่องเปล่า
+function ParcelWaitingList({ hasNextPage, items, pageSize }: Readonly<{
+  hasNextPage: boolean;
+  items: Array<Parameters<typeof ParcelCard>[0] & { id: string }>;
+  pageSize: number;
+}>) {
+  if (items.length === 0) return <Empty description="พัสดุที่หอรับไว้ให้จะมาแสดงที่นี่" icon={<Package />} text="ไม่มีพัสดุรอรับ" />;
+  return <div className="grid gap-5">
+    {items.map((item) => <ParcelCard key={item.id} {...item} />)}
+    <LoadMoreParcels initialCount={items.length} initialHasNextPage={hasNextPage} pageSize={pageSize} />
   </div>;
 }

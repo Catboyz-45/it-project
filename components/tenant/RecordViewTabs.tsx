@@ -11,13 +11,13 @@ export function RecordViewTabs({
   id,
   path,
   view,
-}: {
+}: Readonly<{
   currentLabel: string;
   historyLabel: string;
   id: string;
   path: string;
   view: TenantRecordView;
-}) {
+}>) {
   const router = useRouter();
   // ปัจจุบันเป็นค่าเริ่มต้นอยู่แล้ว จึงไม่ต้องใส่ไว้ใน URL ให้รก
   const go = (next: TenantRecordView) => router.push(next === "current" ? path : `${path}?view=${next}`);

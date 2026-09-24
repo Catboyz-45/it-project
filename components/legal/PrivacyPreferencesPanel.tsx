@@ -68,7 +68,7 @@ export function PrivacyPreferencesPanel() {
         type="checkbox"
       />
     </label>
-    {/* role="status" ทำให้โปรแกรมอ่านหน้าจอบอกผลโดยไม่ตัดจังหวะที่ผู้ใช้กำลังทำอยู่ */}
-    {message ? <p className="account-settings-message" role="status">{message}</p> : null}
+    {/* output ประกาศผลแบบ polite ให้เอง โปรแกรมอ่านหน้าจอจึงบอกผลโดยไม่ตัดจังหวะที่ผู้ใช้กำลังทำอยู่ */}
+    {message ? <output className="account-settings-message block">{message}</output> : null}
   </section>;
 }

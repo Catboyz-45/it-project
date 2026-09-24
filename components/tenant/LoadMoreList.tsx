@@ -44,15 +44,13 @@ function useLoadMore<T>(url: string, pageSize: number, initialHasNextPage: boole
 
 function LoadMoreFooter({
   error, hasNextPage, initialCount, isLoading, loadMore, shownCount,
-}: {
+}: Readonly<{
   error: string; hasNextPage: boolean; initialCount: number; isLoading: boolean;
   loadMore: () => void; shownCount: number;
-}) {
+}>) {
   return <>
     {/* บอกจำนวนรวมให้โปรแกรมอ่านหน้าจอ นับรวมของที่เซิร์ฟเวอร์ส่งมาด้วย */}
-    <LiveAnnouncement message={isLoading
-      ? "กำลังโหลดรายการเพิ่มเติม"
-      : `กำลังแสดง ${(initialCount + shownCount).toLocaleString("th-TH")} รายการ${hasNextPage ? " และยังมีรายการเพิ่มเติม" : ""}`} />
+    <LiveAnnouncement message={listAnnouncement({ hasNextPage, isLoading, total: initialCount + shownCount })} />
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     {hasNextPage ? (
       <button className="secondary-button mx-auto" disabled={isLoading} onClick={loadMore} type="button">
@@ -62,9 +60,9 @@ function LoadMoreFooter({
   </>;
 }
 
-export function LoadMoreAnnouncements({ initialCount, initialHasNextPage, pageSize = 20 }: {
+export function LoadMoreAnnouncements({ initialCount, initialHasNextPage, pageSize = 20 }: Readonly<{
   initialCount: number; initialHasNextPage: boolean; pageSize?: number;
-}) {
+}>) {
   const state = useLoadMore<TenantAnnouncement>("/api/v1/tenant/announcements", pageSize, initialHasNextPage);
   return <>
     {state.items.map((item) => <AnnouncementCard key={item.id} {...item} />)}
@@ -72,12 +70,23 @@ export function LoadMoreAnnouncements({ initialCount, initialHasNextPage, pageSi
   </>;
 }
 
-export function LoadMoreParcels({ initialCount, initialHasNextPage, pageSize = 20 }: {
+export function LoadMoreParcels({ initialCount, initialHasNextPage, pageSize = 20 }: Readonly<{
   initialCount: number; initialHasNextPage: boolean; pageSize?: number;
-}) {
+}>) {
   const state = useLoadMore<TenantParcel>("/api/v1/tenant/parcels?view=current", pageSize, initialHasNextPage);
   return <>
     {state.items.map((item) => <ParcelCard key={item.id} {...item} />)}
     <LoadMoreFooter {...state} initialCount={initialCount} shownCount={state.items.length} />
   </>;
+}
+
+// ข้อความที่อ่านให้ผู้ใช้โปรแกรมอ่านหน้าจอฟัง บอกจำนวนที่แสดงอยู่และว่ายังมีต่ออีกไหม
+export function listAnnouncement({ hasNextPage, isLoading, total }: {
+  hasNextPage: boolean;
+  isLoading: boolean;
+  total: number;
+}) {
+  if (isLoading) return "กำลังโหลดรายการเพิ่มเติม";
+  const more = hasNextPage ? " และยังมีรายการเพิ่มเติม" : "";
+  return `กำลังแสดง ${total.toLocaleString("th-TH")} รายการ${more}`;
 }

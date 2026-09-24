@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-// กฎของช่องจำนวนเงิน finite กัน Infinity กับ NaN ส่วนเพดานกันกรอกเกินจริงจนผิดสังเกต
-const money = z.coerce.number().finite().min(0).max(10_000_000);
+// กฎของช่องจำนวนเงิน Zod 4 ปัดตก Infinity กับ NaN ให้เองอยู่แล้ว จึงไม่ต้องเรียก finite()
+// ที่เลิกใช้แล้ว ส่วนเพดานกันกรอกเกินจริงจนผิดสังเกต
+const money = z.coerce.number().min(0).max(10_000_000);
 
 export const occupancyTransitionSchema = z.object({
   type: z.enum(["MOVE_OUT", "MOVE_ROOM"]),

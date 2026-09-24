@@ -1,7 +1,7 @@
 "use client";
 // โหลดรายการและส่งผลตรวจสอบจากเบราว์เซอร์
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, Search, X } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createApiError, formatClientError } from "@/lib/client/api-error";
@@ -23,10 +23,10 @@ export type Payment = {
 export function SubscriptionPaymentReview({
   initialHasNextPage = false,
   initialPayments = null,
-}: {
+}: Readonly<{
   initialHasNextPage?: boolean;
   initialPayments?: Payment[] | null;
-} = {}) {
+}> = {}) {
   const [payments, setPayments] = useState<Payment[]>(initialPayments ?? []);
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
@@ -90,7 +90,7 @@ export function SubscriptionPaymentReview({
     setRejecting(payment);
   }
 
-  function submitRejection(event: FormEvent<HTMLFormElement>) {
+  function submitRejection(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     const note = rejectionNote.trim();
@@ -107,7 +107,7 @@ export function SubscriptionPaymentReview({
       <div className="border-b border-[#e4e4e7] p-5"><h2 className="text-base font-semibold">ตรวจสอบค่าสมาชิก SaaS</h2><p className="text-sm text-[#62646c]">อนุมัติแล้วระบบจะเปิดใช้หรือต่ออายุให้อัตโนมัติ</p></div>
       <label className="relative m-4 block"><span className="sr-only">ค้นหารายการชำระ</span><Search className="absolute top-1/2 left-3 -translate-y-1/2 text-[#62646c]" size={17} /><input className="w-full pl-10" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาหอ เลขคำสั่งซื้อ หรือแพ็กเกจ" value={query} /></label>
       {error && !rejecting ? <p className="form-alert error m-5" role="alert">{error}</p> : null}
-        <div className="figma-table-wrap">{payments.length ? <table><thead><tr><th scope="col">หอพัก</th><th scope="col">คำสั่งซื้อ</th><th scope="col">แพ็กเกจ</th><th scope="col">ยอด</th><th scope="col">ส่งเมื่อ</th><th scope="col">ตรวจสอบ</th></tr></thead><tbody>{payments.map((payment) => <tr data-testid="subscription-payment-review" key={payment.id}><td>{payment.order.property.name}</td><td><strong>{payment.order.orderNumber}</strong><small className="block">{payment.order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"}</small></td><td>{payment.order.planName} · {payment.order.billingInterval === "YEARLY" ? "รายปี" : "รายเดือน"}</td><td>฿{Number(payment.amount).toLocaleString("th-TH")}</td><td>{new Date(payment.submittedAt).toLocaleString("th-TH")}</td><td><div className="flex gap-2"><IconLink href={`/api/v1/super-admin/subscription-payments/${payment.id}/slip`} label="เปิดสลิปค่าสมาชิก" rel="noreferrer" target="_blank"><ExternalLink aria-hidden="true" size={16} /></IconLink><IconButton disabled={isReviewing} label="อนุมัติค่าสมาชิก" onClick={() => void review(payment, "APPROVED")}><Check size={16} /></IconButton><IconButton disabled={isReviewing} label="ปฏิเสธค่าสมาชิก" onClick={() => openRejectionDialog(payment)} variant="danger"><X size={16} /></IconButton></div></td></tr>)}</tbody></table> : query.trim() ? <SearchEmptyState description="ลองใช้ชื่อหอ เลขคำสั่งซื้อ หรือแพ็กเกจอื่น" title="ไม่พบรายการที่ค้นหา" /> : <p className="p-8 text-center text-[#62646c]">ไม่มีรายการรอตรวจสอบ</p>}</div>
+        <PaymentReviewRows hasQuery={Boolean(query.trim())} isReviewing={isReviewing} onApprove={(payment) => void review(payment, "APPROVED")} onReject={openRejectionDialog} payments={payments} />
       {hasNextPage ? <LoadMoreButton isLoading={isLoading} onClick={() => void load(page + 1, true)} /> : null}
     </section>
 
@@ -132,4 +132,40 @@ export function SubscriptionPaymentReview({
         </form>
     </Dialog> : null}
   </>;
+}
+
+// ตารางรายการรอตรวจสอบ ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีของรอ ต้องบอกคนละแบบ
+function PaymentReviewRows({ hasQuery, isReviewing, onApprove, onReject, payments }: Readonly<{
+  hasQuery: boolean;
+  isReviewing: boolean;
+  onApprove: (payment: Payment) => void;
+  onReject: (payment: Payment) => void;
+  payments: Payment[];
+}>) {
+  if (payments.length === 0 && hasQuery) {
+    return <div className="figma-table-wrap"><SearchEmptyState description="ลองใช้ชื่อหอ เลขคำสั่งซื้อ หรือแพ็กเกจอื่น" title="ไม่พบรายการที่ค้นหา" /></div>;
+  }
+  if (payments.length === 0) {
+    return <div className="figma-table-wrap"><p className="p-8 text-center text-[#62646c]">ไม่มีรายการรอตรวจสอบ</p></div>;
+  }
+  return <div className="figma-table-wrap">
+    <table>
+      <thead><tr><th scope="col">หอพัก</th><th scope="col">คำสั่งซื้อ</th><th scope="col">แพ็กเกจ</th><th scope="col">ยอด</th><th scope="col">ส่งเมื่อ</th><th scope="col">ตรวจสอบ</th></tr></thead>
+      <tbody>{payments.map((payment) => <tr data-testid="subscription-payment-review" key={payment.id}>
+        <td>{payment.order.property.name}</td>
+        <td>
+          <strong>{payment.order.orderNumber}</strong>
+          <small className="block">{payment.order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"}</small>
+        </td>
+        <td>{payment.order.planName} · {payment.order.billingInterval === "YEARLY" ? "รายปี" : "รายเดือน"}</td>
+        <td>฿{Number(payment.amount).toLocaleString("th-TH")}</td>
+        <td>{new Date(payment.submittedAt).toLocaleString("th-TH")}</td>
+        <td><div className="flex gap-2">
+          <IconLink href={`/api/v1/super-admin/subscription-payments/${payment.id}/slip`} label="เปิดสลิปค่าสมาชิก" rel="noreferrer" target="_blank"><ExternalLink aria-hidden="true" size={16} /></IconLink>
+          <IconButton disabled={isReviewing} label="อนุมัติค่าสมาชิก" onClick={() => onApprove(payment)}><Check size={16} /></IconButton>
+          <IconButton disabled={isReviewing} label="ปฏิเสธค่าสมาชิก" onClick={() => onReject(payment)} variant="danger"><X size={16} /></IconButton>
+        </div></td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
 }

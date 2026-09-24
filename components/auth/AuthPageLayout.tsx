@@ -12,7 +12,7 @@ type AuthPageLayoutProps = {
   title: string;
 };
 
-export function AuthPageLayout({ children, description, footer, title }: AuthPageLayoutProps) {
+export function AuthPageLayout({ children, description, footer, title }: Readonly<AuthPageLayoutProps>) {
   return (
     <main className="login-page-shell">
       <section className="login-story" aria-labelledby="login-story-title">

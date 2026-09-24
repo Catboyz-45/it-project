@@ -6,7 +6,7 @@ export type TenantAnnouncement = {
   publishedAt: string | Date | null; publishAt: string | Date | null; createdAt: string | Date;
 };
 
-export function AnnouncementCard(item: TenantAnnouncement) {
+export function AnnouncementCard(item: Readonly<TenantAnnouncement>) {
   // เผยแพร่แล้วใช้เวลาเผยแพร่ ยังไม่ถึงเวลาก็ใช้เวลาที่ตั้งไว้ ไม่มีทั้งคู่ค่อยใช้เวลาสร้าง
   const shownAt = item.publishedAt ?? item.publishAt ?? item.createdAt;
   return <Panel key={item.id} title={item.title}>

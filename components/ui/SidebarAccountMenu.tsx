@@ -37,12 +37,12 @@ export function SidebarAccountMenu({
   displayName,
   email,
   role,
-}: {
+}: Readonly<{
   contextLabel?: string;
   displayName: string;
   email: string;
   role: SidebarAccountRole;
-}) {
+}>) {
   const pathname = usePathname();
   const config = roleConfig[role];
   const [isOpen, setIsOpen] = useState(false);

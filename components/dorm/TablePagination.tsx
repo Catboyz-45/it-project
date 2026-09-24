@@ -27,12 +27,12 @@ function PaginationPages({
   onPageChange,
   page,
   totalPages,
-}: {
+}: Readonly<{
   disabled?: boolean;
   onPageChange: (page: number) => void;
   page: number;
   totalPages: number;
-}) {
+}>) {
   const pages = pageNumbers(page, totalPages);
   return pages.map((pageNumber, index) => (
     <span className="contents" key={pageNumber}>
@@ -64,6 +64,26 @@ export type ServerPageInfo = {
 };
 
 // แบ่งหน้าจากข้อมูลที่โหลดมาครบแล้ว ใช้กับตารางที่ข้อมูลไม่เยอะ
+// ข้อความสรุปมีหลายแบบ เพราะบางครั้งรู้จำนวนทั้งหมด บางครั้งรู้แค่ว่ามีหน้าถัดไป
+function paginationSummary({ currentItemCount, disabled, firstItem, lastItem, pageInfo, totalPages }: {
+  currentItemCount?: number;
+  disabled?: boolean;
+  firstItem: number;
+  lastItem: number;
+  pageInfo: { page: number; total?: number };
+  totalPages: number;
+}) {
+  const page = pageInfo.page.toLocaleString("th-TH");
+  if (disabled) return `กำลังโหลดหน้า ${page}`;
+  if (pageInfo.total === 0 || currentItemCount === 0) return "ไม่พบรายการ";
+  if (pageInfo.total !== undefined) {
+    return `พบ ${pageInfo.total.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${page} จาก ${totalPages.toLocaleString("th-TH")} หน้า รายการที่ ${firstItem.toLocaleString("th-TH")} ถึง ${lastItem.toLocaleString("th-TH")}`;
+  }
+  // ไม่รู้จำนวนทั้งหมด บอกได้แค่จำนวนในหน้านี้
+  if (currentItemCount === undefined) return `กำลังแสดงหน้า ${page}`;
+  return `พบ ${currentItemCount.toLocaleString("th-TH")} รายการในหน้านี้ กำลังแสดงหน้า ${page}`;
+}
+
 export function useTablePagination<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
@@ -88,12 +108,12 @@ export function TablePagination({
   setPage,
   totalItems,
   totalPages,
-}: {
+}: Readonly<{
   page: number;
   setPage: (page: number) => void;
   totalItems: number;
   totalPages: number;
-}) {
+}>) {
   // เลขลำดับรายการที่กำลังแสดง เช่น "แสดง 11 ถึง 20 จาก 57 รายการ"
   const firstItem = totalItems === 0 ? 0 : (page - 1) * DEFAULT_PAGE_SIZE + 1;
   const lastItem = Math.min(page * DEFAULT_PAGE_SIZE, totalItems);
@@ -123,12 +143,12 @@ export function ServerTablePagination({
   disabled = false,
   onPageChange,
   pageInfo,
-}: {
+}: Readonly<{
   currentItemCount?: number;
   disabled?: boolean;
   onPageChange: (page: number) => void;
   pageInfo: ServerPageInfo;
-}) {
+}>) {
   // ไม่รู้จำนวนหน้าทั้งหมดก็เดาจาก hasNextPage ว่ายังมีอีกอย่างน้อยหนึ่งหน้า
   const knownTotalPages = pageInfo.totalPages;
   const lastKnownPage = knownTotalPages ?? (pageInfo.hasNextPage ? pageInfo.page + 1 : pageInfo.page);
@@ -138,15 +158,9 @@ export function ServerTablePagination({
   const lastItem = pageInfo.total === undefined ? inferredLastItem : Math.min(inferredLastItem, pageInfo.total);
   const totalPages = pageInfo.totalPages ?? lastKnownPage;
   // ข้อความสรุปมีหลายแบบ เพราะบางครั้งรู้จำนวนทั้งหมด บางครั้งรู้แค่ว่ามีหน้าถัดไป
-  const resultSummary = disabled
-    ? `กำลังโหลดหน้า ${pageInfo.page.toLocaleString("th-TH")}`
-      : pageInfo.total === 0 || currentItemCount === 0
-      ? "ไม่พบรายการ"
-      : pageInfo.total === undefined
-        ? currentItemCount === undefined
-          ? `กำลังแสดงหน้า ${pageInfo.page.toLocaleString("th-TH")}`
-          : `พบ ${currentItemCount.toLocaleString("th-TH")} รายการในหน้านี้ กำลังแสดงหน้า ${pageInfo.page.toLocaleString("th-TH")}`
-        : `พบ ${pageInfo.total.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${pageInfo.page.toLocaleString("th-TH")} จาก ${totalPages.toLocaleString("th-TH")} หน้า รายการที่ ${firstItem.toLocaleString("th-TH")} ถึง ${lastItem.toLocaleString("th-TH")}`;
+  const resultSummary = paginationSummary({
+    currentItemCount, disabled, firstItem, lastItem, pageInfo, totalPages,
+  });
 
   return (
     <>

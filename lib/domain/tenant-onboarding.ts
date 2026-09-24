@@ -14,7 +14,7 @@ export const tenantRegistrationSchema = z.object({
   invitationCode: z.string().trim().min(32).max(256),
   // แปลงเป็นตัวพิมพ์เล็กก่อนเก็บ จะได้ไม่มีอีเมลเดียวกันสมัครซ้ำได้ด้วยตัวพิมพ์ต่างกัน
   // 254 คือความยาวสูงสุดของอีเมลตามมาตรฐาน
-  email: z.string().trim().toLowerCase().email().max(254),
+  email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   // อย่างน้อย 12 ตัว และต้องมีพิมพ์เล็ก พิมพ์ใหญ่ และตัวเลขครบ
   // ตรวจที่นี่เป็นด่านจริง ส่วนที่บอกไว้ในหน้าจอมีไว้ให้ผู้ใช้รู้ล่วงหน้าเฉย ๆ
   password: z.string()

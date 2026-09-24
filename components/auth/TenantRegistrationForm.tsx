@@ -1,7 +1,7 @@
 "use client";
 // เก็บสถานะของฟอร์มและส่งคำขอสมัครจากเบราว์เซอร์
 
-import { FormEvent, useState } from "react";
+import { SyntheticEvent, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 // ฟอร์มสมัครของผู้เช่า ต้องมีรหัสเชิญจากหอพัก เพื่อให้ระบบผูกบัญชีกับห้องได้ถูก
@@ -11,7 +11,7 @@ export function TenantRegistrationForm() {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
     event.preventDefault();
     setPending(true);
@@ -91,11 +91,11 @@ export function TenantRegistrationForm() {
       <small id="tenant-password-help">อย่างน้อย 12 ตัว พร้อมตัวพิมพ์เล็ก พิมพ์ใหญ่ และตัวเลข</small>
     </label>
     {error ? <p className="login-form-error tenant-form-feedback" role="alert">{error}</p> : null}
-    {message ? <div className="tenant-form-success tenant-form-feedback" role="status">
+    {message ? <output className="tenant-form-success tenant-form-feedback">
       <CheckCircle2 className="mb-2" />
       <strong>{message}</strong>
       <a className="mt-2 block underline" href="/login">ไปหน้าเข้าสู่ระบบ</a>
-    </div> : null}
+    </output> : null}
     <button className="primary-button w-full" disabled={pending} type="submit">
       {pending ? "กำลังสมัคร..." : <>สมัครเป็นผู้เช่า <ArrowRight size={18} /></>}
     </button>

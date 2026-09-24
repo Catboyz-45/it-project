@@ -106,10 +106,15 @@ export function apiSuccessBinaryResponse(
 }
 
 // ตอบกลับตอนพลาด แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
+// ข้อมูลไม่ผ่านการตรวจเป็น 400 ที่เราโยนเองใช้รหัสที่ระบุไว้ ที่เหลือคือ 500
+function httpStatusOf(error: unknown) {
+  if (error instanceof ZodError) return 400;
+  return error instanceof ApiError ? error.status : 500;
+}
+
 export function apiErrorResponse(error: unknown, request?: NextRequest) {
   const requestId = request?.headers.get("x-request-id") ?? crypto.randomUUID();
-  // ข้อมูลไม่ผ่านการตรวจเป็น 400 ที่เราโยนเองใช้รหัสที่ระบุไว้ ที่เหลือคือ 500
-  const status = error instanceof ZodError ? 400 : error instanceof ApiError ? error.status : 500;
+  const status = httpStatusOf(error);
   if (request && request.method !== "GET" && request.method !== "HEAD") {
     const context = getRequestActorContext(request);
     // คำขอที่พลาดตั้งแต่ก่อนตรวจสิทธิ์จะยังไม่มี propertyId ใน context จึงลองดึงจาก URL แทน

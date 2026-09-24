@@ -1,15 +1,15 @@
 "use client";
 
 // เป็น Client Component เพราะต้องรับการติ๊กและกดปุ่มจากผู้ใช้
-import { FormEvent, useState } from "react";
+import { SyntheticEvent, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
-export function LegalAcceptanceForm({ redirectTo }: { redirectTo: string }) {
+export function LegalAcceptanceForm({ redirectTo }: Readonly<{ redirectTo: string }>) {
   // pending ใช้ปิดปุ่มระหว่างรอ กันผู้ใช้กดรัวจนส่งซ้ำหลายรอบ
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์ส่งฟอร์มแบบเดิมที่ทำให้หน้าโหลดใหม่ทั้งหน้า
     event.preventDefault();
     setPending(true);

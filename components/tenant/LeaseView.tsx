@@ -10,7 +10,7 @@ type Lease = {
   monthlyRent: string; depositAmount: string; currentVersion: number;
 };
 
-export function LeaseView({ current, upcoming }: { current: Lease | null; upcoming: Lease | null }) {
+export function LeaseView({ current, upcoming }: Readonly<{ current: Lease | null; upcoming: Lease | null }>) {
   if (!current && !upcoming) {
     return <Empty description="เมื่อเจ้าของหอออกสัญญาให้แล้ว เอกสารจะมาแสดงที่นี่" icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
   }
@@ -22,7 +22,7 @@ export function LeaseView({ current, upcoming }: { current: Lease | null; upcomi
   </div>;
 }
 
-function LeaseCard({ lease, title }: { lease: Lease; title: string }) {
+function LeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) {
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
     <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>

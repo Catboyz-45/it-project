@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { subscriptionStatusSchema } from "@/lib/domain/enums";
 
-const money = z.coerce.number().finite().min(0).max(10_000_000);
+const money = z.coerce.number().min(0).max(10_000_000);
 // รหัสแพ็กเกจแปลงเป็นตัวพิมพ์ใหญ่ก่อนเก็บ จะได้ไม่มี growth กับ GROWTH เป็นคนละอันในฐานข้อมูล
 const code = z.string().trim().toUpperCase().min(2).max(40).regex(/^[A-Z0-9_-]+$/);
 

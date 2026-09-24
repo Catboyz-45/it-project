@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { CSSProperties, ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
 export type ActionMenuItem = {
   disabled?: boolean;
@@ -24,11 +25,11 @@ export function ActionMenu({
   align = "end",
   items,
   label = "เปิดเมนูจัดการ",
-}: {
+}: Readonly<{
   align?: "start" | "end";
   items: ActionMenuItem[];
   label?: string;
-}) {
+}>) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>();
   const menuId = useId();
@@ -171,8 +172,7 @@ export function ActionMenu({
     // กันหน้าเลื่อนตามลูกศรไปด้วย
     event.preventDefault();
     const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    // % ทำให้วนกลับต้นเมื่อถึงท้าย และวนไปท้ายเมื่อถึงต้น
-    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowDown" ? (currentIndex + 1) % buttons.length : (currentIndex - 1 + buttons.length) % buttons.length;
+    const nextIndex = rovingIndex(event.key, currentIndex, buttons.length);
     buttons[nextIndex]?.focus();
   };
 

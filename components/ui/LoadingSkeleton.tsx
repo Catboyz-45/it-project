@@ -20,7 +20,7 @@ export function LoadingSkeleton({
   label = "กำลังโหลดข้อมูล",
   tableClassName,
   variant = "list",
-}: LoadingSkeletonProps) {
+}: Readonly<LoadingSkeletonProps>) {
   // สร้างแค่ลำดับตัวเลขไว้ใช้เป็น key ไม่ได้ใช้ค่าข้างในเลย
   const items = Array.from({ length: count }, (_, index) => index);
   const columnIndexes = Array.from({ length: columns }, (_, index) => index);
@@ -31,6 +31,7 @@ export function LoadingSkeleton({
 
   return (
     // aria-busy บอกโปรแกรมอ่านหน้าจอว่ายังโหลดอยู่ อย่าเพิ่งอ่านเนื้อหาข้างใน
+    // ไม่ใช้ output เพราะข้างในมีตารางโครงร่าง ซึ่ง output ไม่ให้ใส่ตามสเปก HTML
     <div aria-atomic="true" aria-busy="true" className={`loading-skeleton loading-skeleton-${variant}`} role="status">
       {/* ข้อความจริงสำหรับโปรแกรมอ่านหน้าจอ เพราะแท่งเทาไม่มีความหมายให้อ่าน */}
       <span className="sr-only">{label}</span>

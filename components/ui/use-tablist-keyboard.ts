@@ -24,14 +24,7 @@ export function useTablistKeyboard<T extends TabValue>(
     // โฟกัสไม่ได้อยู่ในแถบจะได้ -1 จึงดันเป็น 0 ให้เริ่มนับจากแท็บแรก
     const currentIndex = Math.max(0, tabs.indexOf(document.activeElement as HTMLElement));
 
-    // ลูกศรขยับทีละหนึ่งแล้ววนกลับด้วย % ฝั่งซ้ายต้อง + length ก่อน ไม่งั้นติดลบ
-    const nextIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? tabs.length - 1
-        : event.key === "ArrowRight"
-          ? (currentIndex + 1) % tabs.length
-          : (currentIndex - 1 + tabs.length) % tabs.length;
+    const nextIndex = rovingIndex(event.key, currentIndex, tabs.length);
 
     const nextValue = values[nextIndex];
     const nextTab = tabs[nextIndex];
@@ -43,4 +36,13 @@ export function useTablistKeyboard<T extends TabValue>(
     onSelect(nextValue);
     nextTab.focus();
   };
+}
+
+// ปุ่มถัดไปของแถบที่เลื่อนด้วยลูกศร ใช้ร่วมกันทุกแถบที่ทำตามมาตรฐาน ARIA
+// % ทำให้วนกลับต้นเมื่อถึงท้าย และวนไปท้ายเมื่อถึงต้น
+export function rovingIndex(key: string, currentIndex: number, total: number) {
+  if (key === "Home") return 0;
+  if (key === "End") return total - 1;
+  if (key === "ArrowRight" || key === "ArrowDown") return (currentIndex + 1) % total;
+  return (currentIndex - 1 + total) % total;
 }

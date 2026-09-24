@@ -193,7 +193,7 @@ export function GradientWaves({
   waveRatio = 0.9,
   waveScale = 0.6,
   zoom = 1,
-}: GradientWavesProps) {
+}: Readonly<GradientWavesProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

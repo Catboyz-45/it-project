@@ -30,7 +30,9 @@ const ownerPageByRoute = new Map(
 
 export function ownerPagePath(propertyId: string, page: PageKey) {
   const suffix = ownerRouteByPage[page];
-  return `/admin/properties/${propertyId}${suffix ? `/${suffix}` : ""}`;
+  // หน้าภาพรวมไม่มี suffix จึงเป็น URL ของหอเปล่า ๆ ไม่ใช่ลงท้ายด้วยทับ
+  const segment = suffix ? `/${suffix}` : "";
+  return `/admin/properties/${propertyId}${segment}`;
 }
 
 // แปลง URL กลับเป็นชื่อหน้า ไม่รู้จักก็คืน null เพราะค่ามาจาก URL ที่ผู้ใช้พิมพ์เองได้
@@ -61,4 +63,10 @@ export function tenantTabFromSegments(segments: string[] | undefined): TenantTab
   const route = segments?.join("/") ?? "";
   if (!route) return "home";
   return tenantTabs.find((tab) => tab === route) ?? null;
+}
+
+// หน้าแรกของแต่ละบทบาท ใช้ร่วมกันทุกที่ที่ต้องเด้งผู้ใช้กลับพื้นที่ของตัวเอง
+export function roleHomePath(role: string) {
+  if (role === "SUPER_ADMIN") return "/super-admin";
+  return role === "TENANT" ? "/tenant" : "/admin";
 }

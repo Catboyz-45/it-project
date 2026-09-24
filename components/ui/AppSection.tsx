@@ -12,14 +12,14 @@ export function AppSection({
   description,
   icon,
   title,
-}: {
+}: Readonly<{
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
   description?: string;
   icon: ReactNode;
   title: string;
-}) {
+}>) {
   return (
     <section className={`app-section ${className ?? ""}`.trim()}>
       <header className="app-section-head">

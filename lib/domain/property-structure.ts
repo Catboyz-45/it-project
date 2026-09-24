@@ -2,7 +2,7 @@ import { z } from "zod";
 import { roomStatusSchema } from "@/lib/domain/enums";
 
 const identifierSchema = z.string().cuid();
-const moneySchema = z.coerce.number().finite().min(0).max(10_000_000);
+const moneySchema = z.coerce.number().min(0).max(10_000_000);
 // \p{L} กับ \p{N} คือตัวอักษรและตัวเลขของทุกภาษา เลขห้องภาษาไทยจึงใช้ได้
 // ไม่ยอมให้มีช่องว่างหรืออักขระพิเศษ เพราะเลขห้องถูกเอาไปใช้ในชื่อไฟล์และ URL
 const roomNumberSchema = z.string().trim().min(1).max(30).regex(

@@ -8,7 +8,7 @@ export type TenantParcel = {
   registeredAt: string | Date; receivedAt: string | Date | null;
 };
 
-export function ParcelCard(item: TenantParcel) {
+export function ParcelCard(item: Readonly<TenantParcel>) {
   return <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}>
     <div className="flex gap-4">
       {item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}
@@ -21,7 +21,7 @@ export function ParcelCard(item: TenantParcel) {
   </Panel>;
 }
 
-export function ParcelHistoryTable({ items, total }: { items: TenantParcel[]; total: number | null }) {
+export function ParcelHistoryTable({ items, total }: Readonly<{ items: TenantParcel[]; total: number | null }>) {
   if (!items.length) return <Empty description="เมื่อรับพัสดุแล้วประวัติจะมาแสดงที่นี่" icon={<Package />} text="ยังไม่มีประวัติการรับพัสดุ" />;
   return <section className="figma-table-card">
     <header className="additional-card-head">
