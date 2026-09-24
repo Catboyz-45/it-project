@@ -12,6 +12,9 @@ const envSchema = z.object({
   PUPPETEER_EXECUTABLE_PATH: optionalText,
   AWS_REGION: optionalText,
   AWS_S3_BUCKET: optionalText,
+  // ผู้ให้บริการที่พูดภาษาเดียวกับ S3 เช่น Cloudflare R2 ต้องระบุ endpoint เอง
+  // ไม่ตั้งไว้แปลว่าใช้ AWS S3 ตัวจริง ซึ่ง SDK หา endpoint จาก region ให้เอง
+  AWS_S3_ENDPOINT: optionalText,
   AWS_S3_PREFIX: z.string().trim().default("documents"),
   // ความลับที่ใช้ยืนยันว่าคำขอของงานเบื้องหลังมาจากตัวตั้งเวลาจริง อย่างน้อย 32 ตัวเพื่อให้เดาไม่ได้
   JOB_SECRET: optionalText.pipe(z.string().min(32).max(256).optional()),

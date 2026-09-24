@@ -26,6 +26,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "admin:bootstrap": "node scripts/bootstrap-super-admin.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
     "sonar:up": "docker compose -f docker-compose.sonarqube.yml up -d",
     "sonar:down": "docker compose -f docker-compose.sonarqube.yml down",
     "sonar:scan": "sonar-scanner-npm -Dsonar.host.url=http://localhost:9000",

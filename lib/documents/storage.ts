@@ -72,16 +72,28 @@ class LocalStorageAdapter implements StorageAdapter {
 }
 
 // เก็บไฟล์บน S3 ใช้ตอน production ที่มีหลายเครื่องและต้องเห็นไฟล์ชุดเดียวกัน
+// ใช้ได้กับผู้ให้บริการที่พูดภาษาเดียวกับ S3 ด้วย เช่น Cloudflare R2 โดยระบุ endpoint
 class S3StorageAdapter implements StorageAdapter {
   private readonly client: S3Client;
+  // ตั้ง endpoint เองแปลว่าไม่ใช่ AWS การเข้ารหัสจึงต้องพึ่งค่าเริ่มต้นของผู้ให้บริการนั้น
+  private readonly isAws: boolean;
 
-  constructor(private readonly bucket: string, region: string) {
-    this.client = new S3Client({ region });
+  constructor(private readonly bucket: string, region: string, endpoint?: string) {
+    this.isAws = !endpoint;
+    // forcePathStyle เพราะผู้ให้บริการอื่นมักไม่รองรับชื่อถังที่อยู่หน้าโดเมน
+    this.client = new S3Client(endpoint ? { region, endpoint, forcePathStyle: true } : { region });
   }
 
   // ServerSideEncryption เข้ารหัสตอนเก็บ ดิสก์ของผู้ให้บริการหลุดก็ยังอ่านไฟล์ไม่ได้
+  // ส่งเฉพาะกับ AWS เพราะผู้ให้บริการอื่นอย่าง R2 เข้ารหัสให้อยู่แล้วและปฏิเสธ header นี้
   async put(key: string, body: Buffer, contentType: string) {
-    await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: safeStorageKey(key), Body: body, ContentType: contentType, ServerSideEncryption: "AES256" }));
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: safeStorageKey(key),
+      Body: body,
+      ContentType: contentType,
+      ...(this.isAws ? { ServerSideEncryption: "AES256" as const } : {}),
+    }));
   }
 
   async get(key: string): Promise<StoredFile> {
@@ -107,7 +119,7 @@ export function getStorageAdapter() {
   const env = getServerEnv();
   storageAdapter = env.STORAGE_TYPE === "s3"
     // ใช้ ! ได้เพราะ getServerEnv ตรวจไว้แล้วว่าเลือก s3 ต้องมีสองค่านี้ครบ
-    ? new S3StorageAdapter(env.AWS_S3_BUCKET!, env.AWS_REGION!)
+    ? new S3StorageAdapter(env.AWS_S3_BUCKET!, env.AWS_REGION!, env.AWS_S3_ENDPOINT)
     : new LocalStorageAdapter(env.LOCAL_STORAGE_PATH);
   return storageAdapter;
 }

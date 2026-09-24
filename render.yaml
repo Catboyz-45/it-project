@@ -1,0 +1,67 @@
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: Blueprint ของ Render ใช้สร้างบริการทั้งชุดจากไฟล์เดียว แทนการกรอกทีละช่องบนหน้าเว็บ
+# การทำงาน: ระบุว่า build ด้วย Dockerfile ตัวไหน เช็คสุขภาพที่ path ใด และต้องมีค่า environment อะไรบ้าง
+#           ค่าที่เป็นความลับตั้ง sync: false เพื่อให้ไปกรอกในหน้าเว็บ จะได้ไม่มีรหัสจริงอยู่ในไฟล์ที่ commit
+
+services:
+  - type: web
+    name: nestly
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    # Dockerfile มี HEALTHCHECK อยู่แล้ว ตัวนี้บอก Render ว่าให้รอจนกว่า path นี้จะตอบ 200 ก่อนสลับเวอร์ชัน
+    healthCheckPath: /api/health
+    envVars:
+      # เวลาในระบบตรึงเป็น UTC ตรงกับที่ Dockerfile ตั้งไว้ รอบบิลจะได้ไม่เพี้ยนตามเครื่อง
+      - key: TZ
+        value: UTC
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # Dockerfile ลง chromium ไว้ที่นี่ ใช้สร้าง PDF สัญญาและใบแจ้งหนี้
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
+
+      # ฐานข้อมูล Postgres ภายนอก เช่น Neon วางสตริงเชื่อมต่อในหน้าเว็บของ Render
+      - key: DATABASE_URL
+        sync: false
+      # URL ที่ Render ให้มา ใช้ประกอบลิงก์ในอีเมลรีเซ็ตรหัสผ่าน
+      - key: APP_URL
+        sync: false
+
+      # เก็บไฟล์ที่ผู้ใช้อัปโหลดไว้นอกเครื่อง ไม่งั้นไฟล์จะหายทุกครั้งที่ deploy ใหม่
+      - key: STORAGE_TYPE
+        value: s3
+      # Cloudflare R2 ใช้ region auto และต้องระบุ endpoint ของบัญชีตัวเอง
+      - key: AWS_REGION
+        value: auto
+      - key: AWS_S3_ENDPOINT
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # อีเมลรีเซ็ตรหัสผ่าน ไม่ตั้งค่าครบ ฟีเจอร์นี้จะตอบ 503 ตามที่ตั้งใจไว้
+      - key: RESEND_API_KEY
+        sync: false
+      - key: PASSWORD_RESET_EMAIL_FROM
+        sync: false
+
+      # ความลับของงานเบื้องหลัง ตัวตั้งเวลาภายนอกต้องส่งค่านี้มาด้วยถึงจะเรียกได้
+      - key: JOB_SECRET
+        generateValue: true
+
+      # บัญชีแอดมินชุดแรก ใช้ครั้งเดียวตอนรัน admin:bootstrap
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_PROPERTY_ADMIN_EMAIL
+        sync: false
+      - key: DEMO_PROPERTY_ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_TENANT_PASSWORD
+        sync: false
