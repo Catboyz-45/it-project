@@ -35,12 +35,15 @@ export class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
+// ส่วนของ audit ที่คนเรียกกรอกเองได้ ที่เหลือฟังก์ชันข้างล่างเติมให้จากตัวคำขอ
+type SuccessAuditInput = Omit<AuditInput, "request" | "requestId" | "result">;
+
 // บันทึกเฉพาะคำขอที่เปลี่ยนข้อมูล การอ่านเฉย ๆ ไม่ต้องบันทึก ไม่งั้น log จะท่วม
 // แยกออกมาเพราะคำตอบแบบ JSON กับแบบไฟล์ต้องบันทึกเหมือนกันทุกอย่าง
 function recordSuccessAudit(
   request: NextRequest,
   requestId: string,
-  audit?: Omit<AuditInput, "request" | "requestId" | "result">,
+  audit?: SuccessAuditInput,
 ) {
   if (request.method === "GET" || request.method === "HEAD") return;
   const context = getRequestActorContext(request);
@@ -69,7 +72,7 @@ export function apiSuccessResponse(
   request: NextRequest,
   body: Record<string, unknown>,
   init?: { status?: number; headers?: HeadersInit },
-  audit?: Omit<AuditInput, "request" | "requestId" | "result">,
+  audit?: SuccessAuditInput,
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
@@ -85,7 +88,7 @@ export function apiSuccessBinaryResponse(
   request: NextRequest,
   body: BodyInit | null,
   init: ResponseInit,
-  audit?: Omit<AuditInput, "request" | "requestId" | "result">,
+  audit?: SuccessAuditInput,
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
