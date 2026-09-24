@@ -25,6 +25,7 @@ export default defineConfig({
       "**/playwright-report/**",
       "**/test-results/**",
     ],
-    coverage: { reporter: ["text", "html"] },
+    // lcov คือรูปแบบที่ SonarQube อ่านได้ (ดู sonar-project.properties)
+    coverage: { reporter: ["text", "html", "lcov"] },
   },
 });

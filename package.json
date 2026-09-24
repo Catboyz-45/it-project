@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:integration": "vitest run --config vitest.integration.config.ts --coverage",
     "test:e2e": "playwright test",
     "test:e2e:subscription": "node scripts/run-subscription-e2e.mjs",
     "test:e2e:mobile-touch": "node scripts/run-subscription-e2e.mjs tests/e2e/mobile-touch-target.spec.ts",
@@ -23,7 +25,11 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "admin:bootstrap": "node scripts/bootstrap-super-admin.mjs"
+    "admin:bootstrap": "node scripts/bootstrap-super-admin.mjs",
+    "sonar:up": "docker compose -f docker-compose.sonarqube.yml up -d",
+    "sonar:down": "docker compose -f docker-compose.sonarqube.yml down",
+    "sonar:scan": "sonar-scanner-npm -Dsonar.host.url=http://localhost:9000",
+    "sonar:report": "python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --token $SONAR_TOKEN"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",
@@ -50,10 +56,12 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/sanitize-html": "^2.16.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "dotenv": "^17.4.2",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.4",
     "prisma": "7.9.1",
+    "sonarqube-scanner": "^5.0.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.0",
     "vitest": "^4.1.11"

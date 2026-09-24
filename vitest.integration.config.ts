@@ -28,5 +28,8 @@ export default defineConfig({
     // ยืดเวลารอเป็น 30 วินาที เพราะแต่ละเทสต์ต้องรอฐานข้อมูลจริงตอบ
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // แยกโฟลเดอร์จากชุด unit ไม่งั้นรายงานของสองชุดจะเขียนทับกัน
+    // ชุดนี้คือชุดเดียวที่วิ่งผ่าน route handler ใน app/api จริง ๆ
+    coverage: { reporter: ["text", "lcov"], reportsDirectory: "coverage-integration" },
   },
 });

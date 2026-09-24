@@ -19,6 +19,7 @@ export default defineConfig([
     ".next/**",
     ".next-*/**",
     "coverage/**",
+    "coverage-integration/**",
     "generated/**",
     "node_modules/**",
     "playwright-report/**",

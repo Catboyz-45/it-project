@@ -10,3 +10,7 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .DS_Store
+.scannerwork/
+*_report.pdf
+issues.json
+coverage-integration/
