@@ -8,10 +8,20 @@ describe("UI labels", () => {
     expect(formatStatus("STATUS_NOT_YET_SUPPORTED")).toBe("สถานะอื่น");
   });
 
+  // ช่องว่างในฐานข้อมูลต้องขึ้นเป็นขีด ไม่ใช่ช่องว่างเปล่าที่อ่านไม่ออกว่าคืออะไร
+  it("shows a dash when there is no status at all", () => {
+    expect(formatStatus("")).toBe("-");
+    expect(formatStatus(null)).toBe("-");
+    expect(formatStatus(undefined)).toBe("-");
+  });
+
   it("translates audit actions and keeps unknown actions generic", () => {
     expect(formatAuditAction("AUTH_LOGIN")).toBe("เข้าสู่ระบบ");
     expect(formatAuditAction("STATUS_CHANGED")).toBe("เหตุการณ์ระบบ");
     expect(formatAuditAction("API_PATCH_FAILURE")).toBe("ดำเนินการกับข้อมูลไม่สำเร็จ");
+    expect(formatAuditAction("API_POST_SUCCESS")).toBe("ดำเนินการกับข้อมูลสำเร็จ");
+    // GET ไม่เข้ารูปแบบที่ระบบบันทึก จึงต้องตกไปที่คำกลาง ๆ ไม่ใช่โผล่เป็นรหัสดิบ
+    expect(formatAuditAction("API_GET_SUCCESS")).toBe("เหตุการณ์ระบบ");
   });
 
   it("translates audit results", () => {
