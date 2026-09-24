@@ -29,7 +29,7 @@ export const updateSaasPlanSchema = createSaasPlanSchema.partial().extend({
 
 export const assignSubscriptionSchema = z.object({
   // รับได้สองรูปแบบ cuid จากฐานข้อมูล กับ plan_xxx ที่เป็นรหัสของแพ็กเกจตั้งต้นที่มากับระบบ
-  planId: z.cuid().or(z.string().regex(/^plan_[a-z0-9_-]+$/)),
+  planId: z.string().cuid().or(z.string().regex(/^plan_[a-z0-9_-]+$/)),
   status: subscriptionStatusSchema.default("ACTIVE"),
   billingInterval: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
   startsAt: z.coerce.date(),
@@ -41,7 +41,7 @@ export const assignSubscriptionSchema = z.object({
 });
 
 export const createSubscriptionOrderSchema = z.object({
-  planId: z.cuid().or(z.string().regex(/^plan_[a-z0-9_-]+$/)),
+  planId: z.string().cuid().or(z.string().regex(/^plan_[a-z0-9_-]+$/)),
   billingInterval: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
 }).strict();
 

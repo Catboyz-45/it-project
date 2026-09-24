@@ -12,7 +12,7 @@ export async function DELETE(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
-    const id = z.cuid().safeParse(params.invitationId);
+    const id = z.string().cuid().safeParse(params.invitationId);
     if (!id.success) throw new ApiError(404, "ไม่พบรหัสเชิญ");
     await revokeInvitation(propertyId, id.data);
     return apiSuccessBinaryResponse(request, null, { status: 204 }, { userId: auth.userId, propertyId, action: "TENANT_INVITATION_REVOKE", targetType: "TenantInvitation", targetId: id.data });

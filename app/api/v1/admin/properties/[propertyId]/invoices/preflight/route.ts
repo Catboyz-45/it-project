@@ -7,7 +7,7 @@ import { preflightInvoices } from "@/lib/server/invoices";
 
 const querySchema = z.object({
   billingMonth: billingMonthSchema,
-  roomId: z.cuid().optional(),
+  roomId: z.string().cuid().optional(),
 }).strict();
 
 // ตรวจล่วงหน้าว่าห้องไหนออกบิลได้

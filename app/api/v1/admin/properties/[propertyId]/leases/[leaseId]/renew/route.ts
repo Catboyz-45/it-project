@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, context: Context) {
     // กัน CSRF ตรวจว่าคำขอมาจากหน้าเว็บของเราเอง และบังคับ Content-Type เป็น JSON
     assertSameOrigin(request);
     const params = await context.params;
-    const leaseId = z.cuid().safeParse(params.leaseId);
+    const leaseId = z.string().cuid().safeParse(params.leaseId);
     if (!leaseId.success) throw new ApiError(404, "ไม่พบสัญญา");
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
     const data = await renewLease(propertyId, leaseId.data, auth.userId, renewLeaseSchema.parse(await request.json()));

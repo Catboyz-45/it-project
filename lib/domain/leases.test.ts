@@ -30,7 +30,7 @@ describe("lease lifecycle", () => {
   });
 });
 
-// ทั้งโปรเจกต์ย้ายจาก z.string().cuid() ที่ถูก deprecate มาเป็น z.cuid()
+// ทั้งโปรเจกต์ย้ายจาก z.string().cuid() ที่ถูก deprecate มาเป็น z.string().cuid()
 // ตัวทดสอบนี้กันไม่ให้ใครเข้าใจผิดว่า cuid2 คือตัวแทน เพราะ cuid2 รับสตริงกว้างกว่า
 // ถ้าเผลอเปลี่ยนไปใช้ cuid2 การตรวจ id จะหลวมลงทั้งระบบโดยไม่มีใครรู้
 describe("lease id validation", () => {

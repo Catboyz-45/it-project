@@ -15,7 +15,7 @@ export async function PUT(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const parsed = z.cuid().safeParse((await context.params).propertyId);
+    const parsed = z.string().cuid().safeParse((await context.params).propertyId);
     if (!parsed.success) throw new ApiError(404, "ไม่พบหอพัก");
     const data = await assignPropertySubscription(parsed.data, assignSubscriptionSchema.parse(await request.json()));
     return apiSuccessResponse(request, { data }, undefined, {

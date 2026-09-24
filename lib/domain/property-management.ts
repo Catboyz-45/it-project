@@ -34,7 +34,7 @@ export const updatePropertySettingsSchema = z.object({
 // ผู้ดูแลระบบแก้ได้แค่สองอย่าง เปิดปิดหอ กับตั้งว่าใครดูแล ไม่ยุ่งกับการตั้งค่าภายในของหอ
 export const superAdminPropertyUpdateSchema = z.object({
   isActive: z.boolean().optional(),
-  memberUserIds: z.array(z.cuid()).max(50).optional(),
+  memberUserIds: z.array(z.string().cuid()).max(50).optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, "ไม่มีข้อมูลให้แก้ไข");
 
 export const updateTenantProfileSchema = z.object({

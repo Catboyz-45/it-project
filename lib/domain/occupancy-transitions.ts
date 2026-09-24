@@ -6,7 +6,7 @@ const money = z.coerce.number().min(0).max(10_000_000);
 
 export const occupancyTransitionSchema = z.object({
   type: z.enum(["MOVE_OUT", "MOVE_ROOM"]),
-  destinationRoomId: z.cuid().optional(),
+  destinationRoomId: z.string().cuid().optional(),
   effectiveDate: z.coerce.date(),
   reason: z.string().trim().min(1).max(500),
   deductions: z.array(z.object({

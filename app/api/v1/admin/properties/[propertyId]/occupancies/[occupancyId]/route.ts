@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
-    const occupancyId = z.cuid().safeParse(params.occupancyId);
+    const occupancyId = z.string().cuid().safeParse(params.occupancyId);
     if (!occupancyId.success) throw new ApiError(404, "ไม่พบคำขอ");
     const occupancy = await reviewOccupancy(
       propertyId, occupancyId.data, auth.userId,
@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
-    const occupancyId = z.cuid().safeParse(params.occupancyId);
+    const occupancyId = z.string().cuid().safeParse(params.occupancyId);
     if (!occupancyId.success) throw new ApiError(404, "ไม่พบการเข้าพัก");
     const data = await endPropertyOccupancy(
       propertyId,

@@ -6,7 +6,7 @@ import { requireActiveTenant } from "@/lib/server/tenant-auth";
 import { getDatabase } from "@/lib/server/db";
 import type { ConversationActor } from "@/lib/server/chat";
 
-const idSchema = z.cuid();
+const idSchema = z.string().cuid();
 
 // id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด เพราะแบบหลังช่วยให้เดาได้ว่าข้อมูลมีอยู่จริงไหม
 export function parseChatId(value: string) {

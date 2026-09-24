@@ -8,7 +8,7 @@ import { completeOccupancyTransition, getMoveOutReadiness, listOccupancyTransiti
 type Context = { params: Promise<{ propertyId: string; tenantProfileId: string }> };
 
 const tenantId = (raw: string) => {
-  const parsed = z.cuid().safeParse(raw);
+  const parsed = z.string().cuid().safeParse(raw);
   if (!parsed.success) throw new ApiError(404, "ไม่พบผู้เช่า");
   return parsed.data;
 };

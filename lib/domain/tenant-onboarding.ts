@@ -3,7 +3,7 @@ import { occupancyRoleSchema, occupancyStatusSchema } from "@/lib/domain/enums";
 
 // สร้างคำเชิญให้ผู้เช่า สิทธิ์และอายุรหัสถูกกำหนดตั้งแต่ตอนสร้าง ผู้รับเปลี่ยนเองไม่ได้
 export const createInvitationSchema = z.object({
-  roomId: z.cuid(),
+  roomId: z.string().cuid(),
   intendedRole: occupancyRoleSchema.default("CO_OCCUPANT"),
   // อายุไม่เกิน 30 วัน รหัสที่ค้างนานเกินไปเป็นความเสี่ยงถ้าหลุดออกไป
   expiresInDays: z.number().int().min(1).max(30).default(7),
@@ -37,7 +37,7 @@ export const acceptTenantInvitationSchema = z.object({
 }).strict();
 
 export const selectTenantOccupancySchema = z.object({
-  occupancyId: z.cuid(),
+  occupancyId: z.string().cuid(),
 }).strict();
 
 // เอาเฉพาะสองค่านี้จากรายการสถานะเต็ม เพราะ PENDING เป็นค่าตั้งต้น ไม่ใช่ผลการตรวจ

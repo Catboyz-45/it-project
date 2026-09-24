@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const paymentId = z.cuid().safeParse((await context.params).paymentId);
+    const paymentId = z.string().cuid().safeParse((await context.params).paymentId);
     if (!paymentId.success) throw new ApiError(404, "ไม่พบหลักฐานการชำระ");
     const result = await reviewSubscriptionPayment(
       paymentId.data,

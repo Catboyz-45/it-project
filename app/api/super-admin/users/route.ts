@@ -9,7 +9,7 @@ const schema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   displayName: z.string().trim().min(2).max(120),
   password: z.string().min(12).max(128),
-  propertyIds: z.array(z.cuid()).min(1).max(50),
+  propertyIds: z.array(z.string().cuid()).min(1).max(50),
 }).strict();
 
 // ผู้ดูแลระบบสร้างบัญชีเจ้าของหอ พร้อมกำหนดว่าดูแลหอไหนได้บ้าง

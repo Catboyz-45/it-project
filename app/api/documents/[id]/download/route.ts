@@ -7,7 +7,7 @@ import { requirePropertyAccess, requireRequestAuth } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 
-const idSchema = z.cuid();
+const idSchema = z.string().cuid();
 
 // ดาวน์โหลดเอกสารที่สร้างไว้ ตรวจสิทธิ์ก่อนอ่านไฟล์จากที่เก็บ
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
