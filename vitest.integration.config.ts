@@ -6,6 +6,10 @@ import { defineConfig } from "vitest/config";
 // import.meta.url คือพาธของไฟล์นี้ แปลงเป็นพาธจริงเพื่อใช้เป็นรากของโปรเจกต์
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
+// ไคลเอนต์ Prisma กับไฟล์ตั้งค่าไม่ใช่โค้ดที่เราเขียน จึงไม่นับรวมใน coverage
+// ถ้าปล่อยไว้ พาธพวกนี้จะโผล่ใน lcov แล้ว SonarQube หาไฟล์จริงไม่เจอ
+const coverageExclude = ["generated/**", "**/*.config.*", "**/.next/**", "node_modules/**"];
+
 export default defineConfig({
   root: projectRoot,
   resolve: { alias: { "@": projectRoot } },
@@ -30,6 +34,6 @@ export default defineConfig({
     hookTimeout: 30_000,
     // แยกโฟลเดอร์จากชุด unit ไม่งั้นรายงานของสองชุดจะเขียนทับกัน
     // ชุดนี้คือชุดเดียวที่วิ่งผ่าน route handler ใน app/api จริง ๆ
-    coverage: { reporter: ["text", "lcov"], reportsDirectory: "coverage-integration" },
+    coverage: { exclude: coverageExclude, reporter: ["text", "lcov"], reportsDirectory: "coverage-integration" },
   },
 });
