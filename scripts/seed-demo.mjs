@@ -267,6 +267,47 @@ try {
   }
 
   // พัสดุ เรื่องแจ้งซ่อม และประกาศ ให้ทุกเมนูมีข้อมูลให้กด
+  // แม่แบบเอกสาร ถ้าไม่มีอันนี้ การสร้าง PDF สัญญาและใบแจ้งหนี้จะตอบว่าไม่พบแม่แบบ
+  // ช่อง {{...}} จะถูกแทนด้วยข้อมูลจริงตอนสร้างไฟล์
+  const templates = [
+    ["CONTRACT", "สัญญาเช่ามาตรฐาน", `
+      <h1>สัญญาเช่าห้องพัก</h1>
+      <p>เลขที่สัญญา {{reference_id}}</p>
+      <p>ทำที่ {{property_name}} ห้อง {{room_number}}</p>
+      <p>ผู้เช่า <strong>{{tenant_name}}</strong> โทร {{tenant_phone}}</p>
+      <p>ที่อยู่ตามทะเบียนบ้าน {{tenant_address}}</p>
+      <p>ระยะเวลาเช่าตั้งแต่ {{start_date}} ถึง {{end_date}}</p>
+      <p>ค่าเช่าเดือนละ {{rent_amount}} บาท เงินประกัน {{deposit_amount}} บาท</p>
+      <p>ผู้เช่าตกลงชำระค่าเช่าภายในวันที่กำหนดของทุกเดือน และดูแลรักษาห้องพักให้อยู่ในสภาพเรียบร้อย</p>
+      <p>ลงชื่อ ............................................ ผู้ให้เช่า</p>
+      <p>ลงชื่อ ............................................ ผู้เช่า</p>
+    `],
+    ["INVOICE", "ใบแจ้งหนี้มาตรฐาน", `
+      <h1>ใบแจ้งหนี้</h1>
+      <p>เลขที่ {{reference_id}} รอบบิล {{billing_month}}</p>
+      <p>{{property_name}} ห้อง {{room_number}}</p>
+      <p>เรียน {{tenant_name}}</p>
+      <table>
+        <tr><th>รายการ</th><th>จำนวนเงิน (บาท)</th></tr>
+        <tr><td>ค่าเช่าห้อง</td><td>{{rent_amount}}</td></tr>
+        <tr><td>ค่าน้ำ</td><td>{{water_amount}}</td></tr>
+        <tr><td>ค่าไฟ</td><td>{{electricity_amount}}</td></tr>
+        <tr><td>ค่าส่วนกลาง</td><td>{{service_amount}}</td></tr>
+        <tr><td><strong>รวมทั้งสิ้น</strong></td><td><strong>{{total_amount}}</strong></td></tr>
+      </table>
+      <p>กรุณาชำระภายในวันที่กำหนด หากมีข้อสงสัยติดต่อสำนักงานหอพัก</p>
+    `],
+  ];
+  for (const [kind, name, html] of templates) {
+    await run(
+      `INSERT INTO "DocumentTemplate" ("id","propertyId","kind","name","html","version","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("propertyId","kind") DO UPDATE SET
+         "name" = EXCLUDED."name", "html" = EXCLUDED."html", "updatedAt" = CURRENT_TIMESTAMP`,
+      [`demo-template-${kind.toLowerCase()}`, propertyId, kind, name, html.trim()],
+    );
+  }
+
   await run(
     `INSERT INTO "Parcel" ("id","propertyId","roomId","recipientTenantId","note","status","registeredById","registeredAt","createdAt","updatedAt")
      VALUES ($1,$2,$3,$4,'พัสดุไปรษณีย์ไทย เลขติดตาม TH12345678','WAITING',$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
