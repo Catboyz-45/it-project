@@ -64,16 +64,16 @@ export function DatePickerField({
   onChange,
   placeholder = "เลือกวันที่",
   value,
-}: {
+}: Readonly<{
   label: string;
   maxDate?: Date;
   minDate?: Date;
   onChange: (value: string) => void;
   placeholder?: string;
   value: string;
-}) {
+}>) {
   const pickerId = useId();
-  const pickerRef = useRef<HTMLLabelElement | null>(null);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const calendarRef = useRef<HTMLDivElement | null>(null);
   // ค่าที่รับมาเป็นสตริง แปลงเป็น Date ไว้ใช้ภายใน ค่าที่รูปแบบผิดจะได้ null
@@ -282,7 +282,10 @@ export function DatePickerField({
   };
 
   return (
-    <label ref={pickerRef}>
+    // ไม่ใช่ label เพราะข้างในเป็นปุ่มเปิดปฏิทิน ซึ่ง label ผูกด้วยไม่ได้ตามสเปก
+    // ชื่อที่โปรแกรมอ่านหน้าจอใช้มาจาก aria-label ของปุ่ม ไม่ใช่ span ที่เห็น
+    // เพราะ span มีดอกจันของช่องบังคับกรอกติดอยู่ ถ้าอ่านตามจะได้ยินคำว่า "ดาว"
+    <div className="field-stack" ref={pickerRef}>
       <span>{label}</span>
       <div className="schedule-date-picker">
         {/* ตัดดอกจันของช่องบังคับกรอกออกจาก label ไม่งั้นโปรแกรมอ่านหน้าจอจะอ่านว่า "ดาว" */}
@@ -315,9 +318,12 @@ export function DatePickerField({
                 type="button"
               >
                 {/* +543 แปลงเป็นปี พ.ศ. ส่วนข้อมูลที่เก็บยังเป็น ค.ศ. เหมือนเดิม */}
-                {viewMode === "day"
-                  ? <><strong>{monthOnlyLabel}</strong> <span>{visibleYear + 543}</span></>
-                  : viewMode === "month" ? visibleYear + 543 : `${yearRangeStart + 543} - ${yearRangeStart + 554}`}
+                <PeriodLabel
+                  monthOnlyLabel={monthOnlyLabel}
+                  viewMode={viewMode}
+                  visibleYear={visibleYear}
+                  yearRangeStart={yearRangeStart}
+                />
               </button>
               <IconButton label="ช่วงถัดไป" onClick={() => moveVisiblePeriod(1)}><ChevronRight size={20} /></IconButton>
             </div>
@@ -395,6 +401,19 @@ export function DatePickerField({
           </div>
         ) : null}
       </div>
-    </label>
+    </div>
   );
+}
+
+// ป้ายช่วงเวลาบนหัวปฏิทิน เปลี่ยนตามว่ากำลังเลือกวัน เดือน หรือปี
+// +543 แปลงเป็นปี พ.ศ. ส่วนข้อมูลที่เก็บยังเป็น ค.ศ. เหมือนเดิม
+function PeriodLabel({ monthOnlyLabel, viewMode, visibleYear, yearRangeStart }: Readonly<{
+  monthOnlyLabel: string;
+  viewMode: "day" | "month" | "year";
+  visibleYear: number;
+  yearRangeStart: number;
+}>) {
+  if (viewMode === "day") return <><strong>{monthOnlyLabel}</strong> <span>{visibleYear + 543}</span></>;
+  if (viewMode === "month") return <>{visibleYear + 543}</>;
+  return <>{`${yearRangeStart + 543} - ${yearRangeStart + 554}`}</>;
 }

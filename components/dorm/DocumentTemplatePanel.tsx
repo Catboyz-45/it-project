@@ -13,17 +13,78 @@ import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { RetryButton } from "@/components/ui/DataNavigation";
 import { IconButton } from "@/components/ui/IconButton";
+import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
 // การ์ดสรุปในหน้าตั้งค่า บอกว่ามี Template แล้วหรือยัง พร้อมปุ่มไปหน้าแก้ไข
+// สถานะของโครงเอกสาร ใช้เลือกว่าจะแสดงอะไรในกรอบ
+type TemplateStatus = "loading" | "missing" | "ready" | "failed";
+
+function templateStatusOf({ error, isLoading, template }: {
+  error: string;
+  isLoading: boolean;
+  template: DocumentTemplateDto | null;
+}): TemplateStatus {
+  if (template) return "ready";
+  if (isLoading) return "loading";
+  return error ? "failed" : "missing";
+}
+
+async function loadTemplateRequest(kind: DocumentKind, propertyId: string) {
+  const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, { cache: "no-store" });
+  const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
+  if (!response.ok) throw new Error(result.error || "โหลด template ไม่สำเร็จ");
+  return result.template ?? null;
+}
+
+async function createTemplateRequest(kind: DocumentKind, propertyId: string) {
+  const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
+  if (!response.ok || !result.template) throw new Error(result.error || "สร้างโครงเอกสารไม่สำเร็จ");
+  return result.template;
+}
+
+// เปิดแท็บใหม่ไว้ก่อนแล้วค่อยพาไปที่ไฟล์ เพราะเบราว์เซอร์บล็อกการเปิดแท็บหลัง await
+async function previewTemplateRequest(kind: DocumentKind, propertyId: string) {
+  const previewWindow = window.open("", "_blank");
+  try {
+    const response = await fetch(`/api/documents/preview?propertyId=${encodeURIComponent(propertyId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind }),
+    });
+    if (!response.ok) {
+      const result = await response.json() as { error?: string };
+      throw new Error(result.error || "สร้างตัวอย่างไม่สำเร็จ");
+    }
+    const url = URL.createObjectURL(await response.blob());
+    if (previewWindow) previewWindow.location.href = url;
+    // คืนหน่วยความจำหลังผ่านไปสองนาที เผื่อผู้ใช้ยังเปิดดูอยู่
+    window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+  } catch (previewError) {
+    previewWindow?.close();
+    throw previewError;
+  }
+}
+
+// การจัดวางของย่อหน้าที่เคอร์เซอร์อยู่ ไม่ได้ใส่คลาสไว้ก็ถือว่าชิดซ้ายตามค่าเริ่มต้น
+function blockAlignment(block: Element | null) {
+  if (block?.classList.contains("text-center")) return "text-center";
+  return block?.classList.contains("text-right") ? "text-right" : "text-left";
+}
+
 export function DocumentTemplatePanel({
   editable = false,
   kind,
   propertyId,
-}: {
+}: Readonly<{
   editable?: boolean;
   kind: DocumentKind;
   propertyId: string;
-}) {
+}>) {
   const router = useRouter();
   const [template, setTemplate] = useState<DocumentTemplateDto | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -35,10 +96,7 @@ export function DocumentTemplatePanel({
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, { cache: "no-store" });
-      const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
-      if (!response.ok) throw new Error(result.error || "โหลด template ไม่สำเร็จ");
-      setTemplate(result.template ?? null);
+      setTemplate(await loadTemplateRequest(kind, propertyId));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "โหลด template ไม่สำเร็จ");
     } finally {
@@ -52,14 +110,7 @@ export function DocumentTemplatePanel({
     setIsCreating(true);
     setError("");
     try {
-      const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
-      if (!response.ok || !result.template) throw new Error(result.error || "สร้างโครงเอกสารไม่สำเร็จ");
-      setTemplate(result.template);
+      setTemplate(await createTemplateRequest(kind, propertyId));
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "สร้างโครงเอกสารไม่สำเร็จ");
     } finally {
@@ -68,24 +119,11 @@ export function DocumentTemplatePanel({
   };
 
   const preview = async () => {
-    const previewWindow = window.open("", "_blank");
     setIsPreviewing(true);
     setError("");
     try {
-      const response = await fetch(`/api/documents/preview?propertyId=${encodeURIComponent(propertyId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind }),
-      });
-      if (!response.ok) {
-        const result = await response.json() as { error?: string };
-        throw new Error(result.error || "สร้างตัวอย่างไม่สำเร็จ");
-      }
-      const url = URL.createObjectURL(await response.blob());
-      if (previewWindow) previewWindow.location.href = url;
-      window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      await previewTemplateRequest(kind, propertyId);
     } catch (previewError) {
-      previewWindow?.close();
       setError(previewError instanceof Error ? previewError.message : "สร้างตัวอย่างไม่สำเร็จ");
     } finally {
       setIsPreviewing(false);
@@ -93,40 +131,90 @@ export function DocumentTemplatePanel({
   };
 
   const title = kind === "contract" ? "โครงสัญญาหลัก" : "โครงบิลหลัก";
-  return (
-    <>
-      <section className="panel template-panel settings-section">
-        <div className="settings-section-head">
-          <div><h2>{title}</h2><p>จัดการรูปแบบและตรวจสอบตัวอย่างเอกสารที่ระบบสร้าง</p></div>
-          <small>{template ? `เวอร์ชัน ${template.version}` : isLoading ? "กำลังโหลด..." : "ยังไม่พร้อม"}</small>
-        </div>
-        {error ? <div className="template-status warn" role="alert">{error}</div> : null}
-        {template ? (
-          <>
-            <div className="template-actions">
-              <button className={editable ? "secondary-button" : "primary-button"} disabled={isPreviewing} onClick={() => void preview()} type="button"><Eye size={17} /> {isPreviewing ? "กำลังสร้างตัวอย่าง..." : "ดูตัวอย่างโครงเอกสาร"}</button>
-              {editable ? <button className="primary-button" onClick={() => router.push(`/settings/documents/${kind}/edit?propertyId=${encodeURIComponent(propertyId)}`)} type="button"><Settings2 size={17} /> เปิดหน้าแก้ไขเต็ม</button> : null}
-            </div>
-          </>
-        ) : !isLoading && !error ? (
-          <div className="empty-state">
-            <div>
-              <strong>หอนี้ยังไม่มี{title}</strong>
-              <p>{editable ? "สร้างจากโครงมาตรฐาน แล้วจึงปรับข้อความและรูปแบบให้เหมาะกับหอพัก" : "ยังไม่มีโครงเอกสารเดิมให้ดูตัวอย่าง"}</p>
-              {editable ? <button className="primary-button" disabled={isCreating} onClick={() => void createTemplate()} type="button">
-                <Plus size={17} /> {isCreating ? "กำลังสร้าง..." : `สร้าง${title}`}
-              </button> : null}
-            </div>
-          </div>
-        ) : !isLoading ? <RetryButton onClick={() => void loadTemplate()} /> : null}
-      </section>
-    </>
-  );
+  const status = templateStatusOf({ error, isLoading, template });
+
+  return <section className="panel template-panel settings-section">
+    <div className="settings-section-head">
+      <div><h2>{title}</h2><p>จัดการรูปแบบและตรวจสอบตัวอย่างเอกสารที่ระบบสร้าง</p></div>
+      <small><TemplateVersionLabel isLoading={isLoading} template={template} /></small>
+    </div>
+    {error ? <div className="template-status warn" role="alert">{error}</div> : null}
+    <TemplateBody
+      editable={editable}
+      isCreating={isCreating}
+      isPreviewing={isPreviewing}
+      kind={kind}
+      onCreate={createTemplate}
+      onOpenEditor={() => router.push(`/settings/documents/${kind}/edit?propertyId=${encodeURIComponent(propertyId)}`)}
+      onPreview={preview}
+      onRetry={loadTemplate}
+      status={status}
+      title={title}
+    />
+  </section>;
 }
+
+function TemplateVersionLabel({ isLoading, template }: Readonly<{ isLoading: boolean; template: DocumentTemplateDto | null }>) {
+  if (template) return <>เวอร์ชัน {template.version}</>;
+  return <>{isLoading ? "กำลังโหลด..." : "ยังไม่พร้อม"}</>;
+}
+
+// เนื้อในกรอบ ต่างกันตามว่ามีโครงเอกสารแล้วหรือยัง
+function TemplateBody({ editable, isCreating, isPreviewing, onCreate, onOpenEditor, onPreview, onRetry, status, title }: Readonly<{
+  editable: boolean;
+  isCreating: boolean;
+  isPreviewing: boolean;
+  kind: DocumentKind;
+  onCreate: () => Promise<void>;
+  onOpenEditor: () => void;
+  onPreview: () => Promise<void>;
+  onRetry: () => Promise<void>;
+  status: TemplateStatus;
+  title: string;
+}>) {
+  if (status === "ready") return <TemplateActions editable={editable} isPreviewing={isPreviewing} onOpenEditor={onOpenEditor} onPreview={onPreview} />;
+  if (status === "missing") return <TemplateMissingState editable={editable} isCreating={isCreating} onCreate={onCreate} title={title} />;
+  if (status === "failed") return <RetryButton onClick={() => void onRetry()} />;
+  return null;
+}
+
+// ปุ่มของโครงเอกสารที่มีอยู่แล้ว ดูตัวอย่างได้เสมอ ส่วนแก้ไขต้องมีสิทธิ์
+function TemplateActions({ editable, isPreviewing, onOpenEditor, onPreview }: Readonly<{
+  editable: boolean;
+  isPreviewing: boolean;
+  onOpenEditor: () => void;
+  onPreview: () => Promise<void>;
+}>) {
+  return <div className="template-actions">
+    <button className={editable ? "secondary-button" : "primary-button"} disabled={isPreviewing} onClick={() => void onPreview()} type="button">
+      <Eye size={17} /> {isPreviewing ? "กำลังสร้างตัวอย่าง..." : "ดูตัวอย่างโครงเอกสาร"}
+    </button>
+    {editable ? <button className="primary-button" onClick={onOpenEditor} type="button"><Settings2 size={17} /> เปิดหน้าแก้ไขเต็ม</button> : null}
+  </div>;
+}
+
+// ยังไม่มีโครงเอกสาร คนที่มีสิทธิ์สร้างจากโครงมาตรฐานได้เลย
+function TemplateMissingState({ editable, isCreating, onCreate, title }: Readonly<{
+  editable: boolean;
+  isCreating: boolean;
+  onCreate: () => Promise<void>;
+  title: string;
+}>) {
+  return <div className="empty-state">
+    <div>
+      <strong>หอนี้ยังไม่มี{title}</strong>
+      <p>{editable ? "สร้างจากโครงมาตรฐาน แล้วจึงปรับข้อความและรูปแบบให้เหมาะกับหอพัก" : "ยังไม่มีโครงเอกสารเดิมให้ดูตัวอย่าง"}</p>
+      {editable ? <button className="primary-button" disabled={isCreating} onClick={() => void onCreate()} type="button">
+        <Plus size={17} /> {isCreating ? "กำลังสร้าง..." : `สร้าง${title}`}
+      </button> : null}
+    </div>
+  </div>;
+}
+
 
 // ตัวแก้ไขเอกสารแบบเห็นผลจริง ใช้ contentEditable ของเบราว์เซอร์แทนการดึงไลบรารีมาทั้งตัว
 // หน้ากระดาษเป็น A4 และแบ่งหน้าให้อัตโนมัติ เพื่อให้สิ่งที่เห็นตรงกับ PDF ที่จะออกมา
-export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }: { kind: DocumentKind; onClose: () => void; onSaved: (template: DocumentTemplateDto) => void; propertyId: string; template: DocumentTemplateDto }) {
+export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }: Readonly<{ kind: DocumentKind; onClose: () => void; onSaved: (template: DocumentTemplateDto) => void; propertyId: string; template: DocumentTemplateDto }>) {
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -358,11 +446,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     if (!editor || !element || !editor.contains(element)) return;
     const block = element.closest("p,h1,h2,h3,h4,h5,h6,div,li,td,th");
     setActiveFormats({
-      alignment: block?.classList.contains("text-center")
-        ? "text-center"
-        : block?.classList.contains("text-right")
-          ? "text-right"
-          : "text-left",
+      alignment: blockAlignment(block),
       bold: Boolean(element.closest("strong,b")),
       italic: Boolean(element.closest("em,i")),
       underline: Boolean(element.closest("u")),
@@ -392,13 +476,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const currentIndex = controls.indexOf(document.activeElement as HTMLElement);
     if (currentIndex < 0) return;
     event.preventDefault();
-    const nextIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? controls.length - 1
-        : event.key === "ArrowRight"
-          ? (currentIndex + 1) % controls.length
-          : (currentIndex - 1 + controls.length) % controls.length;
+    const nextIndex = rovingIndex(event.key, currentIndex, controls.length);
     controls[nextIndex]?.focus();
   };
 
@@ -817,6 +895,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
               ref={editorRef}
               role="textbox"
               suppressContentEditableWarning
+              // contentEditable โฟกัสได้เองอยู่แล้ว ใส่ไว้ให้ชัดว่าเป็นตัวรับโฟกัสจริง ไม่ใช่กล่องเปล่า
+              tabIndex={0}
             />
           </div>
         </section>

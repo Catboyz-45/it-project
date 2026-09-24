@@ -7,6 +7,7 @@ import { TablePagination, useTablePagination } from "@/components/dorm/TablePagi
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { roomTypeLabel } from "@/lib/ui-labels";
 
 // ดูห้องได้สองแบบ การ์ดแบ่งตามอาคารกับชั้น หรือตารางเรียงยาว
 export function RoomsPage({
@@ -16,14 +17,14 @@ export function RoomsPage({
   readOnly = false,
   selectedRoom,
   setSelectedRoomId,
-}: {
+}: Readonly<{
   invoices: Invoice[];
   rooms: Room[];
   onEditRoom: () => void;
   readOnly?: boolean;
   selectedRoom?: Room;
   setSelectedRoomId: (roomId: string) => void;
-}) {
+}>) {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [selectedFloor, setSelectedFloor] = useState<number | "all">("all");
   // Set ตัดชั้นที่ซ้ำกันออก เหลือรายชื่อชั้นที่มีห้องอยู่จริง
@@ -55,6 +56,9 @@ export function RoomsPage({
     onEditRoom();
   };
 
+  const floorLabel = selectedFloor === "all" ? "ทุกชั้น" : `ชั้น ${selectedFloor}`;
+  const resultsLabel = `ผลการแสดงห้อง ${floorLabel} รูปแบบ${viewMode === "card" ? "การ์ด" : "ตาราง"}`;
+
   return (
     <section className="figma-rooms-page rooms-page-content">
       {readOnly ? <ReadOnlyNotice>เลือกห้องเพื่อดูรายละเอียดได้ และยังกรองชั้นหรือเปลี่ยนรูปแบบการแสดงผลได้ แต่ไม่สามารถแก้ไขข้อมูลห้อง</ReadOnlyNotice> : null}
@@ -77,58 +81,21 @@ export function RoomsPage({
         </div>
       </div>
       {/* key เปลี่ยนตามชั้นและมุมมอง เพื่อบังคับให้ React วาดใหม่ทั้งก้อน อนิเมชันเปลี่ยนหน้าจะได้เล่น */}
-      <div aria-label={`ผลการแสดงห้อง ${selectedFloor === "all" ? "ทุกชั้น" : `ชั้น ${selectedFloor}`} รูปแบบ${viewMode === "card" ? "การ์ด" : "ตาราง"}`} className="view-transition" id="rooms-results-panel" key={`${selectedFloor}-${viewMode}`} role="tabpanel" tabIndex={0}>
-      {/* ว่างเพราะเลือกชั้นที่ไม่มีห้อง กับว่างเพราะยังไม่มีห้องเลย ต้องบอกคนละแบบ */}
-      {visibleRooms.length === 0 && selectedFloor !== "all" ? <SearchEmptyState description="ลองเลือกชั้นอื่นหรือกลับไปดูทุกชั้น" title="ไม่พบห้องในชั้นที่เลือก" /> : visibleRooms.length === 0 ? <div className="empty-state">ยังไม่มีห้องพัก</div> : viewMode === "card" ? (
-        <div className="room-building-stack">
-          {roomGroups.map((building) => (
-            <section className="room-building-card" key={building.name}>
-              <header className="room-building-head">
-                <div><h2>{building.name}</h2><p>{building.roomCount.toLocaleString("th-TH")} ห้อง · {building.floors.length.toLocaleString("th-TH")} ชั้น</p></div>
-              </header>
-              <div className="room-floor-stack">
-                {building.floors.map((floor) => (
-                  <section className="room-floor-group" key={`${building.name}-${floor.number}`}>
-                    <header><div><strong>ชั้น {floor.number}</strong><small>{floor.rooms.length.toLocaleString("th-TH")} ห้อง</small></div><span aria-hidden="true" /></header>
-                    {/* ใส่เลขห้องกับสถานะใน label เพราะทุกการ์ดหน้าตาเหมือนกันหมด */}
-                    <div className="room-plan-grid">
-                      {floor.rooms.map((room) => (
-                        <button aria-label={`${readOnly ? "เปิดรายละเอียด" : "เปิดหน้าจัดการ"}ห้อง ${room.id} สถานะ${statusText[room.status]}`} className={`room-plan-card interactive-card ${selectedRoom?.id === room.id ? "selected" : ""}`} key={room.databaseId ?? `${building.name}-${room.floor}-${room.id}`} onClick={() => openRoomManagement(room.id)} type="button">
-                          <span className="room-plan-card-head"><strong>ห้อง {room.id}</strong><span className={getStatusClass(room.status)}>{statusText[room.status]}</span></span>
-                          <span className="room-plan-card-detail">{roomTypeLabel(room.roomType)} · {currency.format(room.rent)}/เดือน</span>
-                          <span className="room-plan-card-foot"><span>{room.status === "occupied" ? "มีผู้เช่า" : room.status === "maintenance" ? "กำลังซ่อมบำรุง" : "พร้อมเปิดเช่า"}</span>{overdueRooms.has(room.id) ? <strong>ค้างชำระ</strong> : <span className="interactive-card-action">{readOnly ? "ดูรายละเอียด" : "จัดการ"} <span aria-hidden="true">→</span></span>}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <article className="figma-table-card">
-          <div className="additional-card-head"><div><h2>รายการห้องพัก</h2><p>ข้อมูลห้องเรียงตามอาคาร ชั้น และเลขห้อง</p></div></div>
-          <div className="figma-table-wrap">
-            <table className="figma-table rooms-data-table">
-              <thead><tr><th scope="col">ห้อง</th><th scope="col">อาคาร</th><th scope="col">ชั้น</th><th scope="col">ประเภท</th><th scope="col">ค่าเช่า</th><th scope="col">ผู้เช่า</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-              <tbody>{pageItems.map((room) => (
-                <tr className={selectedRoom?.id === room.id ? "selected" : ""} key={room.databaseId ?? `${room.buildingName}-${room.floor}-${room.id}`}>
-                  <td><strong>ห้อง {room.id}</strong></td>
-                  <td>{room.buildingName || "อาคารหลัก"}</td>
-                  <td>ชั้น {room.floor}</td>
-                  <td>{roomTypeLabel(room.roomType)}</td>
-                  <td><strong>{currency.format(room.rent)}</strong></td>
-                  <td>{room.status === "occupied" ? "มีผู้เช่า" : "-"}</td>
-                  <td><span className={getStatusClass(room.status)}>{statusText[room.status]}</span></td>
-                  <td><button className="secondary-button" onClick={() => openRoomManagement(room.id)} type="button">ดูข้อมูล</button></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-          <TablePagination page={page} setPage={setPage} totalItems={visibleRooms.length} totalPages={totalPages} />
-        </article>
-      )}
+      <div aria-label={resultsLabel} className="view-transition" id="rooms-results-panel" key={`${selectedFloor}-${viewMode}`} role="tabpanel" tabIndex={0}>
+      <RoomsResults
+        onOpenRoom={openRoomManagement}
+        overdueRooms={overdueRooms}
+        page={page}
+        pageItems={pageItems}
+        readOnly={readOnly}
+        roomGroups={roomGroups}
+        selectedFloor={selectedFloor}
+        selectedRoomId={selectedRoom?.id}
+        setPage={setPage}
+        totalPages={totalPages}
+        viewMode={viewMode}
+        visibleRooms={visibleRooms}
+      />
       </div>
     </section>
   );
@@ -165,14 +132,129 @@ function groupRoomsByBuildingAndFloor(rooms: Room[]): RoomBuildingGroup[] {
   }).sort((a, b) => a.name.localeCompare(b.name, "th", { numeric: true }));
 }
 
-// แปลงประเภทห้องเป็นคำไทย ค่าที่ไม่รู้จักก็แสดงตามเดิม ดีกว่าโชว์ว่างเปล่า
-function roomTypeLabel(roomType: string) {
-  if (roomType === "air") return "ห้องแอร์";
-  if (roomType === "fan") return "ห้องพัดลม";
-  return roomType;
+// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
+function Summary({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: number }>) {
+  return <article className={`figma-summary-card compact tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }
 
-// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function Summary({ icon, label, tone, value }: { icon: React.ReactNode; label: string; tone: string; value: number }) {
-  return <article className={`figma-summary-card compact tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
+type RoomGroups = ReturnType<typeof groupRoomsByBuildingAndFloor>;
+
+// คำบรรยายท้ายการ์ดห้อง บอกว่าห้องนี้อยู่ในสถานะไหน
+function roomStatusCaption(status: Room["status"]) {
+  if (status === "occupied") return "มีผู้เช่า";
+  if (status === "maintenance") return "กำลังซ่อมบำรุง";
+  return "พร้อมเปิดเช่า";
+}
+
+// ว่างเพราะเลือกชั้นที่ไม่มีห้อง กับว่างเพราะยังไม่มีห้องเลย ต้องบอกคนละแบบ
+function RoomsResults({ onOpenRoom, overdueRooms, page, pageItems, readOnly, roomGroups, selectedFloor, selectedRoomId, setPage, totalPages, viewMode, visibleRooms }: Readonly<{
+  onOpenRoom: (roomId: string) => void;
+  overdueRooms: Set<string>;
+  page: number;
+  pageItems: Room[];
+  readOnly: boolean;
+  roomGroups: RoomGroups;
+  selectedFloor: number | "all";
+  selectedRoomId?: string;
+  setPage: (page: number) => void;
+  totalPages: number;
+  viewMode: "card" | "table";
+  visibleRooms: Room[];
+}>) {
+  if (visibleRooms.length === 0 && selectedFloor !== "all") {
+    return <SearchEmptyState description="ลองเลือกชั้นอื่นหรือกลับไปดูทุกชั้น" title="ไม่พบห้องในชั้นที่เลือก" />;
+  }
+  if (visibleRooms.length === 0) return <div className="empty-state">ยังไม่มีห้องพัก</div>;
+  if (viewMode === "card") {
+    return <RoomPlanView onOpenRoom={onOpenRoom} overdueRooms={overdueRooms} readOnly={readOnly} roomGroups={roomGroups} selectedRoomId={selectedRoomId} />;
+  }
+  return <RoomTableView onOpenRoom={onOpenRoom} page={page} pageItems={pageItems} selectedRoomId={selectedRoomId} setPage={setPage} totalItems={visibleRooms.length} totalPages={totalPages} />;
+}
+
+// มุมมองการ์ด จัดกลุ่มตามอาคารและชั้นให้เหมือนผังห้องจริง
+function RoomPlanView({ onOpenRoom, overdueRooms, readOnly, roomGroups, selectedRoomId }: Readonly<{
+  onOpenRoom: (roomId: string) => void;
+  overdueRooms: Set<string>;
+  readOnly: boolean;
+  roomGroups: RoomGroups;
+  selectedRoomId?: string;
+}>) {
+  return <div className="room-building-stack">
+    {roomGroups.map((building) => <section className="room-building-card" key={building.name}>
+      <header className="room-building-head">
+        <div><h2>{building.name}</h2><p>{building.roomCount.toLocaleString("th-TH")} ห้อง · {building.floors.length.toLocaleString("th-TH")} ชั้น</p></div>
+      </header>
+      <div className="room-floor-stack">
+        {building.floors.map((floor) => <section className="room-floor-group" key={`${building.name}-${floor.number}`}>
+          <header><div><strong>ชั้น {floor.number}</strong><small>{floor.rooms.length.toLocaleString("th-TH")} ห้อง</small></div><span aria-hidden="true" /></header>
+          <div className="room-plan-grid">
+            {floor.rooms.map((room) => <RoomPlanCard
+              buildingName={building.name}
+              isOverdue={overdueRooms.has(room.id)}
+              isSelected={selectedRoomId === room.id}
+              key={room.databaseId ?? `${building.name}-${room.floor}-${room.id}`}
+              onOpen={onOpenRoom}
+              readOnly={readOnly}
+              room={room}
+            />)}
+          </div>
+        </section>)}
+      </div>
+    </section>)}
+  </div>;
+}
+
+// ใส่เลขห้องกับสถานะใน label เพราะทุกการ์ดหน้าตาเหมือนกันหมด
+function RoomPlanCard({ isOverdue, isSelected, onOpen, readOnly, room }: Readonly<{
+  buildingName: string;
+  isOverdue: boolean;
+  isSelected: boolean;
+  onOpen: (roomId: string) => void;
+  readOnly: boolean;
+  room: Room;
+}>) {
+  return <button
+    aria-label={`${readOnly ? "เปิดรายละเอียด" : "เปิดหน้าจัดการ"}ห้อง ${room.id} สถานะ${statusText[room.status]}`}
+    className={`room-plan-card interactive-card ${isSelected ? "selected" : ""}`}
+    onClick={() => onOpen(room.id)}
+    type="button"
+  >
+    <span className="room-plan-card-head"><strong>ห้อง {room.id}</strong><span className={getStatusClass(room.status)}>{statusText[room.status]}</span></span>
+    <span className="room-plan-card-detail">{roomTypeLabel(room.roomType)} · {currency.format(room.rent)}/เดือน</span>
+    <span className="room-plan-card-foot">
+      <span>{roomStatusCaption(room.status)}</span>
+      {isOverdue ? <strong>ค้างชำระ</strong> : <span className="interactive-card-action">{readOnly ? "ดูรายละเอียด" : "จัดการ"} <span aria-hidden="true">→</span></span>}
+    </span>
+  </button>;
+}
+
+// มุมมองตาราง ข้อมูลห้องเรียงตามอาคาร ชั้น และเลขห้อง
+function RoomTableView({ onOpenRoom, page, pageItems, selectedRoomId, setPage, totalItems, totalPages }: Readonly<{
+  onOpenRoom: (roomId: string) => void;
+  page: number;
+  pageItems: Room[];
+  selectedRoomId?: string;
+  setPage: (page: number) => void;
+  totalItems: number;
+  totalPages: number;
+}>) {
+  return <article className="figma-table-card">
+    <div className="additional-card-head"><div><h2>รายการห้องพัก</h2><p>ข้อมูลห้องเรียงตามอาคาร ชั้น และเลขห้อง</p></div></div>
+    <div className="figma-table-wrap">
+      <table className="figma-table rooms-data-table">
+        <thead><tr><th scope="col">ห้อง</th><th scope="col">อาคาร</th><th scope="col">ชั้น</th><th scope="col">ประเภท</th><th scope="col">ค่าเช่า</th><th scope="col">ผู้เช่า</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
+        <tbody>{pageItems.map((room) => <tr className={selectedRoomId === room.id ? "selected" : ""} key={room.databaseId ?? `${room.buildingName}-${room.floor}-${room.id}`}>
+          <td><strong>ห้อง {room.id}</strong></td>
+          <td>{room.buildingName || "อาคารหลัก"}</td>
+          <td>ชั้น {room.floor}</td>
+          <td>{roomTypeLabel(room.roomType)}</td>
+          <td><strong>{currency.format(room.rent)}</strong></td>
+          <td>{room.status === "occupied" ? "มีผู้เช่า" : "-"}</td>
+          <td><span className={getStatusClass(room.status)}>{statusText[room.status]}</span></td>
+          <td><button className="secondary-button" onClick={() => onOpenRoom(room.id)} type="button">ดูข้อมูล</button></td>
+        </tr>)}</tbody>
+      </table>
+    </div>
+    <TablePagination page={page} setPage={setPage} totalItems={totalItems} totalPages={totalPages} />
+  </article>;
 }

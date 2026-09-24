@@ -20,7 +20,12 @@ export async function GET(request: NextRequest, context: Context) {
     ]);
     return NextResponse.json({ data: [
       ...rooms.map((r) => ({ id: r.id, type: "room", title: `ห้อง ${r.number}`, subtitle: r.status, href: `/admin/properties/${propertyId}/rooms` })),
-      ...tenants.map((t) => ({ id: t.id, type: "tenant", title: t.user.displayName, subtitle: `${t.occupancies[0]?.room.number ? `ห้อง ${t.occupancies[0].room.number} · ` : ""}${t.phone}`, href: `/admin/properties/${propertyId}/tenants` })),
+      ...tenants.map((t) => {
+        // ผู้เช่าที่ยังไม่มีห้อง ให้ขึ้นแค่เบอร์โทร ไม่ต้องมีตัวคั่นลอยอยู่ข้างหน้า
+        const roomNumber = t.occupancies[0]?.room.number;
+        const roomPrefix = roomNumber ? `ห้อง ${roomNumber} · ` : "";
+        return { id: t.id, type: "tenant", title: t.user.displayName, subtitle: `${roomPrefix}${t.phone}`, href: `/admin/properties/${propertyId}/tenants` };
+      }),
       ...invoices.map((i) => ({ id: i.id, type: "invoice", title: i.invoiceNumber, subtitle: `ห้อง ${i.room.number} · ฿${i.total.toString()} · ${i.status}`, href: `/admin/properties/${propertyId}/invoices` })),
       ...leases.map((l) => ({ id: l.id, type: "lease", title: l.leaseNumber, subtitle: `ห้อง ${l.room.number} · ${l.status}`, href: `/admin/properties/${propertyId}/contracts` })),
     ] });

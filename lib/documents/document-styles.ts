@@ -1,10 +1,12 @@
 // เติมตัวนำหน้าให้ทุก selector ในรายการเดียว เช่น "p, h1" กลายเป็น ".document p, .document h1"
 // ทำให้สไตล์ของเอกสารไม่ไปกระทบส่วนอื่นของหน้าตอนแสดงในตัวแก้ไข
 function selector(scope: string, value: string) {
-  const prefix = scope.trim();
+  const trimmedScope = scope.trim();
+  // ไม่ได้ส่ง scope มาก็คืน selector เดิม ไม่ใช่เว้นวรรคนำหน้าลอย ๆ
+  const prefix = trimmedScope ? `${trimmedScope} ` : "";
   return value
     .split(",")
-    .map((item) => `${prefix ? `${prefix} ` : ""}${item.trim()}`)
+    .map((item) => `${prefix}${item.trim()}`)
     .join(",");
 }
 
