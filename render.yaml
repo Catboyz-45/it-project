@@ -10,6 +10,8 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     region: singapore
+    # branch ที่ deploy อยู่จริง ถ้าย้ายไป main แล้วให้แก้ตรงนี้ด้วย
+    branch: fix/datetime-columns-timestamptz
     # Dockerfile มี HEALTHCHECK อยู่แล้ว ตัวนี้บอก Render ว่าให้รอจนกว่า path นี้จะตอบ 200 ก่อนสลับเวอร์ชัน
     healthCheckPath: /api/health
     envVars:
@@ -35,6 +37,9 @@ services:
       # Cloudflare R2 ใช้ region auto และต้องระบุ endpoint ของบัญชีตัวเอง
       - key: AWS_REGION
         value: auto
+      # โฟลเดอร์นำหน้าใน bucket แยกไฟล์ของแอปออกจากของอย่างอื่น
+      - key: AWS_S3_PREFIX
+        value: documents
       - key: AWS_S3_ENDPOINT
         sync: false
       - key: AWS_S3_BUCKET
