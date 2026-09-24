@@ -132,6 +132,56 @@ describe("edit conflict and state guards", () => {
     })).resolves.toBeDefined();
   });
 
+  // id ของอาคาร ชั้น และห้องมาจากคำขอ ถ้าไม่ผูกกับหอที่กำลังทำงานอยู่
+  // เจ้าของหอหนึ่งจะยิงประกาศเข้าห้องของอีกหอได้ด้วยการเดา id
+  it("refuses announcement targets that belong to another property", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    const base = { title: "ประกาศทดสอบ", content: "เนื้อหา", status: "DRAFT" as const, roomIds: [] };
+
+    // สร้างอาคาร ชั้น ห้อง ไว้ในหออื่นเอง fixture ไม่ได้เตรียมให้
+    const foreignBuilding = await getDatabase().building.create({
+      data: {
+        propertyId: fixture.otherProperty.id, name: "Other Building", code: `OB-${fixture.suffix}`,
+        floors: { create: { propertyId: fixture.otherProperty.id, number: 1, label: "Floor 1" } },
+      },
+      include: { floors: true },
+    });
+    const foreignRoom = await getDatabase().room.create({
+      data: {
+        propertyId: fixture.otherProperty.id,
+        buildingId: foreignBuilding.id,
+        floorId: foreignBuilding.floors[0].id,
+        number: `OB-${fixture.suffix}`, roomType: "Standard", monthlyRent: 3000, depositAmount: 6000, capacity: 2,
+      },
+      select: { id: true, floorId: true, buildingId: true },
+    });
+
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, {
+      ...base, audience: "ROOM", roomIds: [foreignRoom.id],
+    })).rejects.toMatchObject({ status: 400 });
+
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, {
+      ...base, audience: "BUILDING", buildingId: foreignRoom.buildingId ?? undefined,
+    })).rejects.toMatchObject({ status: 400 });
+
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, {
+      ...base, audience: "FLOOR", floorId: foreignRoom.floorId ?? undefined,
+    })).rejects.toMatchObject({ status: 400 });
+  });
+
+  // เลือกขอบเขตแบบเจาะจงแล้วต้องบอกด้วยว่าเจาะจงไปที่ไหน
+  it("refuses a narrowed audience with no target chosen", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    const base = { title: "ประกาศทดสอบ", content: "เนื้อหา", status: "DRAFT" as const, roomIds: [] };
+
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, { ...base, audience: "BUILDING" }))
+      .rejects.toMatchObject({ status: 400 });
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, { ...base, audience: "FLOOR" }))
+      .rejects.toMatchObject({ status: 400 });
+    await expect(createAnnouncement(fixture.property.id, fixture.owner.id, { ...base, audience: "ROOM" }))
+      .rejects.toMatchObject({ status: 400 });
+  });
+
   // ประกาศของหออื่นต้องหาไม่เจอ ไม่ใช่แก้ได้แล้วค่อยไปเช็คสิทธิ์ทีหลัง
   it("cannot reach an announcement that belongs to another property", async () => {
     const announcement = await createAnnouncement(fixture!.property.id, fixture!.owner.id, {
