@@ -59,7 +59,7 @@
     "@types/sanitize-html": "^2.16.1",
     "@vitest/coverage-v8": "^4.1.11",
     "dotenv": "^17.4.2",
-    "eslint": "9.39.5",
+    "eslint": "10.11.0",
     "eslint-config-next": "16.3.4",
     "prisma": "7.9.1",
     "sonarqube-scanner": "^5.0.1",
