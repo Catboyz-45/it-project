@@ -1,0 +1,35 @@
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: ตัวตั้งเวลาของงานบำรุงรักษา ใช้ GitHub Actions แทนบริการตั้งเวลาที่ต้องเสียเงิน
+# การทำงาน: ยิงเรียก endpoint ของระบบวันละครั้ง โดยใช้สคริปต์เดิมในโหมดรันครั้งเดียว
+#           ความลับอ่านจาก GitHub Secrets ไม่มีค่าจริงอยู่ในไฟล์นี้
+
+name: Maintenance job
+
+on:
+  # 19:30 UTC = 02:30 ตามเวลาไทย เป็นช่วงที่ไม่มีคนใช้งาน
+  schedule:
+    - cron: "30 19 * * *"
+  # เปิดให้กดรันเองได้จากหน้า Actions ไว้ทดสอบหรือสั่งรันนอกรอบ
+  workflow_dispatch:
+
+# อ่านโค้ดอย่างเดียวพอ ไม่ต้องให้สิทธิ์เขียนอะไรกับ repo
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # กันงานค้างกินเวลาไปเรื่อย ๆ ถ้าปลายทางไม่ตอบ
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # ไม่ต้อง npm install เพราะสคริปต์ใช้แค่ fetch ที่มากับ Node
+      - name: เรียกงานบำรุงรักษา
+        run: node scripts/maintenance-worker.mjs
+        env:
+          JOB_RUN_ONCE: "true"
+          JOB_ENDPOINT: ${{ secrets.JOB_ENDPOINT }}
+          JOB_SECRET: ${{ secrets.JOB_SECRET }}
