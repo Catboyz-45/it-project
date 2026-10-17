@@ -1,0 +1,127 @@
+# คำอธิบายสำหรับผู้เริ่มต้น
+# ภาพรวมไฟล์: workflow deploy ขึ้น VPS รันต่อจาก CI เมื่อ CI ผ่านบน main หรือกดสั่งเองจากแท็บ Actions
+# การทำงาน: build image ของแอปและของ migrate แล้ว push ไป GHCR (tag latest และ sha-xxxxxxx)
+#           จากนั้น SSH เข้า VPS ไปที่ ~/nestly สั่ง docker compose pull + up -d แล้วเช็ก /api/health
+#           ถ้ายังไม่ได้ตั้ง Variable APP_URL ของ repo ขั้น deploy จะถูกข้าม (build + push ยังทำตามปกติ)
+# Secrets ที่ต้องตั้ง: VPS_HOST, VPS_USER, VPS_SSH_KEY / Variable: APP_URL เช่น https://nestlyspace.tech
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    # workflow_run ทำงานแม้ CI ล้ม จึงต้องเช็กผลเองว่าผ่านจริง
+    # และต้องมาจากการ push เข้า main เท่านั้น ไม่ใช่ PR หรือ CI ที่ตั้งเวลารันทุกสัปดาห์
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: ตั้งชื่อ image และ tag
+        id: vars
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build และ push image ของแอป
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}:latest
+            ${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=runner
+          cache-to: type=gha,mode=max,scope=runner
+
+      - name: Build และ push image ของ migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrator
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}-migrator:latest
+            ${{ steps.vars.outputs.image }}-migrator:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=migrator
+          cache-to: type=gha,mode=max,scope=migrator
+
+  deploy:
+    needs: build-push
+    if: vars.APP_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # deploy ทีละครั้ง ถ้ามีรอบใหม่เข้ามาระหว่างนั้นให้รอ ไม่ยกเลิกรอบที่กำลังทำ
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # copy เฉพาะ docker-compose.yml ไม่ copy docker-compose.override.yml
+      # บน VPS จึงไม่เปิด port ของฐานข้อมูล
+      - name: Copy docker-compose.yml ไป VPS
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: docker-compose.yml
+          target: nestly
+
+      # ใช้ tag sha แทน latest ให้รู้แน่ว่ากำลังรันเวอร์ชันไหน และย้อนกลับได้ด้วยการ deploy sha เดิม
+      - name: Pull และเริ่มแอปใหม่บน VPS
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          APP_IMAGE: ${{ needs.build-push.outputs.image }}:${{ needs.build-push.outputs.tag }}
+          MIGRATOR_IMAGE: ${{ needs.build-push.outputs.image }}-migrator:${{ needs.build-push.outputs.tag }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: APP_IMAGE,MIGRATOR_IMAGE
+          script: |
+            set -e
+            cd ~/nestly
+            docker compose pull
+            docker compose up -d --no-build --remove-orphans
+            docker image prune -f
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "${{ vars.APP_URL }}/api/health"; then exit 0; fi
+            echo "รอแอปพร้อม... ($i)"; sleep 5
+          done
+          echo "health check ไม่ผ่าน"; exit 1
