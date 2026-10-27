@@ -16,8 +16,7 @@ services:
       POSTGRES_DB: dorm
       POSTGRES_USER: dorm_app
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-    ports:
-      - "127.0.0.1:5432:5432"
+    # ไม่เปิด port ของฐานข้อมูลออกนอก container ตอน dev ที่ต้องต่อจากเครื่อง ดู docker-compose.override.yml
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,6 +29,8 @@ services:
     build:
       context: .
       target: migrator
+    # บน VPS ดึง image ที่ GitHub Actions build ไว้แล้วจาก GHCR ในเครื่องใช้ชื่อ local ที่ build เอง
+    image: ${MIGRATOR_IMAGE:-nestly-migrator:local}
     environment:
       DATABASE_URL: postgresql://dorm_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dorm?schema=public
     depends_on:
@@ -41,6 +42,7 @@ services:
     build:
       context: .
       target: runner
+    image: ${APP_IMAGE:-nestly-app:local}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://dorm_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dorm?schema=public
@@ -48,8 +50,13 @@ services:
       LOCAL_STORAGE_PATH: /app/storage/documents
       JOB_SECRET: ${JOB_SECRET:?Set JOB_SECRET to at least 32 random characters}
       SHOW_DEMO_CREDENTIALS: "false"
+      # ใช้ประกอบลิงก์ในอีเมลรีเซ็ตรหัสผ่าน ถ้าไม่ตั้งค่า Resend ครบ ฟีเจอร์นี้จะตอบ 503 ตามที่ตั้งใจไว้
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      PASSWORD_RESET_EMAIL_FROM: ${PASSWORD_RESET_EMAIL_FROM:-}
+    # bind ที่ 127.0.0.1 เสมอ ให้คนนอกเข้าได้ผ่าน nginx เท่านั้น
     ports:
-      - "127.0.0.1:3000:3000"
+      - "${APP_PORT:-127.0.0.1:3000}:3000"
     volumes:
       - app_storage:/app/storage
     depends_on:
@@ -65,8 +72,13 @@ services:
     build:
       context: .
       target: runner
+    image: ${APP_IMAGE:-nestly-app:local}
     restart: unless-stopped
     command: ["node", "scripts/maintenance-worker.mjs"]
+    # image เดียวกับแอปมี HEALTHCHECK ที่เรียก port 3000 แต่ container นี้ไม่ได้เปิดเว็บ
+    # ถ้าไม่ปิดจะขึ้นสถานะ unhealthy ตลอดทั้งที่ทำงานปกติ
+    healthcheck:
+      disable: true
     environment:
       JOB_ENDPOINT: http://app:3000/api/internal/jobs/maintenance
       JOB_SECRET: ${JOB_SECRET:?Set JOB_SECRET to at least 32 random characters}
