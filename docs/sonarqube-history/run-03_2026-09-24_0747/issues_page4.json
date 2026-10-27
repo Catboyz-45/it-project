@@ -1,0 +1,3081 @@
+{
+  "total": 623,
+  "p": 4,
+  "ps": 200,
+  "paging": {
+    "pageIndex": 4,
+    "pageSize": 200,
+    "total": 623
+  },
+  "effortTotal": 5001,
+  "issues": [
+    {
+      "key": "c027aa4b-13a7-42a0-9314-c316f0f071a8",
+      "rule": "javascript:S4624",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/generate-api-reference.mjs",
+      "project": "nestly",
+      "line": 122,
+      "hash": "f6c4e164dda71a9e4312c0f7a58a3f45",
+      "textRange": {
+        "startLine": 122,
+        "endLine": 122,
+        "startOffset": 50,
+        "endOffset": 65
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this code to not use nested template literals.",
+      "effort": "10min",
+      "debt": "10min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "confusing",
+        "editable-source",
+        "es2015"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "1eff1f90-e780-4dab-8b88-0afa8e061ff4",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/openapi-request-contracts.mjs",
+      "project": "nestly",
+      "line": 9,
+      "hash": "1820ad5c2278fd9bdffa3549e35a5104",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 37,
+        "endOffset": 63
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "125e90df-c318-4cb2-8f41-853d8072224c",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 20,
+      "hash": "464c358b88775a38dee190ac9ee6933e",
+      "textRange": {
+        "startLine": 20,
+        "endLine": 20,
+        "startOffset": 41,
+        "endOffset": 61
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "70c1fc21-c23d-4a75-9c53-9308767b7c5f",
+      "rule": "javascript:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 632,
+      "hash": "79353b36b6cf617cf08f8bb0faf49e75",
+      "textRange": {
+        "startLine": 632,
+        "endLine": 632,
+        "startOffset": 42,
+        "endOffset": 86
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Extract this nested ternary operation into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "confusing",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a06c9538-ccb0-41f2-8f7a-b3aecdfe1bb3",
+      "rule": "javascript:S3776",
+      "severity": "CRITICAL",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 701,
+      "hash": "5bc5d13bda9d23b7a40fb55239ec149b",
+      "textRange": {
+        "startLine": 701,
+        "endLine": 701,
+        "startOffset": 16,
+        "endOffset": 30
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 702,
+                "endLine": 702,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 703,
+                "endLine": 703,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 704,
+                "endLine": 704,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 705,
+                "endLine": 705,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 706,
+                "endLine": 706,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 707,
+                "endLine": 707,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 708,
+                "endLine": 708,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 709,
+                "endLine": 709,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 710,
+                "endLine": 710,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 711,
+                "endLine": 711,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 712,
+                "endLine": 712,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 713,
+                "endLine": 713,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 714,
+                "endLine": 714,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 715,
+                "endLine": 715,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 716,
+                "endLine": 716,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 717,
+                "endLine": 717,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 718,
+                "endLine": 718,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 719,
+                "endLine": 719,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 720,
+                "endLine": 720,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 721,
+                "endLine": 721,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 722,
+                "endLine": 722,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 723,
+                "endLine": 723,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 724,
+                "endLine": 724,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 725,
+                "endLine": 725,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 726,
+                "endLine": 726,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 727,
+                "endLine": 727,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 728,
+                "endLine": 728,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 729,
+                "endLine": 729,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 730,
+                "endLine": 730,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 731,
+                "endLine": 731,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 732,
+                "endLine": 732,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 733,
+                "endLine": 733,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 734,
+                "endLine": 734,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Refactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed.",
+      "effort": "23min",
+      "debt": "23min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "FOCUSED",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "bf51344a-c34a-4eaa-814f-5a73e6800fbd",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 705,
+      "hash": "7b6a824548dc940b2c0d559649c68370",
+      "textRange": {
+        "startLine": 705,
+        "endLine": 705,
+        "startOffset": 88,
+        "endOffset": 137
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "18df0db3-6e3b-42e9-a2c4-d462fbe12efd",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 734,
+      "hash": "2bb4fc89fd6bdaf5c547a835d4240f87",
+      "textRange": {
+        "startLine": 734,
+        "endLine": 734,
+        "startOffset": 16,
+        "endOffset": 74
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "59f4ba9b-6d00-4cf7-8d9d-ade8bbd199b5",
+      "rule": "javascript:S3776",
+      "severity": "CRITICAL",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 741,
+      "hash": "e028646dd44488255f6405a32e4c50c8",
+      "textRange": {
+        "startLine": 741,
+        "endLine": 741,
+        "startOffset": 16,
+        "endOffset": 35
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 742,
+                "endLine": 742,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 742,
+                "endLine": 742,
+                "startOffset": 23,
+                "endOffset": 25
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 745,
+                "endLine": 745,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 745,
+                "endLine": 745,
+                "startOffset": 23,
+                "endOffset": 25
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 748,
+                "endLine": 748,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 748,
+                "endLine": 748,
+                "startOffset": 23,
+                "endOffset": 25
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 749,
+                "endLine": 749,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 750,
+                "endLine": 750,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 751,
+                "endLine": 751,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 752,
+                "endLine": 752,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 753,
+                "endLine": 753,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 754,
+                "endLine": 754,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 755,
+                "endLine": 755,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 758,
+                "endLine": 758,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 759,
+                "endLine": 759,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 760,
+                "endLine": 760,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 761,
+                "endLine": 761,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 763,
+                "endLine": 763,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 766,
+                "endLine": 766,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 767,
+                "endLine": 767,
+                "startOffset": 28,
+                "endOffset": 29
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 769,
+                "endLine": 769,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 770,
+                "endLine": 770,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 771,
+                "endLine": 771,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 772,
+                "endLine": 772,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 772,
+                "endLine": 772,
+                "startOffset": 43,
+                "endOffset": 45
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 773,
+                "endLine": 773,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 774,
+                "endLine": 774,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 775,
+                "endLine": 775,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 776,
+                "endLine": 776,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 777,
+                "endLine": 777,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 778,
+                "endLine": 778,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 779,
+                "endLine": 779,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 779,
+                "endLine": 779,
+                "startOffset": 36,
+                "endOffset": 38
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 780,
+                "endLine": 780,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 781,
+                "endLine": 781,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 782,
+                "endLine": 782,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 783,
+                "endLine": 783,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 784,
+                "endLine": 784,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 785,
+                "endLine": 785,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 786,
+                "endLine": 786,
+                "startOffset": 35,
+                "endOffset": 36
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 788,
+                "endLine": 788,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 788,
+                "endLine": 788,
+                "startOffset": 39,
+                "endOffset": 41
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 789,
+                "endLine": 789,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 790,
+                "endLine": 790,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 791,
+                "endLine": 791,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 792,
+                "endLine": 792,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 793,
+                "endLine": 793,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 794,
+                "endLine": 794,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 795,
+                "endLine": 795,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 796,
+                "endLine": 796,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 797,
+                "endLine": 797,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 798,
+                "endLine": 798,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 799,
+                "endLine": 799,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 800,
+                "endLine": 800,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 801,
+                "endLine": 801,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 802,
+                "endLine": 802,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 803,
+                "endLine": 803,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 804,
+                "endLine": 804,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 805,
+                "endLine": 805,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 806,
+                "endLine": 806,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 806,
+                "endLine": 806,
+                "startOffset": 91,
+                "endOffset": 92
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 806,
+                "endLine": 806,
+                "startOffset": 143,
+                "endOffset": 145
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 807,
+                "endLine": 807,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 808,
+                "endLine": 808,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 809,
+                "endLine": 809,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 809,
+                "endLine": 809,
+                "startOffset": 83,
+                "endOffset": 84
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 809,
+                "endLine": 809,
+                "startOffset": 140,
+                "endOffset": 142
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 811,
+                "endLine": 811,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 811,
+                "endLine": 811,
+                "startOffset": 38,
+                "endOffset": 40
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 812,
+                "endLine": 812,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 813,
+                "endLine": 813,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 814,
+                "endLine": 814,
+                "startOffset": 2,
+                "endOffset": 5
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 815,
+                "endLine": 815,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 817,
+                "endLine": 817,
+                "startOffset": 41,
+                "endOffset": 43
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 819,
+                "endLine": 819,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 820,
+                "endLine": 820,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 821,
+                "endLine": 821,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 822,
+                "endLine": 822,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 823,
+                "endLine": 823,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 824,
+                "endLine": 824,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 825,
+                "endLine": 825,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 826,
+                "endLine": 826,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 827,
+                "endLine": 827,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/openapi-response-contracts.mjs",
+              "textRange": {
+                "startLine": 828,
+                "endLine": 828,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Refactor this function to reduce its Cognitive Complexity from 107 to the 15 allowed.",
+      "effort": "1h37min",
+      "debt": "1h37min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "FOCUSED",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "6d224089-e90b-4959-aa2c-4ddd18524fbf",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 776,
+      "hash": "65fa5c0bfe0d5bcb56006fa31cb130f4",
+      "textRange": {
+        "startLine": 776,
+        "endLine": 776,
+        "startOffset": 6,
+        "endOffset": 55
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "54c82984-abf7-407a-8cee-cf524b464d4d",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 777,
+      "hash": "9915ffc6a9b3acd19f873ab8a51cef7d",
+      "textRange": {
+        "startLine": 777,
+        "endLine": 777,
+        "startOffset": 6,
+        "endOffset": 37
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "61063c69-5fdb-46d3-8541-95f762ed0998",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 781,
+      "hash": "22a7b7d04f5de34ec108a2fbd8fe9e39",
+      "textRange": {
+        "startLine": 781,
+        "endLine": 781,
+        "startOffset": 6,
+        "endOffset": 65
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "c9695b1b-6600-4668-acb3-eaba5cd7cc57",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 782,
+      "hash": "482fc63be144011909c050044e6d716b",
+      "textRange": {
+        "startLine": 782,
+        "endLine": 782,
+        "startOffset": 6,
+        "endOffset": 68
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b870e4aa-36cd-4839-a1d6-a2bd86ce26b7",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 783,
+      "hash": "1799d930a08cba1fffe027cb92a21441",
+      "textRange": {
+        "startLine": 783,
+        "endLine": 783,
+        "startOffset": 6,
+        "endOffset": 75
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "364f5594-20a6-40e6-8507-d64cf0dad2aa",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 785,
+      "hash": "b1568ef99780e13d07c60a8ecbc5d670",
+      "textRange": {
+        "startLine": 785,
+        "endLine": 785,
+        "startOffset": 42,
+        "endOffset": 93
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "7c74bdaa-9b69-4d05-8b3e-88127d41424c",
+      "rule": "python:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sonar_report.py",
+      "project": "nestly",
+      "line": 177,
+      "hash": "368be7931de6c890b414f6cd657fb824",
+      "textRange": {
+        "startLine": 177,
+        "endLine": 177,
+        "startOffset": 54,
+        "endOffset": 105
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sonar_report.py",
+              "textRange": {
+                "startLine": 177,
+                "endLine": 177,
+                "startOffset": 26,
+                "endOffset": 28
+              },
+              "msg": "Parent conditional expression.",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Extract this nested conditional expression into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "confusing"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "672c5517-afa7-461f-82d0-c7f6ebcdbe6b",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 24,
+      "hash": "2b80210a635fae8a257bf5913cb8e135",
+      "textRange": {
+        "startLine": 24,
+        "endLine": 24,
+        "startOffset": 13,
+        "endOffset": 28
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "db09d06b-7fba-4095-88fe-5a1c92eaeee2",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 32,
+      "hash": "9ef918fe3707939fa1f6c08b9bf5ad2f",
+      "textRange": {
+        "startLine": 32,
+        "endLine": 32,
+        "startOffset": 13,
+        "endOffset": 27
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "51efb4e0-ca70-40f3-82d1-44564630e409",
+      "rule": "javascript:S3776",
+      "severity": "CRITICAL",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 40,
+      "hash": "870921c9fc071160d39a77a4b7bb3e27",
+      "textRange": {
+        "startLine": 40,
+        "endLine": 40,
+        "startOffset": 9,
+        "endOffset": 15
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 41,
+                "endLine": 41,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 42,
+                "endLine": 42,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 42,
+                "endLine": 42,
+                "startOffset": 112,
+                "endOffset": 113
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 42,
+                "endLine": 42,
+                "startOffset": 148,
+                "endOffset": 149
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 43,
+                "endLine": 43,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 43,
+                "endLine": 43,
+                "startOffset": 78,
+                "endOffset": 79
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 44,
+                "endLine": 44,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 45,
+                "endLine": 45,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 46,
+                "endLine": 46,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 47,
+                "endLine": 47,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 48,
+                "endLine": 48,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 49,
+                "endLine": 49,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sync-openapi-v1.mjs",
+              "textRange": {
+                "startLine": 50,
+                "endLine": 50,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.",
+      "effort": "7min",
+      "debt": "7min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "FOCUSED",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "3701fe0f-801e-40a6-8a89-1a61520c9686",
+      "rule": "javascript:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 42,
+      "hash": "b511995ca9a5d3b0e733bf89d91e74ae",
+      "textRange": {
+        "startLine": 42,
+        "endLine": 42,
+        "startOffset": 123,
+        "endOffset": 172
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Extract this nested ternary operation into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "confusing",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a10b10e3-17cc-46a1-80c1-51f51048d7c1",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 93,
+      "hash": "d7d0c933a8b50f9379de8e3f47b007eb",
+      "textRange": {
+        "startLine": 93,
+        "endLine": 93,
+        "startOffset": 42,
+        "endOffset": 56
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "3772f5ab-5397-4065-a97d-f0b4acbab8cf",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 113,
+      "hash": "6f11c17f8e8be80d60227b79128fb212",
+      "textRange": {
+        "startLine": 113,
+        "endLine": 113,
+        "startOffset": 43,
+        "endOffset": 69
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b49e5a16-260b-4ffd-8dd1-46b7d87984d6",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 143,
+      "hash": "6f11c17f8e8be80d60227b79128fb212",
+      "textRange": {
+        "startLine": 143,
+        "endLine": 143,
+        "startOffset": 43,
+        "endOffset": 69
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "490be5a4-9e94-49a9-b2e8-b557a6c91bd2",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 342,
+      "hash": "3a8743131faf5cc13b114eccb9af921e",
+      "textRange": {
+        "startLine": 342,
+        "endLine": 342,
+        "startOffset": 32,
+        "endOffset": 96
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    }
+  ],
+  "components": [
+    {
+      "key": "nestly:scripts/generate-api-reference.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "generate-api-reference.mjs",
+      "longName": "scripts/generate-api-reference.mjs",
+      "path": "scripts/generate-api-reference.mjs"
+    },
+    {
+      "key": "nestly:scripts/openapi-request-contracts.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "openapi-request-contracts.mjs",
+      "longName": "scripts/openapi-request-contracts.mjs",
+      "path": "scripts/openapi-request-contracts.mjs"
+    },
+    {
+      "key": "nestly:scripts/openapi-response-contracts.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "openapi-response-contracts.mjs",
+      "longName": "scripts/openapi-response-contracts.mjs",
+      "path": "scripts/openapi-response-contracts.mjs"
+    },
+    {
+      "key": "nestly:scripts/sonar_report.py",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "sonar_report.py",
+      "longName": "scripts/sonar_report.py",
+      "path": "scripts/sonar_report.py"
+    },
+    {
+      "key": "nestly:scripts/sync-openapi-v1.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "sync-openapi-v1.mjs",
+      "longName": "scripts/sync-openapi-v1.mjs",
+      "path": "scripts/sync-openapi-v1.mjs"
+    },
+    {
+      "key": "nestly",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "Nestly",
+      "longName": "Nestly"
+    }
+  ],
+  "facets": []
+}

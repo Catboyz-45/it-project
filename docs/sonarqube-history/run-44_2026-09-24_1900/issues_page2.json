@@ -1,0 +1,819 @@
+{
+  "total": 216,
+  "p": 2,
+  "ps": 200,
+  "paging": {
+    "pageIndex": 2,
+    "pageSize": 200,
+    "total": 216
+  },
+  "effortTotal": 1715,
+  "issues": [
+    {
+      "key": "49f9b08d-aeb2-4a3c-943c-712dc6db04d1",
+      "rule": "javascript:S4624",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/check-openapi.mjs",
+      "project": "nestly",
+      "line": 159,
+      "hash": "8cec150c9c68e70ebefd0924da5de884",
+      "textRange": {
+        "startLine": 159,
+        "endLine": 159,
+        "startOffset": 83,
+        "endOffset": 98
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this code to not use nested template literals.",
+      "effort": "10min",
+      "debt": "10min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "confusing",
+        "editable-source",
+        "es2015"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "6177fed9-c798-4abe-9b50-22ef89b0cfa7",
+      "rule": "javascript:S4624",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/check-openapi.mjs",
+      "project": "nestly",
+      "line": 176,
+      "hash": "3c5eb7105a5c9355f5642baabae4adc6",
+      "textRange": {
+        "startLine": 176,
+        "endLine": 176,
+        "startOffset": 82,
+        "endOffset": 97
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this code to not use nested template literals.",
+      "effort": "10min",
+      "debt": "10min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "confusing",
+        "editable-source",
+        "es2015"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "3c136533-cf1e-49d9-9968-7e7bb8a8471b",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/check-openapi.mjs",
+      "project": "nestly",
+      "line": 222,
+      "hash": "1210de1bb9ca0c3cfd9e73e316afb17f",
+      "textRange": {
+        "startLine": 222,
+        "endLine": 222,
+        "startOffset": 19,
+        "endOffset": 83
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "5566dada-5224-4c44-b374-ff22330176dc",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/check-openapi.mjs",
+      "project": "nestly",
+      "line": 224,
+      "hash": "7355a8f02037acccc909de0ec9ed32f1",
+      "textRange": {
+        "startLine": 224,
+        "endLine": 224,
+        "startOffset": 87,
+        "endOffset": 102
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "c027aa4b-13a7-42a0-9314-c316f0f071a8",
+      "rule": "javascript:S4624",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/generate-api-reference.mjs",
+      "project": "nestly",
+      "line": 122,
+      "hash": "f6c4e164dda71a9e4312c0f7a58a3f45",
+      "textRange": {
+        "startLine": 122,
+        "endLine": 122,
+        "startOffset": 50,
+        "endOffset": 65
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this code to not use nested template literals.",
+      "effort": "10min",
+      "debt": "10min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "confusing",
+        "editable-source",
+        "es2015"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "1eff1f90-e780-4dab-8b88-0afa8e061ff4",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/openapi-request-contracts.mjs",
+      "project": "nestly",
+      "line": 9,
+      "hash": "1820ad5c2278fd9bdffa3549e35a5104",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 37,
+        "endOffset": 63
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "125e90df-c318-4cb2-8f41-853d8072224c",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 20,
+      "hash": "464c358b88775a38dee190ac9ee6933e",
+      "textRange": {
+        "startLine": 20,
+        "endLine": 20,
+        "startOffset": 41,
+        "endOffset": 61
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "70c1fc21-c23d-4a75-9c53-9308767b7c5f",
+      "rule": "javascript:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 632,
+      "hash": "79353b36b6cf617cf08f8bb0faf49e75",
+      "textRange": {
+        "startLine": 632,
+        "endLine": 632,
+        "startOffset": 42,
+        "endOffset": 86
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Extract this nested ternary operation into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "confusing",
+        "editable-source"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "bf51344a-c34a-4eaa-814f-5a73e6800fbd",
+      "rule": "javascript:S6557",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/openapi-response-contracts.mjs",
+      "project": "nestly",
+      "line": 705,
+      "hash": "7b6a824548dc940b2c0d559649c68370",
+      "textRange": {
+        "startLine": 705,
+        "endLine": 705,
+        "startOffset": 88,
+        "endOffset": 137
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use the 'String#endsWith' method instead.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "type-dependent"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "7c74bdaa-9b69-4d05-8b3e-88127d41424c",
+      "rule": "python:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sonar_report.py",
+      "project": "nestly",
+      "line": 177,
+      "hash": "368be7931de6c890b414f6cd657fb824",
+      "textRange": {
+        "startLine": 177,
+        "endLine": 177,
+        "startOffset": 54,
+        "endOffset": 105
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:scripts/sonar_report.py",
+              "textRange": {
+                "startLine": 177,
+                "endLine": 177,
+                "startOffset": 26,
+                "endOffset": 28
+              },
+              "msg": "Parent conditional expression.",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Extract this nested conditional expression into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "confusing"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "672c5517-afa7-461f-82d0-c7f6ebcdbe6b",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 24,
+      "hash": "2b80210a635fae8a257bf5913cb8e135",
+      "textRange": {
+        "startLine": 24,
+        "endLine": 24,
+        "startOffset": 13,
+        "endOffset": 28
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "db09d06b-7fba-4095-88fe-5a1c92eaeee2",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 32,
+      "hash": "9ef918fe3707939fa1f6c08b9bf5ad2f",
+      "textRange": {
+        "startLine": 32,
+        "endLine": 32,
+        "startOffset": 13,
+        "endOffset": 27
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a10b10e3-17cc-46a1-80c1-51f51048d7c1",
+      "rule": "javascript:S8786",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 93,
+      "hash": "d7d0c933a8b50f9379de8e3f47b007eb",
+      "textRange": {
+        "startLine": 93,
+        "endLine": 93,
+        "startOffset": 42,
+        "endOffset": 56
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Simplify this regular expression to reduce its runtime, as it has super-linear performance due to backtracking.",
+      "effort": "20min",
+      "debt": "20min",
+      "author": "",
+      "tags": [
+        "performance",
+        "regex"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "RELIABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "3772f5ab-5397-4065-a97d-f0b4acbab8cf",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 113,
+      "hash": "6f11c17f8e8be80d60227b79128fb212",
+      "textRange": {
+        "startLine": 113,
+        "endLine": 113,
+        "startOffset": 43,
+        "endOffset": 69
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b49e5a16-260b-4ffd-8dd1-46b7d87984d6",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 143,
+      "hash": "6f11c17f8e8be80d60227b79128fb212",
+      "textRange": {
+        "startLine": 143,
+        "endLine": 143,
+        "startOffset": 43,
+        "endOffset": 69
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "490be5a4-9e94-49a9-b2e8-b557a6c91bd2",
+      "rule": "javascript:S7780",
+      "severity": "MINOR",
+      "component": "nestly:scripts/sync-openapi-v1.mjs",
+      "project": "nestly",
+      "line": 342,
+      "hash": "3a8743131faf5cc13b114eccb9af921e",
+      "textRange": {
+        "startLine": 342,
+        "endLine": 342,
+        "startOffset": 32,
+        "endOffset": 96
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "`String.raw` should be used to avoid escaping `\\`.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "es2015",
+        "readability"
+      ],
+      "creationDate": "2026-09-23T16:34:07+0000",
+      "updateDate": "2026-09-23T16:34:07+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    }
+  ],
+  "components": [
+    {
+      "key": "nestly:scripts/check-openapi.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "check-openapi.mjs",
+      "longName": "scripts/check-openapi.mjs",
+      "path": "scripts/check-openapi.mjs"
+    },
+    {
+      "key": "nestly:scripts/generate-api-reference.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "generate-api-reference.mjs",
+      "longName": "scripts/generate-api-reference.mjs",
+      "path": "scripts/generate-api-reference.mjs"
+    },
+    {
+      "key": "nestly:scripts/openapi-request-contracts.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "openapi-request-contracts.mjs",
+      "longName": "scripts/openapi-request-contracts.mjs",
+      "path": "scripts/openapi-request-contracts.mjs"
+    },
+    {
+      "key": "nestly:scripts/openapi-response-contracts.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "openapi-response-contracts.mjs",
+      "longName": "scripts/openapi-response-contracts.mjs",
+      "path": "scripts/openapi-response-contracts.mjs"
+    },
+    {
+      "key": "nestly:scripts/sonar_report.py",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "sonar_report.py",
+      "longName": "scripts/sonar_report.py",
+      "path": "scripts/sonar_report.py"
+    },
+    {
+      "key": "nestly:scripts/sync-openapi-v1.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "sync-openapi-v1.mjs",
+      "longName": "scripts/sync-openapi-v1.mjs",
+      "path": "scripts/sync-openapi-v1.mjs"
+    },
+    {
+      "key": "nestly",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "Nestly",
+      "longName": "Nestly"
+    }
+  ],
+  "facets": []
+}
