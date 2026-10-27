@@ -6,10 +6,11 @@ production dependencies fail CI. For the full dependency tree only critical
 advisories fail CI; high advisories remain visible in the job output and must be
 reviewed before production deployment.
 
-As of 2026-10-17, npm reports:
+As of 2026-10-27, npm reports:
 
 - 0 advisories at high or critical in production dependencies
-  (Next.js 16.4.2, Sharp 0.35.5; 2 moderate in `fast-uri` via Prisma tooling)
+  (Next.js 16.4.2, Sharp 0.35.5, Zod 4.6.7, sanitize-html 2.18.1, Puppeteer 25.16;
+  moderate only in `fast-uri` via Prisma tooling)
 - 0 critical advisories in total
 - high advisories only in development tooling, with no patched release yet:
   - `braces` through `micromatch` / `fast-glob` in `@next/eslint-plugin-next`
@@ -19,6 +20,9 @@ These packages are not included in the production image. Malformed untrusted
 glob patterns must not be passed to lint commands, and the SonarQube scanner is
 only run against the local SonarQube server. Recheck when patched releases
 appear and remove the exception from CI at that point.
+
+Puppeteer must stay at 25.13 or later: earlier releases pull `chromium-bidi` with
+Zod 3, which is affected by the Zod memory-exhaustion advisory (GHSA-mrhx-c7xc-m3w5).
 
 `brace-expansion` and `fast-uri` are pinned in `overrides` to their patched
 releases. Do not accept `npm audit fix --force` suggestions that downgrade
