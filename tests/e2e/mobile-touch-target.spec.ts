@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // สี่ขนาดจอ ตั้งแต่มือถือเล็กสุดที่ยังมีคนใช้ไปจนถึงแท็บเล็ต
 // 320px คือจุดที่พังง่ายที่สุด ผ่านตรงนี้ได้ที่เหลือมักผ่านตาม
@@ -77,11 +78,11 @@ const superAdminRoutes = [
 ] as const;
 
 async function login(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // เช็คว่าไม่มีอะไรล้นจนต้องเลื่อนซ้ายขวา เผื่อ 1px เพราะเบราว์เซอร์ปัดเศษไม่ตรงกัน

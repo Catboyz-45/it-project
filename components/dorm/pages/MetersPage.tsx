@@ -217,12 +217,14 @@ export function MetersPage({
 
   // โหลดทุกห้องมาให้ครบ ไม่แบ่งหน้าจากเซิร์ฟเวอร์ เพราะคนจดต้องกรอกทั้งหอในรอบเดียว
   // แล้วค่อยมาแบ่งหน้าแสดงผลในเครื่องแทน
-  const loadWorksheet = useCallback(async (signal?: AbortSignal) => {
+  const loadWorksheet = useCallback(async (signal?: AbortSignal, restoreDraft = true) => {
     setIsLoading(true);
     setLoadError("");
     try {
       setRows(await requestWorksheet({ billingMonth, mode, propertyId, signal }));
       // มีร่างค้างอยู่ก็เอากลับมาใส่ให้ เผื่อปิดหน้าไปตอนจดยังไม่เสร็จ
+      // หลังบันทึกไม่ต้องอ่าน เพราะตัวบันทึกร่างอัตโนมัติที่ยังค้างอาจเขียนร่างเก่ากลับลงไปแล้ว
+      if (!restoreDraft) return;
       const draft = readSavedDraft(draftKey);
       setCurrentDrafts(draft.current);
       setPreviousDrafts(draft.previous);
@@ -308,9 +310,12 @@ export function MetersPage({
     try {
       await onSaveMeters(collectReadings());
       // บันทึกขึ้นเซิร์ฟเวอร์แล้วจึงลบร่างทิ้ง ถ้าพลาดร่างจะยังอยู่ให้กดบันทึกใหม่ได้
+      // ล้าง state ด้วย ไม่งั้นหน้ายังนับว่ามีร่างค้างและถามยืนยันทุกครั้งที่จะออกจากหน้า
       localStorage.removeItem(draftKey);
+      setCurrentDrafts({});
+      setPreviousDrafts({});
       setIsConfirming(false);
-      await loadWorksheet();
+      await loadWorksheet(undefined, false);
       notify({ message: `บันทึกมิเตอร์${mode === "water" ? "น้ำ" : "ไฟ"} ${touchedRows.length} ห้องแล้ว` });
     } catch (error) {
       setIsConfirming(false);

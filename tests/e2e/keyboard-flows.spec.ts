@@ -1,9 +1,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // ล็อกอินด้วยคีย์บอร์ดล้วน ไม่แตะเมาส์เลย เพื่อพิสูจน์ว่าคนที่ใช้เมาส์ไม่ได้ก็เข้าระบบได้
 async function keyboardLogin(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   const emailField = page.getByLabel("อีเมล");
   await emailField.focus();
   await page.keyboard.type(email);
@@ -13,7 +14,7 @@ async function keyboardLogin(page: Page, email: string) {
   await page.keyboard.type(e2e.password);
   // กด Enter ในช่องกรอกต้องส่งฟอร์มได้เลย ไม่ต้องไปกดปุ่ม
   await page.keyboard.press("Enter");
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // โฟกัสแล้วกด Enter เลียนแบบการกดปุ่มด้วยคีย์บอร์ด เช็คด้วยว่าโฟกัสไปลงจริง

@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { openLoginForm } from "./helpers/login";
 
 // งบคำขอของแต่ละหน้า
 //
@@ -13,7 +14,7 @@ const openTicketBudget = 10;
 const idleBudget = 2;
 
 async function login(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
