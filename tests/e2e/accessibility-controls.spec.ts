@@ -1,14 +1,15 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
 import { measureContrast } from "./helpers/contrast";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // ล็อกอินที่ใช้ซ้ำทุกเทสต์ในไฟล์นี้
 async function login(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // วัดความต่างของสีแบบย่อ คืนมาแค่ตัวเลข ส่วนตัวเต็มที่บอกค่าสีด้วยอยู่ใน helpers/contrast.ts
@@ -127,8 +128,15 @@ async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
   await locator.focus();
   await expect(locator).toBeFocused();
   // ผูกกันด้วย aria-describedby โปรแกรมอ่านหน้าจอจึงอ่าน tooltip ต่อจากชื่อปุ่มได้
+  // ค่านี้ใส่หลัง React อัปเดตสถานะจาก onFocus จึงต้องรอ ไม่อ่านทันที
+  // ถ้าโฟกัสโดนก่อนหน้า hydrate เสร็จ onFocus จะไม่ทำงานเลย จึงโฟกัสใหม่ในแต่ละรอบที่รอ
+  await expect.poll(async () => {
+    if (await locator.getAttribute("aria-describedby")) return true;
+    await locator.blur();
+    await locator.focus();
+    return Boolean(await locator.getAttribute("aria-describedby"));
+  }).toBe(true);
   const tooltipId = await locator.getAttribute("aria-describedby");
-  expect(tooltipId).toBeTruthy();
   const tooltip = locator.page().locator(`[role="tooltip"]#${tooltipId}`);
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toHaveText(text);

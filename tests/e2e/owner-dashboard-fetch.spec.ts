@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { openLoginForm } from "./helpers/login";
 
 // เก็บทุกครั้งที่หน้าจอขอ read model หรือตัวเลขสรุปจากเซิร์ฟเวอร์ ไว้นับทีหลัง
 // ต้องผูกก่อนเปิดหน้าแรก ไม่งั้นคำขอที่เกิดตอนโหลดครั้งแรกจะหลุดไป
@@ -13,7 +14,7 @@ function trackDashboardRequests(page: Page) {
 }
 
 async function loginAsOwner(page: Page) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();

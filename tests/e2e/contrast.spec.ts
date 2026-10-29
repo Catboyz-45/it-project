@@ -1,23 +1,24 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
 import { expectContrast } from "./helpers/contrast";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // ล็อกอินด้วยบัญชีเจ้าของหอ ใช้ซ้ำในทุกเทสต์ของกลุ่มแรก
 async function login(page: Page) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // เหมือน login แต่ระบุอีเมลได้ ใช้กับเทสต์ที่ต้องสลับเป็นผู้เช่าหรือซูเปอร์แอดมิน
 async function loginAs(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // เช็คสามสถานะรวดเดียว ปกติ ชี้เมาส์ และโฟกัส เพราะหลายที่พลาดเฉพาะตอน hover ที่สีอ่อนลง

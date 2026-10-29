@@ -1,12 +1,13 @@
 import { expect, Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { openLoginForm } from "./helpers/login";
 
 // ตั้งขนาดจอเท่า iPhone ทุกเทสต์ในไฟล์นี้ จะได้เช็คมุมมองมือถือได้จริง
 test.use({ viewport: { width: 390, height: 844 } });
 
 // ขั้นตอนล็อกอินที่ใช้ซ้ำทุกเทสต์ในไฟล์นี้ แยกออกมาไม่ต้องเขียนซ้ำ
 async function login(page: Page, email: string, password: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();

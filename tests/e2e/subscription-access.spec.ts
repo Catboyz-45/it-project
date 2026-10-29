@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import pg from "pg";
 import { e2e } from "./fixtures";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // สามระดับสิทธิ์ตามอายุแพ็กเกจ ใช้ได้เต็ม ช่วงผ่อนผัน และเหลือแค่อ่าน
 type AccessMode = "FULL" | "GRACE" | "READ_ONLY";
@@ -42,11 +43,11 @@ async function setAccessMode(mode: AccessMode) {
 }
 
 async function login(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 }
 
 // เช็คว่าไม่มีอะไรล้นจนต้องเลื่อนซ้ายขวา เทียบ scrollWidth กับ clientWidth ต้องเท่ากัน

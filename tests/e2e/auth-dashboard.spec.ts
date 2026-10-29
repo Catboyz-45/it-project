@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { openLoginForm } from "./helpers/login";
 
 // รหัสผิดต้องได้ข้อความกลาง ๆ ไม่บอกว่าอีเมลนี้มีในระบบหรือไม่ กันการไล่เดาว่าใครเป็นสมาชิก
 test("rejects invalid credentials without leaking account state", async ({ page }) => {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill("unknown@example.com");
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill("incorrect-password");
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
@@ -17,7 +18,7 @@ test("super admin can open the aggregated SaaS dashboard", async ({ page }) => {
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
   // ไม่มีบัญชีตั้งต้นใน env ก็ข้ามไป ดีกว่าให้เทสต์แดงเพราะสภาพแวดล้อมไม่พร้อม
   test.skip(!email || !password, "Bootstrap credentials are required");
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email!);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(password!);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();

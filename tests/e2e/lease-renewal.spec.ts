@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import pg from "pg";
 import { e2e } from "./fixtures";
+import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
 // ลบสัญญาที่เทสต์สร้างขึ้นหลังจบทุกครั้ง เว้นใบตั้งต้นไว้ รอบหน้าจะได้เริ่มจากสภาพเดิม
 test.afterEach(async () => {
@@ -29,12 +30,12 @@ test.afterEach(async () => {
 
 // ต่อสัญญาต้องได้ใบใหม่เป็นร่าง ไม่ใช่ไปทับใบเดิมที่ยังใช้อยู่
 test("owner renews a lease without overwriting the active lease", async ({ page }) => {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
   // รอให้หลุดจากหน้า login ก่อน ค่อยไปต่อ กันการกดตอนที่ยังไม่ล็อกอินเสร็จ
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expectLeftLoginPage(page);
 
   await page.goto(`/admin/properties/${e2e.propertyId}/contracts`);
   // สัญญาที่เหลือไม่ถึง 120 วันจะมีปุ่มต่อสัญญาโผล่มาตรง ๆ ถ้ายังไม่ถึงต้องเข้าทางเมนู

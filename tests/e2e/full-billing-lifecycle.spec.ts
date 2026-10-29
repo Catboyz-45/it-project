@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { pickDate } from "./helpers/date-picker";
+import { openLoginForm } from "./helpers/login";
 
 // เทสต์นี้สร้างทุกอย่างขึ้นใหม่เอง จึงต้องเริ่มจากบัญชีซูเปอร์แอดมินตั้งต้นใน env
 const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
@@ -34,11 +35,19 @@ async function login(page: Page, email: string, password: string) {
 
 // ล็อกอินผ่านหน้าจอจริง ใช้ตอนที่ต้องเช็คการเด้งหน้าหลังล็อกอิน เช่นด่านเปลี่ยนรหัสหรือด่านยอมรับนโยบาย
 async function loginThroughUi(page: Page, email: string, password: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
   await page.waitForLoadState("networkidle");
+}
+
+// เปิดหน้าบิลจากเมนูข้าง แล้วรอจนเปลี่ยนหน้าจริง
+// Next.js คงหน้าเดิมไว้จนกว่าหน้าใหม่จะโหลดเสร็จ ตอนที่เซิร์ฟเวอร์ช้าปุ่มของหน้าบิลจึงยังไม่โผล่
+// ถ้าไปหาปุ่มทันทีหลังกดเมนูจะหมดเวลาทั้งที่หน้าแค่ยังมาไม่ถึง
+async function openInvoicesPage(page: Page, propertyId: string) {
+  await page.getByRole("link", { name: /^บิลและการเงิน(?:\s|$)/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/admin/properties/${propertyId}/invoices$`), { timeout: 30_000 });
 }
 
 // เดินทั้งวงจรจริงในเทสต์เดียว สร้างหอ สร้างห้อง เชิญผู้เช่า ทำสัญญา จดมิเตอร์
@@ -305,7 +314,7 @@ test("completes the critical tenant billing workflow through the owner and tenan
     await expect(meterRow).toContainText("บันทึกแล้ว");
   }
 
-  await page.getByRole("link", { name: /^บิลและการเงิน(?:\s|$)/ }).click();
+  await openInvoicesPage(page, property.id);
   await page.getByRole("button", { name: "สร้างร่างรายห้อง", exact: true }).click();
   const invoiceDialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
   await invoiceDialog.getByLabel("เดือนที่ออกบิล").fill(billingMonth);
@@ -382,7 +391,7 @@ test("completes the critical tenant billing workflow through the owner and tenan
     await page.locator(".sidebar-property > button").first().click();
     await page.getByRole("menuitem", { name: new RegExp(`JD-${suffix}`) }).click();
   }
-  await page.getByRole("link", { name: /^บิลและการเงิน(?:\s|$)/ }).click();
+  await openInvoicesPage(page, property.id);
   await page.getByRole("button", { name: "ตรวจสอบการชำระ", exact: true }).click();
   await page.getByLabel("ค้นหาหลักฐานการชำระ").fill(invoice.data.invoiceNumber);
   const paymentDetails = page.getByRole("region", { name: `รายละเอียดการชำระ ${invoice.data.invoiceNumber}` });

@@ -1,9 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 import { e2e } from "./fixtures";
+import { openLoginForm } from "./helpers/login";
 
 // ล็อกอินที่ใช้ซ้ำทุกเทสต์ในไฟล์นี้ รอจนหน้าเปลี่ยนเสร็จจริงก่อนคืนค่า
 async function login(page: Page, email: string) {
-  await page.goto("/login");
+  await openLoginForm(page);
   await page.getByLabel("อีเมล").fill(email);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
