@@ -105,6 +105,7 @@ export function ChatComposer({
   canAttach = true,
   error,
   fileInputRef,
+  isReady,
   isSending,
   message,
   onSubmit,
@@ -116,6 +117,7 @@ export function ChatComposer({
   canAttach?: boolean;
   error: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isReady: boolean;
   isSending: boolean;
   message: string;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
@@ -150,9 +152,9 @@ export function ChatComposer({
     </div> : null}
     <div>
       <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
-      {canAttach ? <IconButton className="chat-attach-button" disabled={isSending} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}><Paperclip aria-hidden="true" size={18} /></IconButton> : null}
+      {canAttach ? <IconButton className="chat-attach-button" disabled={isSending || !isReady} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}><Paperclip aria-hidden="true" size={18} /></IconButton> : null}
       <input disabled={isSending} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="พิมพ์ข้อความ..." value={message} />
-      <IconButton disabled={(!message.trim() && !attachment) || isSending} label="ส่งข้อความ" type="submit" variant="primary"><Send aria-hidden="true" size={17} /></IconButton>
+      <IconButton disabled={(!message.trim() && !attachment) || isSending || !isReady} label="ส่งข้อความ" type="submit" variant="primary"><Send aria-hidden="true" size={17} /></IconButton>
     </div>
   </form>;
 }

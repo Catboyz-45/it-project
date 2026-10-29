@@ -1528,7 +1528,7 @@ function TenantChat({
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const {
     attachment, endRef, error, fileInputRef, hasOlderMessages, isLoading, isLoadingOlder,
-    isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
+    isReady, isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
     setAttachment, setError, setMessage,
   } = useChatThread<ChatMessage>({
     endpoint: "/api/v1/tenant/chat",
@@ -1551,6 +1551,7 @@ function TenantChat({
   const composer = <TenantChatComposer
     attachment={attachment}
     fileInputRef={fileInputRef}
+    isReady={isReady}
     isSending={isSending}
     message={message}
     onSubmit={sendMessage}
@@ -1639,9 +1640,10 @@ function TenantChatMessages({ endRef, hasOlderMessages, isLoading, isLoadingOlde
 }
 
 // ช่องพิมพ์ข้อความของผู้เช่า โหมดอ่านอย่างเดียวแสดงป้ายแทนฟอร์ม
-function TenantChatComposer({ attachment, fileInputRef, isSending, message, onSubmit, readOnly, setAttachment, setError, setMessage, variant }: Readonly<{
+function TenantChatComposer({ attachment, fileInputRef, isReady, isSending, message, onSubmit, readOnly, setAttachment, setError, setMessage, variant }: Readonly<{
   attachment: File | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isReady: boolean;
   isSending: boolean;
   message: string;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
@@ -1685,7 +1687,7 @@ function TenantChatComposer({ attachment, fileInputRef, isSending, message, onSu
     </div> : null}
     <div className="flex gap-2">
       <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
-      <IconButton className="chat-attach-button" disabled={isSending} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}>
+      <IconButton className="chat-attach-button" disabled={isSending || !isReady} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}>
         <Paperclip aria-hidden="true" size={18} />
       </IconButton>
       <input
@@ -1696,7 +1698,7 @@ function TenantChatComposer({ attachment, fileInputRef, isSending, message, onSu
         placeholder="พิมพ์ข้อความ..."
         value={message}
       />
-      <button aria-label={isSending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} className={variant === "widget" ? undefined : "primary-button"} disabled={isSending || nothingToSend} type="submit">
+      <button aria-label={isSending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} className={variant === "widget" ? undefined : "primary-button"} disabled={isSending || nothingToSend || !isReady} type="submit">
         {isSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send aria-hidden="true" size={17} />}
         {variant === "page" ? <span>{isSending ? "กำลังส่ง..." : "ส่ง"}</span> : null}
       </button>

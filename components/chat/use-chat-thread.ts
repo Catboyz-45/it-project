@@ -30,6 +30,8 @@ function attachmentRequest(conversationId: string, propertyId: string, body: str
   });
 }
 
+const STREAM_ERROR = "การเชื่อมต่อเรียลไทม์ขัดข้อง ระบบกำลังเชื่อมต่อใหม่";
+
 export function useChatThread<T extends ChatThreadMessage>({
   endpoint,
   onLoaded,
@@ -102,9 +104,9 @@ export function useChatThread<T extends ChatThreadMessage>({
         setError("รับข้อความใหม่ไม่สำเร็จ");
       }
     };
-    stream.onerror = () => setError("การเชื่อมต่อเรียลไทม์ขัดข้อง ระบบกำลังเชื่อมต่อใหม่");
-    // ต่อติดแล้วก็ล้างข้อความเตือนทิ้ง ผู้ใช้จะได้รู้ว่ากลับมาปกติแล้ว
-    stream.onopen = () => setError("");
+    stream.onerror = () => setError(STREAM_ERROR);
+    // ต่อติดแล้วล้างเฉพาะข้อความเตือนเรื่องการเชื่อมต่อ error อื่น เช่น ส่งข้อความไม่สำเร็จ ต้องค้างไว้ให้ผู้ใช้เห็น
+    stream.onopen = () => setError((current) => current === STREAM_ERROR ? "" : current);
     // ต้องปิดสตรีมตอนออกจากหน้า ไม่งั้นการเชื่อมต่อจะค้างสะสม
     return () => stream.close();
   }, [appendMessage, conversationId, propertyId, streaming]);
@@ -190,6 +192,8 @@ export function useChatThread<T extends ChatThreadMessage>({
     hasOlderMessages,
     isLoading,
     isLoadingOlder,
+    // ส่งได้เมื่อโหลดบทสนทนาเสร็จแล้วเท่านั้น กดก่อนหน้านั้น sendMessage จะไม่มี conversationId ให้ส่ง
+    isReady: !isLoading && conversationId !== null,
     isSending,
     loadOlderMessages,
     message,
