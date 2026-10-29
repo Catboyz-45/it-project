@@ -79,7 +79,7 @@ export function ChatWidget({
 
   const {
     attachment, endRef, error, fileInputRef, hasOlderMessages, isLoading, isLoadingOlder,
-    isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
+    isReady, isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
     setAttachment, setError, setMessage,
   } = useChatThread<ChatMessage>({ endpoint, propertyId, streaming: isOpen });
 
@@ -128,6 +128,7 @@ export function ChatWidget({
         canSend={!readOnly || Boolean(selectedContact?.isSupport)}
         error={error}
         fileInputRef={fileInputRef}
+        isReady={isReady}
         isSending={isSending}
         message={message}
         onSubmit={sendMessage}
@@ -201,6 +202,7 @@ function ChatFooter({ canSend, show, showReadOnlyNotice, ...composer }: Readonly
   canSend: boolean;
   error: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isReady: boolean;
   isSending: boolean;
   message: string;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;

@@ -76,7 +76,7 @@ export function SuperAdminChatWidget() {
 
   const {
     attachment, endRef, error: threadError, fileInputRef, hasOlderMessages,
-    isLoading: isLoadingMessages, isLoadingOlder, isSending, loadOlderMessages, message,
+    isLoading: isLoadingMessages, isLoadingOlder, isReady, isSending, loadOlderMessages, message,
     messages, scrollRef, sendMessage, setAttachment, setError, setMessage,
   } = useChatThread<SupportMessage>({
     endpoint: selected ? `/api/v1/super-admin/properties/${selected.propertyId}/support-chat` : null,
@@ -144,6 +144,7 @@ export function SuperAdminChatWidget() {
         attachment={attachment}
         error={error}
         fileInputRef={fileInputRef}
+        isReady={isReady}
         isSending={isSending}
         message={message}
         onSubmit={sendMessage}
