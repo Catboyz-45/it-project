@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidIdentityDocumentNumber, normalizeIdentityDocumentNumber } from "@/lib/domain/identity-document";
+import { bankAccountFields, promptPayIdSchema, refineBankAccount } from "@/lib/domain/payment-account";
 import { recordIdSchema } from "@/lib/domain/record-id";
 
 const money = z.coerce.number().min(0).max(10_000_000);
@@ -20,8 +21,9 @@ export const updatePropertySettingsSchema = z.object({
   address: z.string().trim().min(1).max(1000),
   contactPhone: z.string().trim().min(1).max(30),
   contactEmail: z.string().trim().toLowerCase().pipe(z.email().max(254)).nullable().optional(),
-  // เบอร์โทร 10 หลักหรือเลขประจำตัว 13 หลัก เอาเฉพาะตัวเลข เพราะต้องเอาไปสร้าง QR พร้อมเพย์
-  promptPayId: z.string().trim().regex(/^\d{10,15}$/).nullable().optional(),
+  promptPayId: promptPayIdSchema.nullable().optional(),
+  // บัญชีธนาคารรับค่าเช่า แสดงให้ผู้เช่าในหน้าชำระบิล
+  ...bankAccountFields,
   waterUnitRate: money,
   electricityUnitRate: money,
   // วันออกบิลได้ถึงแค่ 28 เพราะกุมภาพันธ์มี 28 วัน ตั้ง 30 แล้วบางเดือนจะไม่มีวันนั้น
@@ -34,7 +36,7 @@ export const updatePropertySettingsSchema = z.object({
   invoiceFooter: z.string().trim().max(2000).nullable().optional(),
   houseRules: z.string().trim().max(20_000).nullable().optional(),
   emergencyContact: z.string().trim().max(500).nullable().optional(),
-}).strict();
+}).strict().superRefine(refineBankAccount);
 
 // ผู้ดูแลระบบแก้ได้แค่สองอย่าง เปิดปิดหอ กับตั้งว่าใครดูแล ไม่ยุ่งกับการตั้งค่าภายในของหอ
 export const superAdminPropertyUpdateSchema = z.object({

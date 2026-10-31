@@ -9,6 +9,7 @@ import {
   CreditCard,
   Crown,
   LayoutDashboard,
+  Settings,
   UsersRound,
 } from "lucide-react";
 import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
@@ -23,6 +24,7 @@ const items = [
   { href: "/super-admin/plans", label: "แพ็กเกจ", icon: Crown, exact: false },
   { href: "/super-admin/subscriptions", label: "การชำระสมาชิก", icon: CreditCard, exact: false, countKey: "pendingSubscriptionPayments" },
   { href: "/super-admin/audit-logs", label: "Audit Log", icon: Activity, exact: false },
+  { href: "/super-admin/settings", label: "ตั้งค่าระบบ", icon: Settings, exact: false },
 ] satisfies ReadonlyArray<{
   countKey?: keyof SuperAdminNotificationCounts;
   exact: boolean;

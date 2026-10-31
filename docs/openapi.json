@@ -5227,6 +5227,41 @@
                       }
                     ]
                   },
+                  "bankName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bankAccountNumber": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bankAccountName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "waterUnitRate": {
                     "type": "number",
                     "minimum": 0
@@ -5529,6 +5564,81 @@
                     "amount": "990.00",
                     "expiresAt": "2026-07-31T06:00:00.000Z",
                     "payments": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/properties/{propertyId}/subscription-orders/{orderId}/payment-instructions": {
+      "get": {
+        "operationId": "getAdminPropertiesByPropertyIdSubscriptionOrdersByOrderIdPaymentInstructions",
+        "summary": "GET /api/v1/admin/properties/{propertyId}/subscription-orders/{orderId}/payment-instructions",
+        "description": "Implementation: app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payment-instructions/route.ts",
+        "tags": [
+          "SaaS"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PropertyId"
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SubscriptionPaymentInstructions"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "orderNumber": "SUB-2026-0001",
+                    "amount": "699",
+                    "bankName": "กสิกรไทย",
+                    "bankAccountNumber": "1234567890",
+                    "bankAccountName": "Nestly",
+                    "promptPayPayload": "00020101021229370016A000000677010111011300668123456785802TH5303764540369963040000"
                   }
                 }
               }
@@ -7670,6 +7780,192 @@
         }
       }
     },
+    "/api/v1/super-admin/payment-settings": {
+      "get": {
+        "operationId": "getSuperAdminPaymentSettings",
+        "summary": "GET /api/v1/super-admin/payment-settings",
+        "description": "Implementation: app/api/v1/super-admin/payment-settings/route.ts",
+        "tags": [
+          "Super Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PlatformPaymentSettings"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "bankName": "กสิกรไทย",
+                    "bankAccountNumber": "1234567890",
+                    "bankAccountName": "Nestly",
+                    "promptPayId": "0812345678",
+                    "updatedAt": "2026-11-01T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putSuperAdminPaymentSettings",
+        "summary": "PUT /api/v1/super-admin/payment-settings",
+        "description": "Implementation: app/api/v1/super-admin/payment-settings/route.ts",
+        "tags": [
+          "Super Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "bankName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bankAccountNumber": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bankAccountName": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "promptPayId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{10,15}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "example": {
+                "bankName": "กสิกรไทย",
+                "bankAccountNumber": "123-4-56789-0",
+                "bankAccountName": "Nestly",
+                "promptPayId": "0812345678"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PlatformPaymentSettings"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "bankName": "กสิกรไทย",
+                    "bankAccountNumber": "1234567890",
+                    "bankAccountName": "Nestly",
+                    "promptPayId": "0812345678",
+                    "updatedAt": "2026-11-01T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/super-admin/plans": {
       "get": {
         "operationId": "listSaasPlans",
@@ -9411,6 +9707,73 @@
         }
       }
     },
+    "/api/v1/super-admin/users/{userId}/password-reset-link": {
+      "post": {
+        "operationId": "postSuperAdminUsersByUserIdPasswordResetLink",
+        "summary": "POST /api/v1/super-admin/users/{userId}/password-reset-link",
+        "description": "Implementation: app/api/v1/super-admin/users/[userId]/password-reset-link/route.ts",
+        "tags": [
+          "Super Admin"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PasswordResetLinkResult"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "email": "owner@example.com"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/super-admin/users/{userId}/temporary-password": {
       "post": {
         "operationId": "postSuperAdminUsersByUserIdTemporaryPassword",
@@ -9968,6 +10331,75 @@
                     "createdAt": "2026-07-28T10:00:00.000Z",
                     "items": [],
                     "paymentSubmissions": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/invoices/{invoiceId}/payment-account": {
+      "get": {
+        "operationId": "getTenantInvoicesByInvoiceIdPaymentAccount",
+        "summary": "GET /api/v1/tenant/invoices/{invoiceId}/payment-account",
+        "description": "Implementation: app/api/v1/tenant/invoices/[invoiceId]/payment-account/route.ts",
+        "tags": [
+          "Tenant Portal"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BankTransferAccount"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "bankName": "กสิกรไทย",
+                    "bankAccountNumber": "1234567890",
+                    "bankAccountName": "หอพักบ้านสบาย"
                   }
                 }
               }
@@ -15700,6 +16132,185 @@
           },
           "detail": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BankTransferAccount": {
+        "type": "object",
+        "required": [
+          "bankName",
+          "bankAccountNumber",
+          "bankAccountName"
+        ],
+        "properties": {
+          "bankName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlatformPaymentSettings": {
+        "type": "object",
+        "required": [
+          "bankName",
+          "bankAccountNumber",
+          "bankAccountName",
+          "promptPayId",
+          "updatedAt"
+        ],
+        "properties": {
+          "bankName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "promptPayId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionPaymentInstructions": {
+        "type": "object",
+        "required": [
+          "orderNumber",
+          "amount",
+          "bankName",
+          "bankAccountNumber",
+          "bankAccountName",
+          "promptPayPayload"
+        ],
+        "properties": {
+          "orderNumber": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?$"
+          },
+          "bankName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankAccountName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "promptPayPayload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PasswordResetLinkResult": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
           }
         },
         "additionalProperties": false

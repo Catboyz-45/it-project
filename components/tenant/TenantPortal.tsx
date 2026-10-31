@@ -1268,6 +1268,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
 
   return <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
     <PromptPayQr invoice={invoice} />
+    <BankTransferAccount invoice={invoice} />
     <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <button aria-describedby={missingFile ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button">
@@ -1299,6 +1300,18 @@ function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
     <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
     <p className="mt-2 text-sm text-[#62646c]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
   </div>;
+}
+
+// บัญชีธนาคารของหอ สำหรับคนที่โอนผ่านแอปธนาคารแทนการสแกน QR หอที่ยังไม่ตั้งบัญชีก็ไม่ต้องแสดงอะไร
+function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
+  const account = useApiResource<{ bankName: string | null; bankAccountNumber: string | null; bankAccountName: string | null }>(`/api/v1/tenant/invoices/${invoice.id}/payment-account`);
+  if (account.isLoading || account.error || !account.data?.bankAccountNumber) return null;
+  return <dl className="grid gap-1 rounded-xl bg-[#f3f3f5] p-3 text-center text-sm" data-testid="tenant-bank-account">
+    <dt className="text-[#62646c]">หรือโอนเข้าบัญชี</dt>
+    <dd className="font-bold">{account.data.bankName}</dd>
+    <dd className="font-mono text-base">{account.data.bankAccountNumber}</dd>
+    <dd>{account.data.bankAccountName}</dd>
+  </dl>;
 }
 
 type Lease = { id: string; leaseNumber: string; status: string; startDate: string; endDate: string; monthlyRent: string; depositAmount: string; currentVersion: number; activatedAt: string | null; room: { number: string } };
