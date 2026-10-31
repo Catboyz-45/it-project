@@ -12,6 +12,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, RoomStatus, Tenant } from "@/types/dorm";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 // สามสถานะนี้คุมว่าห้องออกบิลได้ไหมและรับผู้เช่าใหม่ได้ไหม
 const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
@@ -217,9 +218,9 @@ export function RoomEditModal({
           <section className="room-editor-section" id="room-section-billing">
             <header><div><h3>ค่าเช่าและมิเตอร์</h3><p>ข้อมูลที่ใช้คำนวณบิลประจำเดือน</p></div></header>
             <div className="room-editor-section-body modal-grid">
-              <label><span>ค่าเช่าต่อเดือน</span><input min={0} required type="number" value={rent} onChange={(event) => setRent(event.target.value)} /></label>
-              <label><span>เลขมิเตอร์น้ำล่าสุด</span><input min={0} required type="number" value={waterMeter} onChange={(event) => setWaterMeter(event.target.value)} /></label>
-              <label><span>เลขมิเตอร์ไฟล่าสุด</span><input min={0} required type="number" value={electricMeter} onChange={(event) => setElectricMeter(event.target.value)} /></label>
+              <label><span>ค่าเช่าต่อเดือน</span><UnitInput min={0} required type="number" unit="บาท/เดือน" value={rent} onChange={(event) => setRent(event.target.value)} /></label>
+              <label><span>เลขมิเตอร์น้ำล่าสุด</span><UnitInput min={0} required type="number" unit="หน่วย" value={waterMeter} onChange={(event) => setWaterMeter(event.target.value)} /></label>
+              <label><span>เลขมิเตอร์ไฟล่าสุด</span><UnitInput min={0} required type="number" unit="หน่วย" value={electricMeter} onChange={(event) => setElectricMeter(event.target.value)} /></label>
               <div className="modal-summary"><span>ค่าเช่าปัจจุบัน</span><strong>{currency.format(Number(rent) || 0)}</strong></div>
             </div>
           </section>
@@ -250,7 +251,7 @@ export function RoomEditModal({
                 <label><span>เบอร์โทร *</span><input inputMode="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
                 {/* ตัดทุกอย่างที่ไม่ใช่ตัวเลขทิ้งตั้งแต่ตอนพิมพ์ ผู้ใช้จะได้ไม่ต้องมาลบขีดเอง */}
                 <label><span>เลขบัตรประชาชน</span><input inputMode="numeric" maxLength={13} value={nationalId} onChange={(event) => setNationalId(event.target.value.replace(/\D/g, ""))} /></label>
-                <label><span>เงินประกัน</span><input min={0} type="number" value={deposit} onChange={(event) => setDeposit(event.target.value)} /></label>
+                <label><span>เงินประกัน</span><UnitInput min={0} type="number" unit="บาท" value={deposit} onChange={(event) => setDeposit(event.target.value)} /></label>
                 <DatePickerField label="วันเริ่มสัญญา *" value={startDate} onChange={setStartDate} />
                 {/* จำกัดไม่ให้เลือกวันก่อนวันเริ่มสัญญา ตั้งแต่ในปฏิทินเลย */}
                 <DatePickerField label="วันสิ้นสุดสัญญา *" minDate={startDate ? new Date(`${startDate}T00:00:00`) : new Date()} value={contractEnd} onChange={setContractEnd} />

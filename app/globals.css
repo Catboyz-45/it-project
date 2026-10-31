@@ -138,6 +138,16 @@
   :is(input, select, textarea):focus-visible {
     border-color: #4651c7 !important;
   }
+
+  /* ช่องกรอกและเมนูข้างมักอยู่ในกล่องที่เลื่อนได้ (หน้าต่าง modal, แถบเมนู) ซึ่งตัดทุกอย่างที่ล้นขอบ
+     วงโฟกัสด้านบนยื่นออกนอกตัวเองราว 6px จึงโดนตัดจนดูเหมือนชนขอบ
+     ย้ายวงเข้ามาอยู่ด้านในขอบแทน ยังหนา 3px สีเดิมและเห็นชัดเหมือนเดิม */
+  :is(input, select, textarea, .dropdown-trigger, .schedule-date-trigger):focus-visible,
+  .sidebar :is(nav a, nav button, .sidebar-footer > button):focus-visible,
+  :is(.modal-form, .modal-body, .chat-widget, .notification-list, .account-menu, .property-menu) :is(button, a):focus-visible {
+    outline-offset: -3px !important;
+    box-shadow: inset 0 0 0 5px rgba(70, 81, 199, 0.18) !important;
+  }
 }
 
 /* ชิ้นส่วน UI ที่ใช้ซ้ำหลายหน้า เช่น card, modal, dropdown, form และ layout ของแต่ละ role */
@@ -427,6 +437,8 @@
     .shell[data-nav-collapsed] > .sidebar .notification-badge { @apply absolute top-0.5 right-1 min-w-4.5 px-1 py-0 text-[9px] leading-[18px]; }
     .shell[data-nav-collapsed] > .sidebar .sidebar-chevron { @apply hidden; }
     .shell[data-nav-collapsed] > .sidebar .sidebar-subnav > div { @apply ml-0 border-l-0 pl-0; }
+    /* เมนูย่อยที่กางอยู่ปล่อยให้ป้ายชื่อลอยออกนอกได้ ตอนพับยังต้องซ่อนส่วนเกินไว้เพื่อให้หดได้ */
+    .shell[data-nav-collapsed] > .sidebar .sidebar-subnav.open > div { @apply overflow-visible; }
     .shell[data-nav-collapsed] > .sidebar .brand { @apply justify-center px-0; }
     .shell[data-nav-collapsed] > .sidebar .brand :is(.brand-copy, .brand-switch-icon, img + div) { @apply hidden; }
     .shell[data-nav-collapsed] > .sidebar .tenant-sidebar-property { @apply invisible h-0 mb-2; }
@@ -906,6 +918,8 @@
   .dashboard-metric-stagger > .metric > span { @apply size-10 rounded-xl; }
   .dashboard-metric-stagger > .metric strong { @apply mt-1 text-xl; }
   .dashboard-panel-stagger { @apply gap-3 px-6; }
+  /* หัวข้อบนสุดของหน้าแดชบอร์ดอยู่นอกกริด จึงไม่ได้ระยะขอบจากกริด ต้องเว้นเองให้ตรงกับกล่องด้านล่าง */
+  .workspace > .view-transition > .app-section { @apply mx-6 mb-3; }
   .workspace .dashboard-panel-stagger {
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
@@ -1251,7 +1265,6 @@
   .settings-page .settings-field > textarea { @apply my-3; }
   .settings-page .settings-input-wrap { @apply w-full max-w-xl justify-self-end; }
   .settings-page .settings-input-wrap input { @apply min-w-0 flex-1 border-[#d4d4d8] bg-[#fafafa] text-[#292a30]; }
-  .settings-page .settings-input-wrap em { @apply shrink-0 text-xs not-italic text-[#62646c]; }
   .settings-card-head { @apply bg-[#fafafa]; }
   .settings-card-body { @apply p-5; }
   .settings-input-wrap { @apply flex items-center gap-2; }
@@ -1558,6 +1571,7 @@
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
     .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
+    .workspace > .view-transition > .app-section { @apply mx-4; }
     .revenue-summary { @apply grid-cols-1; }
     .revenue-summary-total { @apply min-h-24; }
     .revenue-breakdown { @apply grid-cols-1; }
@@ -2037,3 +2051,25 @@ select:disabled {
     transition-duration: 1ms;
   }
 }
+
+/* ช่องกรอกที่มีหน่วยอยู่ในกล่อง (components/ui/UnitInput.tsx)
+   หน่วยลอยอยู่ชิดขอบในกล่อง แล้วดันระยะในของช่องให้พอ ตัวเลขจะได้ไม่วิ่งทับหน่วย
+   ต้องใช้ !important เพราะสัญญาช่องกรอกด้านบนล็อก padding ไว้ด้วย !important */
+.unit-input { position: relative; display: block; width: 100%; min-width: 0; }
+.unit-input.has-unit > input { padding-inline-end: calc(1.75rem + var(--unit-input-suffix)) !important; }
+.unit-input.has-prefix > input { padding-inline-start: calc(1.5rem + var(--unit-input-prefix)) !important; }
+.unit-input-affix {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: #62646c;
+}
+.unit-input-prefix { left: 1rem; }
+.unit-input-unit { right: 1rem; }
+/* ลูกศรขึ้นลงของช่องตัวเลขกินที่และไปชนหน่วย ซ่อนไว้ ยังพิมพ์หรือกดลูกศรบนคีย์บอร์ดได้เหมือนเดิม */
+.unit-input > input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+.unit-input > input[type="number"]::-webkit-inner-spin-button,
+.unit-input > input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

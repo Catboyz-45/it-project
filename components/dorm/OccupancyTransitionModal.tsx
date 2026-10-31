@@ -14,6 +14,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { currency } from "@/lib/dorm-utils";
 import type { Room, Tenant } from "@/types/dorm";
 import { ownerPagePath } from "@/lib/navigation-routes";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 // เก็บจำนวนเงินเป็นสตริงเพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนคำนวณกับตอนส่ง
 // id สร้างฝั่งเบราว์เซอร์ไว้ใช้เป็น key ของแถว ไม่ได้ส่งขึ้นเซิร์ฟเวอร์
@@ -119,7 +120,7 @@ function DeductionSection({ deductions, deductionTotal, deposit, preliminaryBala
     </div>
     <div className="grid gap-2">{deductions.map((item, index) => <div className="grid grid-cols-[1fr_160px_44px] gap-2" key={item.id}>
       <input aria-label={`รายละเอียดรายการหัก ${index + 1}`} maxLength={160} onChange={(event) => editRow(index, { label: event.target.value })} placeholder="เช่น ค่าทำความสะอาด" value={item.label} />
-      <input aria-label={`จำนวนเงินรายการหัก ${index + 1}`} min="0" onChange={(event) => editRow(index, { amount: event.target.value })} placeholder="บาท" step="0.01" type="number" value={item.amount} />
+      <UnitInput aria-label={`จำนวนเงินรายการหัก ${index + 1}`} min="0" onChange={(event) => editRow(index, { amount: event.target.value })} placeholder="0.00" step="0.01" type="number" unit="บาท" value={item.amount} />
       <IconButton label="ลบรายการ" onClick={() => setDeductions((current) => current.filter((_, rowIndex) => rowIndex !== index))} variant="danger"><Trash2 size={16} /></IconButton>
     </div>)}</div>
     <div className="mt-4 grid grid-cols-3 gap-3 text-sm">

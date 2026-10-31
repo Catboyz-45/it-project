@@ -38,6 +38,7 @@ import { LEASE_EXPIRY_NOTICE_DAYS, leaseDisplayStatus } from "@/lib/domain/lease
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 // สัญญาหนึ่งฉบับ
 type Lease = {
@@ -693,7 +694,7 @@ function LeaseFormDialog({ earliestLeaseDate, editingLease, form, isOpen, isSavi
     <form className="modal-form" onSubmit={onSubmit}>
       <div className="modal-grid">
         <DropdownField disabled={editingLease !== null || renewingLease !== null || isSaving} label="ห้อง" onChange={changeRoom} options={roomOptions} value={form.roomId} />
-        <label><span>ค่าเช่าต่อเดือน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required step="0.01" type="number" value={form.monthlyRent} /></label>
+        <label><span>ค่าเช่าต่อเดือน</span><UnitInput min="0" unit="บาท/เดือน" onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required step="0.01" type="number" value={form.monthlyRent} /></label>
         <DatePickerField
           label="วันเริ่มสัญญา"
           minDate={renewingLease ? parseFormDate(renewalDates(renewingLease.endDate).startDate) : earliestLeaseDate}
@@ -706,7 +707,7 @@ function LeaseFormDialog({ earliestLeaseDate, editingLease, form, isOpen, isSavi
           onChange={(value) => setForm((current) => ({ ...current, endDate: value }))}
           value={form.endDate}
         />
-        <label><span>เงินประกัน</span><input min="0" onChange={(event) => setForm((current) => ({ ...current, depositAmount: event.target.value }))} required step="0.01" type="number" value={form.depositAmount} /></label>
+        <label><span>เงินประกัน</span><UnitInput min="0" unit="บาท" onChange={(event) => setForm((current) => ({ ...current, depositAmount: event.target.value }))} required step="0.01" type="number" value={form.depositAmount} /></label>
       </div>
       <footer className="modal-actions">
         <button disabled={isSaving} onClick={onClose} type="button">ยกเลิก</button>

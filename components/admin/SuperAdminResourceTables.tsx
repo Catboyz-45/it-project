@@ -19,6 +19,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 type PageInfo = {
   page: number;
@@ -657,39 +658,43 @@ function PlanEditor({
           <div className="grid gap-3 md:grid-cols-2">
             <label>
               <span>ราคารายเดือน</span>
-              <input
+              <UnitInput
                 defaultValue={plan === "new" ? "" : plan.monthlyPrice}
                 min="0"
                 name="monthlyPrice"
+                unit="บาท/เดือน"
                 required
                 type="number"
               />
             </label>
             <label>
               <span>ราคารายปี</span>
-              <input
+              <UnitInput
                 defaultValue={plan === "new" ? "" : (plan.yearlyPrice ?? "")}
                 min="0"
                 name="yearlyPrice"
+                unit="บาท/ปี"
                 type="number"
               />
             </label>
             <label>
               <span>จำนวนหอสูงสุด</span>
-              <input
+              <UnitInput
               defaultValue={plan === "new" ? 1 : plan.maxProperties}
                 min="1"
                 name="maxProperties"
+                unit="หอ"
                 required
                 type="number"
               />
             </label>
             <label>
               <span>จำนวนห้องสูงสุด</span>
-              <input
+              <UnitInput
                 defaultValue={plan === "new" ? "" : plan.maxRooms}
                 min="1"
                 name="maxRooms"
+                unit="ห้อง"
                 required
                 type="number"
               />

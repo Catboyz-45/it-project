@@ -219,7 +219,7 @@ export function PaymentReviewPanel({
         <div><Search size={16} /><input aria-label="ค้นหาหลักฐานการชำระ" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเลขบิล ห้อง หรือผู้เช่า..." value={query} /></div>
         <div className="contract-actions">
           <DropdownField
-            label="สถานะ"
+            ariaLabel="กรองสถานะหลักฐานการชำระ"
             onChange={(value) => setStatus(value as PaymentSubmissionStatus | "ALL")}
             options={[
               { value: "PENDING_REVIEW", label: "รอตรวจสอบ" },

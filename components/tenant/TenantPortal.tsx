@@ -482,8 +482,8 @@ export function TenantPortal({
           <PageHeaderTarget />
           {active ? <NotificationCenter isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
           {account.occupancies.some(({ status }) => status === "ACTIVE") ? <DropdownField
+            ariaLabel="เลือกการเข้าพัก"
             disabled={isSwitching}
-            label="เลือกการเข้าพัก"
             onChange={(value) => void switchOccupancy(value)}
             options={account.occupancies.filter(({ status }) => status === "ACTIVE").map((occupancy) => ({ label: `${occupancy.property.shortName} · ห้อง ${occupancy.room.number}`, value: occupancy.id }))}
             value={active?.id ?? ""}

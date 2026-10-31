@@ -38,8 +38,9 @@ function InvoiceToolbar({ onGenerateSingle, onQueryChange, onStatusChange, prope
   return <div className="figma-table-toolbar">
     <div><Search size={16} /><input aria-label="ค้นหาบิล" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาเลขที่บิล ห้อง หรือผู้เช่า..." value={query} /></div>
     <div className="contract-actions">
+      {/* ไม่มีป้ายชื่อเหนือกล่อง กล่องจะได้อยู่แนวเดียวกับปุ่มข้าง ๆ ตัวเลือกบอกอยู่แล้วว่ากรองอะไร */}
       <DropdownField
-        label="กรองสถานะ"
+        ariaLabel="กรองสถานะ"
         onChange={onStatusChange}
         options={[
           { value: "all", label: "ทุกสถานะ" },

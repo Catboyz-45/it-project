@@ -3,6 +3,7 @@
 // แยกไฟล์เพื่อให้ทั้งหน้าตั้งค่าหอและส่วนบัญชีเรียกใช้ได้โดยไม่ import วนกัน
 
 import type { ReactNode } from "react";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 export function SettingsCard({
   actions,
@@ -48,12 +49,15 @@ export function PasswordField({ describedBy, label, onChange, value }: Readonly<
 export function TextField({
   label,
   onChange,
+  prefix,
   suffix,
   type = "text",
   value,
 }: Readonly<{
   label: string;
   onChange: (value: string) => void;
+  // คำนำหน้าและหน่วยอยู่ในกล่อง ทุกช่องจึงกว้างเท่ากันไม่ว่าหน่วยจะยาวแค่ไหน
+  prefix?: string;
   suffix?: string;
   type?: "number" | "text";
   value: string;
@@ -62,8 +66,7 @@ export function TextField({
     <label className="settings-field">
       <span>{label}</span>
       <div className="settings-input-wrap">
-        <input onChange={(event) => onChange(event.target.value)} type={type} value={value} />
-        {suffix ? <em>{suffix}</em> : null}
+        <UnitInput onChange={(event) => onChange(event.target.value)} prefix={prefix} type={type} unit={suffix} value={value} />
       </div>
     </label>
   );

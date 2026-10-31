@@ -393,8 +393,8 @@ function SettingsSectionBody({
     return (
           <SettingsCard isSaving={isSavingSettings} onSave={() => void savePropertySettings()} title="รอบบิลและวันชำระ" description="ช่วยให้เจ้าของหอรู้ว่าควรจดมิเตอร์และติดตามยอดค้างช่วงไหน">
             <div className="settings-form-grid three">
-              <TextField label="วันจดมิเตอร์" suffix="ของเดือน" type="number" value={settings.meterReadDay} onChange={(value) => updateSetting("meterReadDay", value)} />
-              <TextField label="วันครบกำหนดชำระ" suffix="ของเดือนถัดไป" type="number" value={settings.dueDay} onChange={(value) => updateSetting("dueDay", value)} />
+              <TextField label="วันจดมิเตอร์" prefix="วันที่" suffix="ของทุกเดือน" type="number" value={settings.meterReadDay} onChange={(value) => updateSetting("meterReadDay", value)} />
+              <TextField label="วันครบกำหนดชำระ" prefix="วันที่" suffix="ของเดือนถัดไป" type="number" value={settings.dueDay} onChange={(value) => updateSetting("dueDay", value)} />
               <TextField label="ค่าปรับชำระล่าช้า" suffix="บาท" type="number" value={settings.lateFee} onChange={(value) => updateSetting("lateFee", value)} />
               <TextField label="เลขพร้อมเพย์รับเงิน" value={settings.promptPay} onChange={(value) => updateSetting("promptPay", value)} />
               <TextAreaField label="ข้อความท้ายบิล" value={settings.paymentNote} onChange={(value) => updateSetting("paymentNote", value)} />

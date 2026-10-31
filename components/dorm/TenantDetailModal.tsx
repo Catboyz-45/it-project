@@ -13,6 +13,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Tenant } from "@/types/dorm";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 // สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
@@ -171,7 +172,7 @@ export function TenantDetailModal({
                   <div className="tenant-config-summary"><span>เงินประกันปัจจุบัน</span><strong>{currency.format(draft.deposit)}</strong></div>
                   <DatePickerField label="วันเริ่มสัญญา" value={draft.startDate} onChange={(value) => update("startDate", value)} />
                   <DatePickerField label="วันสิ้นสุดสัญญา" minDate={draft.startDate ? new Date(`${draft.startDate}T00:00:00`) : undefined} value={draft.contractEnd ?? ""} onChange={(value) => update("contractEnd", value)} />
-                  <NumberField label="เงินประกัน" min={0} value={draft.deposit} onChange={(value) => update("deposit", value)} />
+                  <NumberField label="เงินประกัน" min={0} unit="บาท" value={draft.deposit} onChange={(value) => update("deposit", value)} />
                   <div className="tenant-config-summary"><span>จำนวนผู้พักที่ใช้งาน</span><strong>{draft.occupantCount ?? 1} คน</strong></div>
                   <div className="full-width">
                     <span className="mb-2 block text-sm font-semibold">ผู้พักร่วมในระบบ</span>
@@ -244,8 +245,8 @@ function TextField({ className = "", disabled = false, inputMode, label, maxLeng
 }
 
 // ช่องกรอกตัวเลข แปลงค่าว่างเป็น 0 เพราะผู้เรียกรับเฉพาะ number
-function NumberField({ label, min, onChange, value }: Readonly<{ label: string; min: number; onChange: (value: number) => void; value: number | "" }>) {
-  return <label><span>{label}</span><input min={min} onChange={(event) => onChange(event.target.value === "" ? 0 : Number(event.target.value))} type="number" value={value} /></label>;
+function NumberField({ label, min, onChange, unit, value }: Readonly<{ label: string; min: number; onChange: (value: number) => void; unit?: string; value: number | "" }>) {
+  return <label><span>{label}</span><UnitInput min={min} onChange={(event) => onChange(event.target.value === "" ? 0 : Number(event.target.value))} type="number" unit={unit} value={value} /></label>;
 }
 
 // ช่องกรอกข้อความหลายบรรทัด ใช้กับที่อยู่และหมายเหตุ

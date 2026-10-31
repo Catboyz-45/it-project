@@ -11,6 +11,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, Tenant } from "@/types/dorm";
+import { UnitInput } from "@/components/ui/UnitInput";
 
 // ห่อไว้เป็น object เผื่อวันหลังต้องส่งอย่างอื่นกลับไปด้วย จะได้ไม่ต้องแก้ทุกที่ที่เรียก
 export interface TenantEditPayload {
@@ -162,7 +163,7 @@ export function TenantEditModal({
 
             <label>
               <span>เงินประกัน</span>
-              <input min={0} required step="0.01" type="number" value={deposit} onChange={(event) => setDeposit(event.target.value)} />
+              <UnitInput min={0} required step="0.01" type="number" unit="บาท" value={deposit} onChange={(event) => setDeposit(event.target.value)} />
             </label>
 
             <div className="modal-summary">
