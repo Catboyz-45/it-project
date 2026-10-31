@@ -35,6 +35,7 @@ const STREAM_ERROR = "การเชื่อมต่อเรียลไท�
 export function useChatThread<T extends ChatThreadMessage>({
   endpoint,
   onLoaded,
+  onRead,
   propertyId,
   requireConversationId = false,
   streaming,
@@ -44,6 +45,8 @@ export function useChatThread<T extends ChatThreadMessage>({
   // ต้องเป็นฟังก์ชันที่ไม่เปลี่ยนตัวตนทุก render เช่นห่อด้วย useCallback
   // ไม่งั้น effect โหลดข้อความจะยิงซ้ำไม่จบ
   onLoaded?: () => void;
+  // เรียกทุกครั้งที่เซิร์ฟเวอร์บันทึกว่าอ่านแล้ว ให้หน้าแม่โหลดตัวเลขแจ้งเตือนใหม่ เปลี่ยนตัวทุก render ได้
+  onRead?: () => unknown;
   propertyId: string | null;
   requireConversationId?: boolean;
   // เปิดสตรีมเฉพาะตอนหน้าต่างแชทเปิดอยู่ ไม่งั้นการเชื่อมต่อจะค้างสะสม
@@ -64,6 +67,13 @@ export function useChatThread<T extends ChatThreadMessage>({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // ปกติข้อความใหม่เข้ามาแล้วเลื่อนลงล่างสุด ยกเว้นตอนโหลดข้อความเก่ามาต่อข้างบน
   const shouldScrollToEndRef = useRef(true);
+  const onReadRef = useRef(onRead);
+  // มีข้อความเข้ามาทางสตรีมระหว่างเปิดอ่านอยู่ไหม ถ้ามี ตอนออกต้องบอกเซิร์ฟเวอร์ว่าอ่านแล้วอีกรอบ
+  const receivedWhileOpenRef = useRef(false);
+
+  useEffect(() => {
+    onReadRef.current = onRead;
+  }, [onRead]);
 
   // เช็ค id ซ้ำก่อนต่อท้าย เพราะข้อความที่เราส่งเองจะกลับมาทางสตรีมอีกรอบด้วย
   const appendMessage = useCallback((next: T) => {
@@ -83,6 +93,8 @@ export function useChatThread<T extends ChatThreadMessage>({
       setHasOlderMessages(result.hasMore ?? false);
       setConversationId(result.conversationId ?? null);
       onLoaded?.();
+      // GET ข้อความเป็นจังหวะที่เซิร์ฟเวอร์บันทึกเวลาอ่านล่าสุด ตัวเลขแจ้งเตือนจึงลดได้ตั้งแต่ตรงนี้
+      void onReadRef.current?.();
     }).catch((loadError: unknown) => {
       // ยกเลิกเองตอนเปลี่ยนคู่สนทนา ไม่ใช่ข้อผิดพลาดจริง
       if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : "โหลดข้อความไม่สำเร็จ");
@@ -98,6 +110,7 @@ export function useChatThread<T extends ChatThreadMessage>({
     // after เป็นเวลาปัจจุบัน เพราะข้อความเก่าโหลดมาแล้วจาก effect ข้างบน
     const stream = new EventSource(`/api/v1/chat/conversations/${conversationId}/stream?propertyId=${encodeURIComponent(propertyId)}&after=${encodeURIComponent(new Date().toISOString())}`);
     stream.onmessage = (event) => {
+      receivedWhileOpenRef.current = true;
       try {
         appendMessage(JSON.parse(event.data) as T);
       } catch {
@@ -110,6 +123,20 @@ export function useChatThread<T extends ChatThreadMessage>({
     // ต้องปิดสตรีมตอนออกจากหน้า ไม่งั้นการเชื่อมต่อจะค้างสะสม
     return () => stream.close();
   }, [appendMessage, conversationId, propertyId, streaming]);
+
+  useEffect(() => {
+    if (!endpoint || !streaming) return;
+    receivedWhileOpenRef.current = false;
+    // ออกจากห้องหรือปิดหน้าต่างหลังมีข้อความใหม่เข้ามา เซิร์ฟเวอร์ยังจำเวลาอ่านตอนเปิดห้องอยู่
+    // ข้อความที่เห็นไปแล้วจะถูกนับว่ายังไม่อ่าน จึงเรียก GET อีกครั้งให้บันทึกเวลาอ่านเป็นตอนนี้
+    return () => {
+      if (!receivedWhileOpenRef.current) return;
+      receivedWhileOpenRef.current = false;
+      void fetch(`${endpoint}?limit=1`, { cache: "no-store" })
+        .then(() => onReadRef.current?.())
+        .catch(() => undefined);
+    };
+  }, [endpoint, streaming]);
 
   // เลื่อนลงล่างสุดเมื่อมีข้อความใหม่ แล้วรีเซ็ตธงกลับเป็นค่าปกติทันที
   useEffect(() => {

@@ -372,6 +372,9 @@ export const responseSchemas = {
     },
     generatedAt: dateTime,
   }),
+  SuperAdminNotificationCounts: entity(["pendingAccounts", "pendingSubscriptionPayments", "unreadSupportMessages"], {
+    pendingAccounts: { type: "integer" }, pendingSubscriptionPayments: { type: "integer" }, unreadSupportMessages: { type: "integer" },
+  }),
   PlatformDashboard: entity(["properties", "users", "usage", "revenue", "subscriptions", "operations", "generatedAt"], {
     properties: entity(["active", "totalSubscriptions"], {
       active: { type: "integer" }, totalSubscriptions: { type: "integer" },
@@ -580,6 +583,7 @@ function sample(name) {
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],
     generatedAt: "2026-07-28T10:00:00.000Z",
   };
+  if (name === "SuperAdminNotificationCounts") return { pendingAccounts: 2, pendingSubscriptionPayments: 1, unreadSupportMessages: 3 };
   if (name === "PlatformDashboard") return {
     properties: { active: 12, totalSubscriptions: 12 },
     users: { PROPERTY_ADMIN: 12, TENANT: 420 },
@@ -801,6 +805,7 @@ const jsonSuccessRules = [
   [({ method, apiPath }) => apiPath.endsWith("/signed-document") && method === "post", () => data("UploadResult")],
   [({ apiPath }) => apiPath === "/api/v1/plans", () => data("SaasPlan", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/dashboard", () => data("PlatformDashboard")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/notifications", () => data("SuperAdminNotificationCounts")],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/plans", ({ method }) => data("SaasPlan", method === "get")],
   [({ apiPath }) => apiPath.endsWith("/super-admin/plans/{planId}"), () => data("SaasPlan")],
   [({ apiPath }) => apiPath.endsWith("/subscription"), () => data("PropertySubscription")],

@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { newPasswordSchema } from "@/lib/domain/password-policy";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { resetPassword } from "@/lib/server/password-reset";
 
 const schema = z.object({
   token: z.string().min(32).max(256),
-  password: z.string().min(12).max(128)
+  password: newPasswordSchema
     .regex(/[a-z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์เล็ก")
     .regex(/[A-Z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์ใหญ่")
     .regex(/\d/, "ต้องมีตัวเลข"),

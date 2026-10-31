@@ -36,11 +36,11 @@ export function SettingsCard({
 }
 
 // ช่องรหัสผ่านพร้อมปุ่มสลับดูหรือซ่อน
-export function PasswordField({ label, onChange, value }: Readonly<{ label: string; onChange: (value: string) => void; value: string }>) {
+export function PasswordField({ describedBy, label, onChange, value }: Readonly<{ describedBy?: string; label: string; onChange: (value: string) => void; value: string }>) {
   return (
     <label className="settings-field">
       <span>{label}</span>
-      <input autoComplete={label === "รหัสผ่านปัจจุบัน" ? "current-password" : "new-password"} maxLength={128} minLength={12} onChange={(event) => onChange(event.target.value)} type="password" value={value} />
+      <input aria-describedby={describedBy} autoComplete={label === "รหัสผ่านปัจจุบัน" ? "current-password" : "new-password"} maxLength={128} minLength={12} onChange={(event) => onChange(event.target.value)} type="password" value={value} />
     </label>
   );
 }

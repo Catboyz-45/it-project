@@ -9,6 +9,14 @@ import type { SubscriptionUiAccessState } from "@/lib/client/subscription-access
 import type { NotificationCenterItem } from "@/components/ui/NotificationCenter";
 import { ownerPagePath } from "@/lib/navigation-routes";
 
+// ข้อความและคำตอบที่เจ้าของหอยังไม่ได้อ่าน โหลดแยกจากข้อมูลสรุป จะได้รีเฟรชถี่ ๆ ได้โดยไม่หนัก
+// null คือยังโหลดไม่เสร็จ ระหว่างนั้นใช้ตัวเลขจากข้อมูลสรุปไปก่อน
+export type OwnerUnreadCounts = { supportMessages: number; tenantMessages: number; ticketReplies: number };
+
+function unreadTenantMessages(aggregation: OwnerDashboardAggregation, unread: OwnerUnreadCounts | null) {
+  return unread?.tenantMessages ?? aggregation.operations.unreadTenantMessages;
+}
+
 // เตือนล่วงหน้า 30 วัน 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน
 const EXPIRY_WARNING_MS = 30 * 86_400_000;
 
@@ -29,10 +37,11 @@ export function isSubscriptionExpiringSoon(aggregation: OwnerDashboardAggregatio
 // ตัวเลขบนป้ายของแต่ละเมนู ไม่มีข้อมูลสรุปก็ไม่ขึ้นป้ายเลย
 export function buildNotificationCounts(
   aggregation: OwnerDashboardAggregation | null,
-  unreadTicketReplies: number,
+  unread: OwnerUnreadCounts | null,
 ): Partial<Record<PageKey, number>> {
   if (!aggregation) return {};
   const subscription = needsSubscriptionAttention(aggregation) ? 1 : 0;
+  const unreadTicketReplies = unread?.ticketReplies ?? 0;
   return {
     subscription,
     // หน้าภาพรวมรวมทุกอย่างที่ค้างอยู่ เพราะเป็นหน้าแรกที่เจ้าของหอเปิด
@@ -41,7 +50,8 @@ export function buildNotificationCounts(
       + aggregation.finance.overdueInvoices
       + aggregation.operations.openTickets
       + aggregation.operations.waitingParcels
-      + aggregation.operations.unreadTenantMessages
+      + unreadTenantMessages(aggregation, unread)
+      + (unread?.supportMessages ?? 0)
       + aggregation.operations.expiringLeases
       + subscription,
     tenants: aggregation.pendingOccupancies,
@@ -69,16 +79,17 @@ export function buildOwnerNotifications({
   isReadOnly,
   onOpenChat,
   propertyId,
-  unreadTicketReplies,
+  unread,
 }: {
   accessState: SubscriptionUiAccessState;
   aggregation: OwnerDashboardAggregation | null;
   isReadOnly: boolean;
   onOpenChat: () => void;
   propertyId: string;
-  unreadTicketReplies: number;
+  unread: OwnerUnreadCounts | null;
 }): NotificationCenterItem[] {
   if (!aggregation) return [];
+  const unreadTicketReplies = unread?.ticketReplies ?? 0;
   return [
     { id: "pending-occupancies", count: aggregation.pendingOccupancies, title: "คำขอเข้าพักที่ยังรอดำเนินการ", description: describe(isReadOnly, "เปิดดูรายละเอียดได้ การอนุมัติจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "ตรวจสอบข้อมูลผู้เช่าก่อนอนุมัติเข้าพัก"), href: `${ownerPagePath(propertyId, "tenants")}?tab=pending`, icon: <UserRound size={19} /> },
     { id: "pending-payments", count: aggregation.finance.pendingPayments, title: "หลักฐานชำระเงินที่ยังรอตรวจสอบ", description: describe(isReadOnly, "เปิดดูหลักฐานได้ การยืนยันรับชำระจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "ตรวจสอบสลิปและยืนยันการรับชำระ"), href: `${ownerPagePath(propertyId, "invoices")}?tab=payments`, icon: <Banknote size={19} /> },
@@ -86,7 +97,8 @@ export function buildOwnerNotifications({
     { id: "open-tickets", count: aggregation.operations.openTickets, title: "เรื่องแจ้งที่ยังไม่เสร็จ", description: describe(isReadOnly, "เปิดดูสถานะและประวัติได้ การอัปเดตจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "ติดตามงานซ่อมและเรื่องร้องเรียนจากผู้เช่า"), href: ownerPagePath(propertyId, "complaints"), icon: <Wrench size={19} /> },
     { id: "ticket-replies", count: unreadTicketReplies, title: "ข้อความตอบกลับเรื่องแจ้ง", description: describe(isReadOnly, "เปิดอ่านข้อความและประวัติเดิมได้ในโหมดอ่านอย่างเดียว", "มีข้อความใหม่จากผู้เช่าที่ยังไม่ได้อ่าน"), href: ownerPagePath(propertyId, "complaints"), icon: <MessageSquare size={19} /> },
     { id: "waiting-parcels", count: aggregation.operations.waitingParcels, title: "พัสดุที่ยังรอผู้เช่ารับ", description: describe(isReadOnly, "เปิดดูรายการได้ การบันทึกรับพัสดุจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "รายการพัสดุที่ยังไม่ได้ส่งมอบ"), href: ownerPagePath(propertyId, "parcels"), icon: <PackageCheck size={19} /> },
-    { id: "tenant-messages", count: aggregation.operations.unreadTenantMessages, title: "ข้อความใหม่จากผู้เช่า", description: describe(isReadOnly, "เปิดอ่านประวัติข้อความได้ แต่ยังตอบกลับไม่ได้", "เปิดกล่องข้อความเพื่อตอบกลับผู้เช่า"), onSelect: onOpenChat, icon: <MessageSquare size={19} /> },
+    { id: "tenant-messages", count: unreadTenantMessages(aggregation, unread), title: "ข้อความใหม่จากผู้เช่า", description: describe(isReadOnly, "เปิดอ่านประวัติข้อความได้ แต่ยังตอบกลับไม่ได้", "เปิดกล่องข้อความเพื่อตอบกลับผู้เช่า"), onSelect: onOpenChat, icon: <MessageSquare size={19} /> },
+    { id: "support-messages", count: unread?.supportMessages ?? 0, title: "ข้อความใหม่จากแอดมินใหญ่", description: "เปิดกล่องข้อความเพื่ออ่านคำตอบเรื่องการใช้งานระบบ", onSelect: onOpenChat, icon: <MessageSquare size={19} /> },
     { id: "expiring-leases", count: aggregation.operations.expiringLeases, title: "สัญญาใกล้หมดอายุ", description: describe(isReadOnly, "คำนวณจากวันสิ้นสุดสัญญา เปิดดูรายละเอียดได้ในโหมดอ่านอย่างเดียว", "คำนวณจากวันสิ้นสุดอัตโนมัติ โปรดตรวจสอบและเตรียมต่อสัญญา"), href: ownerPagePath(propertyId, "contracts"), icon: <FileText size={19} /> },
     {
       id: "subscription",

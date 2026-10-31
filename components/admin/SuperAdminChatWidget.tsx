@@ -7,6 +7,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
 
 // หนึ่งห้องสนทนา ผู้ดูแลระบบคุยกับเจ้าของหอแต่ละหอคนละห้อง
 type SupportConversation = {
@@ -69,6 +70,16 @@ export function SuperAdminChatWidget() {
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
 
+  // กดจากกระดิ่งแล้วเปิดหน้าต่างแชท พร้อมโหลดรายการใหม่ให้เห็นห้องที่เพิ่งมีข้อความเข้ามา
+  const notifications = useSuperAdminNotifications();
+  const chatOpenSignal = notifications?.chatOpenSignal ?? 0;
+  useEffect(() => {
+    if (chatOpenSignal <= 0) return;
+    setSelected(null);
+    setIsOpen(true);
+    void loadConversations();
+  }, [chatOpenSignal, loadConversations]);
+
   // เปิดห้องไหนก็ถือว่าอ่านแล้ว ล้างป้ายจำนวนของห้องนั้นในรายการทันที
   const markSelectedRead = useCallback(() => {
     setConversations((current) => current.map((item) => item.id === selected?.id ? { ...item, unreadCount: 0 } : item));
@@ -81,6 +92,8 @@ export function SuperAdminChatWidget() {
   } = useChatThread<SupportMessage>({
     endpoint: selected ? `/api/v1/super-admin/properties/${selected.propertyId}/support-chat` : null,
     onLoaded: markSelectedRead,
+    // อ่านแล้วให้กระดิ่งของแอดมินใหญ่ลดตามทันที
+    onRead: notifications?.refresh,
     propertyId: selected?.propertyId ?? null,
     requireConversationId: true,
     streaming: isOpen,

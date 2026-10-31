@@ -2,6 +2,7 @@ import "dotenv/config";
 import { randomBytes, randomUUID, scrypt as nodeScrypt } from "node:crypto";
 import { promisify } from "node:util";
 import pg from "pg";
+import { demoId, migrateLegacyDemoIds } from "./demo-ids.mjs";
 
 // สร้างบัญชีซูเปอร์แอดมินตัวแรก ต้องมีคนแรกก่อนถึงจะเข้าไปสร้างคนอื่นต่อได้
 // ใช้ pg ตรงแทน Prisma เพราะต้องรันได้ตั้งแต่ตอนที่แอปยัง build ไม่เสร็จ
@@ -16,7 +17,7 @@ const displayName = process.env.BOOTSTRAP_ADMIN_NAME?.trim() || "แอดมิ
 const propertyAdminEmail = process.env.DEMO_PROPERTY_ADMIN_EMAIL?.trim().toLowerCase();
 const propertyAdminPassword = process.env.DEMO_PROPERTY_ADMIN_PASSWORD;
 const propertyAdminName = process.env.DEMO_PROPERTY_ADMIN_NAME?.trim() || "แอดมินประจำหอ";
-const demoPropertyId = "demo-property";
+const demoPropertyId = demoId("demo-property");
 
 // ตรวจค่าให้ครบก่อนแตะฐานข้อมูล ขาดอะไรจะได้รู้ทันทีไม่ใช่ไปพังกลางทาง
 if (!databaseUrl || !email || !password) {
@@ -64,6 +65,8 @@ try {
     // ได้บัญชีแต่ผูกหอไม่ติด จะกลายเป็นแอดมินที่เข้าไปแล้วไม่เห็นอะไรเลย
     await pool.query("BEGIN");
     try {
+      // หอสาธิตที่สร้างไว้ด้วย id แบบเก่า เปลี่ยน id ในที่เดิมก่อน ไม่งั้นจะได้หอซ้ำอีกหลัง
+      await migrateLegacyDemoIds((text, values) => pool.query(text, values));
       await pool.query(
         `INSERT INTO "Property" ("id", "name", "shortName", "isActive", "createdAt", "updatedAt")
          VALUES ($1, 'หอพักทดลอง', 'หอทดลอง', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)

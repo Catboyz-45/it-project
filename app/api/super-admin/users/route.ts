@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { newPasswordSchema } from "@/lib/domain/password-policy";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
@@ -8,7 +9,7 @@ import { hashPassword } from "@/lib/server/password";
 const schema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   displayName: z.string().trim().min(2).max(120),
-  password: z.string().min(12).max(128),
+  password: newPasswordSchema,
   propertyIds: z.array(z.string().cuid()).min(1).max(50),
 }).strict();
 

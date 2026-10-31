@@ -1,12 +1,12 @@
 "use client";
 // ต่อสตรีมข้อความ จัดการการเลื่อน และอัปโหลดไฟล์จากเบราว์เซอร์
 
-import { SyntheticEvent, useEffect, useMemo, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, Crown, Pin, X } from "lucide-react";
 import type { Tenant } from "@/types/dorm";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatLauncher, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { IconButton } from "@/components/ui/IconButton";
 
 // หน้าต่างแชทมีสองหน้า รายชื่อคู่สนทนา กับห้องสนทนา
@@ -32,17 +32,32 @@ function contactEndpoint(propertyId: string, contactId: string, isSupport?: bool
     : `/api/v1/admin/properties/${propertyId}/tenant-chat/${contactId}`;
 }
 
+// จำนวนที่ยังไม่ได้อ่านของผู้เช่าแต่ละคน ใช้ขึ้นป้ายในรายชื่อ
+async function loadTenantUnreadCounts(propertyId: string): Promise<Record<string, number>> {
+  const response = await fetch(`/api/v1/admin/properties/${propertyId}/tenant-chat?pageSize=100`, { cache: "no-store" });
+  const result = await response.json() as { conversations?: Array<{ tenant: { id: string } | null; unreadCount: number }> };
+  if (!response.ok || !result.conversations) return {};
+  return Object.fromEntries(result.conversations
+    .filter((conversation) => conversation.tenant && conversation.unreadCount > 0)
+    .map((conversation) => [conversation.tenant!.id, conversation.unreadCount]));
+}
+
 // หน้าต่างแชทมุมจอฝั่งเจ้าของหอ คุยกับผู้เช่าและกับแอดมินใหญ่
 export function ChatWidget({
+  onUnreadChanged,
   propertyId,
   readOnly = false,
+  supportUnreadCount = 0,
   tenants,
   unreadCount = 0,
   // ตัวเลขที่เพิ่มขึ้นจากหน้าแม่เพื่อสั่งเปิดแชท ใช้ตัวเลขเพราะสั่งเปิดซ้ำได้เรื่อย ๆ
   openSignal = 0,
 }: Readonly<{
+  // อ่านข้อความแล้ว ให้หน้าแม่โหลดตัวเลขบนกระดิ่ง เมนู และปุ่มแชทใหม่
+  onUnreadChanged?: () => unknown;
   propertyId: string;
   readOnly?: boolean;
+  supportUnreadCount?: number;
   tenants: Tenant[];
   unreadCount?: number;
   openSignal?: number;
@@ -52,6 +67,26 @@ export function ChatWidget({
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [view, setView] = useState<ChatView>("tenants");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [tenantUnread, setTenantUnread] = useState<Record<string, number>>({});
+
+  const refreshTenantUnread = useCallback(async () => {
+    try {
+      setTenantUnread(await loadTenantUnreadCounts(propertyId));
+    } catch {
+      // ป้ายรายคนโหลดไม่ได้ก็ยังคุยได้ปกติ ไม่ต้องขึ้นข้อผิดพลาด
+    }
+  }, [propertyId]);
+
+  // โหลดใหม่ทุกครั้งที่กลับมาหน้ารายชื่อ จะได้เห็นว่าใครส่งมาใหม่ระหว่างที่ปิดหน้าต่างอยู่
+  useEffect(() => {
+    if (!isOpen || view !== "tenants") return;
+    void refreshTenantUnread();
+  }, [isOpen, refreshTenantUnread, view]);
+
+  const handleRead = useCallback(() => {
+    void refreshTenantUnread();
+    return onUnreadChanged?.();
+  }, [onUnreadChanged, refreshTenantUnread]);
   // ข้าม 0 ซึ่งเป็นค่าเริ่มต้น ไม่งั้นแชทจะเด้งเปิดเองตั้งแต่เข้าหน้า
   useEffect(() => {
     if (openSignal <= 0) return;
@@ -81,7 +116,7 @@ export function ChatWidget({
     attachment, endRef, error, fileInputRef, hasOlderMessages, isLoading, isLoadingOlder,
     isReady, isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
     setAttachment, setError, setMessage,
-  } = useChatThread<ChatMessage>({ endpoint, propertyId, streaming: isOpen });
+  } = useChatThread<ChatMessage>({ endpoint, onRead: handleRead, propertyId, streaming: isOpen });
 
   const openTenantChat = (tenantId: string) => {
     setSelectedTenantId(tenantId);
@@ -107,7 +142,11 @@ export function ChatWidget({
       />
 
       <div className="chat-widget-body">
-        {view === "tenants" ? <ContactList contacts={contacts} onOpen={openTenantChat} /> : null}
+        {view === "tenants" ? <ContactList
+          contacts={contacts}
+          onOpen={openTenantChat}
+          unreadFor={(contact) => contact.isSupport ? supportUnreadCount : tenantUnread[contact.id] ?? 0}
+        /> : null}
 
         {view === "chat" && selectedContact ? <ChatMessageList
           emptyText={emptyConversationText(selectedContact)}
@@ -186,12 +225,17 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
 }
 
 // รายชื่อคู่สนทนา แอดมินใหญ่ถูกปักไว้บนสุดเสมอ
-function ContactList({ contacts, onOpen }: Readonly<{ contacts: ChatContact[]; onOpen: (contactId: string) => void }>) {
+function ContactList({ contacts, onOpen, unreadFor }: Readonly<{
+  contacts: ChatContact[];
+  onOpen: (contactId: string) => void;
+  unreadFor: (contact: ChatContact) => number;
+}>) {
   return <div className="chat-tenant-list">
     {contacts.map((contact) => <button className={contact.isSupport ? "chat-support-contact" : ""} key={contact.id} onClick={() => onOpen(contact.id)} type="button">
       <span className={`chat-list-avatar${contact.isSupport ? " support" : ""}`}>{contact.isSupport ? <Crown size={20} /> : contact.roomId}</span>
       <span><strong>{contactTitle(contact)}</strong><small>{contact.isSupport ? "สอบถามปัญหาการใช้งานระบบ" : contact.name}</small></span>
-      {contact.isSupport ? <Pin className="chat-pinned-icon" size={16} /> : null}
+      {contact.isSupport && unreadFor(contact) === 0 ? <Pin className="chat-pinned-icon" size={16} /> : null}
+      <UnreadBadge className="notification-badge" count={unreadFor(contact)} />
     </button>)}
   </div>;
 }

@@ -4,6 +4,7 @@
 import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, Search, X } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
 import { createApiError, formatClientError } from "@/lib/client/api-error";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { IconButton } from "@/components/ui/IconButton";
@@ -28,6 +29,7 @@ export function SubscriptionPaymentReview({
   initialPayments?: Payment[] | null;
 }> = {}) {
   const [payments, setPayments] = useState<Payment[]>(initialPayments ?? []);
+  const notifications = useSuperAdminNotifications();
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
   const skipInitialLoadRef = useRef(initialPayments !== null);
@@ -73,6 +75,8 @@ export function SubscriptionPaymentReview({
       if (!response.ok) throw createApiError(payload, "ตรวจสอบรายการไม่สำเร็จ");
       // ตัดออกจากรายการเลย ไม่ต้องโหลดใหม่ เพราะตรวจแล้วก็หลุดจากคิวรอตรวจอยู่ดี
       setPayments((current) => current.filter(({ id }) => id !== payment.id));
+      // ตรวจเสร็จหนึ่งรายการ ป้ายบนเมนูและกระดิ่งต้องลดตาม
+      void notifications?.refresh();
       setRejecting(null);
       setRejectionNote("");
       notify({ message: status === "APPROVED" ? "อนุมัติค่าสมาชิกแล้ว" : "ปฏิเสธหลักฐานค่าสมาชิกแล้ว" });

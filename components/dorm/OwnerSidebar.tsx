@@ -19,8 +19,6 @@ import {
   LogOut,
   Megaphone,
   PackageCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
   QrCode,
   Settings,
   UserRound,
@@ -31,6 +29,7 @@ import type { PageKey } from "@/types/navigation";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import { MenuBadge } from "@/components/dorm/OwnerShellParts";
+import { appSidebarId, NavToggle } from "@/components/ui/NavShell";
 
 export type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
 
@@ -50,9 +49,6 @@ const secondaryMenuItems: MenuItem[] = [
   { key: "complaints", label: "ร้องเรียน", icon: Wrench },
   { key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
 ];
-
-// จำว่าย่อเมนูไว้หรือไม่ในเบราว์เซอร์นี้ เปิดหน้าใหม่หรือเข้าวันหลังเมนูจะเป็นแบบเดิม
-const collapsedStorageKey = "nestly.ownerSidebarCollapsed";
 
 // ประวัติซ่อมไม่มีเมนูของตัวเอง เข้าจากหน้าเรื่องร้องเรียน จึงต้องให้เมนูนั้นสว่างค้างไว้
 function isActiveMenu(activePage: PageKey, key: MenuPageKey) {
@@ -80,29 +76,16 @@ export function OwnerSidebar({
   notificationCounts: Partial<Record<PageKey, number>>;
   propertyId: string;
 }>) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // อ่านใน effect ไม่ใช่ตอนตั้ง state เพราะฝั่งเซิร์ฟเวอร์ไม่มี localStorage
-  // บางเบราว์เซอร์ (โหมดส่วนตัว) โยน error ตอนเข้าถึง จึงครอบ try ไว้ แล้วใช้แบบกางเป็นค่าเริ่มต้น
-  useEffect(() => {
-    try { setIsCollapsed(localStorage.getItem(collapsedStorageKey) === "1"); } catch { /* ใช้ค่าเริ่มต้น */ }
-  }, []);
-
-  const toggleCollapsed = () => {
-    setIsCollapsed((current) => {
-      const next = !current;
-      try { localStorage.setItem(collapsedStorageKey, next ? "1" : "0"); } catch { /* จำไม่ได้ก็ยังย่อได้ */ }
-      return next;
-    });
-  };
-
-  return <aside aria-label="เมนูหลัก" className={isCollapsed ? "sidebar sidebar-collapsed" : "sidebar"}>
-    <PropertySwitcher activeProperty={activeProperty} availableProperties={availableProperties} propertyId={propertyId} />
+  return <aside aria-label="เมนูหลัก" className="sidebar" id={appSidebarId}>
+    <div className="sidebar-head">
+      <PropertySwitcher activeProperty={activeProperty} availableProperties={availableProperties} propertyId={propertyId} />
+      <NavToggle />
+    </div>
     <nav>
-      {menuItems.map((item) => <MenuLink activePage={activePage} isCollapsed={isCollapsed} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
-      <MetersMenu activePage={activePage} isCollapsed={isCollapsed} propertyId={propertyId} />
-      {secondaryMenuItems.map((item) => <MenuLink activePage={activePage} isCollapsed={isCollapsed} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
-      <Link className={activePage === "announcements" ? "active" : ""} href={ownerPagePath(propertyId, "announcements")} title={isCollapsed ? "ประกาศ/ข่าวสาร" : undefined}>
+      {menuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
+      <MetersMenu activePage={activePage} propertyId={propertyId} />
+      {secondaryMenuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
+      <Link className={activePage === "announcements" ? "active" : ""} href={ownerPagePath(propertyId, "announcements")}>
         <Megaphone size={18} />
         <span>ประกาศ/ข่าวสาร</span>
       </Link>
@@ -112,34 +95,20 @@ export function OwnerSidebar({
       accountName={accountName}
       activePage={activePage}
       activeProperty={activeProperty}
-      isCollapsed={isCollapsed}
       navigateTo={navigateTo}
     />
-    <button
-      aria-expanded={!isCollapsed}
-      aria-label={isCollapsed ? "ขยายเมนู" : "ย่อเมนู"}
-      className="sidebar-collapse-toggle"
-      onClick={toggleCollapsed}
-      title={isCollapsed ? "ขยายเมนู" : "ย่อเมนู"}
-      type="button"
-    >
-      {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-      <span>ย่อเมนู</span>
-    </button>
   </aside>;
 }
 
-function MenuLink({ activePage, isCollapsed, isReadOnly, item, notificationCounts, propertyId }: Readonly<{
+function MenuLink({ activePage, isReadOnly, item, notificationCounts, propertyId }: Readonly<{
   activePage: PageKey;
-  isCollapsed: boolean;
   isReadOnly: boolean;
   item: MenuItem;
   notificationCounts: Partial<Record<PageKey, number>>;
   propertyId: string;
 }>) {
   const Icon = item.icon;
-  // ตอนย่อเหลือแต่ไอคอน title จึงเป็นทางเดียวที่เมาส์จะบอกได้ว่าเมนูนี้คืออะไร
-  return <Link className={isActiveMenu(activePage, item.key) ? "active" : ""} href={ownerPagePath(propertyId, item.key)} title={isCollapsed ? item.label : undefined}>
+  return <Link className={isActiveMenu(activePage, item.key) ? "active" : ""} href={ownerPagePath(propertyId, item.key)}>
     <Icon size={18} />
     <span>{item.label}</span>
     <MenuBadge count={notificationCounts[item.key] ?? 0} isReadOnly={isReadOnly} />
@@ -183,13 +152,13 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
   </div>;
 }
 
-function MetersMenu({ activePage, isCollapsed, propertyId }: Readonly<{ activePage: PageKey; isCollapsed: boolean; propertyId: string }>) {
+function MetersMenu({ activePage, propertyId }: Readonly<{ activePage: PageKey; propertyId: string }>) {
   const [isOpen, setIsOpen] = useState(true);
   // ปิดอยู่ก็ต้องกด Tab ข้ามไป ไม่งั้นโฟกัสจะหายเข้าไปในเมนูที่มองไม่เห็น
   const linkTabIndex = isOpen ? undefined : -1;
 
   return <div className="sidebar-group">
-    <button aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)} title={isCollapsed ? "ค่าน้ำและค่าไฟ" : undefined} type="button">
+    <button aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)} type="button">
       <Gauge size={18} />
       <span>ค่าน้ำและค่าไฟ</span>
       <ChevronDown className={isOpen ? "sidebar-chevron open" : "sidebar-chevron"} size={17} />
@@ -197,11 +166,11 @@ function MetersMenu({ activePage, isCollapsed, propertyId }: Readonly<{ activePa
     {/* คงไว้ใน DOM เสมอแล้วสลับคลาสแทนการถอดออก ไม่งั้นความสูงกระโดดทันทีจนไม่มีอะไรให้ค่อย ๆ กาง */}
     <div aria-hidden={!isOpen} className={isOpen ? "sidebar-subnav open" : "sidebar-subnav"}>
       <div>
-        <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")} tabIndex={linkTabIndex} title={isCollapsed ? "มิเตอร์น้ำ" : undefined}>
+        <Link className={activePage === "waterMeter" ? "active" : ""} href={ownerPagePath(propertyId, "waterMeter")} tabIndex={linkTabIndex}>
           <Droplets size={17} />
           <span>มิเตอร์น้ำ</span>
         </Link>
-        <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")} tabIndex={linkTabIndex} title={isCollapsed ? "มิเตอร์ไฟ" : undefined}>
+        <Link className={activePage === "electricMeter" ? "active" : ""} href={ownerPagePath(propertyId, "electricMeter")} tabIndex={linkTabIndex}>
           <Zap size={17} />
           <span>มิเตอร์ไฟ</span>
         </Link>
@@ -210,12 +179,11 @@ function MetersMenu({ activePage, isCollapsed, propertyId }: Readonly<{ activePa
   </div>;
 }
 
-function AccountMenu({ accountEmail, accountName, activePage, activeProperty, isCollapsed, navigateTo }: Readonly<{
+function AccountMenu({ accountEmail, accountName, activePage, activeProperty, navigateTo }: Readonly<{
   accountEmail: string;
   accountName: string;
   activePage: PageKey;
   activeProperty: DashboardProperty;
-  isCollapsed: boolean;
   navigateTo: (page: PageKey) => void;
 }>) {
   const [isOpen, setIsOpen] = useState(false);
@@ -269,7 +237,6 @@ function AccountMenu({ accountEmail, accountName, activePage, activeProperty, is
       aria-label="เปิดเมนูตั้งค่า"
       className={isSettingsArea(activePage) ? "active" : ""}
       onClick={() => setIsOpen((current) => !current)}
-      title={isCollapsed ? "ตั้งค่า" : undefined}
       type="button"
     >
       <UserRound size={18} />

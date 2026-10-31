@@ -3,6 +3,7 @@
 
 import { SyntheticEvent, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // ฟอร์มสมัครของผู้เช่า ต้องมีรหัสเชิญจากหอพัก เพื่อให้ระบบผูกบัญชีกับห้องได้ถูก
 // สมัครแล้วยังเข้าใช้งานไม่ได้ทันที ต้องรอเจ้าของหออนุมัติก่อน
@@ -10,6 +11,8 @@ export function TenantRegistrationForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  // เก็บไว้แค่ให้เช็คลิสต์ติ๊กถูกตามที่พิมพ์ ค่าที่ส่งจริงยังอ่านจากฟอร์มเหมือนช่องอื่น
+  const [password, setPassword] = useState("");
 
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
@@ -84,11 +87,12 @@ export function TenantRegistrationForm() {
         maxLength={128}
         minLength={12}
         name="password"
+        onChange={(event) => setPassword(event.target.value)}
         placeholder="ตั้งรหัสผ่าน"
         required
         type="password"
       />
-      <small id="tenant-password-help">อย่างน้อย 12 ตัว พร้อมตัวพิมพ์เล็ก พิมพ์ใหญ่ และตัวเลข</small>
+      <PasswordRequirements id="tenant-password-help" password={password} />
     </label>
     {error ? <p className="login-form-error tenant-form-feedback" role="alert">{error}</p> : null}
     {message ? <output className="tenant-form-success tenant-form-feedback">

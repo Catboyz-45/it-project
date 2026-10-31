@@ -162,7 +162,7 @@ test.describe("role-specific computed contrast", () => {
   test("Super Admin navigation and table statuses meet WCAG AA", async ({ page }) => {
     await loginAs(page, e2e.superAdminEmail);
     const accounts = page.getByRole("navigation", { name: "เมนู Super Admin" })
-      .getByRole("link", { name: "บัญชีเจ้าของหอ", exact: true });
+      .getByRole("link", { name: /^บัญชีเจ้าของหอ(?:\s|$)/ });
     await checkInteractiveStates(accounts, "super admin navigation link");
 
     await page.goto("/super-admin/accounts");

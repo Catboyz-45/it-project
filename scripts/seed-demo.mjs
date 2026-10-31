@@ -2,6 +2,7 @@ import "dotenv/config";
 import { randomBytes, scrypt as nodeScrypt } from "node:crypto";
 import { promisify } from "node:util";
 import pg from "pg";
+import { demoId, migrateLegacyDemoIds } from "./demo-ids.mjs";
 
 // เติมข้อมูลตัวอย่างให้หอสาธิต เปิดเข้ามาแล้วเห็นระบบทำงานจริง ไม่ใช่หน้าว่าง
 // ใช้ pg ตรงแทน Prisma เพราะต้องรันได้บนเครื่องปลายทางที่ไม่ได้ build โค้ดไว้
@@ -19,10 +20,10 @@ if (!tenantPassword || tenantPassword.length < 12) {
 }
 
 // id คงที่ทั้งหมด รันซ้ำจึงทับของเดิมแทนที่จะเพิ่มชุดใหม่
-const propertyId = "demo-property";
-const planId = "demo-plan";
-const buildingId = "demo-building";
-const floorIds = ["demo-floor-1", "demo-floor-2"];
+const propertyId = demoId("demo-property");
+const planId = demoId("demo-plan");
+const buildingId = demoId("demo-building");
+const floorIds = [demoId("demo-floor-1"), demoId("demo-floor-2")];
 
 // แฮชต้องตรงรูปแบบกับ lib/server/password.ts เป๊ะ ไม่งั้นระบบตรวจรหัสไม่ผ่าน
 async function createPasswordHash(value) {
@@ -45,6 +46,12 @@ const pool = new Pool({ connectionString: databaseUrl });
 const run = (text, values) => pool.query(text, values);
 
 try {
+  // ฐานที่เคย seed ด้วย id แบบเก่า เปลี่ยน id ให้ใช้กับ API ได้ก่อน ไม่งั้นจะหาหอสาธิตไม่เจอ
+  await run("BEGIN");
+  const renamed = await migrateLegacyDemoIds(run);
+  await run("COMMIT");
+  if (renamed) console.log(`เปลี่ยน id เดโมแบบเก่าให้เป็นรูปแบบ cuid แล้ว ${renamed} แถว`);
+
   // หอต้องมีอยู่ก่อน สคริปต์ admin:bootstrap เป็นคนสร้าง
   const property = await run(`SELECT "id" FROM "Property" WHERE "id" = $1`, [propertyId]);
   if (!property.rowCount) {
@@ -88,7 +95,7 @@ try {
       `INSERT INTO "RoomTypeConfig" ("id","propertyId","name","monthlyRent","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT ("id") DO UPDATE SET "monthlyRent" = EXCLUDED."monthlyRent", "updatedAt" = CURRENT_TIMESTAMP`,
-      [`demo-roomtype-${index}`, propertyId, name, rent],
+      [demoId(`demo-roomtype-${index}`), propertyId, name, rent],
     );
   }
   for (const [index, name] of ["เตียง", "ตู้เสื้อผ้า", "โต๊ะทำงาน", "เครื่องปรับอากาศ"].entries()) {
@@ -96,7 +103,7 @@ try {
       `INSERT INTO "FurnitureOption" ("id","propertyId","name","createdAt","updatedAt")
        VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT ("id") DO UPDATE SET "name" = EXCLUDED."name", "updatedAt" = CURRENT_TIMESTAMP`,
-      [`demo-furniture-${index}`, propertyId, name],
+      [demoId(`demo-furniture-${index}`), propertyId, name],
     );
   }
 
@@ -121,14 +128,14 @@ try {
     for (let slot = 1; slot <= 5; slot += 1) {
       const number = `${floorIndex + 1}0${slot}`;
       const isAir = slot <= 3;
-      rooms.push({ id: `demo-room-${number}`, number, floorId, rent: isAir ? 4500 : 3200 });
+      rooms.push({ id: demoId(`demo-room-${number}`), number, floorId, rent: isAir ? 4500 : 3200 });
       await run(
         `INSERT INTO "Room" ("id","propertyId","buildingId","floorId","number","roomType","monthlyRent","depositAmount","capacity","status","createdAt","updatedAt")
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,2,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
          ON CONFLICT ("id") DO UPDATE SET
            "monthlyRent" = EXCLUDED."monthlyRent", "status" = EXCLUDED."status", "updatedAt" = CURRENT_TIMESTAMP`,
         [
-          `demo-room-${number}`, propertyId, buildingId, floorId, number,
+          demoId(`demo-room-${number}`), propertyId, buildingId, floorId, number,
           isAir ? "ห้องแอร์" : "ห้องพัดลม", isAir ? 4500 : 3200, (isAir ? 4500 : 3200) * 2,
           slot === 5 ? "MAINTENANCE" : "AVAILABLE",
         ],
@@ -138,7 +145,7 @@ try {
         await run(
           `INSERT INTO "RoomFurniture" ("roomId","furnitureOptionId","quantity","createdAt")
            VALUES ($1,$2,1,CURRENT_TIMESTAMP) ON CONFLICT ("roomId","furnitureOptionId") DO NOTHING`,
-          [`demo-room-${number}`, "demo-furniture-3"],
+          [demoId(`demo-room-${number}`), demoId("demo-furniture-3")],
         );
       }
     }
@@ -153,8 +160,8 @@ try {
   ];
   const tenantIds = {};
   for (const tenant of tenants) {
-    const userId = `demo-user-${tenant.key}`;
-    const profileId = `demo-profile-${tenant.key}`;
+    const userId = demoId(`demo-user-${tenant.key}`);
+    const profileId = demoId(`demo-profile-${tenant.key}`);
     await run(
       `INSERT INTO "User" ("id","email","passwordHash","displayName","role","isActive","approvalStatus","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,'TENANT',true,'APPROVED',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
@@ -180,18 +187,18 @@ try {
         `INSERT INTO "TenantVehicle" ("id","tenantProfileId","type","licensePlate","province","createdAt","updatedAt")
          VALUES ($1,$2,$3,$4,'กรุงเทพมหานคร',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
          ON CONFLICT ("tenantProfileId") DO UPDATE SET "licensePlate" = EXCLUDED."licensePlate", "updatedAt" = CURRENT_TIMESTAMP`,
-        [`demo-vehicle-${tenant.key}`, tenantIds[tenant.key], tenant.vehicle[0], tenant.vehicle[1]],
+        [demoId(`demo-vehicle-${tenant.key}`), tenantIds[tenant.key], tenant.vehicle[0], tenant.vehicle[1]],
       );
     }
     await run(
       `INSERT INTO "RoomOccupancy" ("id","propertyId","roomId","tenantProfileId","role","status","startedAt","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,$5,'ACTIVE',$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT ("id") DO UPDATE SET "status" = 'ACTIVE', "updatedAt" = CURRENT_TIMESTAMP`,
-      [`demo-occ-${tenant.key}`, propertyId, `demo-room-${tenant.room}`, tenantIds[tenant.key], tenant.role, daysFromNow(-120)],
+      [demoId(`demo-occ-${tenant.key}`), propertyId, demoId(`demo-room-${tenant.room}`), tenantIds[tenant.key], tenant.role, daysFromNow(-120)],
     );
     await run(
       `UPDATE "Room" SET "status" = 'OCCUPIED', "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $1`,
-      [`demo-room-${tenant.room}`],
+      [demoId(`demo-room-${tenant.room}`)],
     );
   }
 
@@ -202,7 +209,7 @@ try {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVE',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT ("id") DO UPDATE SET "status" = 'ACTIVE', "updatedAt" = CURRENT_TIMESTAMP`,
       [
-        `demo-lease-${tenant.key}`, propertyId, `demo-room-${tenant.room}`,
+        demoId(`demo-lease-${tenant.key}`), propertyId, demoId(`demo-room-${tenant.room}`),
         `CTR-DEMO-${tenant.room}`, daysFromNow(-120), daysFromNow(245), tenant.room === "101" ? 4500 : 3200,
         (tenant.room === "101" ? 4500 : 3200) * 2,
       ],
@@ -211,7 +218,7 @@ try {
     await run(
       `INSERT INTO "LeaseTenant" ("leaseId","occupancyId","isPrimary","createdAt")
        VALUES ($1,$2,true,CURRENT_TIMESTAMP) ON CONFLICT ("leaseId","occupancyId") DO NOTHING`,
-      [`demo-lease-${tenant.key}`, `demo-occ-${tenant.key}`],
+      [demoId(`demo-lease-${tenant.key}`), demoId(`demo-occ-${tenant.key}`)],
     );
   }
 
@@ -220,7 +227,7 @@ try {
   for (const [monthOffset, status] of [[-2, "PAID"], [-1, "PAID"], [0, "PENDING"]]) {
     const billingMonth = monthStart(monthOffset);
     for (const tenant of tenants.filter((item) => item.role === "PRIMARY")) {
-      const roomId = `demo-room-${tenant.room}`;
+      const roomId = demoId(`demo-room-${tenant.room}`);
       const rent = tenant.room === "101" ? 4500 : 3200;
       const step = 3 + monthOffset;
       let water = 0;
@@ -235,10 +242,11 @@ try {
           `INSERT INTO "MeterReading" ("id","propertyId","roomId","type","billingMonth","previousReading","currentReading","unitRate","recordedById","createdAt","updatedAt")
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
            ON CONFLICT ("id") DO UPDATE SET "currentReading" = EXCLUDED."currentReading", "updatedAt" = CURRENT_TIMESTAMP`,
-          [`demo-meter-${tenant.room}-${monthOffset}-${type}`, propertyId, roomId, type, billingMonth, previous, current, rate, ownerId],
+          [demoId(`demo-meter-${tenant.room}-${monthOffset}-${type}`), propertyId, roomId, type, billingMonth, previous, current, rate, ownerId],
         );
       }
-      const invoiceId = `demo-invoice-${tenant.room}-${monthOffset}`;
+      const invoiceKey = demoId(`demo-invoice-${tenant.room}-${monthOffset}`);
+      const invoiceId = demoId(invoiceKey);
       const total = rent + water + electricity + 200;
       await run(
         `INSERT INTO "Invoice" ("id","propertyId","roomId","invoiceNumber","billingMonth","dueDate","status","total","version","createdAt","updatedAt")
@@ -260,7 +268,7 @@ try {
           `INSERT INTO "InvoiceItem" ("id","invoiceId","type","description","quantity","unitPrice","amount")
            VALUES ($1,$2,$3,$4,1,$5,$5)
            ON CONFLICT ("id") DO UPDATE SET "amount" = EXCLUDED."amount", "unitPrice" = EXCLUDED."unitPrice"`,
-          [`${invoiceId}-${type}`, invoiceId, type, description, amount],
+          [demoId(`${invoiceKey}-${type}`), invoiceId, type, description, amount],
         );
       }
     }
@@ -304,7 +312,7 @@ try {
        VALUES ($1,$2,$3,$4,$5,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        ON CONFLICT ("propertyId","kind") DO UPDATE SET
          "name" = EXCLUDED."name", "html" = EXCLUDED."html", "updatedAt" = CURRENT_TIMESTAMP`,
-      [`demo-template-${kind.toLowerCase()}`, propertyId, kind, name, html.trim()],
+      [demoId(`demo-template-${kind.toLowerCase()}`), propertyId, kind, name, html.trim()],
     );
   }
 
@@ -312,20 +320,20 @@ try {
     `INSERT INTO "Parcel" ("id","propertyId","roomId","recipientTenantId","note","status","registeredById","registeredAt","createdAt","updatedAt")
      VALUES ($1,$2,$3,$4,'พัสดุไปรษณีย์ไทย เลขติดตาม TH12345678','WAITING',$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT ("id") DO UPDATE SET "status" = 'WAITING', "updatedAt" = CURRENT_TIMESTAMP`,
-    ["demo-parcel-1", propertyId, "demo-room-101", tenantIds.somchai, ownerId],
+    [demoId("demo-parcel-1"), propertyId, demoId("demo-room-101"), tenantIds.somchai, ownerId],
   );
   await run(
     `INSERT INTO "ServiceTicket" ("id","propertyId","roomId","tenantProfileId","type","status","priority","title","detail","createdByUserId","createdAt","updatedAt")
      VALUES ($1,$2,$3,$4,'REPAIR','OPEN','NORMAL','ไฟห้องน้ำกะพริบ','หลอดไฟในห้องน้ำกะพริบตลอดเวลา รบกวนช่วยเข้ามาดูให้หน่อยครับ',$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT ("id") DO UPDATE SET "status" = 'OPEN', "updatedAt" = CURRENT_TIMESTAMP`,
-    ["demo-ticket-1", propertyId, "demo-room-101", tenantIds.somchai, `demo-user-somchai`],
+    [demoId("demo-ticket-1"), propertyId, demoId("demo-room-101"), tenantIds.somchai, demoId(`demo-user-somchai`)],
   );
   await run(
     `INSERT INTO "Announcement" ("id","propertyId","title","content","audience","status","publishedAt","createdById","createdAt","updatedAt")
      VALUES ($1,$2,'แจ้งปิดน้ำชั่วคราว','วันเสาร์ที่จะถึงนี้ ปิดน้ำเวลา 09.00-12.00 น. เพื่อล้างถังเก็บน้ำ ขออภัยในความไม่สะดวก',
              'ALL_TENANTS','PUBLISHED',CURRENT_TIMESTAMP,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT ("id") DO UPDATE SET "status" = 'PUBLISHED', "updatedAt" = CURRENT_TIMESTAMP`,
-    ["demo-announcement-1", propertyId, ownerId],
+    [demoId("demo-announcement-1"), propertyId, ownerId],
   );
 
   await run("COMMIT");

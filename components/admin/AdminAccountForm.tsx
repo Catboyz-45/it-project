@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { postJson, type PropertyOption, usePagedOptions } from "@/components/admin/super-admin-options";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // รายการหอให้ติ๊กเลือก พร้อมปุ่มโหลดเพิ่มเมื่อยังมีหน้าถัดไป
 function PropertyPicker({ onToggle, properties, selectedPropertyIds }: Readonly<{
@@ -29,6 +30,8 @@ export function AdminAccountForm() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  // เก็บไว้แค่ให้เช็คลิสต์ติ๊กถูกตามที่พิมพ์ ค่าที่ส่งจริงยังอ่านจากฟอร์ม
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const properties = usePagedOptions<PropertyOption>({
     endpoint: "/api/v1/super-admin/properties",
@@ -42,6 +45,8 @@ export function AdminAccountForm() {
     // ห้ามปิดตอนกำลังบันทึก จะได้ไม่ค้างว่าบันทึกไปแล้วหรือยัง
     if (pending) return;
     setMessage("");
+    // ช่องรหัสหายไปพร้อมหน้าต่าง เช็คลิสต์จึงต้องเริ่มใหม่ตามด้วย
+    setTemporaryPassword("");
     setIsOpen(false);
   };
 
@@ -79,7 +84,8 @@ export function AdminAccountForm() {
           <label>ชื่อ <input maxLength={120} minLength={2} name="displayName" required /></label>
           <label>อีเมล <input maxLength={254} name="email" required type="email" /></label>
         </div>
-        <label>รหัสผ่านชั่วคราว <input autoComplete="new-password" maxLength={128} minLength={12} name="password" required type="password" /></label>
+        <label>รหัสผ่านชั่วคราว <input aria-describedby="admin-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} name="password" onChange={(event) => setTemporaryPassword(event.target.value)} required type="password" /></label>
+        <PasswordRequirements id="admin-password-requirements" password={temporaryPassword} />
         <label>ค้นหาหอพัก <input onChange={(event) => properties.setQuery(event.target.value)} placeholder="ชื่อหรือชื่อย่อ" value={properties.query} /></label>
         <PropertyPicker
           onToggle={togglePropertySelection}

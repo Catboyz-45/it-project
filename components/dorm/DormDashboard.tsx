@@ -32,7 +32,8 @@ import { ownerPageFromSegments, ownerPagePath } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { useOwnerWorkspaceData } from "@/components/dorm/useOwnerWorkspaceData";
-import { buildNotificationCounts, buildOwnerNotifications } from "@/components/dorm/owner-notifications";
+import { buildNotificationCounts, buildOwnerNotifications, type OwnerUnreadCounts } from "@/components/dorm/owner-notifications";
+import { useRefreshOnFocus } from "@/lib/client/use-refresh-on-focus";
 import { SubscriptionAccessBanner, WorkspaceDataError } from "@/components/dorm/OwnerShellParts";
 import { type DashboardProperty, isSettingsArea, OwnerSidebar } from "@/components/dorm/OwnerSidebar";
 import {
@@ -45,6 +46,7 @@ import {
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
+import { NavShell, NavToggle } from "@/components/ui/NavShell";
 
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
@@ -140,7 +142,7 @@ export function DormDashboard({
     accessError, aggregation, dashboardData, dataError, invoices, isRefreshing,
     refreshDashboard, repairTickets, rooms, setDataError, setTenants, tenants,
   } = useOwnerWorkspaceData({ initialAggregation, initialData, propertyId });
-  const [unreadTicketReplies, setUnreadTicketReplies] = useState(0);
+  const [unreadCounts, setUnreadCounts] = useState<OwnerUnreadCounts | null>(null);
   const [openChatSignal, setOpenChatSignal] = useState(0);
   const [selectedRoomId, setSelectedRoomId] = useState(initialData.rooms[0]?.id ?? "");
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
@@ -187,21 +189,25 @@ export function DormDashboard({
     void refreshDashboard();
   }, [loadedPropertyId, propertyId, refreshDashboard]);
 
-  const refreshUnreadTicketReplies = useCallback(async () => {
+  const refreshUnreadCounts = useCallback(async () => {
     try {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/notifications/unread`, {
         cache: "no-store",
         credentials: "same-origin",
       });
-      const payload = await response.json() as { data?: { ticketReplies: number } };
-      if (response.ok && payload.data) setUnreadTicketReplies(payload.data.ticketReplies);
+      const payload = await response.json() as { data?: OwnerUnreadCounts };
+      if (response.ok && payload.data) {
+        const { supportMessages, tenantMessages, ticketReplies } = payload.data;
+        setUnreadCounts({ supportMessages, tenantMessages, ticketReplies });
+      }
     } catch {
       // ตัวเลขบนป้ายโหลดไม่ได้ก็ไม่เป็นไร ไม่ควรไปขึ้นข้อความผิดพลาดใหญ่ของทั้งหน้า
       // แต่ต้องดักไว้ ไม่งั้นเป็น unhandled rejection
     }
   }, [propertyId]);
 
-  useEffect(() => { void refreshUnreadTicketReplies(); }, [refreshUnreadTicketReplies]);
+  useEffect(() => { void refreshUnreadCounts(); }, [refreshUnreadCounts]);
+  useRefreshOnFocus(refreshUnreadCounts);
 
 
 
@@ -211,7 +217,7 @@ export function DormDashboard({
     revenue: aggregation.finance.collected,
     pending: aggregation.finance.outstanding,
   } : null;
-  const notificationCounts = buildNotificationCounts(aggregation, unreadTicketReplies);
+  const notificationCounts = buildNotificationCounts(aggregation, unreadCounts);
 
 
   const ownerNotifications = buildOwnerNotifications({
@@ -220,7 +226,7 @@ export function DormDashboard({
     isReadOnly,
     onOpenChat: () => setOpenChatSignal((current) => current + 1),
     propertyId,
-    unreadTicketReplies,
+    unread: unreadCounts,
   });
 
   // รูปแบบเดียวกันทั้งสามหน้าต่าง สำเร็จแล้วปิดหน้าต่างและโหลดข้อมูลใหม่ พังก็ขึ้นข้อความไว้บนหน้า
@@ -282,7 +288,7 @@ export function DormDashboard({
       setDetailTenantId(tenant.id);
     },
     onEditRoom: () => setIsRoomModalOpen(true),
-    onUnreadChanged: refreshUnreadTicketReplies,
+    onUnreadChanged: refreshUnreadCounts,
     openAddComplaint: shouldOpenComplaintAdd,
     onAddComplaintHandled: () => setShouldOpenComplaintAdd(false),
     parcelView,
@@ -300,7 +306,7 @@ export function DormDashboard({
   return (
     <OwnerWorkspaceContext.Provider value={workspaceValue}>
     <PageHeaderSlotProvider>
-    <main className={inSettingsArea ? "shell shell-settings" : "shell"}>
+    <NavShell className={inSettingsArea ? "shell shell-settings" : "shell"}>
       <OwnerSidebar
         accountEmail={authenticatedEmail ?? ""}
         accountName={currentUser}
@@ -327,14 +333,17 @@ export function DormDashboard({
         {isRefreshing ? <output aria-atomic="true" className="document-editor-state">กำลังอัปเดตข้อมูล...</output> : null}
         {!inSettingsArea ? (
           <header className="topbar">
-            <div>
-              <h1>{pageTitles[activePage].title}</h1>
-              <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
+            <div className="topbar-heading">
+              <NavToggle placement="topbar" />
+              <div>
+                <h1>{pageTitles[activePage].title}</h1>
+                <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
+              </div>
             </div>
             <div className="top-actions repair-top-actions">
               <PageHeaderTarget />
               <OwnerGlobalSearch propertyId={propertyId} />
-              <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadTicketReplies()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
+              <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadCounts()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
             </div>
           </header>
         ) : null}
@@ -391,10 +400,12 @@ export function DormDashboard({
         propertyId={propertyId}
         readOnly={isReadOnly}
         tenants={tenants}
-        unreadCount={aggregation?.operations.unreadTenantMessages ?? 0}
+        onUnreadChanged={refreshUnreadCounts}
+        supportUnreadCount={unreadCounts?.supportMessages ?? 0}
+        unreadCount={(unreadCounts?.tenantMessages ?? aggregation?.operations.unreadTenantMessages ?? 0) + (unreadCounts?.supportMessages ?? 0)}
         openSignal={openChatSignal}
       />
-    </main>
+    </NavShell>
     </PageHeaderSlotProvider>
     </OwnerWorkspaceContext.Provider>
   );
