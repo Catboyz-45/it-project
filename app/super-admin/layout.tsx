@@ -4,6 +4,7 @@ import { SuperAdminNavigation } from "@/components/admin/SuperAdminNavigation";
 import { SuperAdminChatWidget } from "@/components/admin/SuperAdminChatWidget";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { SidebarAccountMenu } from "@/components/ui/SidebarAccountMenu";
+import { appSidebarId, NavShell, NavToggle } from "@/components/ui/NavShell";
 import { requirePageAuth } from "@/lib/server/auth";
 
 // โครงหน้าของทุกหน้าใต้ /super-admin มีแถบข้างกับพื้นที่เนื้อหา
@@ -17,10 +18,13 @@ export default async function SuperAdminLayout({
   // ไม่ใช่ซูเปอร์แอดมินก็เด้งไปหน้าเจ้าของหอ ไม่ต้องบอกว่าที่นี่มีอะไร
   if (auth.role !== "SUPER_ADMIN") redirect("/admin");
 
-  return <main className="shell super-admin-shell text-[#292a30]">
-    <aside className="sidebar super-admin-sidebar">
-      <div className="brand mb-5">
-        <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Control" imageClassName="size-11" showTagline />
+  return <NavShell className="shell super-admin-shell text-[#292a30]">
+    <aside className="sidebar super-admin-sidebar" id={appSidebarId}>
+      <div className="sidebar-head mb-5">
+        <div className="brand">
+          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Control" imageClassName="size-11" showTagline />
+        </div>
+        <NavToggle />
       </div>
       {/* เมนูเป็น Client Component เพราะต้องรู้ว่าตอนนี้อยู่หน้าไหนเพื่อไฮไลต์ */}
       <SuperAdminNavigation />
@@ -32,5 +36,5 @@ export default async function SuperAdminLayout({
       </div>
     </section>
     <SuperAdminChatWidget />
-  </main>;
+  </NavShell>;
 }

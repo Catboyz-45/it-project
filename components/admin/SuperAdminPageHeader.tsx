@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { NavToggle } from "@/components/ui/NavShell";
 
 // หัวหน้าที่ใช้ร่วมกันทุกหน้าของผู้ดูแลระบบ จะได้มีระยะห่างและขนาดตัวอักษรเหมือนกัน
 export function SuperAdminPageHeader({
@@ -12,9 +13,12 @@ export function SuperAdminPageHeader({
   title: string;
 }>) {
   return <header className="flex flex-wrap items-start justify-between gap-4">
-    <div>
-      <h1 className="text-2xl font-bold tracking-[-.02em] text-[#292a30]">{title}</h1>
-      <p className="mt-1 text-sm text-[#62646c]">{description}</p>
+    <div className="topbar-heading">
+      <NavToggle placement="topbar" />
+      <div>
+        <h1 className="text-2xl font-bold tracking-[-.02em] text-[#292a30]">{title}</h1>
+        <p className="mt-1 text-sm text-[#62646c]">{description}</p>
+      </div>
     </div>
     {actions}
   </header>;

@@ -44,6 +44,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { appSidebarId, NavShell, NavToggle } from "@/components/ui/NavShell";
 import { SidebarAccountMenu } from "@/components/ui/SidebarAccountMenu";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
@@ -322,7 +323,7 @@ function TenantNavLink({ count, icon, isActive, label, tab }: Readonly<{
   tab: TenantTab;
 }>) {
   return <Link aria-current={isActive ? "page" : undefined} className={isActive ? "active" : ""} href={tenantPagePath(tab)}>
-    {icon}{label}
+    {icon}<span>{label}</span>
     {count > 0 ? <span aria-label={`${count} รายการที่ต้องตรวจสอบ`} className="notification-badge">{count > 99 ? "99+" : count}</span> : null}
   </Link>;
 }
@@ -443,11 +444,14 @@ export function TenantPortal({
   };
 
   return <TenantPortalContext.Provider value={portalValue}><PageHeaderSlotProvider>
-    <main className="tenant-portal tenant-shell shell text-[#292a30]">
+    <NavShell className="tenant-portal tenant-shell shell text-[#292a30]">
     <LiveAnnouncement message={`เปิดหน้า ${tabs.find(({ id }) => id === activeTab)?.label ?? "พื้นที่ผู้เช่า"}`} />
-    <aside className="sidebar tenant-sidebar">
-      <div className="brand tenant-brand">
-        <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
+    <aside className="sidebar tenant-sidebar" id={appSidebarId}>
+      <div className="sidebar-head">
+        <div className="brand tenant-brand">
+          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
+        </div>
+        <NavToggle />
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
@@ -464,9 +468,12 @@ export function TenantPortal({
     </aside>
     <section className="workspace tenant-workspace">
       <header className="topbar tenant-topbar">
-        <div>
-          <h1>{activeTabItem.label}</h1>
-          <p className="page-subtitle">{tabDescriptions[activeTab]}</p>
+        <div className="topbar-heading">
+          <NavToggle placement="topbar" />
+          <div>
+            <h1>{activeTabItem.label}</h1>
+            <p className="page-subtitle">{tabDescriptions[activeTab]}</p>
+          </div>
         </div>
         <div className="tenant-header-actions flex items-center gap-3">
           <PageHeaderTarget />
@@ -538,7 +545,7 @@ export function TenantPortal({
         variant="widget"
       />
     ) : null}
-  </main>
+  </NavShell>
   </PageHeaderSlotProvider></TenantPortalContext.Provider>;
 }
 

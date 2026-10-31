@@ -29,6 +29,7 @@ import type { PageKey } from "@/types/navigation";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import { MenuBadge } from "@/components/dorm/OwnerShellParts";
+import { appSidebarId, NavToggle } from "@/components/ui/NavShell";
 
 export type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
 
@@ -75,8 +76,11 @@ export function OwnerSidebar({
   notificationCounts: Partial<Record<PageKey, number>>;
   propertyId: string;
 }>) {
-  return <aside aria-label="เมนูหลัก" className="sidebar">
-    <PropertySwitcher activeProperty={activeProperty} availableProperties={availableProperties} propertyId={propertyId} />
+  return <aside aria-label="เมนูหลัก" className="sidebar" id={appSidebarId}>
+    <div className="sidebar-head">
+      <PropertySwitcher activeProperty={activeProperty} availableProperties={availableProperties} propertyId={propertyId} />
+      <NavToggle />
+    </div>
     <nav>
       {menuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
       <MetersMenu activePage={activePage} propertyId={propertyId} />

@@ -45,6 +45,7 @@ import {
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
+import { NavShell, NavToggle } from "@/components/ui/NavShell";
 
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
@@ -300,7 +301,7 @@ export function DormDashboard({
   return (
     <OwnerWorkspaceContext.Provider value={workspaceValue}>
     <PageHeaderSlotProvider>
-    <main className={inSettingsArea ? "shell shell-settings" : "shell"}>
+    <NavShell className={inSettingsArea ? "shell shell-settings" : "shell"}>
       <OwnerSidebar
         accountEmail={authenticatedEmail ?? ""}
         accountName={currentUser}
@@ -327,9 +328,12 @@ export function DormDashboard({
         {isRefreshing ? <output aria-atomic="true" className="document-editor-state">กำลังอัปเดตข้อมูล...</output> : null}
         {!inSettingsArea ? (
           <header className="topbar">
-            <div>
-              <h1>{pageTitles[activePage].title}</h1>
-              <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
+            <div className="topbar-heading">
+              <NavToggle placement="topbar" />
+              <div>
+                <h1>{pageTitles[activePage].title}</h1>
+                <p className="page-subtitle">{pageTitles[activePage].subtitle}</p>
+              </div>
             </div>
             <div className="top-actions repair-top-actions">
               <PageHeaderTarget />
@@ -394,7 +398,7 @@ export function DormDashboard({
         unreadCount={aggregation?.operations.unreadTenantMessages ?? 0}
         openSignal={openChatSignal}
       />
-    </main>
+    </NavShell>
     </PageHeaderSlotProvider>
     </OwnerWorkspaceContext.Provider>
   );

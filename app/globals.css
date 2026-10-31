@@ -393,6 +393,45 @@
   .account-menu a { @apply flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-[#292a30] no-underline hover:bg-[#f4f4f5]; }
   .account-menu .danger { @apply text-red-600 hover:bg-red-50!; }
   .account-menu > span { @apply block h-px bg-[#e4e4e7]; }
+  /* ปุ่มแฮมเบอร์เกอร์หน้าชื่อหน้า ใช้ร่วมกันทุกบทบาท ดู components/ui/NavShell.tsx */
+  .topbar-heading { @apply flex min-w-0 items-start gap-3; }
+  .nav-toggle {
+    @apply grid size-11 shrink-0 place-items-center rounded-lg border border-[#e4e4e7] bg-white text-[#4d4f58] transition-colors duration-150 hover:bg-[#f4f4f5] hover:text-[#292a30] lg:size-9;
+  }
+  .nav-backdrop { @apply hidden; }
+  /* หัวแถบเมนู โลโก้กินพื้นที่ที่เหลือ ปุ่มแฮมเบอร์เกอร์ชิดขวา */
+  .sidebar-head { @apply flex items-start gap-1; }
+  .sidebar-head > :first-child { @apply min-w-0 flex-1; }
+  .sidebar-head > .nav-toggle { @apply mt-1.5 border-transparent bg-transparent; }
+  /* ย่อแถบเหลือแต่ไอคอน ใช้เฉพาะจอตั้งแต่แท็บเล็ตขึ้นไป หน้าตั้งค่าของเจ้าของหอซ่อนแถบทั้งแถบอยู่แล้วจึงยกเว้น */
+  @media (min-width: 768px) {
+    .shell[data-nav-animate] { transition: grid-template-columns 200ms ease; }
+    .shell[data-nav-collapsed]:not(.shell-settings) { grid-template-columns: 68px minmax(0, 1fr); }
+    .nav-toggle-topbar { @apply hidden; }
+    .shell[data-nav-collapsed] > .sidebar { @apply px-2; }
+    /* แถบแคบเกินจะวางโลโก้กับปุ่มเรียงกัน จึงซ้อนปุ่มไว้ใต้โลโก้ */
+    .shell[data-nav-collapsed] > .sidebar .sidebar-head { @apply flex-col items-center; }
+    .shell[data-nav-collapsed] > .sidebar .sidebar-head > :first-child { @apply w-full flex-none; }
+    .shell[data-nav-collapsed] > .sidebar .sidebar-head > .nav-toggle { @apply mt-0; }
+    /* ป้ายลอยตอนชี้เมาส์จะโดนตัดถ้ารายการเลื่อนได้ ไอคอนล้วนสั้นพอจนไม่ต้องเลื่อนอยู่แล้ว */
+    .shell[data-nav-collapsed] > .sidebar nav { @apply overflow-visible; }
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button) { @apply justify-center gap-0 px-0; }
+    /* ซ่อนชื่อเมนูแบบที่โปรแกรมอ่านหน้าจอยังอ่านได้ แล้วโผล่เป็นป้ายข้างไอคอนตอนชี้หรือโฟกัส */
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button) > span:not(.notification-badge) {
+      @apply pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 -translate-y-1/2 rounded-md bg-[#292a30] px-2 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0;
+      flex: none;
+      width: auto;
+      overflow: visible;
+    }
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button):is(:hover, :focus-visible) > span:not(.notification-badge) { @apply opacity-100 transition-opacity duration-150; }
+    .shell[data-nav-collapsed] > .sidebar .notification-badge { @apply absolute top-0.5 right-1 min-w-4.5 px-1 py-0 text-[9px] leading-[18px]; }
+    .shell[data-nav-collapsed] > .sidebar .sidebar-chevron { @apply hidden; }
+    .shell[data-nav-collapsed] > .sidebar .sidebar-subnav > div { @apply ml-0 border-l-0 pl-0; }
+    .shell[data-nav-collapsed] > .sidebar .brand { @apply justify-center px-0; }
+    .shell[data-nav-collapsed] > .sidebar .brand :is(.brand-copy, .brand-switch-icon, img + div) { @apply hidden; }
+    .shell[data-nav-collapsed] > .sidebar .tenant-sidebar-property { @apply invisible h-0 mb-2; }
+    .shell[data-nav-collapsed] > .sidebar :is(.sidebar-property-menu, .account-menu) { @apply w-64; }
+  }
   .sidebar-account-footer > button { @apply justify-start!; }
 
   /* bg-color แยกจาก bg-image เพราะ background-image ไม่รับสีธรรมดาเป็น layer
@@ -1450,7 +1489,6 @@
       scroll-margin-bottom: calc(5.25rem + env(safe-area-inset-bottom));
     }
     .tenant-navigation { @apply hidden; }
-    .tenant-sidebar { @apply hidden; }
     .tenant-topbar { @apply items-start pt-5; }
     .tenant-topbar h1 { @apply text-2xl; }
     .tenant-header-actions { @apply w-full justify-between; }
@@ -1484,9 +1522,17 @@
     .tenant-mobile-more-menu > a.active { @apply bg-brand/10 text-[#4651c7]; }
     .dropdown-field { @apply min-w-0; }
     .shell { @apply block; }
-    .sidebar { @apply relative h-auto border-r-0 border-b; }
-    .sidebar nav { @apply grid-cols-2; }
-    .sidebar-footer { @apply mt-3; }
+    /* บนมือถือแถบข้างเป็นลิ้นชัก ซ่อนนอกจอไว้จนกดปุ่มแฮมเบอร์เกอร์
+       visibility ซ่อนตามหลังการเลื่อนออก ปุ่ม Tab จะได้ไม่หลงเข้าไปในเมนูที่มองไม่เห็น */
+    .shell > .sidebar {
+      @apply fixed top-0 bottom-0 left-0 z-[60] h-dvh overflow-y-auto shadow-[8px_0_30px_rgba(30,31,36,.18)];
+      width: min(18rem, calc(100vw - 4.5rem));
+      transform: translateX(-100%);
+      visibility: hidden;
+      transition: transform 220ms ease, visibility 0s linear 220ms;
+    }
+    .shell[data-nav-open] > .sidebar { transform: none; visibility: visible; transition: transform 220ms ease; }
+    .nav-backdrop { @apply fixed inset-0 z-[55] block bg-[#1e1f24]/45; }
     .workspace { @apply min-h-screen; }
     .settings-workspace { @apply block h-auto min-h-screen overflow-visible pb-10; }
     .settings-workspace > .view-transition,
@@ -1637,12 +1683,6 @@
     .invoice-row { @apply grid-cols-[auto_minmax(0,1fr)]; }
     .tenant-header { @apply flex-wrap px-4; }
     .tenant-header > div:first-child { @apply flex-1; }
-    .super-admin-navigation {
-      @apply flex max-w-full gap-2 overflow-x-auto;
-      scrollbar-width: none;
-    }
-    .super-admin-navigation::-webkit-scrollbar { display: none; }
-    .super-admin-navigation > a { @apply shrink-0 whitespace-nowrap; }
     .account-page { @apply px-4; }
     .table-pagination { @apply flex-wrap px-3; }
   }
@@ -1653,6 +1693,10 @@
   .dropdown-popover,
   .action-menu-popover {
     animation: none;
+  }
+  .shell,
+  .shell > .sidebar {
+    transition: none !important;
   }
 }
 
