@@ -8928,6 +8928,129 @@
         }
       }
     },
+    "/api/v1/super-admin/subscription-payments/suggestions": {
+      "get": {
+        "operationId": "getSuperAdminSubscriptionPaymentsSuggestions",
+        "summary": "GET /api/v1/super-admin/subscription-payments/suggestions",
+        "description": "Implementation: app/api/v1/super-admin/subscription-payments/suggestions/route.ts",
+        "tags": [
+          "SaaS"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubscriptionPaymentSuggestion"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "kind": "order",
+                      "value": "SUB-2026-0001",
+                      "detail": "หอพักทดลอง"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/super-admin/subscription-payments/summary": {
+      "get": {
+        "operationId": "getSuperAdminSubscriptionPaymentsSummary",
+        "summary": "GET /api/v1/super-admin/subscription-payments/summary",
+        "description": "Implementation: app/api/v1/super-admin/subscription-payments/summary/route.ts",
+        "tags": [
+          "SaaS"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SubscriptionPaymentSummary"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "pending": 3,
+                    "approvedThisMonth": 5,
+                    "approvedAmountThisMonth": "3495"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/super-admin/support-chat": {
       "get": {
         "operationId": "getSuperAdminSupportChat",
@@ -15531,6 +15654,52 @@
           },
           "unreadSupportMessages": {
             "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionPaymentSummary": {
+        "type": "object",
+        "required": [
+          "pending",
+          "approvedThisMonth",
+          "approvedAmountThisMonth"
+        ],
+        "properties": {
+          "pending": {
+            "type": "integer"
+          },
+          "approvedThisMonth": {
+            "type": "integer"
+          },
+          "approvedAmountThisMonth": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionPaymentSuggestion": {
+        "type": "object",
+        "required": [
+          "kind",
+          "value",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "property",
+              "order",
+              "plan"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
           }
         },
         "additionalProperties": false
