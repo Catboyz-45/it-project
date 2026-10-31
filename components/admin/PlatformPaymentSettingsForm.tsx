@@ -48,7 +48,7 @@ export function PlatformPaymentSettingsForm({ initialSettings }: Readonly<{ init
     }
   }
 
-  return <section className="super-admin-account-page grid gap-4 py-6">
+  return <section className="platform-settings mx-auto grid w-full max-w-4xl gap-4">
     <SettingsCard
       description="ข้อมูลนี้แสดงในหน้าต่ออายุแพ็กเกจของเจ้าของหอ คู่กับ QR พร้อมเพย์ตรงยอดของแต่ละคำสั่งซื้อ"
       isSaving={isSaving}

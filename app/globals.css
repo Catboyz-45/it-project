@@ -1321,33 +1321,33 @@
   .settings-page .settings-heading { @apply px-6 pt-6 pb-2; }
   .settings-page .settings-heading h2 { @apply mb-1 text-xl font-semibold tracking-[-.01em] text-[#292a30]; }
   .settings-page .settings-heading p { @apply mt-1 text-sm text-[#62646c]; }
-  .settings-page .settings-section-stack { @apply gap-4; }
-  .settings-page .settings-section {
+  :is(.settings-page, .platform-settings) .settings-section-stack { @apply gap-4; }
+  :is(.settings-page, .platform-settings) .settings-section {
     @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] px-6 py-6 shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
-  .settings-page .settings-card.settings-section { @apply p-0; }
-  .settings-page .settings-section-head { @apply mb-4 flex flex-wrap items-start justify-between gap-3; }
-  .settings-page .settings-section-head h2 { @apply text-base font-semibold text-[#292a30]; }
-  .settings-page .settings-section-head p { @apply mt-1 text-sm text-[#62646c]; }
-  .settings-page .settings-section-head > small { @apply pt-1 text-sm font-semibold text-[#62646c]; }
-  .settings-page .settings-card-body { @apply px-6 py-6; }
-  .settings-page .settings-card-head { @apply mb-4 block border-0 bg-transparent p-0; }
-  .settings-page .settings-card-head h3 { @apply text-base font-semibold text-[#292a30]; }
-  .settings-page .settings-card-head p { @apply mt-1 text-sm text-[#62646c]; }
-  .settings-page .settings-card-actions { @apply flex justify-end border-t border-[#e4e4e7] bg-[#fafafa] px-6 py-4; }
-  .settings-page .settings-update-button { @apply min-h-11 min-w-24 rounded-md bg-brand px-4 text-sm font-semibold text-[#fff] transition-colors duration-150 hover:bg-[#4651c7] lg:min-h-9; }
-  .settings-page .settings-form-grid { @apply block; }
-  .settings-page .settings-field { @apply grid min-h-16 grid-cols-[220px_minmax(0,1fr)] items-center gap-6 border-0 text-[#292a30]; }
-  .settings-page .settings-field > span { @apply text-sm font-medium; }
-  .settings-page .settings-field > small { @apply col-start-2 mt-[-12px] text-xs font-normal text-[#62646c]; }
-  .settings-page .settings-field > .dropdown-field { display: contents; }
-  .settings-page .settings-field > .dropdown-field .dropdown-label { @apply text-sm font-medium; }
-  .settings-page .settings-field > input,
-  .settings-page .settings-field > textarea,
-  .settings-page .settings-field .dropdown-trigger { @apply w-full max-w-xl justify-self-end border-[#d4d4d8] bg-[#fafafa] text-[#292a30]; }
-  .settings-page .settings-field > textarea { @apply my-3; }
-  .settings-page .settings-input-wrap { @apply w-full max-w-xl justify-self-end; }
-  .settings-page .settings-input-wrap input { @apply min-w-0 flex-1 border-[#d4d4d8] bg-[#fafafa] text-[#292a30]; }
+  :is(.settings-page, .platform-settings) .settings-card.settings-section { @apply p-0; }
+  :is(.settings-page, .platform-settings) .settings-section-head { @apply mb-4 flex flex-wrap items-start justify-between gap-3; }
+  :is(.settings-page, .platform-settings) .settings-section-head h2 { @apply text-base font-semibold text-[#292a30]; }
+  :is(.settings-page, .platform-settings) .settings-section-head p { @apply mt-1 text-sm text-[#62646c]; }
+  :is(.settings-page, .platform-settings) .settings-section-head > small { @apply pt-1 text-sm font-semibold text-[#62646c]; }
+  :is(.settings-page, .platform-settings) .settings-card-body { @apply px-6 py-6; }
+  :is(.settings-page, .platform-settings) .settings-card-head { @apply mb-4 block border-0 bg-transparent p-0; }
+  :is(.settings-page, .platform-settings) .settings-card-head h3 { @apply text-base font-semibold text-[#292a30]; }
+  :is(.settings-page, .platform-settings) .settings-card-head p { @apply mt-1 text-sm text-[#62646c]; }
+  :is(.settings-page, .platform-settings) .settings-card-actions { @apply flex justify-end border-t border-[#e4e4e7] bg-[#fafafa] px-6 py-4; }
+  :is(.settings-page, .platform-settings) .settings-update-button { @apply min-h-11 min-w-24 rounded-md bg-brand px-4 text-sm font-semibold text-[#fff] transition-colors duration-150 hover:bg-[#4651c7] lg:min-h-9; }
+  :is(.settings-page, .platform-settings) .settings-form-grid { @apply block; }
+  :is(.settings-page, .platform-settings) .settings-field { @apply grid min-h-16 grid-cols-[220px_minmax(0,1fr)] items-center gap-6 border-0 text-[#292a30]; }
+  :is(.settings-page, .platform-settings) .settings-field > span { @apply text-sm font-medium; }
+  :is(.settings-page, .platform-settings) .settings-field > small { @apply col-start-2 mt-[-12px] text-xs font-normal text-[#62646c]; }
+  :is(.settings-page, .platform-settings) .settings-field > .dropdown-field { display: contents; }
+  :is(.settings-page, .platform-settings) .settings-field > .dropdown-field .dropdown-label { @apply text-sm font-medium; }
+  :is(.settings-page, .platform-settings) .settings-field > input,
+  :is(.settings-page, .platform-settings) .settings-field > textarea,
+  :is(.settings-page, .platform-settings) .settings-field .dropdown-trigger { @apply w-full max-w-xl justify-self-end border-[#d4d4d8] bg-[#fafafa] text-[#292a30]; }
+  :is(.settings-page, .platform-settings) .settings-field > textarea { @apply my-3; }
+  :is(.settings-page, .platform-settings) .settings-input-wrap { @apply w-full max-w-xl justify-self-end; }
+  :is(.settings-page, .platform-settings) .settings-input-wrap input { @apply min-w-0 flex-1 border-[#d4d4d8] bg-[#fafafa] text-[#292a30]; }
   .settings-card-head { @apply bg-[#fafafa]; }
   .settings-card-body { @apply p-5; }
   .settings-input-wrap { @apply flex items-center gap-2; }
@@ -1739,7 +1739,7 @@
     .settings-page { @apply block px-4; }
     .settings-page .settings-content { @apply px-0; }
     .settings-page .settings-heading { @apply px-4 pt-4; }
-    .settings-page .settings-card-body { @apply px-4; }
+    :is(.settings-page, .platform-settings) .settings-card-body { @apply px-4; }
     .settings-page .settings-card-actions { @apply px-4; }
     .settings-nav { @apply static mb-4; }
     /* จอแคบ: โชว์รายการเมนู หรือเนื้อหา อย่างใดอย่างหนึ่ง จะได้ไม่ต้องเลื่อนผ่าน
@@ -1755,7 +1755,7 @@
     .settings-page .settings-field > input,
     .settings-page .settings-field > textarea,
     .settings-page .settings-field .dropdown-trigger,
-    .settings-page .settings-input-wrap { @apply max-w-none justify-self-stretch; }
+    :is(.settings-page, .platform-settings) .settings-input-wrap { @apply max-w-none justify-self-stretch; }
     .settings-room-actions { @apply grid-cols-1; }
     .settings-room-actions > div { @apply flex-col items-stretch; }
     .settings-room-actions > div:last-child { @apply flex; }

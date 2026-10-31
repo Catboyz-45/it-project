@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiErrorResponse, apiSuccessResponse, ApiError, assertSameOrigin } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { issueTemporaryPassword } from "@/lib/server/password-reset";
-import { recordIdSchema } from "@/lib/domain/record-id";
+import { userIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ userId: string }> };
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const parsed = recordIdSchema.safeParse((await context.params).userId);
+    const parsed = userIdSchema.safeParse((await context.params).userId);
     if (!parsed.success) throw new ApiError(404, "ไม่พบบัญชีเจ้าของหอ");
     const temporaryPassword = await issueTemporaryPassword(parsed.data);
     return apiSuccessResponse(request, { data: { temporaryPassword, mustChangePassword: true } }, undefined, {

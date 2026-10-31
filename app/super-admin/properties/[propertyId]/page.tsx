@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
+import { formatStatus } from "@/lib/ui-labels";
 
 // หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน อ่านอย่างเดียว ไม่มีปุ่มแก้ไข
 export default async function PropertyDetailPage({
@@ -105,7 +106,7 @@ export default async function PropertyDetailPage({
             </p>
             <p>
               <small className="block text-[#62646c]">สถานะ</small>
-              {property.subscription.status}
+              {formatStatus(property.subscription.status)}
             </p>
             <p>
               <small className="block text-[#62646c]">รอบ</small>
@@ -146,7 +147,7 @@ export default async function PropertyDetailPage({
                   <td>{order.planName}</td>
                   <td>{order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"}</td>
                   <td>฿{Number(order.amount).toLocaleString("th-TH")}</td>
-                  <td>{order.status}</td>
+                  <td>{formatStatus(order.status)}</td>
                   <td>{order.createdAt.toLocaleString("th-TH")}</td>
                 </tr>
               ))}
