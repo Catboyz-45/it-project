@@ -1,7 +1,7 @@
 # 🏠 Nestly — Dormitory Management Platform
 
 <p>
-  <a href="https://it-project-alpha.vercel.app"><img src="https://img.shields.io/badge/Live_demo-1F4D3A?style=for-the-badge&logo=vercel&logoColor=white" alt="Live demo"/></a>
+  <a href="https://nestlyspace.tech"><img src="https://img.shields.io/badge/Live_demo-1F4D3A?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live demo"/></a>
   <img src="https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"/>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
   <img src="https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>

@@ -7,9 +7,8 @@ const scriptSources = process.env.NODE_ENV === "development"
   : "script-src 'self' 'unsafe-inline'";
 
 const nextConfig: NextConfig = {
-  // Docker ใช้ .next/standalone ตรง ๆ แต่ Vercel มีวิธีรวมไฟล์ของตัวเองที่ชนกับโหมดนี้
-  // จน build ล้ม ตัวแปร VERCEL ถูกตั้งให้อัตโนมัติทุกครั้งที่ build บน Vercel จึงใช้เช็คตรงนี้ได้
-  ...(process.env.VERCEL ? {} : { output: "standalone" }),
+  // Docker ใช้ .next/standalone ตรง ๆ ได้ไฟล์ server.js พร้อม node_modules เท่าที่ใช้จริง image จึงเล็ก
+  output: "standalone",
   // ปิด header ที่บอกว่าเว็บนี้ใช้ Next ไม่มีประโยชน์กับผู้ใช้ มีแต่บอกคนสแกนช่องโหว่
   poweredByHeader: false,
   // เซิร์ฟเวอร์ dev ของ Next ยอมรับเฉพาะ origin "localhost" เป็นค่าเริ่มต้น เปิดหน้าเว็บ
