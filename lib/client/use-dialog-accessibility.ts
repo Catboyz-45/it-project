@@ -12,6 +12,13 @@ const focusableSelector = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+// กล่องโต้ตอบแบบบังหน้าทุกแบบที่เปิดอยู่ ใช้หาว่ากล่องไหนอยู่บนสุด
+const modalDialogSelector = [
+  "[role='dialog'][aria-modal='true']",
+  "[role='alertdialog'][aria-modal='true']",
+  "dialog[open][aria-modal='true']",
+].join(",");
+
 // ลำดับการเลือกว่าจะโฟกัสอะไรก่อนตอนเปิดกล่อง ไล่จากที่ระบุไว้เอง ไปช่องกรอกแรก แล้วค่อยหัวเรื่อง
 const initialFocusSelectors = [
   "[data-dialog-initial-focus]",
@@ -66,7 +73,8 @@ export function useDialogAccessibility(
       if (event.defaultPrevented) return;
       // กล่องซ้อนกันได้ เช่นกล่องยืนยันที่เปิดบนฟอร์ม ให้เฉพาะกล่องบนสุดตอบสนองคีย์บอร์ด
       // ไม่งั้นกด Esc ทีเดียวจะปิดทั้งสองชั้นพร้อมกัน
-      const openDialogs = Array.from(document.querySelectorAll<HTMLElement>("[role='dialog'][aria-modal='true'], [role='alertdialog'][aria-modal='true']"))
+      // นับ <dialog open> ด้วย แท็กนี้มี role dialog ในตัวโดยไม่ต้องเขียน role ไว้ selector ที่ดูแค่ [role] จึงหาไม่เจอ
+      const openDialogs = Array.from(document.querySelectorAll<HTMLElement>(modalDialogSelector))
         .filter(isVisible);
       if (openDialogs.at(-1) !== dialog) return;
       if (event.key === "Escape") {
