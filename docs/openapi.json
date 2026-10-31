@@ -7611,6 +7611,65 @@
         }
       }
     },
+    "/api/v1/super-admin/notifications": {
+      "get": {
+        "operationId": "getSuperAdminNotifications",
+        "summary": "GET /api/v1/super-admin/notifications",
+        "description": "Implementation: app/api/v1/super-admin/notifications/route.ts",
+        "tags": [
+          "Super Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SuperAdminNotificationCounts"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "pendingAccounts": 2,
+                    "pendingSubscriptionPayments": 1,
+                    "unreadSupportMessages": 3
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/super-admin/plans": {
       "get": {
         "operationId": "listSaasPlans",
@@ -15452,6 +15511,26 @@
               },
               "additionalProperties": false
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SuperAdminNotificationCounts": {
+        "type": "object",
+        "required": [
+          "pendingAccounts",
+          "pendingSubscriptionPayments",
+          "unreadSupportMessages"
+        ],
+        "properties": {
+          "pendingAccounts": {
+            "type": "integer"
+          },
+          "pendingSubscriptionPayments": {
+            "type": "integer"
+          },
+          "unreadSupportMessages": {
+            "type": "integer"
           }
         },
         "additionalProperties": false
