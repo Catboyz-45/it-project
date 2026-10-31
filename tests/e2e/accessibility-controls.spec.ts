@@ -124,7 +124,8 @@ async function expectVisibleFocusIndicator(locator: Locator) {
 
 // tooltip ต้องขึ้นตอนกด Tab มาโฟกัสด้วย ไม่ใช่ขึ้นเฉพาะตอนเอาเมาส์ชี้
 // ไม่งั้นคนที่ใช้คีย์บอร์ดอย่างเดียวจะไม่มีทางรู้ว่าปุ่มไอคอนนั้นคือปุ่มอะไร
-async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
+// text เป็นฟังก์ชันได้ ใช้กับปุ่มที่ชื่อเปลี่ยนตามข้อมูลที่โหลดมาทีหลัง จะได้เทียบกับค่าล่าสุดเสมอ
+async function expectTooltipOnKeyboardFocus(locator: Locator, text: string | (() => Promise<string>)) {
   await locator.focus();
   await expect(locator).toBeFocused();
   // ผูกกันด้วย aria-describedby โปรแกรมอ่านหน้าจอจึงอ่าน tooltip ต่อจากชื่อปุ่มได้
@@ -139,7 +140,11 @@ async function expectTooltipOnKeyboardFocus(locator: Locator, text: string) {
   const tooltipId = await locator.getAttribute("aria-describedby");
   const tooltip = locator.page().locator(`[role="tooltip"]#${tooltipId}`);
   await expect(tooltip).toBeVisible();
-  await expect(tooltip).toHaveText(text);
+  if (typeof text === "string") {
+    await expect(tooltip).toHaveText(text);
+  } else {
+    await expect.poll(async () => (await tooltip.textContent()) === await text()).toBe(true);
+  }
   // tooltip ต้องอยู่ในจอทั้งใบ ปุ่มที่อยู่ริมขอบมักดัน tooltip ล้นออกไปจนอ่านไม่ได้
   await expect.poll(() => tooltip.evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -379,10 +384,10 @@ test.describe("Tenant accessibility controls", () => {
     await page.goto("/tenant");
 
     const notificationButton = page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ });
-    // อ่านชื่อจากปุ่มจริง เพราะมีจำนวนแจ้งเตือนต่อท้ายซึ่งเปลี่ยนไปตามข้อมูล
-    const notificationLabel = await notificationButton.getAttribute("aria-label");
-    expect(notificationLabel).toBeTruthy();
-    await expectTooltipOnKeyboardFocus(notificationButton, notificationLabel!);
+    // ชื่อปุ่มมีจำนวนแจ้งเตือนต่อท้ายซึ่งโหลดมาทีหลัง จึงเทียบ tooltip กับชื่อปุ่ม ณ ตอนตรวจ
+    // ไม่ใช่ชื่อที่อ่านเก็บไว้ก่อน ไม่งั้นเทสต์จะตกตามจังหวะความเร็วของเครื่อง ไม่ใช่เพราะบั๊ก
+    expect(await notificationButton.getAttribute("aria-label")).toBeTruthy();
+    await expectTooltipOnKeyboardFocus(notificationButton, async () => (await notificationButton.getAttribute("aria-label")) ?? "");
     await expectTouchTarget(notificationButton);
     expect(await contrastRatio(notificationButton)).toBeGreaterThanOrEqual(4.5);
 
