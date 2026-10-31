@@ -1,0 +1,65 @@
+{
+ "ranAt": "2026-10-31T14:54:39.954Z",
+ "node": "v22.19.0",
+ "platform": "Windows_NT 10.0.26300",
+ "results": [
+  {
+   "id": "typecheck",
+   "label": "ตรวจ type (TypeScript strict)",
+   "command": "npm run typecheck",
+   "exitCode": 0,
+   "passed": true,
+   "seconds": 3
+  },
+  {
+   "id": "lint",
+   "label": "ตรวจรูปแบบโค้ด (ESLint)",
+   "command": "npx eslint . --ignore-pattern \"deliverables/**\"",
+   "exitCode": 0,
+   "passed": true,
+   "seconds": 15
+  },
+  {
+   "id": "unit",
+   "label": "เทสต์ unit (Vitest)",
+   "command": "npx vitest run --reporter=json --outputFile=\"<tmp>.json\"",
+   "exitCode": 0,
+   "passed": true,
+   "seconds": 3,
+   "detail": {
+    "suites": 82,
+    "suitesPassed": 82,
+    "tests": 161,
+    "passed": 161,
+    "failed": 0,
+    "pending": 0
+   },
+   "failures": []
+  },
+  {
+   "id": "integration",
+   "label": "เทสต์ integration ผ่าน API และฐานข้อมูลจริง (Vitest)",
+   "command": "npx vitest run --config vitest.integration.config.ts --reporter=json --outputFile=\"<tmp>.json\"",
+   "exitCode": 0,
+   "passed": true,
+   "seconds": 41,
+   "detail": {
+    "suites": 87,
+    "suitesPassed": 87,
+    "tests": 190,
+    "passed": 190,
+    "failed": 0,
+    "pending": 0
+   },
+   "failures": []
+  },
+  {
+   "id": "build",
+   "label": "build สำหรับ production (next build)",
+   "command": "npm run build",
+   "exitCode": 0,
+   "passed": true,
+   "seconds": 13
+  }
+ ]
+}

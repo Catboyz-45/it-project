@@ -412,33 +412,39 @@ COMPARE_METRICS = [
 ]
 
 
-def comparison_section(comparison, measures, font, h2_style, cell):
-    """ส่วนเปรียบเทียบกับรอบก่อน ตัวชี้วัด จำนวน issue แยกหมวด และกฎที่ issue ลดลง"""
-    before_measures, before, after = comparison["measures"], comparison["before"], comparison["after"]
-    out = [PageBreak(), Paragraph(f"เปรียบเทียบกับรอบก่อน ({escape(comparison['name'])})", h2_style)]
+GATE_LABEL = {"OK": "PASSED", "ERROR": "FAILED"}
 
-    gate = {"OK": "PASSED", "ERROR": "FAILED"}
+
+def metric_value_text(key, value, is_rating):
+    """แปลงค่าตัวชี้วัดเป็นข้อความที่แสดงในตาราง rating เป็นตัวอักษร และ Quality Gate เป็น PASSED/FAILED"""
+    if is_rating:
+        return rating_text(value)
+    if key == "alert_status":
+        return GATE_LABEL.get(value, value)
+    return str(value)
+
+
+def metric_rows(before_measures, measures, before_total):
     rows = [["ตัวชี้วัด", "ก่อน", "หลัง"]]
     for key, label, is_rating in COMPARE_METRICS:
-        old, new = before_measures.get(key, "-"), measures.get(key, "-")
+        old = before_measures.get(key, "-")
+        # รอบเก่าที่ไม่มี measures.json ยังนับจำนวน issue จากไฟล์ issue ได้
         if key == "violations" and old == "-":
-            old = sum(before["quality"].values())
-        if is_rating:
-            old, new = rating_text(old), rating_text(new)
-        if key == "alert_status":
-            old, new = gate.get(old, old), gate.get(new, new)
-        rows.append([label, str(old), str(new)])
-    out += [styled_table(rows, [9 * cm, 4 * cm, 4 * cm], font), Spacer(1, 0.4 * cm)]
+            old = before_total
+        rows.append([label, metric_value_text(key, old, is_rating), metric_value_text(key, measures.get(key, "-"), is_rating)])
+    return rows
 
-    out.append(Paragraph("จำนวน Issues แยกตามหมวดและ Severity", h2_style))
+
+def group_rows(before, after):
     rows = [["หมวด / Severity", "ก่อน", "หลัง", "ลดลง"]]
     for group, keys in (("quality", ["SECURITY", "RELIABILITY", "MAINTAINABILITY"]), ("severity", SEVERITY_ORDER)):
         for key in keys:
             old, new = before[group].get(key, 0), after[group].get(key, 0)
             rows.append([key.title() if group == "quality" else key, str(old), str(new), str(old - new)])
-    out += [styled_table(rows, [7 * cm, 3.3 * cm, 3.3 * cm, 3.4 * cm], font), Spacer(1, 0.4 * cm)]
+    return rows
 
-    out.append(Paragraph("Issues ที่แก้ไปแล้ว แยกตามกฎ", h2_style))
+
+def fixed_rule_rows(before, after, cell):
     rows = [["กฎ", "ตัวอย่างข้อความจากรอบก่อน", "ก่อน", "หลัง"]]
     for rule, old in sorted(before["rule"].items(), key=lambda item: -item[1]):
         new = after["rule"].get(rule, 0)
@@ -447,8 +453,24 @@ def comparison_section(comparison, measures, font, h2_style, cell):
             rows.append([Paragraph(escape(rule), cell), Paragraph(escape(message), cell), str(old), str(new)])
     if len(rows) == 1:
         rows.append(["-", "ไม่มีกฎที่ issue ลดลง", "-", "-"])
-    out.append(styled_table(rows, [4.2 * cm, 9.2 * cm, 1.8 * cm, 1.8 * cm], font, 8))
-    return out
+    return rows
+
+
+def comparison_section(comparison, measures, font, h2_style, cell):
+    """ส่วนเปรียบเทียบกับรอบก่อน ตัวชี้วัด จำนวน issue แยกหมวด และกฎที่ issue ลดลง"""
+    before, after = comparison["before"], comparison["after"]
+    before_total = sum(before["quality"].values())
+    return [
+        PageBreak(),
+        Paragraph(f"เปรียบเทียบกับรอบก่อน ({escape(comparison['name'])})", h2_style),
+        styled_table(metric_rows(comparison["measures"], measures, before_total), [9 * cm, 4 * cm, 4 * cm], font),
+        Spacer(1, 0.4 * cm),
+        Paragraph("จำนวน Issues แยกตามหมวดและ Severity", h2_style),
+        styled_table(group_rows(before, after), [7 * cm, 3.3 * cm, 3.3 * cm, 3.4 * cm], font),
+        Spacer(1, 0.4 * cm),
+        Paragraph("Issues ที่แก้ไปแล้ว แยกตามกฎ", h2_style),
+        styled_table(fixed_rule_rows(before, after, cell), [4.2 * cm, 9.2 * cm, 1.8 * cm, 1.8 * cm], font, 8),
+    ]
 
 
 def changes_section(text, h2_style, heading3, normal):

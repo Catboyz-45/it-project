@@ -92,6 +92,23 @@ python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --
 - `--baseline-dir` เพิ่มตารางตัวชี้วัดก่อนและหลัง จำนวน issue แยกหมวดและ severity และรายการกฎที่ issue ลดลง
 - `--changes` ใส่เนื้อหาจากไฟล์ข้อความ (UTF-8) ไว้ท้ายรายงาน บรรทัด `# ` เป็นหัวข้อใหญ่ `## ` หัวข้อย่อย และ `- ` เป็นรายการ
 
+### 8. รายงานผลการแก้ไขรายข้อ (รูปแบบเดียวกับ SystemBOQ)
+
+อยู่ในโฟลเดอร์ `sonar-reports/` ติดตามว่า issue แต่ละข้อจากไฟล์ export ก่อนแก้ (`issues_page1.json` ที่โฟลเดอร์ราก)
+ตอนนี้อยู่ในสถานะไหน แก้ด้วยวิธีอะไร และพิสูจน์ว่าระบบยังทำงานได้หลังแก้
+
+```bash
+# 1. รันชุดตรวจ (type, lint, unit, integration, build) เก็บผลเป็น sonar-reports/checks-<วันที่>.json
+TEST_DATABASE_URL=<URL ของฐาน test> npm run sonar:checks
+# 2. สร้างรายงาน PDF และเก็บสถานะหลังแก้เป็น issues_after_<วันที่>.json ที่โฟลเดอร์ราก
+SONAR_TOKEN=<token> npm run sonar:reports
+```
+
+ได้ไฟล์ `sonar-reports/sonar-report-page1.pdf` (รายข้อของชุด export) และ `sonar-reports/sonar-report-overview.pdf` (ภาพรวม)
+ข้อที่ยกเว้นพร้อมเหตุผลและข้อในโฟลเดอร์ที่ตัดออกจากการสแกน รายงานจะแยกนับ ไม่นับเป็น "แก้แล้ว"
+(SonarQube ปิดข้อพวกนี้เป็น FIXED เหมือนข้อที่แก้จริง) · ถ้าเพิ่มข้อยกเว้นใน `sonar-project.properties`
+ให้เพิ่มใน `EXCEPTIONS` ของ `sonar-reports/build-sonar-reports.mjs` ด้วย และคำอธิบายกฎอยู่ใน `sonar-reports/rule-guide.mjs`
+
 ## การอ่านผล
 
 | หมวด | ความหมาย |
