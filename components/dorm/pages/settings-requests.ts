@@ -7,6 +7,9 @@ import type { RoomTypeSetting, ServiceChargeSetting } from "@/types/dashboard";
 
 // ค่าทุกตัวในฟอร์มเก็บเป็นสตริง เพราะมาจากช่องกรอก แปลงเป็นตัวเลขตอนส่งที่นี่ที่เดียว
 export type SettingsDraft = {
+  bankAccountName: string;
+  bankAccountNumber: string;
+  bankName: string;
   businessName: string;
   contactEmail: string;
   contactPhone: string;
@@ -40,6 +43,9 @@ export function savePropertySettingsRequest(propertyId: string, settings: Settin
     contactPhone: settings.contactPhone.trim(),
     contactEmail: settings.contactEmail.trim() || null,
     promptPayId: settings.promptPay.trim() || null,
+    bankName: settings.bankName.trim() || null,
+    bankAccountNumber: settings.bankAccountNumber.trim() || null,
+    bankAccountName: settings.bankAccountName.trim() || null,
     waterUnitRate: Number(settings.waterExtraRate) || 0,
     electricityUnitRate: Number(settings.electricityUnitRate) || 0,
     // วันจดมิเตอร์เกิน 28 ไม่ได้ เพราะเดือนกุมภาพันธ์ไม่มีวันนั้น

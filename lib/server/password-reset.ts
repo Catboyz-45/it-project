@@ -21,29 +21,62 @@ export async function requestPasswordReset(email: string) {
   });
   // ไม่มีบัญชีหรือบัญชีถูกระงับก็เงียบ ๆ ผู้เรียกจะได้ไม่รู้ว่าติดข้อไหน
   if (!user?.isActive) return;
+  const token = await createResetToken(user.id);
+  try {
+    await sendResetEmail(user.email, user.displayName, token);
+  } catch (error) {
+    // ส่งอีเมลไม่สำเร็จก็ยังตอบเหมือนเดิม ไม่งั้นเวลาที่ใช้ตอบจะต่างกันจนเดาได้ว่าอีเมลนั้นมีอยู่จริง
+    // แต่ต้องเขียน log ไว้ ไม่งั้นระบบส่งอีเมลพังแล้วไม่มีใครรู้ บันทึกแค่ id ผู้ใช้ ไม่บันทึกอีเมลหรือโทเคน
+    logResetEmailFailure(user.id, error);
+  }
+}
+
+// Super Admin ส่งลิงก์ตั้งรหัสผ่านให้เจ้าของหอที่ขอความช่วยเหลือ
+// ต่างจากหน้าลืมรหัสผ่านตรงที่ต้องบอกผลจริง เพราะคนกดเป็นผู้ดูแลระบบ ไม่ใช่คนนอกที่มาไล่เดาอีเมล
+export async function sendOwnerPasswordResetLink(userId: string) {
+  const user = await getDatabase().user.findFirst({
+    // ใส่บทบาทกับสถานะไว้ในเงื่อนไขเลย ส่งลิงก์ให้บัญชีประเภทอื่นหรือบัญชีที่ยังไม่อนุมัติไม่ได้
+    where: { id: userId, role: "PROPERTY_ADMIN", isActive: true, approvalStatus: "APPROVED" },
+    select: { id: true, email: true, displayName: true },
+  });
+  if (!user) throw new ApiError(404, "ไม่พบบัญชีเจ้าของหอ");
+  const token = await createResetToken(user.id);
+  try {
+    await sendResetEmail(user.email, user.displayName, token, true);
+  } catch (error) {
+    logResetEmailFailure(user.id, error);
+    throw error instanceof ApiError ? error : new ApiError(503, "ไม่สามารถส่งอีเมลตั้งรหัสผ่านได้");
+  }
+  return { email: user.email };
+}
+
+// ทำโทเคนเก่าที่ยังไม่ได้ใช้ให้หมดอายุก่อน ขอใหม่แล้วอันเก่าต้องใช้ไม่ได้ทันที
+async function createResetToken(userId: string) {
   const token = randomBytes(32).toString("base64url");
   await getDatabase().$transaction([
-    // ทำโทเคนเก่าที่ยังไม่ได้ใช้ให้หมดอายุก่อน ขอใหม่แล้วอันเก่าต้องใช้ไม่ได้ทันที
     getDatabase().passwordResetToken.updateMany({
-      where: { userId: user.id, usedAt: null },
+      where: { userId, usedAt: null },
       data: { usedAt: new Date() },
     }),
     getDatabase().passwordResetToken.create({
       data: {
-        userId: user.id,
+        userId,
         tokenHash: hashToken(token),
         expiresAt: new Date(Date.now() + resetLifetimeMs),
       },
     }),
   ]);
-  try {
-    await sendResetEmail(user.email, user.displayName, token);
-  } catch {
-    // ส่งอีเมลไม่สำเร็จก็ยังตอบเหมือนเดิม ไม่งั้นเวลาที่ใช้ตอบจะต่างกันจนเดาได้ว่าอีเมลนั้นมีอยู่จริง
-  }
+  return token;
 }
 
-async function sendResetEmail(email: string, displayName: string, token: string) {
+function logResetEmailFailure(userId: string, error: unknown) {
+  console.error(JSON.stringify({
+    level: "error", event: "password_reset_email_failed", userId,
+    message: error instanceof Error ? error.message : "Unknown error",
+  }));
+}
+
+async function sendResetEmail(email: string, displayName: string, token: string, sentByAdmin = false) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.PASSWORD_RESET_EMAIL_FROM;
   const appUrl = process.env.APP_URL;
@@ -62,7 +95,9 @@ async function sendResetEmail(email: string, displayName: string, token: string)
       from,
       to: [email],
       subject: `ตั้งรหัสผ่าน ${platformProfile.name} ใหม่`,
-      text: `สวัสดี ${displayName}\n\nเปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`,
+      text: sentByAdmin
+        ? `สวัสดี ${displayName}\n\nผู้ดูแลระบบ ${platformProfile.name} ส่งลิงก์ตั้งรหัสผ่านให้คุณตามที่ขอความช่วยเหลือ เปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้ติดต่อขอความช่วยเหลือ สามารถละเว้นอีเมลนี้ได้ รหัสผ่านเดิมยังใช้ได้ตามปกติ`
+        : `สวัสดี ${displayName}\n\nเปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`,
     }),
     // ตั้ง timeout กับคำขอที่ออกไปข้างนอกเสมอ ไม่งั้นบริการปลายทางค้างแล้วคำขอของเราค้างตาม
     signal: AbortSignal.timeout(10_000),

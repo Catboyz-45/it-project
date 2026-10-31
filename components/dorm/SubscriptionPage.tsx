@@ -1,6 +1,7 @@
 "use client";
 // โหลดข้อมูลและอัปโหลดไฟล์จากเบราว์เซอร์
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CalendarDays, CheckCircle2, Clock3, CreditCard, LockKeyhole, RefreshCw, Upload } from "lucide-react";
 import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
@@ -162,7 +163,7 @@ export function SubscriptionPage({ initialData = null, propertyId, subscription 
     <section className="panel settings-section">
       <div className="settings-section-head"><div><h2>ประวัติคำสั่งซื้อ</h2><p>ตรวจสอบสถานะการสมัคร การชำระเงิน และการต่ออายุย้อนหลัง</p></div></div>
       {ordersError ? <div className="form-alert error mt-4" role="alert"><span>{ordersError}</span><RetryButton label="ลองโหลดประวัติใหม่" onClick={() => void loadOrders()} /></div> : null}
-      <OrderHistoryList hasError={Boolean(ordersError)} isLoading={ordersLoading} onUpload={upload} openOrderId={openOrder?.id ?? null} orders={orders} submitting={submitting} />
+      <OrderHistoryList hasError={Boolean(ordersError)} isLoading={ordersLoading} onUpload={upload} openOrderId={openOrder?.id ?? null} orders={orders} propertyId={propertyId} submitting={submitting} />
       {hasNextPage ? <LoadMoreButton isLoading={ordersLoading} onClick={() => void loadOrders(page + 1, true)} /> : null}
     </section>
   </div>;
@@ -311,11 +312,12 @@ function planActionLabel(isCurrent: boolean, submitting: boolean) {
 }
 
 // ประวัติคำสั่งซื้อย้อนหลัง รายการที่ยังค้างอยู่จะถูกไฮไลต์ไว้
-function OrderHistoryList({ hasError, isLoading, onUpload, openOrderId, orders, submitting }: Readonly<{
+function OrderHistoryList({ hasError, isLoading, onUpload, openOrderId, orders, propertyId, submitting }: Readonly<{
   hasError: boolean;
   isLoading: boolean;
   onUpload: (orderId: string, file: File | null) => Promise<void>;
   openOrderId: string | null;
+  propertyId: string;
   orders: Order[];
   submitting: boolean;
 }>) {
@@ -329,14 +331,15 @@ function OrderHistoryList({ hasError, isLoading, onUpload, openOrderId, orders, 
     </div>;
   }
   return <div className="mt-4 grid gap-3">
-    {orders.map((order) => <OrderCard isOpenOrder={openOrderId === order.id} key={order.id} onUpload={onUpload} order={order} submitting={submitting} />)}
+    {orders.map((order) => <OrderCard isOpenOrder={openOrderId === order.id} key={order.id} onUpload={onUpload} order={order} propertyId={propertyId} submitting={submitting} />)}
   </div>;
 }
 
-function OrderCard({ isOpenOrder, onUpload, order, submitting }: Readonly<{
+function OrderCard({ isOpenOrder, onUpload, order, propertyId, submitting }: Readonly<{
   isOpenOrder: boolean;
   onUpload: (orderId: string, file: File | null) => Promise<void>;
   order: Order;
+  propertyId: string;
   submitting: boolean;
 }>) {
   // API เรียงใหม่สุดมาก่อน เอาเหตุผลที่ถูกปฏิเสธล่าสุดมาแสดง
@@ -354,7 +357,8 @@ function OrderCard({ isOpenOrder, onUpload, order, submitting }: Readonly<{
     </div>
     {latestPayment?.rejectionNote ? <p className="form-alert error mt-3">ปฏิเสธ: {latestPayment.rejectionNote}</p> : null}
     {order.status === "PENDING_PAYMENT" ? <div className="mt-4">
-      <label className="secondary-button inline-flex cursor-pointer">
+      <PaymentInstructions orderId={order.id} propertyId={propertyId} />
+      <label className="secondary-button mt-4 inline-flex cursor-pointer">
         <Upload size={17} /> ส่งสลิป
         <input accept="image/png,image/jpeg,application/pdf" className="sr-only" disabled={submitting} onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
@@ -368,6 +372,49 @@ function OrderCard({ isOpenOrder, onUpload, order, submitting }: Readonly<{
     {order.status === "PENDING_REVIEW" ? <p className="mt-3 flex items-center gap-2 text-sm text-amber-700"><Clock3 size={16} /> ส่งหลักฐานแล้ว รอ Super Admin ตรวจสอบ ไม่ต้องส่งซ้ำ</p> : null}
     {order.status === "PAID" ? <p className="mt-3 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 size={16} /> เปิดใช้งานแล้ว {order.activatedAt ? new Date(order.activatedAt).toLocaleString("th-TH") : ""}</p> : null}
   </article>;
+}
+
+type Instructions = {
+  orderNumber: string; amount: string; promptPayPayload: string | null;
+  bankName: string | null; bankAccountNumber: string | null; bankAccountName: string | null;
+};
+
+// บอกว่าต้องโอนไปที่ไหน บัญชีของแพลตฟอร์มกับ QR พร้อมเพย์ตรงยอด ก่อนให้แนบสลิป
+function PaymentInstructions({ orderId, propertyId }: Readonly<{ orderId: string; propertyId: string }>) {
+  const url = `/api/v1/admin/properties/${propertyId}/subscription-orders/${orderId}/payment-instructions`;
+  const [state, setState] = useState<{ data: Instructions | null; error: string; isLoading: boolean }>({ data: null, error: "", isLoading: true });
+
+  useEffect(() => {
+    // ยกเลิกคำขอเมื่อการ์ดหายไปก่อนได้คำตอบ จะได้ไม่ไปตั้งค่าให้คอมโพเนนต์ที่ไม่อยู่แล้ว
+    const controller = new AbortController();
+    fetch(url, { cache: "no-store", signal: controller.signal })
+      .then((response) => json<Instructions>(response))
+      .then((data) => setState({ data, error: "", isLoading: false }))
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) setState({ data: null, error: formatClientError(cause, "โหลดช่องทางชำระไม่สำเร็จ"), isLoading: false });
+      });
+    return () => controller.abort();
+  }, [url]);
+
+  if (state.isLoading) return <p aria-live="polite" className="text-sm text-[#73757d]">กำลังโหลดช่องทางชำระ...</p>;
+  if (state.error || !state.data) return <p className="form-alert warning">{state.error || "โหลดช่องทางชำระไม่สำเร็จ"}</p>;
+  const { bankAccountName, bankAccountNumber, bankName, promptPayPayload } = state.data;
+  if (!promptPayPayload && !bankAccountNumber) {
+    // ยังไม่ได้ตั้งบัญชี บอกให้ติดต่อผู้ดูแลระบบ ดีกว่าปล่อยให้โอนแบบเดาเอง
+    return <p className="form-alert warning">ผู้ดูแลระบบยังไม่ได้ตั้งค่าบัญชีรับค่าแพ็กเกจ กรุณาติดต่อผู้ดูแลระบบผ่านแชตช่วยเหลือก่อนโอน</p>;
+  }
+  return <div className="grid gap-4 rounded-xl bg-[#f6f6f8] p-4 sm:grid-cols-[auto_1fr] sm:items-center" data-testid="subscription-payment-instructions">
+    {promptPayPayload ? <figure className="text-center">
+      <Image alt={`QR พร้อมเพย์ ${state.data.orderNumber}`} className="mx-auto rounded-lg bg-white" height={176} src={`${url}?format=png`} unoptimized width={176} />
+      <figcaption className="mt-1 text-xs text-[#73757d]">สแกนจ่ายตรงยอด {Number(state.data.amount).toLocaleString("th-TH")} บาท</figcaption>
+    </figure> : null}
+    {bankAccountNumber ? <dl className="grid gap-1 text-sm">
+      <dt className="text-[#73757d]">โอนเข้าบัญชี</dt>
+      <dd className="font-bold">{bankName}</dd>
+      <dd className="font-mono text-base">{bankAccountNumber}</dd>
+      <dd>{bankAccountName}</dd>
+    </dl> : null}
+  </div>;
 }
 
 // หนึ่งช่วงบนเส้นเวลา ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export

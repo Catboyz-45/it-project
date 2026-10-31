@@ -255,6 +255,21 @@ function responsesFor(method, apiPath) {
       500: { $ref: "#/components/responses/InternalServerError" },
     };
   }
+  if (method === "get" && apiPath.endsWith("/payment-instructions")) {
+    return {
+      200: {
+        description: "Payment instructions as JSON, or the PromptPay QR PNG when format=png",
+        content: {
+          "application/json": jsonSuccessResponse(method, apiPath).content["application/json"],
+          "image/png": { schema: { type: "string", format: "binary" } },
+        },
+      },
+      401: { $ref: "#/components/responses/Unauthorized" },
+      403: { $ref: "#/components/responses/Forbidden" },
+      404: { $ref: "#/components/responses/NotFound" },
+      500: { $ref: "#/components/responses/InternalServerError" },
+    };
+  }
   if (method === "get" && apiPath.endsWith("/promptpay-qr")) {
     return {
       200: {

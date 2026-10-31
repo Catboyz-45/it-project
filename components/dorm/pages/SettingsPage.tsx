@@ -87,6 +87,9 @@ export function SettingsPage({
   const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, setActiveSection);
   // เก็บทุกค่าเป็นสตริง เพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนส่งขึ้นเซิร์ฟเวอร์
   const [settings, setSettings] = useState<SettingsForm>({
+    bankAccountName: initialSettings.bankAccountName ?? "",
+    bankAccountNumber: initialSettings.bankAccountNumber ?? "",
+    bankName: initialSettings.bankName ?? "",
     businessName: initialSettings.legalName ?? "",
     contactPhone: initialSettings.contactPhone ?? "",
     contactEmail: initialSettings.contactEmail ?? "",
@@ -391,15 +394,24 @@ function SettingsSectionBody({
 
   if (activeSection === "cycles") {
     return (
+          <>
           <SettingsCard isSaving={isSavingSettings} onSave={() => void savePropertySettings()} title="รอบบิลและวันชำระ" description="ช่วยให้เจ้าของหอรู้ว่าควรจดมิเตอร์และติดตามยอดค้างช่วงไหน">
             <div className="settings-form-grid three">
               <TextField label="วันจดมิเตอร์" prefix="วันที่" suffix="ของทุกเดือน" type="number" value={settings.meterReadDay} onChange={(value) => updateSetting("meterReadDay", value)} />
               <TextField label="วันครบกำหนดชำระ" prefix="วันที่" suffix="ของเดือนถัดไป" type="number" value={settings.dueDay} onChange={(value) => updateSetting("dueDay", value)} />
               <TextField label="ค่าปรับชำระล่าช้า" suffix="บาท" type="number" value={settings.lateFee} onChange={(value) => updateSetting("lateFee", value)} />
-              <TextField label="เลขพร้อมเพย์รับเงิน" value={settings.promptPay} onChange={(value) => updateSetting("promptPay", value)} />
               <TextAreaField label="ข้อความท้ายบิล" value={settings.paymentNote} onChange={(value) => updateSetting("paymentNote", value)} />
             </div>
           </SettingsCard>
+          <SettingsCard isSaving={isSavingSettings} onSave={() => void savePropertySettings()} title="ช่องทางรับเงิน" description="ผู้เช่าเห็นข้อมูลนี้ในหน้าชำระบิล คู่กับ QR พร้อมเพย์ที่สร้างตามยอดของบิลแต่ละใบ">
+            <div className="settings-form-grid three">
+              <TextField label="เลขพร้อมเพย์รับเงิน" value={settings.promptPay} onChange={(value) => updateSetting("promptPay", value)} />
+              <TextField label="ธนาคาร" value={settings.bankName} onChange={(value) => updateSetting("bankName", value)} />
+              <TextField label="เลขที่บัญชี" value={settings.bankAccountNumber} onChange={(value) => updateSetting("bankAccountNumber", value)} />
+              <TextField label="ชื่อบัญชี" value={settings.bankAccountName} onChange={(value) => updateSetting("bankAccountName", value)} />
+            </div>
+          </SettingsCard>
+          </>
     );
   }
 

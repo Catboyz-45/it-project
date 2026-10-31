@@ -69,6 +69,9 @@ export type PropertySettingsReadModel = {
   contactPhone?: string;
   contactEmail?: string;
   promptPayId?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
   waterExtraRate?: number;
   electricityUnitRate?: number;
   invoicePrefix?: string;

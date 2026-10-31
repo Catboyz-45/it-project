@@ -400,6 +400,18 @@ model PropertySubscription {
 }
 
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
+/// ตาราง PlatformPaymentSettings: บัญชีรับค่าแพ็กเกจของแพลตฟอร์ม มีแถวเดียวเสมอ (id = "default")
+/// เจ้าของหอเห็นข้อมูลนี้ในหน้าต่ออายุแพ็กเกจ จะได้รู้ว่าต้องโอนไปที่ไหนก่อนแนบสลิป
+model PlatformPaymentSettings {
+  id                String   @id @default("default") @db.VarChar(20)
+  bankName          String?  @db.VarChar(80)
+  bankAccountNumber String?  @db.VarChar(20)
+  bankAccountName   String?  @db.VarChar(160)
+  promptPayId       String?  @db.VarChar(20)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+}
+
+/// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
 /// ตาราง SaasPlan: เก็บข้อมูลและความสัมพันธ์ของ “Saas Plan”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
 model SaasPlan {
   id                   String                 @id @default(cuid())
@@ -497,6 +509,9 @@ model PropertySettings {
   contactEmail        String?  @db.VarChar(254)
   logoStorageKey      String?  @db.VarChar(500)
   promptPayId         String?  @db.VarChar(20)
+  bankName            String?  @db.VarChar(80)
+  bankAccountNumber   String?  @db.VarChar(20)
+  bankAccountName     String?  @db.VarChar(160)
   waterUnitRate       Decimal  @default(0) @db.Decimal(12, 2)
   electricityUnitRate Decimal  @default(0) @db.Decimal(12, 2)
   billingDay          Int      @default(1)
