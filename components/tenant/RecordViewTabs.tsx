@@ -26,7 +26,7 @@ export function RecordViewTabs({
     { label: currentLabel, value: "current" as const },
     { label: historyLabel, value: "history" as const },
   ];
-  return <div aria-label="เลือกประเภทข้อมูล" className="figma-inline-tabs invoice-tabs" onKeyDown={handleKeyDown} role="tablist">
+  return <div aria-label="เลือกประเภทข้อมูล" className="figma-inline-tabs invoice-tabs" onKeyDown={handleKeyDown} role="tablist" tabIndex={-1}>
     {tabs.map((tab) => <button
       aria-controls={`${id}-panel`}
       aria-selected={view === tab.value}

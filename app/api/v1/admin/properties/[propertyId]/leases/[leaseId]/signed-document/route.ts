@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { attachSignedLease, getSignedLeaseKey } from "@/lib/server/leases";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ propertyId: string; leaseId: string }> };
@@ -17,9 +17,9 @@ export async function POST(request: NextRequest, context: Context) {
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
     await assertUploadRateLimit(request, "signed-lease");
-    const leaseId = z.string().cuid().safeParse(params.leaseId);
+    const leaseId = recordIdSchema.safeParse(params.leaseId);
     if (!leaseId.success) throw new ApiError(404, "ไม่พบสัญญา");
-    const file = (await request.formData()).get("file");
+    const file = (await readFormData(request)).get("file");
     if (!(file instanceof File)) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size < 1 || file.size > 5 * 1024 * 1024) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, context: Context) {
   try {
     const params = await context.params;
     const { propertyId } = await requireAdminProperty(request, params.propertyId);
-    const leaseId = z.string().cuid().safeParse(params.leaseId);
+    const leaseId = recordIdSchema.safeParse(params.leaseId);
     if (!leaseId.success) throw new ApiError(404, "ไม่พบสัญญา");
     const lease = await getSignedLeaseKey(propertyId, leaseId.data);
     const file = await getStorageAdapter().get(lease.signedStorageKey);

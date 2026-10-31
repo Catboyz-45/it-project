@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { parseTenantRecordId, requireActiveTenant } from "@/lib/server/tenant-auth";
 import { createPaymentSubmission, listTenantPaymentSubmissions } from "@/lib/server/payments";
 import { detectUploadSignature } from "@/lib/server/file-signatures";
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest, context: Context) {
     await assertUploadRateLimit(request, "payment-slip");
     if (occupancy.role !== "PRIMARY") throw new ApiError(404, "ไม่พบข้อมูล");
     const invoiceId = parseTenantRecordId((await context.params).invoiceId);
-    const file = (await request.formData()).get("file");
+    const file = (await readFormData(request)).get("file");
     if (!(file instanceof File)) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size < 1 || file.size > maxSize) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
     const bytes = new Uint8Array(await file.arrayBuffer());

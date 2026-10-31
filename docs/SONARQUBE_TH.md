@@ -31,10 +31,17 @@ npm run sonar:up
 
 ```bash
 npm run test:coverage
+# ชุด integration ต้องมีฐานข้อมูลทดสอบแยก ชื่อฐานต้องมีคำว่า test (เช่น dorm_test)
+# สร้างครั้งแรกด้วย createdb แล้วลงไมเกรชันด้วย DATABASE_URL=<ฐาน test> npx prisma migrate deploy
+DATABASE_URL=<URL ของฐาน test> STORAGE_TYPE=local LOCAL_STORAGE_PATH=./storage/test-documents npm run test:coverage:integration
 ```
 
-สร้างไฟล์ `coverage/lcov.info` ซึ่ง SonarQube อ่านเพื่อรายงาน Test Coverage
-(ถ้าข้ามขั้นนี้ coverage จะขึ้น 0%)
+สร้างไฟล์ `coverage/lcov.info` (unit) กับ `coverage-integration/lcov.info` (integration ที่เรียก route ใน `app/api` จริง)
+SonarQube รวมสองไฟล์ให้เอง ถ้าข้ามชุดไหนไป coverage ของส่วนนั้นจะขึ้น 0%
+
+ไฟล์ที่ไม่นับ coverage (แต่ยังตรวจ bug/ช่องโหว่ตามปกติ) ระบุไว้ใน `sonar.coverage.exclusions` ของ
+`sonar-project.properties` พร้อมเหตุผล คือหน้าจอ (`app/**/*.tsx`, `components/**`) ที่ทดสอบด้วย Playwright,
+React hook ฝั่งเบราว์เซอร์, สคริปต์ CLI และไฟล์ตั้งค่าเครื่องมือ
 
 ### 4. สแกนโค้ด
 
@@ -57,6 +64,19 @@ npm run sonar:report
 ```
 
 ได้ไฟล์ `nestly_report.pdf` (ตั้งชื่อเองได้ด้วย `--output`, ปรับจำนวนตัวอย่าง issue ด้วย `--top`)
+
+### 6. เก็บรายการ issue แยกหน้า
+
+ใส่ `--issues-dir` เพื่อเก็บ issue ที่ยังเปิดอยู่ทั้งหมดเป็น `issues_page1.json`, `issues_page2.json`, ...
+หน้าละ 200 รายการ รูปแบบเดียวกับ `GET /api/issues/search` และไฟล์ใน `docs/sonarqube-history/`
+(issue ไม่ถึง 200 รายการจะได้ไฟล์เดียวคือ `issues_page1.json`)
+
+```bash
+python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --token $SONAR_TOKEN \
+  --output docs/sonarqube-history/run-62/nestly_report_run62.pdf --issues-dir docs/sonarqube-history/run-62
+```
+
+ตั้งชื่อ PDF ให้ไม่ลงท้ายด้วย `_report.pdf` ถ้าต้องการ commit ไฟล์นั้น เพราะ `.gitignore` กันชื่อแบบนั้นไว้
 
 ## การอ่านผล
 

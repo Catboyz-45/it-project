@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 import { ApiError } from "@/lib/server/api";
 import { requireRequestAuth, requirePropertyAccess, requireRole } from "@/lib/server/auth";
 import { requireActiveTenant } from "@/lib/server/tenant-auth";
 import { getDatabase } from "@/lib/server/db";
 import type { ConversationActor } from "@/lib/server/chat";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
-const idSchema = z.string().cuid();
+const idSchema = recordIdSchema;
 
 // id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด เพราะแบบหลังช่วยให้เดาได้ว่าข้อมูลมีอยู่จริงไหม
 export function parseChatId(value: string) {

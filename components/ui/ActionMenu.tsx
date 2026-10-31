@@ -191,7 +191,7 @@ export function ActionMenu({
       </IconButton>
       {/* วางที่ body กัน overflow ของตารางหรือการ์ดที่ครอบอยู่มาตัดเมนูขาด */}
       {isOpen && menuStyle && typeof document !== "undefined" ? createPortal(
-        <div aria-label={label} className={`action-menu-popover action-menu-${align}`} id={menuId} onKeyDown={moveFocus} ref={menuRef} role="menu" style={menuStyle}>
+        <div aria-label={label} className={`action-menu-popover action-menu-${align}`} id={menuId} onKeyDown={moveFocus} ref={menuRef} role="menu" style={menuStyle} tabIndex={-1}>
           {items.map((item, index) => (
             <button
               // โฟกัสรายการแรกที่กดได้ทันทีที่เปิด คนใช้คีย์บอร์ดจะได้ไม่ต้อง Tab เข้ามาเอง

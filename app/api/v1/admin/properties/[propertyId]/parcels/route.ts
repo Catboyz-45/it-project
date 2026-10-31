@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createParcelSchema } from "@/lib/domain/property-operations";
 import { detectUploadSignature } from "@/lib/server/file-signatures";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { createParcel, listParcels } from "@/lib/server/property-operations";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, context: Context) {
     if (request.headers.get("origin") !== request.nextUrl.origin) throw new ApiError(403, "Request origin is not allowed");
     const { auth, propertyId } = await requireAdminProperty(request, (await context.params).propertyId);
     await assertUploadRateLimit(request, "parcel");
-    const form = await request.formData();
+    const form = await readFormData(request);
     const input = createParcelSchema.parse({
       roomId: form.get("roomId"),
       recipientTenantId: form.get("recipientTenantId") || undefined,

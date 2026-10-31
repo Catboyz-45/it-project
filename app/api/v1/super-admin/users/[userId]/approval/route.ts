@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { reviewAccountApprovalSchema } from "@/lib/domain/account-approval";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin, ApiError } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { reviewPropertyAdminAccount } from "@/lib/server/account-approval";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ userId: string }> };
-const userIdSchema = z.string().cuid();
+const userIdSchema = recordIdSchema;
 
 // อนุมัติหรือปฏิเสธบัญชีเจ้าของหอ ปฏิเสธแล้ว session ที่เปิดอยู่ถูกตัดทิ้ง
 export async function PATCH(request: NextRequest, context: Context) {

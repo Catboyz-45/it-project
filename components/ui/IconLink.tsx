@@ -7,8 +7,10 @@ import type { AnchorHTMLAttributes, CSSProperties, ReactNode } from "react";
 import type { IconButtonSize, IconButtonVariant } from "@/components/ui/IconButton";
 
 // ตัด aria-label ออกแล้วบังคับ label แทน เพราะลิงก์ไอคอนไม่มีข้อความให้อ่าน
-export type IconLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "aria-label" | "children"> & {
+export type IconLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "aria-label" | "children" | "href"> & {
   children: ReactNode;
+  // บังคับ href เสมอ ลิงก์ที่ไม่มี href ไม่ใช่ลิงก์จริง คีย์บอร์ดกับโปรแกรมอ่านหน้าจอจะเข้าไม่ถึง
+  href: string;
   label: string;
   size?: IconButtonSize;
   // ข้อความบนคำแนะนำ ถ้าไม่ส่งจะใช้ label เดียวกัน
@@ -24,6 +26,7 @@ const tooltipHoverDelayMs = 50;
 export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function IconLink({
   children,
   className = "",
+  href,
   label,
   onBlur,
   onFocus,
@@ -122,6 +125,7 @@ export const IconLink = forwardRef<HTMLAnchorElement, IconLinkProps>(function Ic
         aria-describedby={isTooltipVisible ? tooltipId : undefined}
         aria-label={label}
         className={`icon-button icon-button-${size} icon-button-${variant} ${className}`.trim()}
+        href={href}
         // แสดงทั้งตอนเมาส์ชี้และตอนโฟกัสด้วยคีย์บอร์ด ไม่งั้นคนที่ใช้ Tab จะไม่เห็นคำแนะนำเลย
         onBlur={(event) => {
           cancelHoverTimer();

@@ -32,7 +32,8 @@ export function LoadingSkeleton({
   return (
     // aria-busy บอกโปรแกรมอ่านหน้าจอว่ายังโหลดอยู่ อย่าเพิ่งอ่านเนื้อหาข้างใน
     // ไม่ใช้ output เพราะข้างในมีตารางโครงร่าง ซึ่ง output ไม่ให้ใส่ตามสเปก HTML
-    <div aria-atomic="true" aria-busy="true" className={`loading-skeleton loading-skeleton-${variant}`} role="status">
+    // จึงประกาศเป็น live region ด้วย aria-live แทน โปรแกรมอ่านหน้าจออ่านข้อความเหมือนเดิม
+    <div aria-atomic="true" aria-busy="true" aria-live="polite" className={`loading-skeleton loading-skeleton-${variant}`}>
       {/* ข้อความจริงสำหรับโปรแกรมอ่านหน้าจอ เพราะแท่งเทาไม่มีความหมายให้อ่าน */}
       <span className="sr-only">{label}</span>
       {variant === "table" ? (

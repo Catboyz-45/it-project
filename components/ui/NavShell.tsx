@@ -138,9 +138,9 @@ export function NavToggle({ placement = "sidebar" }: Readonly<{ placement?: "sid
   // หน้าที่ไม่ได้อยู่ใต้ NavShell เช่นหน้าตั้งค่าที่ซ่อนแถบข้าง ไม่มีอะไรให้เปิดปิด
   if (!context) return null;
   const { isMenuVisible, isMobile, toggle } = context;
-  const label = isMobile
-    ? (isMenuVisible ? "ปิดเมนู" : "เปิดเมนู")
-    : (isMenuVisible ? "ย่อเมนู" : "ขยายเมนู");
+  // บนมือถือเมนูเปิดปิดทั้งแผง บนจอใหญ่แค่ย่อหรือขยาย จึงใช้คำต่างกัน
+  const labels = isMobile ? { visible: "ปิดเมนู", hidden: "เปิดเมนู" } : { visible: "ย่อเมนู", hidden: "ขยายเมนู" };
+  const label = isMenuVisible ? labels.visible : labels.hidden;
 
   return <button
     aria-controls={appSidebarId}

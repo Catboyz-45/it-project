@@ -35,6 +35,17 @@ export class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
+// อ่าน body แบบ multipart ของ route อัปโหลดไฟล์
+// body ที่ไม่ใช่ multipart ทำให้ request.formData() โยน TypeError ซึ่งจะกลายเป็น 500
+// จึงแปลงเป็น 415 แทน เพราะเป็นความผิดของคำขอ ไม่ใช่ของเซิร์ฟเวอร์
+export async function readFormData(request: NextRequest) {
+  try {
+    return await request.formData();
+  } catch {
+    throw new ApiError(415, "Content-Type must be multipart/form-data");
+  }
+}
+
 // ส่วนของ audit ที่คนเรียกกรอกเองได้ ที่เหลือฟังก์ชันข้างล่างเติมให้จากตัวคำขอ
 type SuccessAuditInput = Omit<AuditInput, "request" | "requestId" | "result">;
 
@@ -102,7 +113,15 @@ export function apiSuccessBinaryResponse(
 // ข้อมูลไม่ผ่านการตรวจเป็น 400 ที่เราโยนเองใช้รหัสที่ระบุไว้ ที่เหลือคือ 500
 function httpStatusOf(error: unknown) {
   if (error instanceof ZodError) return 400;
+  if (isUniqueConstraintError(error)) return 409;
   return error instanceof ApiError ? error.status : 500;
+}
+
+// Prisma โยนรหัส P2002 เมื่อค่าชนกับ unique constraint เช่นอีเมลที่มีบัญชีอยู่แล้ว
+// เป็นความขัดแย้งของข้อมูลที่ผู้ใช้ส่งมา จึงตอบ 409 ไม่ใช่ 500
+// เทียบจากรหัสแทน instanceof เพื่อไม่ต้องดึง runtime ของ Prisma เข้ามาในไฟล์นี้
+function isUniqueConstraintError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
 }
 
 export function apiErrorResponse(error: unknown, request?: NextRequest) {
@@ -144,6 +163,10 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
     }
   }
   // ข้อผิดพลาดที่ไม่คาดคิดเท่านั้นที่เขียนลง log ของระบบ ส่วนที่เราตั้งใจโยนเป็นเรื่องปกติ
+  if (status === 409 && !(error instanceof ApiError)) {
+    // ไม่บอกว่าชนที่ช่องไหน เพราะชื่อคอลัมน์เป็นรายละเอียดภายในของฐานข้อมูล
+    return NextResponse.json({ error: "ข้อมูลนี้มีอยู่ในระบบแล้ว", requestId }, { status, headers: { "x-request-id": requestId } });
+  }
   if (!(error instanceof ZodError) && !(error instanceof ApiError)) {
     console.error(JSON.stringify({ level: "error", event: "api_failed", requestId, message: error instanceof Error ? error.message : "Unknown error" }));
   }

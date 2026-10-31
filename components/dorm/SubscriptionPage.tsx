@@ -147,10 +147,12 @@ export function SubscriptionPage({ initialData = null, propertyId, subscription 
     <section className="panel settings-section">
       <div className="settings-section-head">
         <div><h2>ซื้อหรือต่ออายุแพ็กเกจ</h2><p>ราคาและสิทธิ์จะถูกบันทึกไว้ในคำสั่งซื้อ</p></div>
-        <div aria-label="รอบบิล" className="figma-inline-tabs" role="group">
-          <button className={billingInterval === "MONTHLY" ? "active" : ""} onClick={() => setBillingInterval("MONTHLY")} type="button">รายเดือน</button>
-          <button className={billingInterval === "YEARLY" ? "active" : ""} onClick={() => setBillingInterval("YEARLY")} type="button">รายปี</button>
-        </div>
+        {/* fieldset รวมปุ่มเลือกรอบบิลเป็นกลุ่มเดียว legend เป็นชื่อกลุ่มที่โปรแกรมอ่านหน้าจออ่าน */}
+        <fieldset className="figma-inline-tabs">
+          <legend className="sr-only">รอบบิล</legend>
+          <button aria-pressed={billingInterval === "MONTHLY"} className={billingInterval === "MONTHLY" ? "active" : ""} onClick={() => setBillingInterval("MONTHLY")} type="button">รายเดือน</button>
+          <button aria-pressed={billingInterval === "YEARLY"} className={billingInterval === "YEARLY" ? "active" : ""} onClick={() => setBillingInterval("YEARLY")} type="button">รายปี</button>
+        </fieldset>
       </div>
       {plansError ? <div className="form-alert error" role="alert"><span>{plansError}</span><RetryButton label="ลองโหลดแพ็กเกจใหม่" onClick={() => void loadPlans()} /></div> : null}
       <PlanGrid billingInterval={billingInterval} createDisabledReason={createDisabledReason} hasError={Boolean(plansError)} isLoading={plansLoading} onSelect={submitOrder} plans={plans} subscriptionPlanName={subscription?.planName} submitting={submitting} />

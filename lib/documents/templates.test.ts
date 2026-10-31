@@ -54,6 +54,29 @@ describe("document templates", () => {
     expect(sanitized).not.toContain("onerror");
   });
 
+  // ไบต์หัวไฟล์ต้องตรงกับชนิดที่อ้างทุกชนิด ไม่ใช่แค่ PNG
+  it("accepts real JPEG and WebP images and rejects ones whose bytes do not match", () => {
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]).toString("base64");
+    const webp = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP")]).toString("base64");
+    expect(sanitizeTemplate(`<img src="data:image/jpeg;base64,${jpeg}">`)).toContain("data:image/jpeg");
+    expect(sanitizeTemplate(`<img src="data:image/webp;base64,${webp}">`)).toContain("data:image/webp");
+    expect(() => sanitizeTemplate(`<img src="data:image/jpeg;base64,${webp}">`)).toThrow("ข้อมูลรูปภาพไม่ตรงกับชนิดไฟล์");
+    expect(() => sanitizeTemplate(`<img src="data:image/webp;base64,${jpeg}">`)).toThrow("ข้อมูลรูปภาพไม่ตรงกับชนิดไฟล์");
+  });
+
+  it("rejects an empty or oversized embedded image", () => {
+    expect(() => sanitizeTemplate('<img src="data:image/png;base64,">')).toThrow();
+    const huge = Buffer.alloc(1_000_001, 1).toString("base64");
+    expect(() => sanitizeTemplate(`<img src="data:image/png;base64,${huge}">`)).toThrow("รูปภาพต้องมีขนาดไม่เกิน 1 MB");
+  });
+
+  // ตอนสร้างเอกสารจริง ถ้าแม่แบบมีช่องที่ไม่รู้จักต้องหยุด ไม่ปล่อย {{...}} ไปโผล่ในเอกสารที่ส่งผู้เช่า
+  it("refuses to render a template with an unknown placeholder and leaves missing values blank", () => {
+    expect(() => renderTemplate("contract", "<p>{{tenant_password}}</p>", contractData)).toThrow("Unknown placeholders");
+    const partial = { ...contractData, tenant_address: undefined } as unknown as typeof contractData;
+    expect(renderTemplate("contract", "<p>[{{tenant_address}}]</p>", partial)).toBe("<p>[]</p>");
+  });
+
   it("finds an embedded image regardless of which quote style wraps the source", () => {
     expect(() => sanitizeTemplate("<img src='https://example.com/a.png'>")).toThrow("รองรับเฉพาะรูป");
     expect(() => sanitizeTemplate('<img alt="x" src = "https://example.com/a.png" width="5">')).toThrow("รองรับเฉพาะรูป");

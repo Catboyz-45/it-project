@@ -892,6 +892,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
               onKeyUp={rememberSelection}
               onMouseUp={rememberSelection}
               ref={editorRef}
+              aria-multiline="true"
               role="textbox"
               suppressContentEditableWarning
               // contentEditable โฟกัสได้เองอยู่แล้ว ใส่ไว้ให้ชัดว่าเป็นตัวรับโฟกัสจริง ไม่ใช่กล่องเปล่า

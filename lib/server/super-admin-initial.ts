@@ -4,6 +4,7 @@
 // แปลงผ่าน JSON เพราะปกติข้อมูลชุดนี้เดินทางผ่าน API วันที่กับ Decimal
 // จึงถึงหน้าจอเป็นสตริง ส่งตรงจากเซิร์ฟเวอร์จะยังเป็น Date กับ Decimal อยู่
 import { listSaasPlansPage } from "@/lib/server/saas";
+import { toClientData } from "@/lib/server/client-data";
 import {
   listSuperAdminAuditLogs,
   listSuperAdminProperties,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/server/super-admin-lists";
 
 const pagination = { page: 1, pageSize: 20 };
-const serialize = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const serialize = <T,>(value: T): T => toClientData<T>(value);
 
 export async function initialAccountsTable() {
   const result = await listSuperAdminUsers(pagination, {});

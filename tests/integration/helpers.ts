@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/password";
 import { currentPolicyVersions } from "@/lib/legal/policies";
+import { createInvitation, registerTenant, reviewOccupancy } from "@/lib/server/tenant-onboarding";
+import { sessionCookieFor } from "./route-client";
 
 // บัญชีทดสอบต้องผ่านด่านยอมรับนโยบายมาแล้ว ไม่งั้นจะถูกเด้งไปหน้ายอมรับก่อนทำอย่างอื่น
 const acceptedPolicies = {
@@ -119,4 +121,73 @@ export async function cleanupIntegrationFixture(input: {
     await database.tenantProfile.deleteMany({ where: { userId: { in: input.userIds } } });
     await database.user.deleteMany({ where: { id: { in: input.userIds } } });
   });
+}
+
+// หอที่พร้อมใช้งานเต็มรูปแบบ มีแพ็กเกจที่ยังไม่หมดอายุ และผู้เช่าหนึ่งคนที่เจ้าของหออนุมัติเข้าพักแล้ว
+// พร้อมคุกกี้เซสชันของทั้งสามบทบาท ใช้กับเทสต์ที่เรียก API แบบเดียวกับผู้ใช้จริง
+export async function createWorkspaceFixture(label: string) {
+  const fixture = await createIntegrationFixture();
+  const plan = await getDatabase().saasPlan.create({
+    data: {
+      code: `${label}_${fixture.suffix}`.toUpperCase().replaceAll(/[^A-Z0-9_]/g, "_"),
+      name: `${label} plan`,
+      monthlyPrice: 990,
+      maxProperties: 2,
+      maxRooms: 100,
+      allowFileUploads: true,
+    },
+  });
+  await getDatabase().propertySubscription.create({
+    data: {
+      propertyId: fixture.property.id,
+      planId: plan.id,
+      planName: plan.name,
+      status: "ACTIVE",
+      maxProperties: 2,
+      maxRooms: 100,
+      startsAt: new Date(Date.now() - 86_400_000),
+      expiresAt: new Date(Date.now() + 30 * 86_400_000),
+    },
+  });
+  const invitation = await createInvitation(fixture.property.id, fixture.owner.id, {
+    roomId: fixture.room.id, intendedRole: "PRIMARY", expiresInDays: 7,
+  });
+  const registration = await registerTenant({
+    invitationCode: invitation.invitationCode,
+    email: `${label.toLowerCase()}-tenant-${fixture.suffix}@example.test`,
+    password: "Tenant-Password-123",
+    displayName: `${label} Tenant`,
+    phone: "0812225555",
+    termsAccepted: true,
+    privacyAcknowledged: true,
+    marketingConsent: false,
+  });
+  await reviewOccupancy(fixture.property.id, registration.occupancy.id, fixture.owner.id, { status: "ACTIVE" });
+  const profile = await getDatabase().tenantProfile.findUniqueOrThrow({
+    where: { userId: registration.userId },
+    select: { id: true },
+  });
+  const [owner, tenant, superAdmin] = await Promise.all([
+    sessionCookieFor(fixture.owner.id),
+    sessionCookieFor(registration.userId),
+    sessionCookieFor(fixture.superAdmin.id),
+  ]);
+  // ผู้ใช้ที่เทสต์สร้างเพิ่มระหว่างทาง ให้ใส่ไว้ในนี้ จะได้ถูกลบตอนจบด้วย
+  const extraUserIds: string[] = [];
+  return {
+    ...fixture,
+    planId: plan.id,
+    tenantUserId: registration.userId,
+    tenantProfileId: profile.id,
+    occupancyId: registration.occupancy.id,
+    cookies: { owner, tenant, superAdmin },
+    extraUserIds,
+    async cleanup() {
+      await cleanupIntegrationFixture({
+        propertyIds: [fixture.property.id, fixture.otherProperty.id],
+        userIds: [...extraUserIds, registration.userId, fixture.owner.id, fixture.otherOwner.id, fixture.superAdmin.id],
+      });
+      await getDatabase().saasPlan.deleteMany({ where: { id: plan.id } });
+    },
+  };
 }

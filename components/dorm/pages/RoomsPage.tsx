@@ -71,11 +71,11 @@ export function RoomsPage({
         <Summary icon={<Building2 />} label="จำนวนชั้น" tone="indigo" value={floors.length} />
       </div>
       <div className="rooms-view-toolbar">
-        <div className="figma-inline-tabs floor-tabs" aria-label="เลือกชั้น" onKeyDown={handleFloorKeyDown} role="tablist">
+        <div className="figma-inline-tabs floor-tabs" aria-label="เลือกชั้น" onKeyDown={handleFloorKeyDown} role="tablist" tabIndex={-1}>
           <button aria-controls="rooms-results-panel" aria-selected={selectedFloor === "all"} className={selectedFloor === "all" ? "active" : ""} id="rooms-floor-tab-all" onClick={() => setSelectedFloor("all")} role="tab" tabIndex={selectedFloor === "all" ? 0 : -1} type="button">ทุกชั้น</button>
           {floors.map((floor) => <button aria-controls="rooms-results-panel" aria-selected={selectedFloor === floor} className={selectedFloor === floor ? "active" : ""} id={`rooms-floor-tab-${floor}`} key={floor} onClick={() => setSelectedFloor(floor)} role="tab" tabIndex={selectedFloor === floor ? 0 : -1} type="button">ชั้น {floor}</button>)}
         </div>
-        <div className="rooms-view-toggle" aria-label="รูปแบบการแสดงผังห้อง" onKeyDown={handleViewKeyDown} role="tablist">
+        <div className="rooms-view-toggle" aria-label="รูปแบบการแสดงผังห้อง" onKeyDown={handleViewKeyDown} role="tablist" tabIndex={-1}>
           <button aria-controls="rooms-results-panel" aria-selected={viewMode === "card"} className={viewMode === "card" ? "active" : ""} id="rooms-view-tab-card" onClick={() => setViewMode("card")} role="tab" tabIndex={viewMode === "card" ? 0 : -1} type="button"><Grid2X2 aria-hidden="true" size={17} /> การ์ด</button>
           <button aria-controls="rooms-results-panel" aria-selected={viewMode === "table"} className={viewMode === "table" ? "active" : ""} id="rooms-view-tab-table" onClick={() => setViewMode("table")} role="tab" tabIndex={viewMode === "table" ? 0 : -1} type="button"><List aria-hidden="true" size={18} /> ตาราง</button>
         </div>

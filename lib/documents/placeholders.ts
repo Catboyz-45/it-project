@@ -15,8 +15,8 @@ export const contractDataSchema = z.object({
   reference_id: z.string().trim().min(1).max(80),
   tenant_phone: z.string().trim().max(30),
   tenant_address: z.string().trim().max(500),
-  start_date: z.string().date(),
-  end_date: z.string().date(),
+  start_date: z.iso.date(),
+  end_date: z.iso.date(),
   rent_amount: z.number().nonnegative().max(10_000_000),
   deposit_amount: z.number().nonnegative().max(10_000_000),
 }).strict();

@@ -7,12 +7,18 @@ sonar_report.py
 การใช้งาน:
     python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --token <YOUR_TOKEN>
 
+เก็บรายการ issue ทั้งหมดเป็นไฟล์ JSON แยกหน้าด้วย (issues_page1.json, issues_page2.json, ...)
+รูปแบบเดียวกับผลของ GET /api/issues/search หน้าละ 200 รายการ:
+    python3 scripts/sonar_report.py ... --issues-dir docs/sonarqube-history/run-62
+
 ต้องติดตั้งไลบรารีก่อน:
     pip install requests reportlab
 """
 
 import argparse
+import json
 import sys
+from xml.sax.saxutils import escape
 from datetime import datetime
 
 import os
@@ -43,6 +49,12 @@ METRIC_KEYS = [
     "reliability_rating",
     "security_rating",
     "sqale_rating",
+    "security_review_rating",
+    "security_hotspots_reviewed",
+    # SonarQube รุ่นใหม่โหมด MQR แสดง rating บนหน้าเว็บจากชุดนี้ ไม่ใช่จากชุดเดิมข้างบน
+    "software_quality_security_rating",
+    "software_quality_reliability_rating",
+    "software_quality_maintainability_rating",
     "alert_status",
 ]
 
@@ -59,6 +71,11 @@ METRIC_TH_LABEL = {
     "reliability_rating": "Reliability Rating",
     "security_rating": "Security Rating",
     "sqale_rating": "Maintainability Rating",
+    "security_review_rating": "Security Review Rating (Hotspots)",
+    "security_hotspots_reviewed": "Security Hotspots Reviewed (%)",
+    "software_quality_security_rating": "Security Rating (MQR)",
+    "software_quality_reliability_rating": "Reliability Rating (MQR)",
+    "software_quality_maintainability_rating": "Maintainability Rating (MQR)",
 }
 
 SEVERITY_ORDER = ["BLOCKER", "CRITICAL", "MAJOR", "MINOR", "INFO"]
@@ -116,6 +133,8 @@ def fetch_issues_by_severity(host, token, project_key):
         params = {
             "componentKeys": project_key,
             "severities": sev,
+            # นับเฉพาะ issue ที่ยังเปิดอยู่ ไม่งั้น issue ที่แก้ไปแล้วจะถูกนับรวมด้วย
+            "resolved": "false",
             "ps": 1,  # ไม่ต้องดึงรายละเอียดทั้งหมด เอาแค่ total
         }
         resp = requests.get(url, params=params, auth=(token, ""))
@@ -129,6 +148,7 @@ def fetch_top_issues(host, token, project_key, limit=15):
     url = f"{host}/api/issues/search"
     params = {
         "componentKeys": project_key,
+        "resolved": "false",
         "ps": limit,
         "s": "SEVERITY",
         "asc": "false",
@@ -136,6 +156,39 @@ def fetch_top_issues(host, token, project_key, limit=15):
     resp = requests.get(url, params=params, auth=(token, ""))
     resp.raise_for_status()
     return resp.json().get("issues", [])
+
+
+ISSUES_PAGE_SIZE = 200  # เพดานของ API ต่อหนึ่งหน้า
+
+
+def export_issue_pages(host, token, project_key, out_dir):
+    """เก็บ issue ที่ยังเปิดอยู่ทั้งหมดเป็นไฟล์ JSON หน้าละไฟล์ คืนรายชื่อไฟล์ที่สร้าง
+
+    เก็บคำตอบของ API ไว้ทั้งก้อนโดยไม่แก้อะไร จะได้เทียบกับไฟล์ตัวอย่างและรอบก่อน ๆ ได้ตรงกัน
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    url = f"{host}/api/issues/search"
+    written = []
+    page = 1
+    while True:
+        params = {
+            "componentKeys": project_key,
+            "resolved": "false",
+            "ps": ISSUES_PAGE_SIZE,
+            "p": page,
+        }
+        resp = requests.get(url, params=params, auth=(token, ""))
+        resp.raise_for_status()
+        data = resp.json()
+        path = os.path.join(out_dir, f"issues_page{page}.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
+        written.append(path)
+        total = data.get("paging", {}).get("total", data.get("total", 0))
+        # หยุดเมื่อครบทุกรายการแล้ว ไม่มี issue เลยก็ยังเก็บหน้า 1 ไว้เป็นหลักฐานว่าว่าง
+        if page * ISSUES_PAGE_SIZE >= total:
+            return written, total
+        page += 1
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +200,7 @@ def rating_text(value):
 
 
 def build_pdf(output_path, project_name, project_key, host, measures, sev_counts, top_issues):
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     doc = SimpleDocTemplate(
         output_path, pagesize=A4,
         topMargin=1.5 * cm, bottomMargin=1.5 * cm,
@@ -193,11 +247,13 @@ def build_pdf(output_path, project_name, project_key, host, measures, sev_counts
     elements.append(Paragraph("สรุปตัวชี้วัดหลัก (Key Metrics)", h2_style))
     metric_rows = [["ตัวชี้วัด", "ค่า"]]
     for key in ["bugs", "vulnerabilities", "security_hotspots", "code_smells",
-                "coverage", "duplicated_lines_density", "ncloc"]:
+                "coverage", "duplicated_lines_density", "ncloc", "security_hotspots_reviewed"]:
         label = METRIC_TH_LABEL.get(key, key)
         value = measures.get(key, "-")
         metric_rows.append([label, str(value)])
-    for key in ["reliability_rating", "security_rating", "sqale_rating"]:
+    for key in ["software_quality_security_rating", "software_quality_reliability_rating",
+                "software_quality_maintainability_rating", "security_review_rating",
+                "reliability_rating", "security_rating", "sqale_rating"]:
         label = METRIC_TH_LABEL.get(key, key)
         value = rating_text(measures.get(key, "-"))
         metric_rows.append([label, value])
@@ -244,8 +300,9 @@ def build_pdf(output_path, project_name, project_key, host, measures, sev_counts
         issue_rows.append([
             issue.get("severity", "-"),
             issue.get("type", "-"),
-            Paragraph(component, cell),
-            Paragraph(issue.get("message", ""), cell),
+            # Paragraph อ่านข้อความเป็น markup ข้อความ issue ที่มี < หรือ & จึงต้อง escape ก่อน
+            Paragraph(escape(component), cell),
+            Paragraph(escape(issue.get("message", "")), cell),
         ])
     issue_table = Table(issue_rows, colWidths=[2.2 * cm, 2.5 * cm, 5 * cm, 7.3 * cm])
     issue_table.setStyle(TableStyle([
@@ -275,12 +332,17 @@ def build_pdf(output_path, project_name, project_key, host, measures, sev_counts
 # ---------------------------------------------------------------------------
 
 def main():
+    # console ของ Windows ใช้ cp1252 เป็นค่าเริ่มต้น พิมพ์ข้อความไทยแล้วพัง จึงบังคับเป็น UTF-8
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="สร้างรายงาน PDF จากผลสแกน SonarQube")
     parser.add_argument("--host", required=True, help="URL ของ SonarQube เช่น http://localhost:9000")
     parser.add_argument("--project", required=True, help="Project Key เช่น nestly")
     parser.add_argument("--token", required=True, help="SonarQube Analysis/User Token")
     parser.add_argument("--output", default=None, help="ชื่อไฟล์ PDF ผลลัพธ์ (default: <project>_report.pdf)")
     parser.add_argument("--top", type=int, default=15, help="จำนวนตัวอย่าง issues ที่จะแสดง (default 15)")
+    parser.add_argument("--issues-dir", default=None, help="โฟลเดอร์ที่จะเก็บ issues_page1.json, issues_page2.json, ...")
     args = parser.parse_args()
 
     host = args.host.rstrip("/")
@@ -300,6 +362,11 @@ def main():
         build_pdf(output, project_name, args.project, host, measures, sev_counts, top_issues)
 
         print(f"เสร็จสิ้น! สร้างรายงานที่ {output}")
+
+        if args.issues_dir:
+            print(f"กำลังเก็บ issue แยกหน้าลง {args.issues_dir} ...")
+            files, total = export_issue_pages(host, args.token, args.project, args.issues_dir)
+            print(f"เก็บ issue {total} รายการ เป็น {len(files)} หน้า: {', '.join(os.path.basename(f) for f in files)}")
 
     except requests.exceptions.HTTPError as e:
         print(f"เกิดข้อผิดพลาดในการเรียก API: {e}", file=sys.stderr)

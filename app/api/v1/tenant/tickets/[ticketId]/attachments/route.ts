@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { NextRequest } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
 import { requireActiveTenant, parseTenantRecordId } from "@/lib/server/tenant-auth";
 import { attachTicketFile, requireTenantTicket } from "@/lib/server/property-operations";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, context: Context) {
     await requireSubscriptionFeature(occupancy.propertyId, "allowFileUploads");
     const ticketId = parseTenantRecordId((await context.params).ticketId);
     await requireTenantTicket(auth.tenantProfileId, ticketId);
-    const file = (await request.formData()).get("file");
+    const file = (await readFormData(request)).get("file");
     if (!(file instanceof File) || file.size < 1) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size > 5 * 1024 * 1024) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
     const bytes = new Uint8Array(await file.arrayBuffer());

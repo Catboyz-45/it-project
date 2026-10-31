@@ -5,6 +5,7 @@ import { TenantSectionPanel } from "@/components/tenant/TenantPortal";
 import { requirePageAuth } from "@/lib/server/auth";
 import { findActiveOccupancyForPage, tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
 import { listTenantInvoices } from "@/lib/server/tenant-portal";
+import { toClientData } from "@/lib/server/client-data";
 
 export default async function TenantInvoicesPage() {
   const auth = await requirePageAuth();
@@ -23,7 +24,7 @@ export default async function TenantInvoicesPage() {
     initialInvoices={{
       // ปกติข้อมูลเดินทางผ่าน JSON วันที่กับ Decimal จึงถึงหน้าจอเป็นสตริง
       current: {
-        data: JSON.parse(JSON.stringify(current.data)),
+        data: toClientData(current.data),
         hasNextPage: current.pageInfo.hasNextPage,
         total: current.pageInfo.total ?? null,
       },

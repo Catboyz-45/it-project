@@ -4,11 +4,12 @@ import { occupancyTransitionSchema } from "@/lib/domain/occupancy-transitions";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { completeOccupancyTransition, getMoveOutReadiness, listOccupancyTransitions } from "@/lib/server/occupancy-transitions";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ propertyId: string; tenantProfileId: string }> };
 
 const tenantId = (raw: string) => {
-  const parsed = z.string().cuid().safeParse(raw);
+  const parsed = recordIdSchema.safeParse(raw);
   if (!parsed.success) throw new ApiError(404, "ไม่พบผู้เช่า");
   return parsed.data;
 };

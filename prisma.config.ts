@@ -7,5 +7,6 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: { path: "prisma/migrations" },
   // ค่าสำรองไว้กัน prisma ล้มตอนรันคำสั่งที่ไม่ต้องต่อฐานข้อมูลจริง เช่น generate
-  datasource: { url: process.env.DATABASE_URL ?? "postgresql://unused:unused@localhost:5432/unused" },
+  // ไม่ใส่ชื่อผู้ใช้กับรหัสผ่านในค่าสำรอง ค่าจริงต้องมาจาก DATABASE_URL เท่านั้น
+  datasource: { url: process.env.DATABASE_URL ?? "postgresql://localhost:5432/unused" },
 });

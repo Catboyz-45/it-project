@@ -5,6 +5,7 @@ import {
   createSubscriptionOrderSchema,
   monthlyEquivalent,
   reviewSubscriptionPaymentSchema,
+  updateSaasPlanSchema,
   usagePercent,
 } from "@/lib/domain/saas";
 
@@ -15,6 +16,18 @@ describe("SaaS plans", () => {
       code: "growth", name: "Growth", monthlyPrice: 699,
       maxProperties: 3, maxRooms: 150,
     }).code).toBe("GROWTH");
+  });
+
+  it("fills feature defaults only when a plan is created", () => {
+    expect(createSaasPlanSchema.parse({
+      code: "basic", name: "Basic", monthlyPrice: 199, maxProperties: 1, maxRooms: 20,
+    })).toMatchObject({ allowPromptPay: true, allowFileUploads: true, allowPrioritySupport: false, sortOrder: 0 });
+  });
+
+  // แก้แค่ชื่อต้องได้แค่ชื่อ ถ้าเติมค่าเริ่มต้นให้ด้วย ความสามารถที่ตั้งไว้ของแพ็กเกจจะถูกรีเซ็ตทิ้ง
+  it("changes only the fields sent when a plan is edited", () => {
+    expect(updateSaasPlanSchema.parse({ name: "Renamed" })).toEqual({ name: "Renamed" });
+    expect(updateSaasPlanSchema.safeParse({}).success).toBe(false);
   });
 
   it("rejects an invalid subscription period", () => {

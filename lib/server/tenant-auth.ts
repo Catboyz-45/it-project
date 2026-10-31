@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 import type { AuthContext } from "@/lib/server/auth";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { requireSubscriptionWriteAccess } from "@/lib/server/subscription-guard";
 import { setRequestActorContext } from "@/lib/server/request-context";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // ผู้เช่าหนึ่งคนอาจมีหลายห้อง คุกกี้จำไว้ว่าเปิดดูห้องไหนอยู่
 export const tenantOccupancyCookieName = "tenant_occupancy";
@@ -84,7 +84,7 @@ export async function requireTenantOccupancy(
 
 // id รูปแบบผิดตอบว่าไม่พบ ไม่ใช่บอกว่ารูปแบบผิด ค่านี้มาจาก URL ที่ผู้ใช้พิมพ์เองได้
 export function parseTenantRecordId(value: string) {
-  const parsed = z.string().cuid().safeParse(value);
+  const parsed = recordIdSchema.safeParse(value);
   if (!parsed.success) throw new ApiError(404, "ไม่พบข้อมูล");
   return parsed.data;
 }

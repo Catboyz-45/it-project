@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { superAdminPropertyUpdateSchema } from "@/lib/domain/property-management";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { superAdminUpdateProperty } from "@/lib/server/property-management";
 import { getDatabase } from "@/lib/server/db";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
@@ -12,7 +12,7 @@ type Context = { params: Promise<{ propertyId: string }> };
 export async function GET(request: NextRequest, context: Context) {
   try {
     const auth = await requireRequestAuth(request); requireRole(auth, "SUPER_ADMIN");
-    const propertyId = z.string().cuid().parse((await context.params).propertyId);
+    const propertyId = recordIdSchema.parse((await context.params).propertyId);
     const data = await getDatabase().property.findUnique({ where: { id: propertyId }, select: {
       id: true, name: true, shortName: true, isActive: true, createdAt: true,
       _count: { select: { rooms: true, occupancies: true, memberships: true } },
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
     const rawId = (await context.params).propertyId;
-    const id = z.string().cuid().safeParse(rawId);
+    const id = recordIdSchema.safeParse(rawId);
     if (!id.success) throw new ApiError(404, "ไม่พบหอพัก");
     const data = await superAdminUpdateProperty(id.data, superAdminPropertyUpdateSchema.parse(await request.json()));
     return apiSuccessResponse(request, { data }, undefined, {

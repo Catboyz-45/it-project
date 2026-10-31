@@ -22,9 +22,11 @@ async function writeAuditLogUnsafe(input: AuditInput) {
     data: {
       userId: input.userId,
       propertyId: input.propertyId,
-      action: input.action,
-      targetType: input.targetType,
-      targetId: input.targetId,
+      // ตัดให้พอดีความยาวคอลัมน์ (100/80/120) ค่าเริ่มต้นของ targetType คือพาธของคำขอ
+      // ซึ่งยาวเกิน 80 ได้ในเส้นทางที่มีหลาย id ถ้าไม่ตัด บันทึกนั้นจะเขียนลงฐานข้อมูลไม่ได้เลย
+      action: input.action.slice(0, 100),
+      targetType: input.targetType?.slice(0, 80),
+      targetId: input.targetId?.slice(0, 120),
       result: input.result,
       // ตัดความยาวทุกค่าที่มาจาก header เพราะเป็นข้อมูลที่ผู้ส่งกำหนดเองได้ ไม่ควรให้ยาวเท่าไรก็ได้
       requestId: input.requestId?.slice(0, 80)

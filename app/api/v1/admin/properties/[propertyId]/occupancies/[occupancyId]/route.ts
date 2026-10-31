@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { reviewOccupancySchema } from "@/lib/domain/tenant-onboarding";
 import { endOccupancySchema } from "@/lib/domain/property-management";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { reviewOccupancy } from "@/lib/server/tenant-onboarding";
 import { endPropertyOccupancy } from "@/lib/server/property-management";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ propertyId: string; occupancyId: string }> };
 
@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
-    const occupancyId = z.string().cuid().safeParse(params.occupancyId);
+    const occupancyId = recordIdSchema.safeParse(params.occupancyId);
     if (!occupancyId.success) throw new ApiError(404, "ไม่พบคำขอ");
     const occupancy = await reviewOccupancy(
       propertyId, occupancyId.data, auth.userId,
@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
-    const occupancyId = z.string().cuid().safeParse(params.occupancyId);
+    const occupancyId = recordIdSchema.safeParse(params.occupancyId);
     if (!occupancyId.success) throw new ApiError(404, "ไม่พบการเข้าพัก");
     const data = await endPropertyOccupancy(
       propertyId,

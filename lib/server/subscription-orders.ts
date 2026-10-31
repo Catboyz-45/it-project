@@ -99,7 +99,7 @@ export async function createSubscriptionPayment(input: {
   mimeType: string;
   sizeBytes: number;
 }, now = new Date()) {
-  return getDatabase().$transaction(async (database) => {
+  const result = await getDatabase().$transaction(async (database) => {
     const order = await database.subscriptionOrder.findFirst({
       where: { id: input.orderId, propertyId: input.propertyId },
       select: { id: true, amount: true, status: true, expiresAt: true },
@@ -108,10 +108,11 @@ export async function createSubscriptionPayment(input: {
     if (order.status !== "PENDING_PAYMENT") {
       throw new ApiError(409, "คำสั่งซื้อนี้ไม่สามารถส่งหลักฐานได้");
     }
+    // คำสั่งซื้อมีอายุ เลยกำหนดแล้วต้องสั่งใหม่ กันโอนตามราคาเก่าที่เปลี่ยนไปแล้ว
+    // คืนค่าออกไปก่อนแล้วค่อยโยน error นอก transaction ถ้าโยนข้างในการเปลี่ยนเป็น EXPIRED จะถูกย้อนกลับไปด้วย
     if (order.expiresAt <= now) {
       await database.subscriptionOrder.update({ where: { id: order.id }, data: { status: "EXPIRED" } });
-    // คำสั่งซื้อมีอายุ เลยกำหนดแล้วต้องสั่งใหม่ กันโอนตามราคาเก่าที่เปลี่ยนไปแล้ว
-      throw new ApiError(409, "คำสั่งซื้อหมดอายุแล้ว");
+      return { expired: true as const };
     }
     const payment = await database.subscriptionPayment.create({
       data: {
@@ -128,8 +129,10 @@ export async function createSubscriptionPayment(input: {
       where: { id: order.id },
       data: { status: "PENDING_REVIEW" },
     });
-    return { ...payment, amount: payment.amount.toString() };
+    return { expired: false as const, payment: { ...payment, amount: payment.amount.toString() } };
   }, { isolationLevel: "Serializable" });
+  if (result.expired) throw new ApiError(409, "คำสั่งซื้อหมดอายุแล้ว");
+  return result.payment;
 }
 
 export async function listPendingSubscriptionPayments(pagination: PaginationInput, query?: string) {

@@ -221,7 +221,10 @@ const routeFiles = (await walk(routeRoot)).filter((file) => file.endsWith("/rout
 const routeOperations = new Set();
 for (const file of routeFiles) {
   const source = await readFile(file, "utf8");
-  const apiPath = `/${path.relative(appRoot, file).replace(/\/route\.ts$/, "").replace(/\[([^\]]+)\]/g, "{$1}")}`;
+  // [propertyId] เป็น {propertyId} เทียบทีละ segment แทน regex ที่สแกนทั้งพาธ
+  const apiPath = `/${path.relative(appRoot, file).replace(/\/route\.ts$/, "").split("/")
+    .map((segment) => (segment.length > 2 && segment.startsWith("[") && segment.endsWith("]") ? `{${segment.slice(1, -1)}}` : segment))
+    .join("/")}`;
   for (const method of methodNames) {
     if (new RegExp(String.raw`export\s+(?:async\s+)?function\s+${method.toUpperCase()}\b`).test(source)) {
       routeOperations.add(`${method.toUpperCase()} ${apiPath}`);

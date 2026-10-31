@@ -2,18 +2,19 @@ import { randomUUID } from "node:crypto";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { chatClientIdSchema, chatMessageBodySchema } from "@/lib/domain/chat";
 import { getStorageAdapter } from "@/lib/documents/storage";
 import { parseChatId, requireChatActorForProperty } from "@/lib/server/chat-auth";
 import { sendConversationMessage } from "@/lib/server/chat";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
 import { detectUploadSignature } from "@/lib/server/file-signatures";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 export const runtime = "nodejs";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const fieldsSchema = z.object({
-  propertyId: z.string().cuid(),
+  propertyId: recordIdSchema,
   body: chatMessageBodySchema,
   clientId: chatClientIdSchema,
 }).strict();
@@ -29,10 +30,10 @@ export async function POST(request: NextRequest, context: Context) {
   let storageKey: string | undefined;
   try {
     assertSameOrigin(request, null);
-    const headerPropertyId = z.string().cuid().parse(request.headers.get("x-property-id"));
+    const headerPropertyId = recordIdSchema.parse(request.headers.get("x-property-id"));
     const actor = await requireChatActorForProperty(request, headerPropertyId);
     await assertUploadRateLimit(request, "chat");
-    const formData = await request.formData();
+    const formData = await readFormData(request);
     const input = fieldsSchema.parse({
       propertyId: formData.get("propertyId"),
       body: formData.get("body") ?? "",

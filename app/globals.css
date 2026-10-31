@@ -112,6 +112,9 @@
   body { @apply m-0 min-h-screen bg-canvas font-sans text-[#292a30] antialiased; }
   button, input, select, textarea { font: inherit; }
   button, a { @apply outline-none; }
+  /* <dialog open> ที่ใช้เป็นแผงลอย (ปฏิทิน แชท การแจ้งเตือน) ล้างค่าเริ่มต้นของเบราว์เซอร์ที่จัดกึ่งกลางจอ
+     และใส่ขอบกับระยะห่างเอง ตำแหน่งและหน้าตาจริงมาจากคลาสของแต่ละแผงใน layer components ซึ่งชนะ layer นี้ */
+  dialog[open] { @apply m-0 max-h-none max-w-none border-0 bg-transparent p-0 text-inherit; inset: auto; }
   button { @apply cursor-pointer disabled:cursor-not-allowed; }
   input, select, textarea {
     @apply min-h-11 rounded-xl border border-[#8b8d96] bg-[#fff] px-3.5 py-2.5 text-[#292a30] placeholder:text-[#62646c] focus:border-[#4651c7] focus:ring-2 focus:ring-[#4651c7]/30 focus:outline-none;
@@ -575,6 +578,8 @@
     @apply flex w-fit max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-[#f1f1f3] p-1;
     scrollbar-width: none;
   }
+  /* fieldset มีขอบ ระยะห่าง และความกว้างขั้นต่ำติดมาจากเบราว์เซอร์ ล้างออกให้หน้าตาเหมือน div */
+  fieldset.figma-inline-tabs { @apply m-0 min-w-0 border-0; }
   .workspace-section-tabs { @apply px-6 pt-5; }
   .figma-inline-tabs::-webkit-scrollbar, .meter-mode-tabs::-webkit-scrollbar, .repair-filters::-webkit-scrollbar, .repair-section-tabs::-webkit-scrollbar { display: none; }
   .figma-inline-tabs button, .meter-mode-tabs button, .repair-filters button, .repair-section-tabs button, .repair-section-tabs a {
@@ -1831,7 +1836,8 @@ input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
   margin-inline-end: 0.75rem;
   border: 0;
   border-radius: 0.5rem;
-  background: rgb(88 101 242 / 0.1);
+  /* สีทึบที่เท่ากับม่วงโปร่ง 10% บนพื้นขาว ใช้สีทึบเพื่อให้คำนวณความต่างของสีได้แน่นอน (6.1:1) */
+  background: #eef0fe;
   color: #4651c7;
   padding-inline: 0.875rem;
   font-weight: 700;

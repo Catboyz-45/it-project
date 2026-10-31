@@ -4,10 +4,11 @@ import { billingMonthSchema } from "@/lib/domain/billing";
 import { apiErrorResponse } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { preflightInvoices } from "@/lib/server/invoices";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 const querySchema = z.object({
   billingMonth: billingMonthSchema,
-  roomId: z.string().cuid().optional(),
+  roomId: recordIdSchema.optional(),
 }).strict();
 
 // ตรวจล่วงหน้าว่าห้องไหนออกบิลได้

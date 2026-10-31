@@ -1,0 +1,4492 @@
+{
+  "total": 84,
+  "p": 1,
+  "ps": 200,
+  "paging": {
+    "pageIndex": 1,
+    "pageSize": 200,
+    "total": 84
+  },
+  "effortTotal": 989,
+  "issues": [
+    {
+      "key": "097b7e3b-1f4a-474c-b2e6-50ac6f6000c3",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 56,
+      "hash": "c13370990abb708350032049657ec651",
+      "textRange": {
+        "startLine": 56,
+        "endLine": 56,
+        "startOffset": 36,
+        "endOffset": 61
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "1a52fbd8-a738-4962-b284-8ea0c5a9e6e1",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 62,
+      "hash": "daac32c4309cf1537885d6ef06b0e487",
+      "textRange": {
+        "startLine": 62,
+        "endLine": 62,
+        "startOffset": 38,
+        "endOffset": 63
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "8ab01002-7d4e-49b0-ad38-767e0362383f",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 153,
+      "hash": "e7652a6333b67ca646b63b2a599ad0eb",
+      "textRange": {
+        "startLine": 153,
+        "endLine": 153,
+        "startOffset": 9,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "48a9539b-e39d-4bbc-8be5-939229a421cb",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 166,
+      "hash": "e7652a6333b67ca646b63b2a599ad0eb",
+      "textRange": {
+        "startLine": 166,
+        "endLine": 166,
+        "startOffset": 9,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "49305500-4901-4369-b20a-307050ce0b7b",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 176,
+      "hash": "743fddad4c95ea3605d8359fafc3b301",
+      "textRange": {
+        "startLine": 176,
+        "endLine": 176,
+        "startOffset": 9,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a0be9adc-6d6c-4186-9a78-72f017a09661",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "project": "nestly",
+      "line": 182,
+      "hash": "743fddad4c95ea3605d8359fafc3b301",
+      "textRange": {
+        "startLine": 182,
+        "endLine": 182,
+        "startOffset": 9,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "4d3135ec-5fc9-486b-abd3-dd3770253610",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/documents/[id]/download/route.ts",
+      "project": "nestly",
+      "line": 10,
+      "hash": "816dd0d1701e83479269579c9bf31034",
+      "textRange": {
+        "startLine": 10,
+        "endLine": 10,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "c406c5ec-60e7-4e5c-a6d1-48b94a7fc7ae",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/super-admin/users/route.ts",
+      "project": "nestly",
+      "line": 13,
+      "hash": "d7df9b3afd6d5a4d7a96b66a4de2a50d",
+      "textRange": {
+        "startLine": 13,
+        "endLine": 13,
+        "startOffset": 34,
+        "endOffset": 38
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "4491fb2a-9bf0-4d1f-bea8-46cab21cda2a",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/invitations/[invitationId]/route.ts",
+      "project": "nestly",
+      "line": 15,
+      "hash": "f9b3bd7413ad02f71bbd4e3dc1c66ae3",
+      "textRange": {
+        "startLine": 15,
+        "endLine": 15,
+        "startOffset": 26,
+        "endOffset": 30
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "8d0b7d0e-8889-4e1b-8a36-0fa7ac995ec7",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]/route.ts",
+      "project": "nestly",
+      "line": 17,
+      "hash": "9cb8ea28e5c5b2377bf3ff0328381aa8",
+      "textRange": {
+        "startLine": 17,
+        "endLine": 17,
+        "startOffset": 33,
+        "endOffset": 37
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "039c308a-7471-4763-97bf-6f081faa9abb",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/invoices/preflight/route.ts",
+      "project": "nestly",
+      "line": 10,
+      "hash": "7046754d1b496cd35de74d57389e3b51",
+      "textRange": {
+        "startLine": 10,
+        "endLine": 10,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "c140fa3b-9077-49a4-82eb-02c28677d755",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/renew/route.ts",
+      "project": "nestly",
+      "line": 16,
+      "hash": "f522423e3ca80b5b329ab67ee3ac7cc6",
+      "textRange": {
+        "startLine": 16,
+        "endLine": 16,
+        "startOffset": 31,
+        "endOffset": 35
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "46151b5b-50fa-4c7f-9165-f613a3957093",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/route.ts",
+      "project": "nestly",
+      "line": 9,
+      "hash": "bbb0d5c8dd218b7ae799c142b0906333",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "d2e297b0-fa78-4447-b333-6c2b14c072fb",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/signed-document/route.ts",
+      "project": "nestly",
+      "line": 20,
+      "hash": "f522423e3ca80b5b329ab67ee3ac7cc6",
+      "textRange": {
+        "startLine": 20,
+        "endLine": 20,
+        "startOffset": 31,
+        "endOffset": 35
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "f6819423-55f4-4b2c-88e3-928e3699b98f",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/signed-document/route.ts",
+      "project": "nestly",
+      "line": 45,
+      "hash": "f522423e3ca80b5b329ab67ee3ac7cc6",
+      "textRange": {
+        "startLine": 45,
+        "endLine": 45,
+        "startOffset": 31,
+        "endOffset": 35
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "bde6a5a3-0055-4a97-8501-df251605433c",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/occupancies/[occupancyId]/route.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "bc99a27b6c97ec62cbe475dfa128d86f",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 35,
+        "endOffset": 39
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e63495f9-6eb0-410c-8748-19b5fc6c5f86",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/occupancies/[occupancyId]/route.ts",
+      "project": "nestly",
+      "line": 39,
+      "hash": "bc99a27b6c97ec62cbe475dfa128d86f",
+      "textRange": {
+        "startLine": 39,
+        "endLine": 39,
+        "startOffset": 35,
+        "endOffset": 39
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "2ade5aad-4ba1-450d-9683-4f9e1c01b2f7",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payments/route.ts",
+      "project": "nestly",
+      "line": 25,
+      "hash": "0e5783416fc89bed466c28c32b615065",
+      "textRange": {
+        "startLine": 25,
+        "endLine": 25,
+        "startOffset": 34,
+        "endOffset": 38
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ed54f13d-2f95-4c34-a988-06284766b4f5",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payments/route.ts",
+      "project": "nestly",
+      "line": 26,
+      "hash": "4e526406c5024f7fdd71411aebfa34c8",
+      "textRange": {
+        "startLine": 26,
+        "endLine": 26,
+        "startOffset": 31,
+        "endOffset": 35
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ec9710a1-3e6c-4dd3-9e2f-7b10503cbd53",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/subscription-orders/route.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "e6bae8f8181906793d13347415a764c5",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 32,
+        "endOffset": 36
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "003da215-ec30-4945-a59b-a9d258f3d59c",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/route.ts",
+      "project": "nestly",
+      "line": 10,
+      "hash": "49ab21fa2fe5dd14200c12e0caf13603",
+      "textRange": {
+        "startLine": 10,
+        "endLine": 10,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "518778b4-17c0-482c-ba85-11d2262cba30",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/transitions/route.ts",
+      "project": "nestly",
+      "line": 11,
+      "hash": "a95d68d2311ca93ee3e200473a8c0a93",
+      "textRange": {
+        "startLine": 11,
+        "endLine": 11,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e523fda1-977f-48f3-be4d-483b5187e186",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/chat/conversations/[conversationId]/attachments/route.ts",
+      "project": "nestly",
+      "line": 16,
+      "hash": "04051fac646734bc542e24536ba41104",
+      "textRange": {
+        "startLine": 16,
+        "endLine": 16,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "9038cb6b-c224-404f-b4af-e0cdcae0cee1",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/chat/conversations/[conversationId]/attachments/route.ts",
+      "project": "nestly",
+      "line": 32,
+      "hash": "87607e0d31a149862993929cf288e3ce",
+      "textRange": {
+        "startLine": 32,
+        "endLine": 32,
+        "startOffset": 40,
+        "endOffset": 44
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b6b69b0a-e55e-41f3-acf6-c1c9639ce3a7",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/properties/[propertyId]/route.ts",
+      "project": "nestly",
+      "line": 15,
+      "hash": "0b2f25571bb6a582623d8c2869e5a04a",
+      "textRange": {
+        "startLine": 15,
+        "endLine": 15,
+        "startOffset": 34,
+        "endOffset": 38
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "0f5c24a1-8b2b-41be-8df1-70d6a64aea1f",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/properties/[propertyId]/route.ts",
+      "project": "nestly",
+      "line": 35,
+      "hash": "bc0b02dc0fe240ee0edea77489e86f72",
+      "textRange": {
+        "startLine": 35,
+        "endLine": 35,
+        "startOffset": 26,
+        "endOffset": 30
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "939785d9-d206-48cd-b58d-fc0a3ab1cf5a",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/properties/[propertyId]/subscription/route.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "ffb5db77536aefa983d070846276111f",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "1e905991-4e8b-455b-93a7-199ed2d5a79d",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/subscription-payments/[paymentId]/route.ts",
+      "project": "nestly",
+      "line": 17,
+      "hash": "7a94c78e0503282231d00c2663719707",
+      "textRange": {
+        "startLine": 17,
+        "endLine": 17,
+        "startOffset": 33,
+        "endOffset": 37
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "fcdf9c54-5ef2-4d7e-aedd-20560b6fb2aa",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/subscription-payments/[paymentId]/slip/route.ts",
+      "project": "nestly",
+      "line": 21,
+      "hash": "7a94c78e0503282231d00c2663719707",
+      "textRange": {
+        "startLine": 21,
+        "endLine": 21,
+        "startOffset": 33,
+        "endOffset": 37
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "499456d6-0894-4145-a5da-342be992c032",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/users/[userId]/approval/route.ts",
+      "project": "nestly",
+      "line": 9,
+      "hash": "71f61f05375d5fcda53c61157b6e029c",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 32,
+        "endOffset": 36
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a41d5679-e90b-4d37-9fbb-c815072ee6a8",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/users/[userId]/memberships/route.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "301e405cdd3324194e716ca929beed94",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "45acc546-afe3-4b52-90b0-469947e66e5e",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/super-admin/users/[userId]/temporary-password/route.ts",
+      "project": "nestly",
+      "line": 16,
+      "hash": "d62ccdca83792f8cb092556c86ab4563",
+      "textRange": {
+        "startLine": 16,
+        "endLine": 16,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e2f83f64-8263-4e31-9549-79f896cfe263",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:app/api/v1/tenant/lease/signed-document/route.ts",
+      "project": "nestly",
+      "line": 14,
+      "hash": "953175cabf1937619031cd327a102a87",
+      "textRange": {
+        "startLine": 14,
+        "endLine": 14,
+        "startOffset": 50,
+        "endOffset": 54
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e06a9e7e-3850-4647-b2be-8d30cb4ac995",
+      "rule": "css:S7924",
+      "severity": "MAJOR",
+      "component": "nestly:app/globals.css",
+      "project": "nestly",
+      "line": 1835,
+      "hash": "2bd8356ca65d05587e3ef3ea7257c33e",
+      "textRange": {
+        "startLine": 1835,
+        "endLine": 1835,
+        "startOffset": 2,
+        "endOffset": 17
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Text does not meet the minimal contrast requirement with its background.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "css",
+        "accessibility",
+        "wcag",
+        "contrast"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "1cd5a938-08a3-4993-857e-9b7822f2152a",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/super-admin/subscriptions/page.tsx",
+      "project": "nestly",
+      "line": 19,
+      "hash": "0cfb2654818a18b2f8c3056677fdbea0",
+      "textRange": {
+        "startLine": 19,
+        "endLine": 19,
+        "startOffset": 23,
+        "endOffset": 48
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "d25c8a2c-a2bd-4c8f-a57a-a953b7e52285",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/tenant/invoices/page.tsx",
+      "project": "nestly",
+      "line": 26,
+      "hash": "81a5d45e4e8c7b183710317c6bd76316",
+      "textRange": {
+        "startLine": 26,
+        "endLine": 26,
+        "startOffset": 14,
+        "endOffset": 39
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "202db238-c8e8-44cf-9135-370451c53223",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/tenant/page.tsx",
+      "project": "nestly",
+      "line": 36,
+      "hash": "83928890762ba6a106d66e491a3b97d5",
+      "textRange": {
+        "startLine": 36,
+        "endLine": 36,
+        "startOffset": 27,
+        "endOffset": 52
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "6a8d690b-0122-4d0c-84a4-8c9af1923fd0",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/tenant/page.tsx",
+      "project": "nestly",
+      "line": 37,
+      "hash": "5fc4ac6b046a472f834dff147fbca6c9",
+      "textRange": {
+        "startLine": 37,
+        "endLine": 37,
+        "startOffset": 15,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "62ee4c44-30a5-47a0-8f52-65062c547375",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/tenant/page.tsx",
+      "project": "nestly",
+      "line": 38,
+      "hash": "6a04ba14746ef4cc2190cd35ea69f77a",
+      "textRange": {
+        "startLine": 38,
+        "endLine": 38,
+        "startOffset": 15,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e6c8c5ea-2dc5-47fc-8797-929f41cd5325",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:app/tenant/tickets/page.tsx",
+      "project": "nestly",
+      "line": 22,
+      "hash": "81a5d45e4e8c7b183710317c6bd76316",
+      "textRange": {
+        "startLine": 22,
+        "endLine": 22,
+        "startOffset": 14,
+        "endOffset": 39
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "76cc4203-b09d-446f-87b7-898e880ed3e9",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/dorm/DatePickerField.tsx",
+      "project": "nestly",
+      "line": 297,
+      "hash": "d90c26198ff23a5c54f81269ceed5c01",
+      "textRange": {
+        "startLine": 297,
+        "endLine": 305,
+        "startOffset": 10,
+        "endOffset": 11
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <dialog> instead of the \"dialog\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "dd26496c-3b92-4c86-8b22-4a249862ab31",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/dorm/DocumentTemplatePanel.tsx",
+      "project": "nestly",
+      "line": 875,
+      "hash": "d90c26198ff23a5c54f81269ceed5c01",
+      "textRange": {
+        "startLine": 875,
+        "endLine": 899,
+        "startOffset": 12,
+        "endOffset": 14
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <input type=...>, <input list=...>, <input list=...>, <input list=...>, <input list=...>, or <textarea> instead of the \"textbox\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "6327a61b-a604-43e0-9b2c-f11a22c83f70",
+      "rule": "typescript:S6481",
+      "severity": "MAJOR",
+      "component": "nestly:components/dorm/DormDashboard.tsx",
+      "project": "nestly",
+      "line": 273,
+      "hash": "a0e7296c1f87c62d91d54d7d1e227350",
+      "textRange": {
+        "startLine": 273,
+        "endLine": 304,
+        "startOffset": 46,
+        "endOffset": 3
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "The 'workspaceValue' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "react",
+        "jsx"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "67932e43-326d-4caf-9eca-563edd1b2513",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/dorm/ReadOnlyNotice.tsx",
+      "project": "nestly",
+      "line": 25,
+      "hash": "59352c5baad2cd169844c56edd433149",
+      "textRange": {
+        "startLine": 25,
+        "endLine": 25,
+        "startOffset": 9,
+        "endOffset": 79
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <output> instead of the \"status\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b4f16ee5-16cd-48a1-be9b-d0287f378961",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/dorm/SubscriptionPage.tsx",
+      "project": "nestly",
+      "line": 150,
+      "hash": "e0ded60be0d97b3887d8acdc5c6e374a",
+      "textRange": {
+        "startLine": 150,
+        "endLine": 150,
+        "startOffset": 8,
+        "endOffset": 76
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <details>, <fieldset>, <optgroup>, or <address> instead of the \"group\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "94429ed1-81f2-4516-bdd9-e699797390a6",
+      "rule": "typescript:S6481",
+      "severity": "MAJOR",
+      "component": "nestly:components/tenant/TenantPortal.tsx",
+      "project": "nestly",
+      "line": 444,
+      "hash": "fc3c1c5f4c214a23bb0c7e24967920cb",
+      "textRange": {
+        "startLine": 444,
+        "endLine": 447,
+        "startOffset": 41,
+        "endOffset": 3
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "The 'portalValue' object passed as the value prop to the Context provider changes every render. To fix this consider wrapping it in a useMemo hook.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "react",
+        "jsx"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "9938afb1-f3c1-4a04-a35d-872b8f8dbf33",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/tenant/TenantPortal.tsx",
+      "project": "nestly",
+      "line": 1582,
+      "hash": "837be6fd1439e0b9a35b375c5bb14cf8",
+      "textRange": {
+        "startLine": 1582,
+        "endLine": 1582,
+        "startOffset": 11,
+        "endOffset": 153
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <dialog> instead of the \"dialog\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "581a0680-b759-48b6-a596-1d6fc7528088",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/ui/Dialog.tsx",
+      "project": "nestly",
+      "line": 60,
+      "hash": "d90c26198ff23a5c54f81269ceed5c01",
+      "textRange": {
+        "startLine": 60,
+        "endLine": 66,
+        "startOffset": 4,
+        "endOffset": 5
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <img alt=...> instead of the \"presentation\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "e77ee183-7bd8-408d-9b75-c4f9cfc5de75",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/ui/LoadingSkeleton.tsx",
+      "project": "nestly",
+      "line": 35,
+      "hash": "2c86722ea5ab3b9911cf47e73e6aecdd",
+      "textRange": {
+        "startLine": 35,
+        "endLine": 35,
+        "startOffset": 4,
+        "endOffset": 118
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <output> instead of the \"status\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "9cd99492-3d8a-4906-95c0-04d6806c1c45",
+      "rule": "typescript:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:components/ui/NavShell.tsx",
+      "project": "nestly",
+      "line": 142,
+      "hash": "c9995ae3cf194ad146364e3f7182b756",
+      "textRange": {
+        "startLine": 142,
+        "endLine": 142,
+        "startOffset": 7,
+        "endOffset": 45
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Extract this nested ternary operation into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "confusing"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ef184cc1-e4a5-4cad-a73d-599aa631f8c0",
+      "rule": "typescript:S3358",
+      "severity": "MAJOR",
+      "component": "nestly:components/ui/NavShell.tsx",
+      "project": "nestly",
+      "line": 143,
+      "hash": "b38ae438f93101ec4e54306c6081d550",
+      "textRange": {
+        "startLine": 143,
+        "endLine": 143,
+        "startOffset": 7,
+        "endOffset": 45
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Extract this nested ternary operation into an independent statement.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "editable-source",
+        "confusing"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "4fd59588-0ab0-4737-8aea-5e757f169b4e",
+      "rule": "typescript:S6819",
+      "severity": "MAJOR",
+      "component": "nestly:components/ui/NotificationCenter.tsx",
+      "project": "nestly",
+      "line": 246,
+      "hash": "668effcdb04b304548f336a6e7ec5919",
+      "textRange": {
+        "startLine": 246,
+        "endLine": 256,
+        "startOffset": 8,
+        "endOffset": 9
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Use <dialog> instead of the \"dialog\" role to ensure accessibility across all devices.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "accessibility",
+        "react"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "fee9e8c1-fc98-423c-8ca8-4db8e5cac6ab",
+      "rule": "typescript:S3776",
+      "severity": "CRITICAL",
+      "component": "nestly:lib/client/notification-read-state.ts",
+      "project": "nestly",
+      "line": 16,
+      "hash": "b68bd437516eb465ebdfd4f4e50f41bd",
+      "textRange": {
+        "startLine": 16,
+        "endLine": 16,
+        "startOffset": 16,
+        "endOffset": 42
+      },
+      "flows": [
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 17,
+                "endLine": 17,
+                "startOffset": 2,
+                "endOffset": 4
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 21,
+                "endLine": 21,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 22,
+                "endLine": 22,
+                "startOffset": 6,
+                "endOffset": 9
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 23,
+                "endLine": 23,
+                "startOffset": 8,
+                "endOffset": 10
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 27,
+                "endLine": 27,
+                "startOffset": 8,
+                "endOffset": 10
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 27,
+                "endLine": 27,
+                "startOffset": 26,
+                "endOffset": 28
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 31,
+                "endLine": 31,
+                "startOffset": 4,
+                "endOffset": 6
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 31,
+                "endLine": 31,
+                "startOffset": 15,
+                "endOffset": 17
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 32,
+                "endLine": 32,
+                "startOffset": 6,
+                "endOffset": 9
+              },
+              "msg": "+2 (incl. 1 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 33,
+                "endLine": 33,
+                "startOffset": 8,
+                "endOffset": 10
+              },
+              "msg": "+3 (incl. 2 for nesting)",
+              "msgFormattings": []
+            }
+          ]
+        },
+        {
+          "locations": [
+            {
+              "component": "nestly:lib/client/notification-read-state.ts",
+              "textRange": {
+                "startLine": 37,
+                "endLine": 37,
+                "startOffset": 4,
+                "endOffset": 9
+              },
+              "msg": "+1",
+              "msgFormattings": []
+            }
+          ]
+        }
+      ],
+      "status": "OPEN",
+      "message": "Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.",
+      "effort": "9min",
+      "debt": "9min",
+      "author": "",
+      "tags": [
+        "brain-overload",
+        "editable-source"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "FOCUSED",
+      "cleanCodeAttributeCategory": "ADAPTABLE",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "HIGH"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "6888bf7f-8825-48a8-baa7-1c0479ed65a6",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/client/use-unsaved-changes.ts",
+      "project": "nestly",
+      "line": 21,
+      "hash": "d2cf09ed62bfbcb79920f44aa1087cd0",
+      "textRange": {
+        "startLine": 21,
+        "endLine": 21,
+        "startOffset": 12,
+        "endOffset": 23
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'returnValue' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "22705093-61fe-4e7a-9698-ece3086e25c5",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/documents/placeholders.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "737adcb097e589d6402b0c3f5108ba6e",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "07a89ffb-ed5c-4a82-af93-8163395c5cc9",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/documents/placeholders.ts",
+      "project": "nestly",
+      "line": 19,
+      "hash": "d1da9a15f586eef872c6e848a741f180",
+      "textRange": {
+        "startLine": 19,
+        "endLine": 19,
+        "startOffset": 23,
+        "endOffset": 27
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "cc2c65fb-3916-4275-ad2d-209cdb092f3a",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/billing.ts",
+      "project": "nestly",
+      "line": 14,
+      "hash": "18f4dde8e9ccb25e50a14301331e9bbc",
+      "textRange": {
+        "startLine": 14,
+        "endLine": 14,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "62b71c24-09a4-4c2c-9d23-3ecdb6cdff0b",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/billing.ts",
+      "project": "nestly",
+      "line": 41,
+      "hash": "18f4dde8e9ccb25e50a14301331e9bbc",
+      "textRange": {
+        "startLine": 41,
+        "endLine": 41,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "4d67b1c5-3082-4b30-8f38-171434cc8a44",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/chat.ts",
+      "project": "nestly",
+      "line": 17,
+      "hash": "357f18a115adb1f67eab46111d814e0e",
+      "textRange": {
+        "startLine": 17,
+        "endLine": 17,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "d4a98028-5fe7-47d9-b3b0-028fa0492f02",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/leases.ts",
+      "project": "nestly",
+      "line": 10,
+      "hash": "18f4dde8e9ccb25e50a14301331e9bbc",
+      "textRange": {
+        "startLine": 10,
+        "endLine": 10,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ddf4cf3e-a229-4951-b4e8-37ba32ab7292",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/leases.ts",
+      "project": "nestly",
+      "line": 15,
+      "hash": "48bd62a40bd4a3e23b4bbbea4c505e3e",
+      "textRange": {
+        "startLine": 15,
+        "endLine": 15,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "0c09a609-8791-4ec8-8bed-d0d9f970568b",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/leases.ts",
+      "project": "nestly",
+      "line": 29,
+      "hash": "fc95532f0915fc1e9bcc55bbe4bf3f71",
+      "textRange": {
+        "startLine": 29,
+        "endLine": 29,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "7b69d9a4-2297-4dc8-8574-fbad0eace849",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/occupancy-transitions.ts",
+      "project": "nestly",
+      "line": 9,
+      "hash": "ecaf80de81a80e4f28cb9f196991799b",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 32,
+        "endOffset": 36
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ff4f8212-0d43-48a5-906b-ed5922a61883",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/payments.ts",
+      "project": "nestly",
+      "line": 4,
+      "hash": "f3c8f4cc3b2f8f6030739096b5ff98a2",
+      "textRange": {
+        "startLine": 4,
+        "endLine": 4,
+        "startOffset": 49,
+        "endOffset": 53
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "67d0c5f3-b44a-4157-b8a5-2e681d3f1981",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-management.ts",
+      "project": "nestly",
+      "line": 37,
+      "hash": "0790eb9d235af4c4a969a395181ab759",
+      "textRange": {
+        "startLine": 37,
+        "endLine": 37,
+        "startOffset": 36,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "506052cd-b0d9-4c35-ae6d-9c712a53863c",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-memberships.ts",
+      "project": "nestly",
+      "line": 6,
+      "hash": "9bfd1f1fd54b040518e462433d8b0240",
+      "textRange": {
+        "startLine": 6,
+        "endLine": 6,
+        "startOffset": 34,
+        "endOffset": 38
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b9f5a35a-b3b1-468f-88bd-6358ac9e8d6b",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 16,
+      "hash": "513e3e51f6096abd6ec81605d2d30cb0",
+      "textRange": {
+        "startLine": 16,
+        "endLine": 16,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "a308a4ae-bb47-4790-b65e-4da55c10f90a",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 17,
+      "hash": "924e12c649d4fc1b4baf45df843218b3",
+      "textRange": {
+        "startLine": 17,
+        "endLine": 17,
+        "startOffset": 22,
+        "endOffset": 26
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "82021cc8-0efb-44de-861b-4f7c4f0c8d07",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 18,
+      "hash": "562e548f0de355c88ddfaf154e7360cd",
+      "textRange": {
+        "startLine": 18,
+        "endLine": 18,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "53a23730-e68a-481e-b506-8e4e57327ca9",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 35,
+      "hash": "513e3e51f6096abd6ec81605d2d30cb0",
+      "textRange": {
+        "startLine": 35,
+        "endLine": 35,
+        "startOffset": 25,
+        "endOffset": 29
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "299fb95b-883a-4f0a-86af-82e8e25ce182",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 36,
+      "hash": "924e12c649d4fc1b4baf45df843218b3",
+      "textRange": {
+        "startLine": 36,
+        "endLine": 36,
+        "startOffset": 22,
+        "endOffset": 26
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "83fe4bd9-059c-4584-8b03-2bf88b56f376",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 37,
+      "hash": "6c59a82ef5baa51d752b6d3d5cb162df",
+      "textRange": {
+        "startLine": 37,
+        "endLine": 37,
+        "startOffset": 30,
+        "endOffset": 34
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "9cc97a14-3065-4d50-92f7-137780b3daee",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 45,
+      "hash": "18f4dde8e9ccb25e50a14301331e9bbc",
+      "textRange": {
+        "startLine": 45,
+        "endLine": 45,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "cdbd645b-37e5-4c25-9238-8918fcf5caf7",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 46,
+      "hash": "429e316e12dcffc5bd246f15b79ef732",
+      "textRange": {
+        "startLine": 46,
+        "endLine": 46,
+        "startOffset": 32,
+        "endOffset": 36
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "c527be63-6259-4de8-b585-e9d50b326650",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-operations.ts",
+      "project": "nestly",
+      "line": 53,
+      "hash": "0a7aa9b7c26f17ee23965b443f5dbe43",
+      "textRange": {
+        "startLine": 53,
+        "endLine": 53,
+        "startOffset": 33,
+        "endOffset": 37
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "deda6d83-b16a-41ca-ad75-37aedd16b76a",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/property-structure.ts",
+      "project": "nestly",
+      "line": 4,
+      "hash": "054d9cb4e789e516ced958e30df55708",
+      "textRange": {
+        "startLine": 4,
+        "endLine": 4,
+        "startOffset": 36,
+        "endOffset": 40
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "8f493092-10c7-4781-ac3f-5156ce6081f9",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/saas.ts",
+      "project": "nestly",
+      "line": 43,
+      "hash": "d0914ea738c8f6ba60efba4c46645cf9",
+      "textRange": {
+        "startLine": 43,
+        "endLine": 43,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b1127517-6659-41ef-9aae-082fd418d886",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/saas.ts",
+      "project": "nestly",
+      "line": 55,
+      "hash": "d0914ea738c8f6ba60efba4c46645cf9",
+      "textRange": {
+        "startLine": 55,
+        "endLine": 55,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "2704b047-7259-40f5-979d-ec57ce68e3af",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/tenant-onboarding.ts",
+      "project": "nestly",
+      "line": 7,
+      "hash": "18f4dde8e9ccb25e50a14301331e9bbc",
+      "textRange": {
+        "startLine": 7,
+        "endLine": 7,
+        "startOffset": 21,
+        "endOffset": 25
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "2c74b04d-b0a8-4351-b692-83353ef8654c",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/domain/tenant-onboarding.ts",
+      "project": "nestly",
+      "line": 35,
+      "hash": "f24d5850bed058346d85bedf69670583",
+      "textRange": {
+        "startLine": 35,
+        "endLine": 35,
+        "startOffset": 26,
+        "endOffset": 30
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "2e155ac9-8313-41bb-b29f-248fe8301842",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/server/chat-auth.ts",
+      "project": "nestly",
+      "line": 9,
+      "hash": "816dd0d1701e83479269579c9bf31034",
+      "textRange": {
+        "startLine": 9,
+        "endLine": 9,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "b2185065-9bd3-44e7-bbb9-b10ef07ff41c",
+      "rule": "typescript:S7784",
+      "severity": "MINOR",
+      "component": "nestly:lib/server/super-admin-initial.ts",
+      "project": "nestly",
+      "line": 14,
+      "hash": "355f8aab6060d8285ffee3b72c448bcb",
+      "textRange": {
+        "startLine": 14,
+        "endLine": 14,
+        "startOffset": 39,
+        "endOffset": 64
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Prefer `structuredClone(…)` over `JSON.parse(JSON.stringify(…))` to create a deep clone.",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [
+        "performance",
+        "es2022",
+        "modernize"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "EFFICIENT",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "71b61336-4b26-470f-b65c-b74b420f97f5",
+      "rule": "typescript:S1874",
+      "severity": "MINOR",
+      "component": "nestly:lib/server/tenant-auth.ts",
+      "project": "nestly",
+      "line": 87,
+      "hash": "bbb0d5c8dd218b7ae799c142b0906333",
+      "textRange": {
+        "startLine": 87,
+        "endLine": 87,
+        "startOffset": 28,
+        "endOffset": 32
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "'(params?: string | { abort?: boolean | undefined; pattern?: RegExp | undefined; error?: string | $ZodErrorMap<$ZodIssueInvalidStringFormat> | undefined; message?: string | undefined; } | undefined): ZodString' is deprecated.",
+      "effort": "15min",
+      "debt": "15min",
+      "author": "",
+      "tags": [
+        "cwe",
+        "type-dependent",
+        "obsolete"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CONVENTIONAL",
+      "cleanCodeAttributeCategory": "CONSISTENT",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "LOW"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    },
+    {
+      "key": "ae565ecd-5a97-45a0-a68d-3f59083b0779",
+      "rule": "javascript:S4624",
+      "severity": "MAJOR",
+      "component": "nestly:scripts/demo-ids.mjs",
+      "project": "nestly",
+      "line": 11,
+      "hash": "3743a22c61331b12060a15b7dc67931f",
+      "textRange": {
+        "startLine": 11,
+        "endLine": 11,
+        "startOffset": 38,
+        "endOffset": 59
+      },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Refactor this code to not use nested template literals.",
+      "effort": "10min",
+      "debt": "10min",
+      "author": "",
+      "tags": [
+        "es2015",
+        "brain-overload",
+        "editable-source",
+        "confusing"
+      ],
+      "creationDate": "2026-10-31T10:16:26+0000",
+      "updateDate": "2026-10-31T10:16:26+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": false,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [
+        {
+          "softwareQuality": "MAINTAINABILITY",
+          "severity": "MEDIUM"
+        }
+      ],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    }
+  ],
+  "components": [
+    {
+      "key": "nestly:components/ui/LoadingSkeleton.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "LoadingSkeleton.tsx",
+      "longName": "components/ui/LoadingSkeleton.tsx",
+      "path": "components/ui/LoadingSkeleton.tsx"
+    },
+    {
+      "key": "nestly:lib/domain/payments.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "payments.ts",
+      "longName": "lib/domain/payments.ts",
+      "path": "lib/domain/payments.ts"
+    },
+    {
+      "key": "nestly:lib/server/super-admin-initial.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "super-admin-initial.ts",
+      "longName": "lib/server/super-admin-initial.ts",
+      "path": "lib/server/super-admin-initial.ts"
+    },
+    {
+      "key": "nestly:lib/domain/property-management.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "property-management.ts",
+      "longName": "lib/domain/property-management.ts",
+      "path": "lib/domain/property-management.ts"
+    },
+    {
+      "key": "nestly:lib/domain/billing.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "billing.ts",
+      "longName": "lib/domain/billing.ts",
+      "path": "lib/domain/billing.ts"
+    },
+    {
+      "key": "nestly:lib/server/chat-auth.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "chat-auth.ts",
+      "longName": "lib/server/chat-auth.ts",
+      "path": "lib/server/chat-auth.ts"
+    },
+    {
+      "key": "nestly:app/globals.css",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "globals.css",
+      "longName": "app/globals.css",
+      "path": "app/globals.css"
+    },
+    {
+      "key": "nestly:lib/domain/saas.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "saas.ts",
+      "longName": "lib/domain/saas.ts",
+      "path": "lib/domain/saas.ts"
+    },
+    {
+      "key": "nestly:lib/domain/leases.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "leases.ts",
+      "longName": "lib/domain/leases.ts",
+      "path": "lib/domain/leases.ts"
+    },
+    {
+      "key": "nestly:components/ui/NavShell.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "NavShell.tsx",
+      "longName": "components/ui/NavShell.tsx",
+      "path": "components/ui/NavShell.tsx"
+    },
+    {
+      "key": "nestly:components/dorm/ReadOnlyNotice.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "ReadOnlyNotice.tsx",
+      "longName": "components/dorm/ReadOnlyNotice.tsx",
+      "path": "components/dorm/ReadOnlyNotice.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/invoices/preflight/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/invoices/preflight/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/invoices/preflight/route.ts"
+    },
+    {
+      "key": "nestly:lib/domain/property-operations.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "property-operations.ts",
+      "longName": "lib/domain/property-operations.ts",
+      "path": "lib/domain/property-operations.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/properties/[propertyId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/properties/[propertyId]/route.ts",
+      "path": "app/api/v1/super-admin/properties/[propertyId]/route.ts"
+    },
+    {
+      "key": "nestly:lib/client/use-unsaved-changes.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "use-unsaved-changes.ts",
+      "longName": "lib/client/use-unsaved-changes.ts",
+      "path": "lib/client/use-unsaved-changes.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/tenant/lease/signed-document/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/tenant/lease/signed-document/route.ts",
+      "path": "app/api/v1/tenant/lease/signed-document/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/invitations/[invitationId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/invitations/[invitationId]/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/invitations/[invitationId]/route.ts"
+    },
+    {
+      "key": "nestly",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "Nestly",
+      "longName": "Nestly"
+    },
+    {
+      "key": "nestly:app/tenant/tickets/page.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "page.tsx",
+      "longName": "app/tenant/tickets/page.tsx",
+      "path": "app/tenant/tickets/page.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payments/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payments/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/subscription-orders/[orderId]/payments/route.ts"
+    },
+    {
+      "key": "nestly:lib/domain/property-structure.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "property-structure.ts",
+      "longName": "lib/domain/property-structure.ts",
+      "path": "lib/domain/property-structure.ts"
+    },
+    {
+      "key": "nestly:components/dorm/DatePickerField.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "DatePickerField.tsx",
+      "longName": "components/dorm/DatePickerField.tsx",
+      "path": "components/dorm/DatePickerField.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/chat/conversations/[conversationId]/attachments/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/chat/conversations/[conversationId]/attachments/route.ts",
+      "path": "app/api/v1/chat/conversations/[conversationId]/attachments/route.ts"
+    },
+    {
+      "key": "nestly:app/tenant/page.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "page.tsx",
+      "longName": "app/tenant/page.tsx",
+      "path": "app/tenant/page.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/occupancies/[occupancyId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/occupancies/[occupancyId]/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/occupancies/[occupancyId]/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/signed-document/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/signed-document/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/signed-document/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/route.ts"
+    },
+    {
+      "key": "nestly:lib/domain/tenant-onboarding.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "tenant-onboarding.ts",
+      "longName": "lib/domain/tenant-onboarding.ts",
+      "path": "lib/domain/tenant-onboarding.ts"
+    },
+    {
+      "key": "nestly:app/api/documents/[id]/download/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/documents/[id]/download/route.ts",
+      "path": "app/api/documents/[id]/download/route.ts"
+    },
+    {
+      "key": "nestly:components/tenant/TenantPortal.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "TenantPortal.tsx",
+      "longName": "components/tenant/TenantPortal.tsx",
+      "path": "components/tenant/TenantPortal.tsx"
+    },
+    {
+      "key": "nestly:app/super-admin/subscriptions/page.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "page.tsx",
+      "longName": "app/super-admin/subscriptions/page.tsx",
+      "path": "app/super-admin/subscriptions/page.tsx"
+    },
+    {
+      "key": "nestly:app/api/super-admin/users/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/super-admin/users/route.ts",
+      "path": "app/api/super-admin/users/route.ts"
+    },
+    {
+      "key": "nestly:components/dorm/SubscriptionPage.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "SubscriptionPage.tsx",
+      "longName": "components/dorm/SubscriptionPage.tsx",
+      "path": "components/dorm/SubscriptionPage.tsx"
+    },
+    {
+      "key": "nestly:lib/server/tenant-auth.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "tenant-auth.ts",
+      "longName": "lib/server/tenant-auth.ts",
+      "path": "lib/server/tenant-auth.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/renew/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/renew/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/renew/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/subscription-orders/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/subscription-orders/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/subscription-orders/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/leases/[leaseId]/route.ts"
+    },
+    {
+      "key": "nestly:lib/client/notification-read-state.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "notification-read-state.ts",
+      "longName": "lib/client/notification-read-state.ts",
+      "path": "lib/client/notification-read-state.ts"
+    },
+    {
+      "key": "nestly:lib/domain/chat.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "chat.ts",
+      "longName": "lib/domain/chat.ts",
+      "path": "lib/domain/chat.ts"
+    },
+    {
+      "key": "nestly:components/dorm/DocumentTemplatePanel.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "DocumentTemplatePanel.tsx",
+      "longName": "components/dorm/DocumentTemplatePanel.tsx",
+      "path": "components/dorm/DocumentTemplatePanel.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/subscription-payments/[paymentId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/subscription-payments/[paymentId]/route.ts",
+      "path": "app/api/v1/super-admin/subscription-payments/[paymentId]/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/users/[userId]/memberships/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/users/[userId]/memberships/route.ts",
+      "path": "app/api/v1/super-admin/users/[userId]/memberships/route.ts"
+    },
+    {
+      "key": "nestly:lib/domain/property-memberships.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "property-memberships.ts",
+      "longName": "lib/domain/property-memberships.ts",
+      "path": "lib/domain/property-memberships.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/users/[userId]/approval/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/users/[userId]/approval/route.ts",
+      "path": "app/api/v1/super-admin/users/[userId]/approval/route.ts"
+    },
+    {
+      "key": "nestly:components/dorm/DormDashboard.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "DormDashboard.tsx",
+      "longName": "components/dorm/DormDashboard.tsx",
+      "path": "components/dorm/DormDashboard.tsx"
+    },
+    {
+      "key": "nestly:components/ui/Dialog.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "Dialog.tsx",
+      "longName": "components/ui/Dialog.tsx",
+      "path": "components/ui/Dialog.tsx"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/transitions/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/transitions/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/tenants/[tenantProfileId]/transitions/route.ts"
+    },
+    {
+      "key": "nestly:lib/documents/placeholders.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "placeholders.ts",
+      "longName": "lib/documents/placeholders.ts",
+      "path": "lib/documents/placeholders.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/users/[userId]/temporary-password/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/users/[userId]/temporary-password/route.ts",
+      "path": "app/api/v1/super-admin/users/[userId]/temporary-password/route.ts"
+    },
+    {
+      "key": "nestly:app/tenant/invoices/page.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "page.tsx",
+      "longName": "app/tenant/invoices/page.tsx",
+      "path": "app/tenant/invoices/page.tsx"
+    },
+    {
+      "key": "nestly:scripts/demo-ids.mjs",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "demo-ids.mjs",
+      "longName": "scripts/demo-ids.mjs",
+      "path": "scripts/demo-ids.mjs"
+    },
+    {
+      "key": "nestly:app/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]/route.ts",
+      "path": "app/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]/route.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/properties/[propertyId]/subscription/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/properties/[propertyId]/subscription/route.ts",
+      "path": "app/api/v1/super-admin/properties/[propertyId]/subscription/route.ts"
+    },
+    {
+      "key": "nestly:lib/domain/occupancy-transitions.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "occupancy-transitions.ts",
+      "longName": "lib/domain/occupancy-transitions.ts",
+      "path": "lib/domain/occupancy-transitions.ts"
+    },
+    {
+      "key": "nestly:app/api/v1/super-admin/subscription-payments/[paymentId]/slip/route.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "route.ts",
+      "longName": "app/api/v1/super-admin/subscription-payments/[paymentId]/slip/route.ts",
+      "path": "app/api/v1/super-admin/subscription-payments/[paymentId]/slip/route.ts"
+    },
+    {
+      "key": "nestly:app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "page.tsx",
+      "longName": "app/admin/properties/[propertyId]/[...section]/page.tsx",
+      "path": "app/admin/properties/[propertyId]/[...section]/page.tsx"
+    },
+    {
+      "key": "nestly:components/ui/NotificationCenter.tsx",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "NotificationCenter.tsx",
+      "longName": "components/ui/NotificationCenter.tsx",
+      "path": "components/ui/NotificationCenter.tsx"
+    }
+  ],
+  "facets": []
+}

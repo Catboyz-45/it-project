@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { paymentSubmissionStatusSchema } from "@/lib/domain/enums";
 
-export const paymentInvoiceIdSchema = z.string().cuid();
+// id ของบิลที่แนบหลักฐานการชำระ ใช้กฎเดียวกับ id ของแถวอื่นในระบบ
+export { recordIdSchema as paymentInvoiceIdSchema } from "@/lib/domain/record-id";
 
 // ตรวจผลการตรวจหลักฐานการชำระ
 export const paymentReviewSchema = z.object({

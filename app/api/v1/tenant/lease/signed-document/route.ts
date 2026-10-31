@@ -3,7 +3,7 @@ import { getStorageAdapter } from "@/lib/documents/storage";
 import { ApiError, apiErrorResponse } from "@/lib/server/api";
 import { requireActiveTenant } from "@/lib/server/tenant-auth";
 import { getDatabase } from "@/lib/server/db";
-import { z } from "zod";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // ดาวน์โหลดไฟล์สัญญาที่ลงนามแล้ว ตรวจสิทธิ์ก่อนอ่านไฟล์
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { auth, occupancy } = await requireActiveTenant(request);
     if (occupancy.role !== "PRIMARY") throw new ApiError(404, "ไม่พบข้อมูล");
     const requestedLeaseId = request.nextUrl.searchParams.get("leaseId");
-    const leaseId = requestedLeaseId ? z.string().cuid().safeParse(requestedLeaseId) : null;
+    const leaseId = requestedLeaseId ? recordIdSchema.safeParse(requestedLeaseId) : null;
     if (leaseId && !leaseId.success) throw new ApiError(404, "ไม่พบข้อมูล");
     const lease = await getDatabase().lease.findFirst({
       where: {

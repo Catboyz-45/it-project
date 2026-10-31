@@ -14,3 +14,6 @@ test-results/
 *_report.pdf
 issues.json
 coverage-integration/
+
+# ไฟล์จดคำสั่ง SonarQube ส่วนตัวที่อาจมี token จริง ห้าม commit
+hook.text

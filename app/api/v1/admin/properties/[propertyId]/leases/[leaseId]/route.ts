@@ -3,10 +3,10 @@ import { transitionLeaseSchema, updateLeaseSchema } from "@/lib/domain/leases";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { getLease, transitionLease, updateLease } from "@/lib/server/leases";
-import { z } from "zod";
+import { recordIdSchema } from "@/lib/domain/record-id";
 type Context = { params: Promise<{ propertyId: string; leaseId: string }> };
 const id = (value: string) => {
-  const parsed = z.string().cuid().safeParse(value);
+  const parsed = recordIdSchema.safeParse(value);
   if (!parsed.success) throw new ApiError(404, "ไม่พบสัญญา");
   return parsed.data;
 };

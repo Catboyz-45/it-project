@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ApiError, apiErrorResponse, apiSuccessBinaryResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { writeAuditLog } from "@/lib/server/audit";
 import { setRequestActorContext } from "@/lib/server/request-context";
 import { getDatabase } from "@/lib/server/db";
 import { cleanupIntegrationFixture, createIntegrationFixture } from "./helpers";
@@ -143,5 +144,47 @@ describe("error responses", () => {
     const response = apiErrorResponse(new ApiError(409, "ห้องนี้มีสัญญาที่ใช้งานอยู่"), requestOf("POST"));
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ error: "ห้องนี้มีสัญญาที่ใช้งานอยู่" });
+  });
+});
+
+describe("unique constraint failures", () => {
+  // ค่าซ้ำจากฐานข้อมูล เช่นอีเมลที่มีบัญชีแล้ว เป็นความขัดแย้งของข้อมูล ไม่ใช่ความผิดของเซิร์ฟเวอร์
+  it("answers 409 without naming the database column", async () => {
+    const duplicate = Object.assign(new Error("Unique constraint failed on the fields: (`email`)"), { code: "P2002" });
+    const response = apiErrorResponse(duplicate, requestOf("POST", "dup-req"));
+    expect(response.status).toBe(409);
+    const body = await response.json() as { error: string };
+    expect(body.error).toBe("ข้อมูลนี้มีอยู่ในระบบแล้ว");
+    expect(body.error).not.toContain("email");
+  });
+});
+
+describe("audit log fallbacks", () => {
+  // พาธยาวกว่าคอลัมน์ต้องถูกตัด ไม่ใช่ทำให้บันทึกทั้งแถวหายไป
+  it("keeps an audit record whose target path is longer than the column", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    const action = `LONG_PATH_${fixture.suffix}`;
+    await writeAuditLog({ request: requestOf("POST"), userId: fixture.owner.id, action, targetType: `/api/${"x".repeat(200)}`, result: "SUCCESS" });
+    const row = await getDatabase().auditLog.findFirstOrThrow({ where: { action }, select: { targetType: true } });
+    expect(row.targetType).toHaveLength(80);
+  });
+
+  // หอถูกลบไปแล้ว foreign key จะไม่ผ่าน ต้องบันทึกต่อโดยไม่ผูกหอ ดีกว่าไม่มีบันทึกเลย
+  it("records without the property when the property no longer exists", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    const action = `GONE_PROPERTY_${fixture.suffix}`;
+    await writeAuditLog({ request: requestOf("POST"), userId: fixture.owner.id, propertyId: "cmissingproperty0000000000", action, result: "FAILURE" });
+    const row = await getDatabase().auditLog.findFirstOrThrow({ where: { action }, select: { propertyId: true } });
+    expect(row.propertyId).toBeNull();
+  });
+
+  // บันทึกลงฐานข้อมูลไม่ได้เลยก็ต้องไม่ทำให้งานหลักพัง ให้ไปลง log ของระบบแทน
+  it("falls back to the system log when the database refuses the record", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await writeAuditLog({ request: requestOf("POST"), userId: "cmissinguser00000000000000", propertyId: "cmissingproperty0000000000", action: "NO_SUCH_USER", result: "FAILURE" });
+    await writeAuditLog({ request: requestOf("POST"), userId: "cmissinguser00000000000000", action: "NO_SUCH_USER_NO_PROPERTY", result: "FAILURE" });
+    expect(errors).toHaveBeenCalledTimes(2);
+    expect(String(errors.mock.calls[0][0])).toContain("audit_log_failed");
+    errors.mockRestore();
   });
 });

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { requireRequestProperty } from "@/lib/server/auth";
 import { sendAdminMessage } from "@/lib/server/chat";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     assertSameOrigin(request, null);
     const { auth, propertyId } = await requireRequestProperty(request);
     await assertUploadRateLimit(request, "chat");
-    const formData = await request.formData();
+    const formData = await readFormData(request);
     const file = formData.get("file");
     if (!(file instanceof File)) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size < 1 || file.size > MAX_FILE_SIZE) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");

@@ -1,7 +1,7 @@
 "use client";
 // แตะ document และดักคีย์บอร์ดของเบราว์เซอร์
 
-import { type MouseEvent, type ReactNode, useCallback, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useDialogAccessibility } from "@/lib/client/use-dialog-accessibility";
 
@@ -38,13 +38,22 @@ export function Dialog({
   role = "dialog",
 }: DialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   // จัดการ Esc ขังโฟกัสไว้ในกล่อง และคืนโฟกัสให้ปุ่มเดิมตอนปิด
   useDialogAccessibility(dialogRef, onClose);
 
-  // เช็ค target === currentTarget เพื่อให้ปิดเฉพาะตอนคลิกพื้นหลังจริง ๆ
-  // ไม่ใช่ตอนคลิกอะไรข้างในแล้ว event ลอยขึ้นมา
-  const handleBackdropClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (closeOnBackdrop && event.target === event.currentTarget) onClose();
+  // คลิกพื้นหลังเพื่อปิดเป็นทางลัดของเมาส์เท่านั้น คนใช้คีย์บอร์ดปิดด้วย Esc อยู่แล้ว
+  // จึงผูก listener ตรงที่ DOM แทนการใส่ onMouseDown ให้ div ซึ่งไม่ใช่ส่วนที่กดได้
+  // ใช้ mousedown ไม่ใช่ click กันกรณีลากเลือกข้อความในกล่องแล้วปล่อยเมาส์นอกกล่อง
+  // เช็ค target === currentTarget เพื่อให้ปิดเฉพาะตอนคลิกพื้นหลังจริง ๆ ไม่ใช่ event ที่ลอยขึ้นมาจากข้างใน
+  useEffect(() => {
+    const backdrop = backdropRef.current;
+    if (!closeOnBackdrop || !backdrop) return;
+    const closeOnBackdropPress = (event: globalThis.MouseEvent) => {
+      if (event.target === event.currentTarget) onClose();
+    };
+    backdrop.addEventListener("mousedown", closeOnBackdropPress);
+    return () => backdrop.removeEventListener("mousedown", closeOnBackdropPress);
   }, [closeOnBackdrop, onClose]);
 
   // กล่องที่ไม่มีชื่อ โปรแกรมอ่านหน้าจอจะอ่านว่า "dialog" เฉย ๆ จึงหยุดตั้งแต่ตอนพัฒนา
@@ -57,13 +66,7 @@ export function Dialog({
 
   // ย้ายไปไว้ท้าย body กัน overflow หรือ z-index ของการ์ดที่ครอบอยู่มาตัดกล่องขาด
   return createPortal(
-    <div
-      className={joinClassNames("modal-backdrop", backdropClassName)}
-      // ใช้ onMouseDown ไม่ใช่ onClick กันกรณีลากเลือกข้อความในกล่องแล้วปล่อยเมาส์นอกกล่อง
-      onMouseDown={handleBackdropClick}
-      // presentation บอกว่าพื้นหลังเป็นแค่ฉาก ไม่ใช่ส่วนที่มีความหมาย
-      role="presentation"
-    >
+    <div className={joinClassNames("modal-backdrop", backdropClassName)} ref={backdropRef}>
       <section
         aria-describedby={ariaDescribedBy}
         aria-label={ariaLabel}

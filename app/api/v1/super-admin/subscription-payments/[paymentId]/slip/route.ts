@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getStorageAdapter } from "@/lib/documents/storage";
 import { ApiError, apiErrorResponse } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { getSubscriptionPaymentSlip } from "@/lib/server/subscription-orders";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ paymentId: string }> };
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: Context) {
   try {
     const auth = await requireRequestAuth(request);
     requireRole(auth, "SUPER_ADMIN");
-    const paymentId = z.string().cuid().safeParse((await context.params).paymentId);
+    const paymentId = recordIdSchema.safeParse((await context.params).paymentId);
     if (!paymentId.success) throw new ApiError(404, "ไม่พบหลักฐานการชำระ");
     const payment = await getSubscriptionPaymentSlip(paymentId.data);
     const file = await getStorageAdapter().get(payment.storageKey);

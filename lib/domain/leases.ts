@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { leaseStatusSchema } from "@/lib/domain/enums";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // กฎของช่องจำนวนเงิน Zod 4 ปัดตก Infinity กับ NaN ให้เองอยู่แล้ว จึงไม่ต้องเรียก finite()
 // ที่เลิกใช้แล้ว ส่วนเพดานกันกรอกเกินจริงจนผิดสังเกต
@@ -7,12 +8,12 @@ const money = z.coerce.number().min(0).max(10_000_000);
 
 // สร้างสัญญาใหม่ ไม่มีช่องสถานะ เพราะสัญญาต้องเกิดเป็นร่างเสมอ
 export const createLeaseSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: recordIdSchema,
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   monthlyRent: money,
   depositAmount: money.default(0),
-  templateId: z.string().cuid().optional(),
+  templateId: recordIdSchema.optional(),
 // refine เพราะเงื่อนไขขึ้นกับสองฟิลด์ ตรวจทีละฟิลด์ไม่พอ path ทำให้ข้อความไปขึ้นที่ช่องที่ถูกต้อง
 }).strict().refine((value) => value.endDate >= value.startDate, {
   message: "วันสิ้นสุดต้องไม่อยู่ก่อนวันเริ่มต้น",
@@ -26,7 +27,7 @@ export const updateLeaseSchema = z.object({
   endDate: z.coerce.date().optional(),
   monthlyRent: money.optional(),
   depositAmount: money.optional(),
-  templateId: z.string().cuid().nullable().optional(),
+  templateId: recordIdSchema.nullable().optional(),
 // มากกว่า 1 เพราะ expectedVersion นับเป็นหนึ่งแล้ว ส่งมาแต่ version เฉย ๆ คือไม่ได้แก้อะไร
 }).strict().refine((value) => Object.keys(value).length > 1, "ไม่มีข้อมูลให้แก้ไข");
 

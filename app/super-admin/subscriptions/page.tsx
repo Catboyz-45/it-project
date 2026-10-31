@@ -3,6 +3,7 @@ import { SuperAdminForms } from "@/components/admin/SuperAdminForms";
 import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { SubscriptionPaymentReview, type Payment } from "@/components/admin/SubscriptionPaymentReview";
 import { listPendingSubscriptionPayments } from "@/lib/server/subscription-orders";
+import { toClientData } from "@/lib/server/client-data";
 
 // หน้าตรวจการชำระค่าสมาชิก แยกสองส่วน ข้างบนคือคิวรอตรวจ ข้างล่างคือฟอร์มแก้สถานะด้วยมือ
 export default async function SuperAdminSubscriptionsPage() {
@@ -16,7 +17,7 @@ export default async function SuperAdminSubscriptionsPage() {
     />
     <SubscriptionPaymentReview
       initialHasNextPage={pending.pageInfo.hasNextPage}
-      initialPayments={JSON.parse(JSON.stringify(pending.data)) as Payment[]}
+      initialPayments={toClientData(pending.data) as Payment[]}
     />
     <SuperAdminForms sections={["subscription"]} />
   </>;

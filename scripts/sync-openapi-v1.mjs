@@ -17,11 +17,27 @@ async function walk(directory) {
   }))).flat();
 }
 
+// ชื่อในวงเล็บของ segment เดียว เช่น "[propertyId]" ได้ "propertyId" ถ้าไม่ใช่ได้ null
+// เทียบทีละ segment ด้วย string แทน regex ที่สแกนทั้งพาธ ซึ่งช้าแบบกำลังสองเมื่อเจอวงเล็บที่ไม่ปิด
+function bracketName(segment, open, close) {
+  return segment.length > 2 && segment.startsWith(open) && segment.endsWith(close) ? segment.slice(1, -1) : null;
+}
+
+// ชื่อพารามิเตอร์ใน path ของ OpenAPI เช่น /a/{propertyId}/b ได้ ["propertyId"]
+function pathParameterNames(apiPath) {
+  return apiPath.split("/").map((segment) => bracketName(segment, "{", "}")).filter(Boolean);
+}
+
 // แปลงพาธไฟล์เป็น URL ของ OpenAPI โฟลเดอร์ [propertyId] กลายเป็น {propertyId}
 function openApiPath(file) {
   return `/${path.relative(new URL("app/", root).pathname, file)
     .replace(/\/route\.ts$/, "")
-    .replace(/\[([^\]]+)\]/g, "{$1}")}`;
+    .split("/")
+    .map((segment) => {
+      const name = bracketName(segment, "[", "]");
+      return name ? `{${name}}` : segment;
+    })
+    .join("/")}`;
 }
 
 // ตั้งชื่อ operation จาก URL เช่น getAdminPropertiesByPropertyIdInvoices
@@ -29,7 +45,12 @@ function openApiPath(file) {
 function operationId(method, apiPath) {
   const words = apiPath
     .replace(/^\/api\/v1\//, "")
-    .replace(/\{([^}]+)\}/g, " by $1 ")
+    .split("/")
+    .map((segment) => {
+      const name = bracketName(segment, "{", "}");
+      return name ? ` by ${name} ` : segment;
+    })
+    .join("/")
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean);
   return method + words.map((word) => word[0].toUpperCase() + word.slice(1)).join("");
@@ -90,13 +111,13 @@ const paginatedPaths = new Set([
 function parametersFor(method, apiPath) {
   // ดึงชื่อในวงเล็บปีกกาออกมาเป็นพารามิเตอร์ของ path ทุกตัวบังคับกรอก
   // propertyId ใช้ ref ที่ประกาศไว้ที่เดียว เพราะโผล่ในเกือบทุกเส้นทาง
-  const parameters = [...apiPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1] === "propertyId"
+  const parameters = pathParameterNames(apiPath).map((name) => name === "propertyId"
     ? { $ref: "#/components/parameters/PropertyId" }
     : {
-      name: match[1],
+      name,
       in: "path",
       required: true,
-      schema: match[1] === "resource" && apiPath.endsWith("/exports/{resource}")
+      schema: name === "resource" && apiPath.endsWith("/exports/{resource}")
         ? { type: "string", enum: ["invoices", "tenants"] }
         : { type: "string" },
     });

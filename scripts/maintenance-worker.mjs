@@ -1,6 +1,7 @@
 // ตัวจับเวลาที่รันเป็นคอนเทนเนอร์แยก คอยยิงเรียกงานบำรุงรักษาตามรอบ
 // งานจริงอยู่ในแอป ไฟล์นี้แค่เป็นคนกดเรียกเท่านั้น
-const endpoint = process.env.JOB_ENDPOINT ?? "http://app:3000/api/internal/jobs/maintenance";
+// ไม่มีค่าสำรอง ผู้เรียกต้องระบุปลายทางเอง (docker-compose.yml และ maintenance.yml ตั้งไว้แล้ว)
+const endpoint = process.env.JOB_ENDPOINT;
 const secret = process.env.JOB_SECRET;
 const intervalSeconds = Number(process.env.JOB_INTERVAL_SECONDS ?? "300");
 // ตัวตั้งเวลาภายนอกเป็นคนกำหนดรอบให้เอง สคริปต์จึงต้องยิงครั้งเดียวแล้วจบ
@@ -8,6 +9,7 @@ const intervalSeconds = Number(process.env.JOB_INTERVAL_SECONDS ?? "300");
 const runOnce = process.env.JOB_RUN_ONCE === "true";
 
 // ตรวจค่าตั้งค่าตั้งแต่เริ่ม ผิดตั้งแต่แรกจะได้ตายทันที ไม่ใช่ไปพังตอนยิงจริงรอบแรก
+if (!endpoint || !URL.canParse(endpoint)) throw new Error("JOB_ENDPOINT must be an absolute URL");
 if (!secret || secret.length < 32) throw new Error("JOB_SECRET must contain at least 32 characters");
 if (!runOnce && (!Number.isInteger(intervalSeconds) || intervalSeconds < 60 || intervalSeconds > 86_400)) {
   throw new Error("JOB_INTERVAL_SECONDS must be an integer between 60 and 86400");

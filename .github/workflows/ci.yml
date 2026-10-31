@@ -54,7 +54,8 @@ jobs:
       - run: npm test
       - run: npm run build
         env:
-          DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/unused
+          # ตอน build ไม่ได้ต่อฐานข้อมูลจริง ใส่ไว้แค่ให้ผ่านการตรวจรูปแบบ จึงไม่ต้องมีชื่อผู้ใช้และรหัสผ่าน
+          DATABASE_URL: postgresql://127.0.0.1:5432/unused
 
   integration:
     runs-on: ubuntu-latest
@@ -66,7 +67,9 @@ jobs:
           TZ: UTC
           POSTGRES_DB: dorm_test
           POSTGRES_USER: dorm_test
-          POSTGRES_PASSWORD: integration-only
+          # ฐานข้อมูลชั่วคราวที่มีอยู่แค่ใน job นี้ และต่อได้จากเครื่อง runner เท่านั้น
+          # ใช้ trust แทนรหัสผ่าน จึงไม่มีรหัสผ่านฝังอยู่ในไฟล์หรือใน DATABASE_URL
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -75,7 +78,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
-      DATABASE_URL: postgresql://dorm_test:integration-only@127.0.0.1:5432/dorm_test?schema=public
+      DATABASE_URL: postgresql://dorm_test@127.0.0.1:5432/dorm_test?schema=public
       STORAGE_TYPE: local
       LOCAL_STORAGE_PATH: ./storage/test-documents
     steps:
@@ -98,7 +101,8 @@ jobs:
           TZ: UTC
           POSTGRES_DB: dorm_e2e_test
           POSTGRES_USER: dorm_test
-          POSTGRES_PASSWORD: e2e-only
+          # เหตุผลเดียวกับ job integration ข้างบน
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -108,7 +112,7 @@ jobs:
           --health-retries 20
     env:
       CI: "true"
-      DATABASE_URL: postgresql://dorm_test:e2e-only@127.0.0.1:5432/dorm_e2e_test?schema=public
+      DATABASE_URL: postgresql://dorm_test@127.0.0.1:5432/dorm_e2e_test?schema=public
       STORAGE_TYPE: local
       LOCAL_STORAGE_PATH: ./storage/e2e-documents
       BOOTSTRAP_ADMIN_EMAIL: e2e-super-admin@example.com

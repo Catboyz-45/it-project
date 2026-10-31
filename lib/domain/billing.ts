@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { meterTypeSchema } from "@/lib/domain/enums";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // รอบบิลเป็น "YYYY-MM" regex บังคับให้เดือนอยู่ระหว่าง 01 ถึง 12 จริง ๆ ไม่ใช่แค่สองหลัก
 export const billingMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
@@ -11,7 +12,7 @@ export function billingMonthToDate(value: string) {
 }
 
 export const meterReadingInputSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: recordIdSchema,
   type: meterTypeSchema,
   billingMonth: billingMonthSchema,
   previousReading: z.coerce.number().min(0).max(1_000_000_000).optional(),
@@ -38,7 +39,7 @@ export const bulkMeterReadingSchema = z.object({
 });
 
 export const generateInvoiceSchema = z.object({
-  roomId: z.string().cuid(),
+  roomId: recordIdSchema,
   billingMonth: billingMonthSchema,
   // literal(false) คือปิดทางออกบิลทันทีตั้งแต่ระดับตัวตรวจ ส่ง true มาก็ไม่ผ่าน
   // บิลต้องเกิดเป็นร่างเสมอ เพื่อให้มีจังหวะตรวจก่อนถึงผู้เช่า

@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { requirePropertyAccess, requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { createSubscriptionPayment } from "@/lib/server/subscription-orders";
 import { detectUploadSignature } from "@/lib/server/file-signatures";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ propertyId: string; orderId: string }> };
 const maxSize = 5 * 1024 * 1024;
@@ -22,14 +22,14 @@ export async function POST(request: NextRequest, context: Context) {
     const auth = await requireRequestAuth(request);
     requireRole(auth, "PROPERTY_ADMIN");
     const params = await context.params;
-    const propertyId = z.string().cuid().safeParse(params.propertyId);
-    const orderId = z.string().cuid().safeParse(params.orderId);
+    const propertyId = recordIdSchema.safeParse(params.propertyId);
+    const orderId = recordIdSchema.safeParse(params.orderId);
     if (!propertyId.success || !orderId.success) throw new ApiError(404, "ไม่พบคำสั่งซื้อ");
     requirePropertyAccess(auth, propertyId.data);
     const { setRequestActorContext } = await import("@/lib/server/request-context");
     setRequestActorContext(request, { userId: auth.userId, propertyId: propertyId.data });
     await assertUploadRateLimit(request, "subscription-slip");
-    const file = (await request.formData()).get("file");
+    const file = (await readFormData(request)).get("file");
     if (!(file instanceof File)) throw new ApiError(400, "กรุณาเลือกไฟล์");
     if (file.size < 1 || file.size > maxSize) throw new ApiError(413, "ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
     const bytes = new Uint8Array(await file.arrayBuffer());

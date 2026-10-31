@@ -11,32 +11,41 @@ function isCount(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+// รูปแบบเก่า อาร์เรย์ของ "หัวข้อ:จำนวน" หัวข้อเดียวกันมีหลายคู่ได้ เอาจำนวนที่มากที่สุด
+function parseLegacyEntries(entries: unknown[]): NotificationReadState {
+  const state: NotificationReadState = {};
+  for (const entry of entries) {
+    if (typeof entry !== "string") continue;
+    const separator = entry.lastIndexOf(":");
+    const count = Number(entry.slice(separator + 1));
+    const id = entry.slice(0, separator);
+    if (separator > 0 && isCount(count)) state[id] = Math.max(state[id] ?? 0, count);
+  }
+  return state;
+}
+
+// รูปแบบปัจจุบัน object ของ หัวข้อ -> จำนวน เก็บเฉพาะค่าที่เป็นจำนวนนับจริง
+function parseCountRecord(record: object): NotificationReadState {
+  const state: NotificationReadState = {};
+  for (const [id, count] of Object.entries(record)) {
+    if (isCount(count)) state[id] = count;
+  }
+  return state;
+}
+
 // ค่าที่อ่านมาจาก localStorage เชื่อไม่ได้ทั้งหมด เสียหรือแปลกก็เริ่มใหม่จากว่าง
 // รองรับรูปแบบเก่าที่เป็นอาร์เรย์ "หัวข้อ:จำนวน" ด้วย ผู้ใช้เดิมจะได้ไม่เห็นทุกอย่างกลับเป็นยังไม่อ่าน
 export function parseNotificationReadState(raw: string | null): NotificationReadState {
   if (!raw) return {};
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    const state: NotificationReadState = {};
-    if (Array.isArray(parsed)) {
-      for (const entry of parsed) {
-        if (typeof entry !== "string") continue;
-        const separator = entry.lastIndexOf(":");
-        const count = Number(entry.slice(separator + 1));
-        const id = entry.slice(0, separator);
-        if (separator > 0 && isCount(count)) state[id] = Math.max(state[id] ?? 0, count);
-      }
-      return state;
-    }
-    if (parsed && typeof parsed === "object") {
-      for (const [id, count] of Object.entries(parsed)) {
-        if (isCount(count)) state[id] = count;
-      }
-    }
-    return state;
+    parsed = JSON.parse(raw);
   } catch {
     return {};
   }
+  if (Array.isArray(parsed)) return parseLegacyEntries(parsed);
+  if (parsed && typeof parsed === "object") return parseCountRecord(parsed);
+  return {};
 }
 
 export function isNotificationUnread(state: NotificationReadState, item: CountedItem) {

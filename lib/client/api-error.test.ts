@@ -44,4 +44,34 @@ describe("client API errors", () => {
 
     await expect(readApiData<{ id: string }>(response, "โหลดไม่สำเร็จ")).resolves.toEqual({ id: "1" });
   });
+
+  it("shows a plain error message without a reference and falls back when the API sent no message", () => {
+    expect(formatClientError(new Error("เครือข่ายขัดข้อง"), "ผิดพลาด")).toBe("เครือข่ายขัดข้อง");
+    expect(createApiError({}, "ข้อความสำรอง").message).toBe("ข้อความสำรอง");
+  });
+
+  // ตัวข้อมูลไม่มีรหัสอ้างอิง ให้ใช้รหัสจาก header แทน ถ้าไม่มีทั้งคู่ก็ปล่อยว่าง
+  it("takes the request ID from the header when the error body has none", async () => {
+    const withHeader = new Response(JSON.stringify({ error: "ไม่พบ" }), { status: 404, headers: { "x-request-id": "req-h" } });
+    await expect(readApiPayload(withHeader, "ผิดพลาด")).rejects.toMatchObject({ requestId: "req-h" });
+    const withoutAny = new Response(JSON.stringify({}), { status: 500 });
+    await expect(readApiPayload(withoutAny, "ผิดพลาด")).rejects.toMatchObject({ message: "ผิดพลาด", requestId: undefined });
+    const invalidWithoutHeader = new Response("oops", { status: 502 });
+    await expect(readApiPayload(invalidWithoutHeader, "ระบบไม่พร้อม")).rejects.toMatchObject({ requestId: undefined });
+  });
+
+  it("returns the payload of a successful response", async () => {
+    const response = new Response(JSON.stringify({ ok: true }), { status: 200 });
+    await expect(readApiPayload(response, "ผิดพลาด")).resolves.toEqual({ ok: true });
+  });
+
+  // สำเร็จแต่ไม่มี data แปลว่า API ตอบผิดรูปแบบ ต้องแจ้งเป็นข้อผิดพลาด ไม่ใช่คืน undefined
+  it("treats a success without data as an error", async () => {
+    const fromBody = new Response(JSON.stringify({ requestId: "req-body" }), { status: 200 });
+    await expect(readApiData(fromBody, "โหลดไม่สำเร็จ")).rejects.toMatchObject({ requestId: "req-body" });
+    const fromHeader = new Response(JSON.stringify({}), { status: 200, headers: { "x-request-id": "req-h" } });
+    await expect(readApiData(fromHeader, "โหลดไม่สำเร็จ")).rejects.toMatchObject({ requestId: "req-h" });
+    const fromNothing = new Response(JSON.stringify({}), { status: 200 });
+    await expect(readApiData(fromNothing, "โหลดไม่สำเร็จ")).rejects.toMatchObject({ requestId: undefined });
+  });
 });

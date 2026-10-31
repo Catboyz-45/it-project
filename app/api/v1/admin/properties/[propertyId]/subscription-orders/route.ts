@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createSubscriptionOrderSchema } from "@/lib/domain/saas";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin, ApiError } from "@/lib/server/api";
 import { requirePropertyAccess, requireRequestAuth, requireRole } from "@/lib/server/auth";
@@ -8,6 +7,7 @@ import {
   createSubscriptionOrder,
   listPropertySubscriptionOrders,
 } from "@/lib/server/subscription-orders";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 // Next 16 ส่ง params มาเป็น Promise ต้อง await ก่อนใช้
 type Context = { params: Promise<{ propertyId: string }> };
@@ -15,7 +15,7 @@ type Context = { params: Promise<{ propertyId: string }> };
 async function requireOwnerProperty(request: NextRequest, rawPropertyId: string) {
   const auth = await requireRequestAuth(request);
   requireRole(auth, "PROPERTY_ADMIN");
-  const propertyId = z.string().cuid().safeParse(rawPropertyId);
+  const propertyId = recordIdSchema.safeParse(rawPropertyId);
   if (!propertyId.success) throw new ApiError(404, "ไม่พบหอพัก");
   requirePropertyAccess(auth, propertyId.data);
   return { auth, propertyId: propertyId.data };

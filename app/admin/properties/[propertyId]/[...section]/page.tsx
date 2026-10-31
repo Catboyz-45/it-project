@@ -11,6 +11,7 @@ import { listPropertyTenants } from "@/lib/server/property-management";
 import { listInvitations, listPendingOccupancies } from "@/lib/server/tenant-onboarding";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 import { listPaymentSubmissions } from "@/lib/server/payments";
+import { toClientData } from "@/lib/server/client-data";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
 // ค่าใน enum ของฐานข้อมูลเป็นตัวพิมพ์ใหญ่ ส่วนหน้าจอใช้คำของตัวเอง
@@ -53,13 +54,13 @@ export default async function PropertyWorkspaceSectionPage({
     initialComplaints={initial.complaints}
     initialInvitations={initial.invitations}
     // Prisma คืน Decimal กับ Date ที่ข้ามไปฝั่งเบราว์เซอร์ตรง ๆ ไม่ได้ แปลงเป็น JSON ธรรมดาก่อน
-    initialLeases={initial.leases ? JSON.parse(JSON.stringify(initial.leases)) : null}
+    initialLeases={initial.leases ? toClientData(initial.leases) : null}
     initialParcels={initial.parcels}
     initialPayments={initial.payments}
     initialPendingRequests={initial.pendingRequests}
     initialRepairHistory={initial.repairHistory}
     initialSubscriptionData={initial.subscription}
-    initialTenants={initial.tenants ? JSON.parse(JSON.stringify(initial.tenants)) : null}
+    initialTenants={initial.tenants ? toClientData(initial.tenants) : null}
     invoiceView={invoiceView}
     page={activePage}
   />;
@@ -150,11 +151,11 @@ async function loadInvitations(propertyId: string) {
     listRooms(propertyId),
     listInvitations(propertyId, { page: 1, pageSize: 20 }),
   ]);
-  return JSON.parse(JSON.stringify({
+  return toClientData({
     invitations: invitations.data,
     pageInfo: invitations.pageInfo,
     rooms,
-  }));
+  });
 }
 
 // หน้าแพ็กเกจต้องใช้ทั้งรายการแพ็กเกจที่เปิดขายและประวัติคำสั่งซื้อของหอ
@@ -163,21 +164,21 @@ async function loadSubscription(propertyId: string) {
     listSaasPlans(),
     listPropertySubscriptionOrders(propertyId, { page: 1, pageSize: 20 }),
   ]);
-  return JSON.parse(JSON.stringify({
+  return toClientData({
     orders: orders.data,
     ordersHasNextPage: orders.pageInfo.hasNextPage,
     plans,
-  }));
+  });
 }
 
 // คำขอเข้าพักที่รออนุมัติ ขนาดหน้าเท่ากับที่แผงยิงเองตอนเปิดแท็บ
 async function loadPendingOccupancies(propertyId: string) {
   const result = await listPendingOccupancies(propertyId, { page: 1, pageSize: 50 });
-  return JSON.parse(JSON.stringify({ data: result.data, hasNextPage: result.pageInfo.hasNextPage }));
+  return toClientData({ data: result.data, hasNextPage: result.pageInfo.hasNextPage });
 }
 
 // คิวหลักฐานการชำระ เปิดมาที่สถานะรอตรวจสอบเหมือนที่แผงตั้งค่าเริ่มต้นไว้
 async function loadPaymentSubmissions(propertyId: string) {
   const result = await listPaymentSubmissions(propertyId, { page: 1, pageSize: 50 }, "PENDING_REVIEW");
-  return JSON.parse(JSON.stringify({ data: result.data, hasNextPage: result.pageInfo.hasNextPage }));
+  return toClientData({ data: result.data, hasNextPage: result.pageInfo.hasNextPage });
 }

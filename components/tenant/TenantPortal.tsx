@@ -7,7 +7,7 @@ import { AppSection } from "@/components/ui/AppSection";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { usePathname, useRouter } from "next/navigation";
-import { SyntheticEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { SyntheticEvent, Fragment, ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -431,20 +431,21 @@ export function TenantPortal({
       setIsSwitching(false);
     }
   };
-  const refreshAccount = async () => {
+  const refreshAccount = useCallback(async () => {
     const updated = await apiData<Account>(await fetch("/api/v1/tenant/me", {
       cache: "no-store",
       credentials: "same-origin",
     }));
     setAccount(updated);
-  };
+  }, []);
 
   const activeTabItem = tabs.find(({ id }) => id === activeTab) ?? tabs[0];
 
-  const portalValue: TenantPortalValue = {
+  // useMemo ให้ object ของ context เปลี่ยนเฉพาะตอนข้อมูลข้างในเปลี่ยน หน้าย่อยจะได้ไม่ render ซ้ำโดยไม่จำเป็น
+  const portalValue = useMemo<TenantPortalValue>(() => ({
     account, accessState, active, isPrimary: primary, isReadOnly,
     notificationResource, roomResource, setAccount, refreshAccount,
-  };
+  }), [account, accessState, active, primary, isReadOnly, notificationResource, roomResource, refreshAccount]);
 
   return <TenantPortalContext.Provider value={portalValue}><PageHeaderSlotProvider>
     <NavShell className="tenant-portal tenant-shell shell text-[#292a30]">
@@ -1064,7 +1065,7 @@ function TenantHistoryTabs({
     { label: currentLabel, value: "current" as const },
     { label: historyLabel, value: "history" as const },
   ];
-  return <div aria-label="เลือกประเภทข้อมูล" className="figma-inline-tabs invoice-tabs" onKeyDown={handleKeyDown} role="tablist">
+  return <div aria-label="เลือกประเภทข้อมูล" className="figma-inline-tabs invoice-tabs" onKeyDown={handleKeyDown} role="tablist" tabIndex={-1}>
     {tabs.map((tab) => <button aria-controls={`${id}-panel`} aria-selected={view === tab.value} className={view === tab.value ? "active" : ""} id={`${id}-tab-${tab.value}`} key={tab.value} onClick={() => onChange(tab.value)} role="tab" tabIndex={view === tab.value ? 0 : -1} type="button">
       {tab.label}
     </button>)}
@@ -1579,7 +1580,8 @@ function TenantChat({
   />;
 
   if (variant === "widget") {
-    return <aside aria-label="แชทกับหอพัก" aria-modal="false" className={`chat-widget tenant-chat-widget${isExpanded ? " expanded" : ""}`} role="dialog">
+    // dialog แบบเปิดค้างไม่บังหน้า (non-modal) ผู้เช่ายังใช้หน้าข้างหลังได้ระหว่างแชท
+    return <dialog aria-label="แชทกับหอพัก" className={`chat-widget tenant-chat-widget${isExpanded ? " expanded" : ""}`} open>
       <header className="chat-widget-header">
         <div className="chat-conversation-brand">
           <span className="chat-person-avatar support"><MessageSquare aria-hidden="true" size={19} /></span>
@@ -1601,7 +1603,7 @@ function TenantChat({
       {error ? <p className="chat-error mx-3 mt-3" role="alert">{error}</p> : null}
       {messageList}
       {composer}
-    </aside>;
+    </dialog>;
   }
 
   return <div className="grid gap-5">

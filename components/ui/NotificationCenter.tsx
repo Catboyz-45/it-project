@@ -144,7 +144,7 @@ export function NotificationCenter({
   const [readState, setReadState] = useState<NotificationReadState>({});
   const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const previousTotalRef = useRef<number | null>(null);
   const [countAnnouncement, setCountAnnouncement] = useState("");
 
@@ -243,14 +243,14 @@ export function NotificationCenter({
       </IconButton>
 
       {isOpen ? (
-        <section
+        <dialog
           aria-label="ศูนย์การแจ้งเตือน"
           // บอกว่าส่วนอื่นของหน้าถูกบังอยู่ โปรแกรมอ่านหน้าจอจะไม่หลุดออกไปอ่านข้างนอก
           aria-modal="true"
           // min() กันแผงล้นจอบนมือถือ กว้างสุด 390px แต่ไม่เกินความกว้างจอ
           className="notification-panel absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(390px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#d7d8df] bg-[#fff] text-[#292a30] shadow-2xl"
           ref={dialogRef}
-          role="dialog"
+          open
           // -1 ให้โฟกัสด้วยโค้ดได้ แต่ผู้ใช้กด Tab มาโดนเองไม่ได้
           tabIndex={-1}
         >
@@ -268,7 +268,7 @@ export function NotificationCenter({
           <div className="notification-list max-h-[min(520px,65vh)] overflow-y-auto p-2">
             <NotificationList items={visibleItems} onSelect={selectItem} readState={readState} />
           </div>
-        </section>
+        </dialog>
       ) : null}
     </div>
   );

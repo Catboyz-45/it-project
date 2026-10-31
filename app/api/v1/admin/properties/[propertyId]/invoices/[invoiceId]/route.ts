@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { cancelInvoiceSchema, issueInvoiceSchema } from "@/lib/domain/billing";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { cancelInvoice, issueInvoice } from "@/lib/server/invoices";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ propertyId: string; invoiceId: string }> };
 
@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     assertSameOrigin(request);
     const { propertyId: rawPropertyId, invoiceId: rawInvoiceId } = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, rawPropertyId);
-    const invoiceId = z.string().cuid().parse(rawInvoiceId);
+    const invoiceId = recordIdSchema.parse(rawInvoiceId);
     const body: unknown = await request.json();
     const cancellation = cancelInvoiceSchema.safeParse(body);
     const data = cancellation.success

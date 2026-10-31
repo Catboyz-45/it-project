@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getStorageAdapter } from "@/lib/documents/storage";
 import { ApiError, apiErrorResponse } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { requirePropertyAccess, requireRequestAuth } from "@/lib/server/auth";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 export const runtime = "nodejs";
 
-const idSchema = z.string().cuid();
+const idSchema = recordIdSchema;
 
 // ดาวน์โหลดเอกสารที่สร้างไว้ ตรวจสิทธิ์ก่อนอ่านไฟล์จากที่เก็บ
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {

@@ -75,7 +75,7 @@ export function DatePickerField({
   const pickerId = useId();
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const calendarRef = useRef<HTMLDivElement | null>(null);
+  const calendarRef = useRef<HTMLDialogElement | null>(null);
   // ค่าที่รับมาเป็นสตริง แปลงเป็น Date ไว้ใช้ภายใน ค่าที่รูปแบบผิดจะได้ null
   const selectedDate = useMemo(() => parseIsoDate(value), [value]);
   const minimumDate = useMemo(() => startOfDay(minDate), [minDate]);
@@ -248,11 +248,6 @@ export function DatePickerField({
     focusDay(nextDate);
   };
 
-  const closeWithKeyboard = () => {
-    setIsOpen(false);
-    triggerRef.current?.focus();
-  };
-
   // ปุ่มลูกศรบนหัวปฏิทิน เลื่อนทีละเดือน ทีละปี หรือทีละ 12 ปี ตามมุมมองที่เปิดอยู่
   const moveVisiblePeriod = (offset: number) => {
     if (viewMode === "day") {
@@ -299,20 +294,15 @@ export function DatePickerField({
           <CalendarDays aria-hidden="true" size={22} />
         </button>
         {isOpen ? (
-          <div
+          <dialog
+            // open คือแสดงแบบไม่บังหน้า (non-modal) ตำแหน่งและหน้าตามาจากคลาส schedule-calendar
+            open
             aria-label={`เลือก${plainLabel}`}
             aria-modal="true"
             className="schedule-calendar"
             id={`${pickerId}-calendar`}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                closeWithKeyboard();
-              }
-            }}
+            // Esc ถูกจัดการที่ document แบบ capture ใน useEffect ด้านบนแล้ว จึงไม่ต้องดักซ้ำที่นี่
             ref={calendarRef}
-            role="dialog"
           >
             <div className="schedule-calendar-head">
               <IconButton label="ช่วงก่อนหน้า" disabled={!canMoveBackward} onClick={() => moveVisiblePeriod(-1)}><ChevronLeft size={20} /></IconButton>
@@ -403,7 +393,7 @@ export function DatePickerField({
                 ))}
               </div>
             ) : null}
-          </div>
+          </dialog>
         ) : null}
       </div>
     </div>

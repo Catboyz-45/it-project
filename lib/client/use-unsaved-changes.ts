@@ -18,7 +18,6 @@ export function useUnsavedChanges(isDirty: boolean, message = DEFAULT_MESSAGE) {
       // เพิ่งยืนยันจากคำถามของเราไปหมาด ๆ ไม่ต้องถามซ้ำอีก
       if (Date.now() < allowUnloadUntil) return;
       event.preventDefault();
-      event.returnValue = "";
     };
 
     // ดักการกดลิงก์ในหน้า เพราะ Next เปลี่ยนหน้าเองโดยไม่ผ่าน beforeunload

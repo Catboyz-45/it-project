@@ -213,6 +213,7 @@ export function DropdownField({
             onKeyDown={handleMenuKeyDown}
             ref={menuRef}
             role="listbox"
+            tabIndex={-1}
           >
             {/* หัวข้อคั่นบนสุดของรายการ ทำให้เมนูดูมีขอบเขตชัดกว่ากล่องลอย ๆ */}
             <div className="dropdown-menu-heading">ตัวเลือกทั้งหมด</div>

@@ -22,7 +22,9 @@ export function ReadOnlyNotice({
     return <output className={`read-only-control-note ${className}`.trim()}><LockKeyhole aria-hidden="true" size={15} />{title}</output>;
   }
 
-  return <div className={`read-only-notice ${className}`.trim()} role="status">
+  // ประกาศแบบ live region ให้โปรแกรมอ่านหน้าจออ่านเมื่อแสดงขึ้นมา ใช้ div เพราะข้างในมี <p>
+  // ซึ่ง <output> ใส่ไม่ได้ตามสเปก HTML
+  return <div aria-atomic="true" aria-live="polite" className={`read-only-notice ${className}`.trim()}>
     <LockKeyhole aria-hidden="true" size={18} />
     <div><strong>{title}</strong><p>{children}</p></div>
   </div>;

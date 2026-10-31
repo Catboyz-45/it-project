@@ -158,7 +158,7 @@ export function SettingsPage({
         <Link className="settings-back" href={ownerPagePath(propertyId, "overview")}>
           <ArrowLeft aria-hidden={true} size={16} /> กลับหน้าหลัก
         </Link>
-        <div aria-label="เมนูตั้งค่า" aria-orientation="vertical" className="settings-nav-group" onKeyDown={handleSettingsKeyDown} role="tablist">
+        <div aria-label="เมนูตั้งค่า" aria-orientation="vertical" className="settings-nav-group" onKeyDown={handleSettingsKeyDown} role="tablist" tabIndex={-1}>
           <p>ระบบหอพัก</p>
           {systemSettingSections.map(({ key, label, icon: Icon }) => (
             <button aria-controls="settings-active-panel" aria-selected={activeSection === key} className={activeSection === key ? "active" : ""} id={`settings-tab-${key}`} key={key} onClick={() => { setActiveSection(key); setMobileView("section"); }} role="tab" tabIndex={activeSection === key ? 0 : -1} type="button">

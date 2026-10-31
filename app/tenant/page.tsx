@@ -9,6 +9,7 @@ import { requirePageAuth } from "@/lib/server/auth";
 import { listTenantParcels, listTenantTickets } from "@/lib/server/property-operations";
 import { findActiveOccupancyForPage, tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
 import { listTenantInvoices } from "@/lib/server/tenant-portal";
+import { toClientData } from "@/lib/server/client-data";
 
 export default async function TenantPage() {
   const auth = await requirePageAuth();
@@ -33,9 +34,9 @@ export default async function TenantPage() {
   // ส่งตรงจากเซิร์ฟเวอร์จะยังเป็น Date กับ Decimal อยู่ แปลงให้เหมือนกันด้วยวิธีเดียวกับที่ API ทำ
   return <TenantSectionPanel
     initialSummary={{
-      invoices: invoices ? JSON.parse(JSON.stringify(invoices.data)) : null,
-      parcels: JSON.parse(JSON.stringify(parcels.data)),
-      tickets: JSON.parse(JSON.stringify(tickets.data)),
+      invoices: invoices ? toClientData(invoices.data) : null,
+      parcels: toClientData(parcels.data),
+      tickets: toClientData(tickets.data),
     }}
     tab="home"
   />;

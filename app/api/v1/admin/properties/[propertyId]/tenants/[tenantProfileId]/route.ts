@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { updateTenantProfileSchema } from "@/lib/domain/property-management";
 import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { getPropertyTenant, updatePropertyTenant } from "@/lib/server/property-management";
+import { recordIdSchema } from "@/lib/domain/record-id";
 
 type Context = { params: Promise<{ propertyId: string; tenantProfileId: string }> };
 const parseId = (value: string) => {
-  const result = z.string().cuid().safeParse(value);
+  const result = recordIdSchema.safeParse(value);
   if (!result.success) throw new ApiError(404, "ไม่พบผู้เช่า");
   return result.data;
 };

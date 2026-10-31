@@ -8,7 +8,8 @@ const salt = "nestly-demo:";
 const legacyPattern = "demo-%";
 
 export function demoId(legacyKey) {
-  return `c${createHash("md5").update(`${salt}${legacyKey}`).digest("hex").slice(0, 24)}`;
+  const digest = createHash("md5").update(salt + legacyKey).digest("hex");
+  return `c${digest.slice(0, 24)}`;
 }
 
 // ฐานข้อมูลที่เคย seed ด้วย id แบบเดิมไว้แล้ว เปลี่ยน id ในที่เดิมแทนการลบแล้วสร้างใหม่
