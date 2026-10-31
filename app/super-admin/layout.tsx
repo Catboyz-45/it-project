@@ -2,10 +2,12 @@
 import { redirect } from "next/navigation";
 import { SuperAdminNavigation } from "@/components/admin/SuperAdminNavigation";
 import { SuperAdminChatWidget } from "@/components/admin/SuperAdminChatWidget";
+import { SuperAdminNotificationsProvider } from "@/components/admin/SuperAdminNotifications";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { SidebarAccountMenu } from "@/components/ui/SidebarAccountMenu";
 import { appSidebarId, NavShell, NavToggle } from "@/components/ui/NavShell";
 import { requirePageAuth } from "@/lib/server/auth";
+import { getSuperAdminNotificationCounts } from "@/lib/server/super-admin-notifications";
 
 // โครงหน้าของทุกหน้าใต้ /super-admin มีแถบข้างกับพื้นที่เนื้อหา
 export default async function SuperAdminLayout({
@@ -17,8 +19,10 @@ export default async function SuperAdminLayout({
   const auth = await requirePageAuth();
   // ไม่ใช่ซูเปอร์แอดมินก็เด้งไปหน้าเจ้าของหอ ไม่ต้องบอกว่าที่นี่มีอะไร
   if (auth.role !== "SUPER_ADMIN") redirect("/admin");
+  // ตัวเลขตั้งต้นของกระดิ่งและเมนู มาพร้อม HTML จะได้ไม่เห็นป้ายว่างแวบหนึ่งก่อนโหลด
+  const notificationCounts = await getSuperAdminNotificationCounts();
 
-  return <NavShell className="shell super-admin-shell text-[#292a30]">
+  return <SuperAdminNotificationsProvider initialCounts={notificationCounts}><NavShell className="shell super-admin-shell text-[#292a30]">
     <aside className="sidebar super-admin-sidebar" id={appSidebarId}>
       <div className="sidebar-head mb-5">
         <div className="brand">
@@ -36,5 +40,5 @@ export default async function SuperAdminLayout({
       </div>
     </section>
     <SuperAdminChatWidget />
-  </NavShell>;
+  </NavShell></SuperAdminNotificationsProvider>;
 }

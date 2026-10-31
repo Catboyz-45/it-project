@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { newPasswordSchema } from "@/lib/domain/password-policy";
 import { apiErrorResponse, apiSuccessResponse, ApiError, assertSameOrigin } from "@/lib/server/api";
 import { requireRequestAuth, revokeAllSessions } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
@@ -7,12 +8,7 @@ import { hashPassword, verifyPassword } from "@/lib/server/password";
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1).max(256),
-  newPassword: z.string()
-    .min(12, "รหัสผ่านใหม่ต้องมีอย่างน้อย 12 ตัวอักษร")
-    .max(128)
-    .regex(/[a-z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์เล็ก")
-    .regex(/[A-Z]/, "ต้องมีตัวอักษรภาษาอังกฤษพิมพ์ใหญ่")
-    .regex(/\d/, "ต้องมีตัวเลข"),
+  newPassword: newPasswordSchema,
 }).strict().refine((value) => value.currentPassword !== value.newPassword, {
   message: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม",
   path: ["newPassword"],

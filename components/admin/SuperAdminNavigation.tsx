@@ -11,23 +11,35 @@ import {
   LayoutDashboard,
   UsersRound,
 } from "lucide-react";
+import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
+import type { SuperAdminNotificationCounts } from "@/lib/server/super-admin-notifications";
 
 // เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหน้าใหม่โดยไม่ต้องแก้ JSX
 // exact: true เฉพาะแดชบอร์ด เพราะ /super-admin เป็นคำนำหน้าของทุกหน้าที่เหลือ
 const items = [
   { href: "/super-admin", label: "แดชบอร์ด", icon: LayoutDashboard, exact: true },
-  { href: "/super-admin/accounts", label: "บัญชีเจ้าของหอ", icon: UsersRound, exact: false },
+  { href: "/super-admin/accounts", label: "บัญชีเจ้าของหอ", icon: UsersRound, exact: false, countKey: "pendingAccounts" },
   { href: "/super-admin/properties", label: "หอพัก", icon: Building2, exact: false },
   { href: "/super-admin/plans", label: "แพ็กเกจ", icon: Crown, exact: false },
-  { href: "/super-admin/subscriptions", label: "การชำระสมาชิก", icon: CreditCard, exact: false },
+  { href: "/super-admin/subscriptions", label: "การชำระสมาชิก", icon: CreditCard, exact: false, countKey: "pendingSubscriptionPayments" },
   { href: "/super-admin/audit-logs", label: "Audit Log", icon: Activity, exact: false },
-] as const;
+] satisfies ReadonlyArray<{
+  countKey?: keyof SuperAdminNotificationCounts;
+  exact: boolean;
+  href: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+}>;
 
 export function SuperAdminNavigation() {
   const pathname = usePathname();
+  // ป้ายตัวเลขเป็นงานค้าง ลดเมื่อจัดการเสร็จ ไม่ใช่เมื่อกดเข้าเมนู
+  const counts = useSuperAdminNotifications()?.counts;
 
   return <nav aria-label="เมนู Super Admin" className="super-admin-navigation grid gap-1">
-    {items.map(({ exact, href, icon: Icon, label }) => {
+    {items.map((item) => {
+      const { exact, href, icon: Icon, label } = item;
+      const count = item.countKey && counts ? counts[item.countKey] : 0;
       const active = exact ? pathname === href : pathname.startsWith(href);
       // aria-current บอกโปรแกรมอ่านหน้าจอว่าอยู่หน้านี้ ไม่ใช่แค่ทำให้สีเข้ม
       return <Link
@@ -40,6 +52,7 @@ export function SuperAdminNavigation() {
       >
         <Icon size={18} />
         <span>{label}</span>
+        {count > 0 ? <span aria-label={`${count} รายการที่ต้องดำเนินการ`} className="notification-badge">{count > 99 ? "99+" : count}</span> : null}
       </Link>;
     })}
   </nav>;

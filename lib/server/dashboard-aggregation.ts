@@ -1,4 +1,5 @@
 import { getDatabase } from "@/lib/server/db";
+import { countOwnerUnreadMessages } from "@/lib/server/chat";
 import { monthlyEquivalent, usagePercent } from "@/lib/domain/saas";
 import { getServerEnv } from "@/lib/server/env";
 import { getSubscriptionAccessState } from "@/lib/server/subscription-guard";
@@ -63,18 +64,8 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
     getDatabase().paymentSubmission.count({ where: { propertyId, status: "PENDING_REVIEW" } }),
     getDatabase().serviceTicket.count({ where: { propertyId, status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] } } }),
     getDatabase().parcel.count({ where: { propertyId, status: "WAITING" } }),
-    // ใช้ SQL ดิบเพราะเงื่อนไขเทียบเวลาข้อความกับเวลาที่อ่านล่าสุดของแต่ละห้องสนทนา ซึ่ง Prisma เขียนตรง ๆ ไม่ได้
-    // propertyId ส่งเป็นพารามิเตอร์ จึงไม่มีช่องให้ SQL injection
-    // COUNT ของ Postgres คืน bigint ซึ่ง JavaScript รับมาเป็น BigInt จึงแปลงเป็น number ก่อนใช้ต่อ
-    getDatabase().$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(*)::bigint AS "count"
-      FROM "ChatMessage" message
-      INNER JOIN "ChatConversation" conversation ON conversation."id" = message."conversationId"
-      WHERE message."propertyId" = ${propertyId}
-        AND message."senderRole" = 'TENANT'
-        AND conversation."type" = 'TENANT_PROPERTY'
-        AND (conversation."lastAdminReadAt" IS NULL OR message."createdAt" > conversation."lastAdminReadAt")
-    `.then((rows) => Number(rows[0]?.count ?? 0)),
+    // ใช้ตัวนับเดียวกับป้ายบนปุ่มแชท สองที่จะได้ไม่นับไม่ตรงกัน
+    countOwnerUnreadMessages(propertyId).then(({ tenantMessages }) => tenantMessages),
   ]);
   if (!property) return null;
   // แปลงผล groupBy เป็น object ที่หยิบด้วยชื่อสถานะได้เลย

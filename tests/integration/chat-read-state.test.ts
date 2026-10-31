@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDatabase } from "@/lib/server/db";
 import {
+  countOwnerUnreadMessages,
+  countSuperAdminUnreadSupportMessages,
   ensureSupportConversation,
   ensureTenantConversation,
   listConversations,
@@ -157,5 +159,33 @@ describe("chat read state per role", () => {
       .rejects.toMatchObject({ status: 403 });
     const supportView = await listConversations(superAdmin, "PROPERTY_SUPPORT", pagination);
     expect(supportView.data.every((item) => item.type === "PROPERTY_SUPPORT")).toBe(true);
+  });
+
+  // ป้ายตัวเลขต้องลดทันทีที่เปิดอ่าน และนับแยกว่าข้อความมาจากใคร ไม่ใช่นับข้อความของตัวเองว่าเป็นเรื่องใหม่
+  it("counts unread support messages per side and clears them once read", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    // ใช้หออีกหลัง ข้อความในเทสต์อื่นจะได้ไม่ปนกับตัวเลขที่ตรวจ
+    const propertyId = fixture.otherProperty.id;
+    const conversation = await ensureSupportConversation(propertyId);
+    const superAdminBefore = await countSuperAdminUnreadSupportMessages();
+    const later = Date.now() + 60_000;
+
+    await getDatabase().chatMessage.createMany({
+      data: [
+        { propertyId, conversationId: conversation.id, body: "ตอบจากแอดมินใหญ่", senderRole: "SUPER_ADMIN", senderUserId: fixture.superAdmin.id, clientId: randomUUID(), createdAt: new Date(later) },
+        { propertyId, conversationId: conversation.id, body: "คำถามจากเจ้าของหอ", senderRole: "ADMIN", senderUserId: fixture.otherOwner.id, clientId: randomUUID(), createdAt: new Date(later + 1_000) },
+      ],
+    });
+
+    expect(await countOwnerUnreadMessages(propertyId)).toEqual({ supportMessages: 1, tenantMessages: 0 });
+    expect(await countSuperAdminUnreadSupportMessages()).toBe(superAdminBefore + 1);
+
+    // อ่านช่วงเวลาที่ข้อความทดสอบถูกสร้างไว้ล่วงหน้า จึงตั้งเวลาอ่านให้เลยข้อความเหล่านั้น
+    await getDatabase().chatConversation.update({
+      where: { id: conversation.id },
+      data: { lastAdminReadAt: new Date(later + 5_000), lastSuperAdminReadAt: new Date(later + 5_000) },
+    });
+    expect(await countOwnerUnreadMessages(propertyId)).toEqual({ supportMessages: 0, tenantMessages: 0 });
+    expect(await countSuperAdminUnreadSupportMessages()).toBe(superAdminBefore);
   });
 });

@@ -275,6 +275,37 @@ export async function listConversations(
   return { data, pageInfo: page.pageInfo };
 }
 
+// ข้อความที่เจ้าของหอยังไม่ได้อ่าน แยกที่มาจากผู้เช่ากับจากแอดมินใหญ่ ใช้กับป้ายตัวเลขและกระดิ่ง
+// นับในคำสั่งเดียวด้วย FILTER แทนการยิงสองรอบ ค่าส่งเป็นพารามิเตอร์ จึงไม่มีช่องให้ SQL injection
+export async function countOwnerUnreadMessages(propertyId: string) {
+  const rows = await getDatabase().$queryRaw<Array<{ supportMessages: bigint; tenantMessages: bigint }>>`
+    SELECT
+      COUNT(*) FILTER (WHERE conversation."type" = 'TENANT_PROPERTY' AND message."senderRole" = 'TENANT')::bigint AS "tenantMessages",
+      COUNT(*) FILTER (WHERE conversation."type" = 'PROPERTY_SUPPORT' AND message."senderRole" = 'SUPER_ADMIN')::bigint AS "supportMessages"
+    FROM "ChatMessage" message
+    INNER JOIN "ChatConversation" conversation ON conversation."id" = message."conversationId"
+    WHERE message."propertyId" = ${propertyId}
+      AND (conversation."lastAdminReadAt" IS NULL OR message."createdAt" > conversation."lastAdminReadAt")
+  `;
+  return {
+    supportMessages: Number(rows[0]?.supportMessages ?? 0),
+    tenantMessages: Number(rows[0]?.tenantMessages ?? 0),
+  };
+}
+
+// ข้อความจากเจ้าของหอทุกหอที่แอดมินใหญ่ยังไม่ได้อ่าน
+export async function countSuperAdminUnreadSupportMessages() {
+  const rows = await getDatabase().$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(*)::bigint AS "count"
+    FROM "ChatMessage" message
+    INNER JOIN "ChatConversation" conversation ON conversation."id" = message."conversationId"
+    WHERE conversation."type" = 'PROPERTY_SUPPORT'
+      AND message."senderRole" <> 'SUPER_ADMIN'
+      AND (conversation."lastSuperAdminReadAt" IS NULL OR message."createdAt" > conversation."lastSuperAdminReadAt")
+  `;
+  return Number(rows[0]?.count ?? 0);
+}
+
 export async function listSuperAdminSupportConversations(pagination: PaginationInput) {
   const rows = await getDatabase().chatConversation.findMany({
     where: { type: "PROPERTY_SUPPORT" },

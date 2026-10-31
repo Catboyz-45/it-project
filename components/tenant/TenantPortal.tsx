@@ -21,7 +21,6 @@ import {
   Home,
   ListChecks,
   LoaderCircle,
-  LockKeyhole,
   MessageSquare,
   MoreHorizontal,
   Package,
@@ -45,6 +44,7 @@ import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { appSidebarId, NavShell, NavToggle } from "@/components/ui/NavShell";
+import { useRefreshOnFocus } from "@/lib/client/use-refresh-on-focus";
 import { SidebarAccountMenu } from "@/components/ui/SidebarAccountMenu";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
@@ -59,6 +59,7 @@ import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { listAnnouncement } from "@/components/tenant/LoadMoreList";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // บัญชีผู้เช่าหนึ่งคน คนหนึ่งอาจมีหลายการเข้าพัก เช่นย้ายห้องหรือเช่าหลายห้อง
 type Account = {
@@ -394,6 +395,8 @@ export function TenantPortal({
     "/api/v1/tenant/notifications/summary",
     Boolean(active),
   );
+  // ข้อความหรือบิลใหม่จะได้ขึ้นป้ายเองระหว่างเปิดหน้าทิ้งไว้ ไม่ต้องรีเฟรช
+  useRefreshOnFocus(notificationResource.reload);
   // ผู้เช่าหลักเท่านั้นที่เห็นบิลกับสัญญา ผู้พักร่วมเห็นแค่ข้อมูลห้องและเรื่องทั่วไป
   const primary = active?.role === "PRIMARY";
   const accessState = resolveSubscriptionUiAccessState({
@@ -540,6 +543,7 @@ export function TenantPortal({
     {active && activeTab !== "chat" && isQuickChatOpen && !roomResource.isLoading && roomResource.data ? (
       <TenantChat
         onClose={() => setIsQuickChatOpen(false)}
+        onRead={notificationResource.reload}
         propertyId={roomResource.data.room.property.id}
         readOnly={isReadOnly}
         variant="widget"
@@ -589,7 +593,7 @@ export function TenantSectionPanel({
   if (tab === "announcements") return <AnnouncementsPanel />;
   if (tab === "parcels") return <ParcelsPanel />;
   if (tab === "tickets") return <TicketsPanel initialViews={initialTickets} onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
-  if (tab === "chat") return <TenantChatSection isReadOnly={isReadOnly} roomResource={roomResource} />;
+  if (tab === "chat") return <TenantChatSection isReadOnly={isReadOnly} onRead={notificationResource.reload} roomResource={roomResource} />;
   return null;
 }
 
@@ -600,15 +604,16 @@ function PrimaryOnly({ children, isPrimary, message }: Readonly<{ children: Reac
 }
 
 // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
-function TenantChatSection({ isReadOnly, roomResource }: Readonly<{
+function TenantChatSection({ isReadOnly, onRead, roomResource }: Readonly<{
   isReadOnly: boolean;
+  onRead: () => unknown;
   roomResource: ReturnType<typeof useTenantPortal>["roomResource"];
 }>) {
   if (roomResource.isLoading) return <Loading />;
   if (roomResource.error || !roomResource.data) {
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
   }
-  return <TenantChat propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
+  return <TenantChat onRead={onRead} propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
 }
 
 // แท็บบัญชีของฉัน แก้ข้อมูลติดต่อและเปลี่ยนรหัสผ่าน
@@ -774,10 +779,10 @@ function AccountPanel({
         <header className="modal-header"><div><h2 id="tenant-password-title">เปลี่ยนรหัสผ่าน</h2><p id="tenant-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSavingPassword} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">
           <label><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={(event) => setPassword({ ...password, currentPassword: event.target.value })} required type="password" value={password.currentPassword} /></label>
-          <label><span>รหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword({ ...password, newPassword: event.target.value })} required type="password" value={password.newPassword} /></label>
+          <label><span>รหัสผ่านใหม่</span><input aria-describedby="tenant-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword({ ...password, newPassword: event.target.value })} required type="password" value={password.newPassword} /></label>
           <label><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword({ ...password, confirmPassword: event.target.value })} required type="password" value={password.confirmPassword} /></label>
         </div>
-        <p className="account-password-hint"><LockKeyhole size={17} /> อย่างน้อย 12 ตัวอักษร พร้อมตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข</p>
+        <PasswordRequirements confirmation={password.confirmPassword} currentPassword={password.currentPassword} id="tenant-password-requirements" password={password.newPassword} />
         {passwordError ? <p className="account-settings-message error" role="alert">{passwordError}</p> : null}
         <footer className="modal-actions"><button disabled={isSavingPassword} onClick={() => setIsEditingPassword(false)} type="button">ยกเลิก</button><button disabled={isSavingPassword} type="submit">{isSavingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
       </form>
@@ -1522,11 +1527,14 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
 type ChatMessage = { id: string; body: string; senderRole: "ADMIN" | "TENANT" | "SUPER_ADMIN"; senderName: string; createdAt: string; attachment: { name: string; mimeType: string; size: number; url: string } | null };
 function TenantChat({
   onClose,
+  onRead,
   propertyId,
   readOnly,
   variant = "page",
 }: Readonly<{
   onClose?: () => void;
+  // เปิดอ่านแล้วให้เปลือกโหลดตัวเลขบนป้ายแชทและกระดิ่งใหม่
+  onRead?: () => unknown;
   propertyId: string;
   readOnly: boolean;
   variant?: "page" | "widget";
@@ -1539,6 +1547,7 @@ function TenantChat({
     setAttachment, setError, setMessage,
   } = useChatThread<ChatMessage>({
     endpoint: "/api/v1/tenant/chat",
+    onRead,
     propertyId,
     requireConversationId: true,
     streaming: true,

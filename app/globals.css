@@ -1297,6 +1297,12 @@
   .settings-editable-list article button.danger { @apply text-red-600 hover:bg-red-50; }
   .settings-password-grid { @apply grid grid-cols-3 gap-4 py-5; }
   .account-password-hint { @apply flex items-center gap-2 text-sm text-[#62646c]; }
+  /* เช็คลิสต์กฎรหัสผ่าน วงกลมเทาตอนยังไม่ผ่าน กลายเป็นวงเขียวมีเครื่องหมายถูกเมื่อผ่าน */
+  .password-requirements { @apply m-0 grid list-none gap-1.5 p-0 text-sm text-[#62646c]; }
+  .password-requirements > li { @apply flex items-center gap-2 transition-colors duration-150; }
+  .password-requirements > li.met { @apply text-emerald-700; }
+  .password-requirement-icon { @apply grid size-[18px] shrink-0 place-items-center rounded-full text-[#a1a1aa] transition-colors duration-150; }
+  .password-requirements > li.met .password-requirement-icon { @apply bg-emerald-600 text-white; }
   .account-settings-message { @apply mt-4 rounded-xl px-4 py-3 text-sm font-semibold; }
   .account-settings-message.success { @apply bg-emerald-50 text-emerald-700; }
   .account-settings-message.error { @apply bg-red-50 text-red-700; }

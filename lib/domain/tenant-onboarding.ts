@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { newPasswordSchema } from "@/lib/domain/password-policy";
 import { occupancyRoleSchema, occupancyStatusSchema } from "@/lib/domain/enums";
 
 // สร้างคำเชิญให้ผู้เช่า สิทธิ์และอายุรหัสถูกกำหนดตั้งแต่ตอนสร้าง ผู้รับเปลี่ยนเองไม่ได้
@@ -15,14 +16,8 @@ export const tenantRegistrationSchema = z.object({
   // แปลงเป็นตัวพิมพ์เล็กก่อนเก็บ จะได้ไม่มีอีเมลเดียวกันสมัครซ้ำได้ด้วยตัวพิมพ์ต่างกัน
   // 254 คือความยาวสูงสุดของอีเมลตามมาตรฐาน
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
-  // อย่างน้อย 12 ตัว และต้องมีพิมพ์เล็ก พิมพ์ใหญ่ และตัวเลขครบ
-  // ตรวจที่นี่เป็นด่านจริง ส่วนที่บอกไว้ในหน้าจอมีไว้ให้ผู้ใช้รู้ล่วงหน้าเฉย ๆ
-  password: z.string()
-    .min(12)
-    .max(128)
-    .regex(/[a-z]/)
-    .regex(/[A-Z]/)
-    .regex(/\d/),
+  // กฎชุดเดียวกับทุกหน้าที่ตั้งรหัสผ่าน ตรวจที่นี่เป็นด่านจริง เช็คลิสต์บนหน้าจอใช้กฎชุดเดียวกัน
+  password: newPasswordSchema,
   displayName: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(8).max(30),
   // literal(true) แปลว่าต้องเป็น true เท่านั้น ส่ง false มาก็ไม่ผ่าน ไม่ใช่แค่ไม่ส่งไม่ได้

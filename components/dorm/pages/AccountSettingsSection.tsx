@@ -3,11 +3,12 @@
 // สถานะและฟอร์มทั้งหมดในหมวดนี้เป็นเรื่องภายในของตัวเอง หน้าตั้งค่าหอไม่ต้องรู้ด้วย
 
 import { useState } from "react";
-import { CheckCircle2, ChevronRight, LockKeyhole, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PasswordField, TextField } from "@/components/dorm/pages/settings-fields";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 type FormState = { message: string; tone: "error" | "success" } | null;
 type PasswordDraft = { confirmPassword: string; currentPassword: string; newPassword: string };
@@ -168,10 +169,10 @@ function PasswordEditorDialog({ isOpen, isSaving, onChange, onClose, onSubmit, p
       <header className="modal-header"><div><h2 id="password-editor-title">เปลี่ยนรหัสผ่าน</h2><p id="password-editor-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างเปลี่ยนรหัสผ่าน"><X /></IconButton></header>
       <div className="account-password-fields">
         <PasswordField label="รหัสผ่านปัจจุบัน" onChange={(value) => onChange((current) => ({ ...current, currentPassword: value }))} value={passwords.currentPassword} />
-        <PasswordField label="รหัสผ่านใหม่" onChange={(value) => onChange((current) => ({ ...current, newPassword: value }))} value={passwords.newPassword} />
+        <PasswordField describedBy="owner-password-requirements" label="รหัสผ่านใหม่" onChange={(value) => onChange((current) => ({ ...current, newPassword: value }))} value={passwords.newPassword} />
         <PasswordField label="ยืนยันรหัสผ่านใหม่" onChange={(value) => onChange((current) => ({ ...current, confirmPassword: value }))} value={passwords.confirmPassword} />
       </div>
-      <p className="account-password-hint"><LockKeyhole size={17} /> อย่างน้อย 12 ตัวอักษร พร้อมตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข</p>
+      <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="owner-password-requirements" password={passwords.newPassword} />
       <FormMessage state={state} />
       <footer className="modal-actions"><button onClick={onClose} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
     </form>

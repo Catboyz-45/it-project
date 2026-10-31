@@ -35,7 +35,9 @@ test("super admin can open the aggregated SaaS dashboard", async ({ page }) => {
     ["Audit Log", "/super-admin/audit-logs"],
   ] as const;
   for (const [label, route] of routes) {
-    await page.getByRole("link", { name: label, exact: true }).click();
+    // เมนูที่มีงานค้างจะมีจำนวนต่อท้ายชื่อ จึงจับเฉพาะชื่อเมนูที่ขึ้นต้น
+    await page.getByRole("navigation", { name: "เมนู Super Admin" })
+      .getByRole("link", { name: new RegExp(`^${label}(?:\\s|$)`) }).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     // ชื่อเมนูกับหัวข้อในหน้าไม่ตรงกันอยู่อันเดียว จึงต้องดักไว้เป็นกรณีพิเศษ
     await expect(page.getByRole("heading", { name: label === "แพ็กเกจ" ? "แพ็กเกจ SaaS" : label, exact: true }).first()).toBeVisible();

@@ -7,6 +7,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconButton } from "@/components/ui/IconButton";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useDialogAccessibility } from "@/lib/client/use-dialog-accessibility";
+import {
+  acknowledgeNotifications,
+  isNotificationUnread,
+  type NotificationReadState,
+  parseNotificationReadState,
+  settleNotificationReadState,
+} from "@/lib/client/notification-read-state";
 
 export type NotificationCenterItem = {
   // จำนวนที่ค้างอยู่ เช่นมีบิลรอตรวจ 3 ใบ เป็น 0 จะไม่แสดงรายการนี้
@@ -21,16 +28,21 @@ export type NotificationCenterItem = {
 };
 
 // กระดิ่งแจ้งเตือนบนแถบหัวเรื่อง รวมงานค้างของหน้าต่าง ๆ ไว้ที่เดียว
-// ผูก id กับจำนวนไว้ด้วยกัน พอจำนวนเปลี่ยนก็ถือว่าเป็นเรื่องใหม่ที่ยังไม่ได้อ่าน
-function fingerprintOf(item: NotificationCenterItem) {
-  return `${item.id}:${item.count}`;
+// จำว่าแต่ละหัวข้อรับทราบไปแล้วกี่รายการ จำนวนเพิ่มเกินนั้นเมื่อไหร่ถึงนับว่ามีเรื่องใหม่
+
+function writeReadState(storageKey: string, state: NotificationReadState) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+    // โหมดส่วนตัวหรือปิดการเก็บข้อมูลไว้ กระดิ่งยังใช้ได้ แค่จำข้ามการโหลดหน้าไม่ได้
+  }
 }
 
 // รายการในแผง ว่างเพราะไม่มีงานค้าง ไม่ใช่เพราะระบบพัง
-function NotificationList({ items, onSelect, readFingerprints }: Readonly<{
+function NotificationList({ items, onSelect, readState }: Readonly<{
   items: NotificationCenterItem[];
   onSelect: (item: NotificationCenterItem) => void;
-  readFingerprints: string[];
+  readState: NotificationReadState;
 }>) {
   if (items.length === 0) {
     return <div className="grid justify-items-center px-6 py-10 text-center">
@@ -40,7 +52,7 @@ function NotificationList({ items, onSelect, readFingerprints }: Readonly<{
     </div>;
   }
   return <>{items.map((item) => <NotificationRow
-    isUnread={!readFingerprints.includes(fingerprintOf(item))}
+    isUnread={isNotificationUnread(readState, item)}
     item={item}
     key={item.id}
     onSelect={onSelect}
@@ -129,7 +141,8 @@ export function NotificationCenter({
   storageKey: string;
 }>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [readFingerprints, setReadFingerprints] = useState<string[]>([]);
+  const [readState, setReadState] = useState<NotificationReadState>({});
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const previousTotalRef = useRef<number | null>(null);
@@ -138,7 +151,7 @@ export function NotificationCenter({
   // ซ่อนรายการที่ไม่มีอะไรค้าง จะได้เห็นเฉพาะเรื่องที่ต้องทำจริง
   const visibleItems = items.filter((item) => item.count > 0);
 
-  const unreadItems = visibleItems.filter((item) => !readFingerprints.includes(fingerprintOf(item)));
+  const unreadItems = visibleItems.filter((item) => isNotificationUnread(readState, item));
 
   // นับจากที่ยังไม่ได้อ่านเท่านั้น ตัวเลขบนกระดิ่งจะได้ลดลงเมื่อกดอ่าน
   const total = unreadItems.reduce((sum, item) => sum + item.count, 0);
@@ -159,14 +172,30 @@ export function NotificationCenter({
 
   useEffect(() => {
     // อ่านใน effect ไม่ใช่ตอนตั้ง state เพราะฝั่งเซิร์ฟเวอร์ไม่มี localStorage
-    // try/catch เผื่อค่าที่เก็บไว้เสียหรือเบราว์เซอร์ปิดการเก็บข้อมูลไว้
-    try { setReadFingerprints(JSON.parse(localStorage.getItem(storageKey) ?? "[]") as string[]); } catch { setReadFingerprints([]); }
+    // try/catch เผื่อเบราว์เซอร์ปิดการเก็บข้อมูลไว้ ค่าที่เสียหาย parse จัดการให้แล้ว
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(storageKey); } catch { raw = null; }
+    setReadState(parseNotificationReadState(raw));
+    setLoadedStorageKey(storageKey);
   }, [storageKey]);
 
-  const markRead = (fingerprints: string[]) => setReadFingerprints((current) => {
-    // Set กันค่าซ้ำ และเก็บแค่ 100 รายการหลังสุด ไม่ให้ localStorage โตไม่รู้จบ
-    const next = [...new Set([...current, ...fingerprints])].slice(-100);
-    localStorage.setItem(storageKey, JSON.stringify(next));
+  // งานที่ถูกจัดการไปจนจำนวนลด ต้องลดค่าที่รับทราบตาม งานใหม่ที่เข้ามาแทนจะได้ขึ้นว่ายังไม่อ่าน
+  const itemCounts = items.map((item) => `${item.id}:${item.count}`).join("|");
+  useEffect(() => {
+    // รอให้อ่านค่าที่เก็บไว้เสร็จก่อน ไม่งั้นจะไปปรับค่าว่างแล้วเขียนทับของจริง
+    if (loadedStorageKey !== storageKey) return;
+    setReadState((current) => {
+      const next = settleNotificationReadState(current, items);
+      if (next !== current) writeReadState(storageKey, next);
+      return next;
+    });
+    // ผูกกับจำนวนจริงแทน items ที่เป็นอาร์เรย์ใหม่ทุก render จะได้ไม่วนทำซ้ำโดยไม่จำเป็น
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemCounts, loadedStorageKey, storageKey]);
+
+  const markRead = (readItems: NotificationCenterItem[]) => setReadState((current) => {
+    const next = acknowledgeNotifications(current, readItems);
+    writeReadState(storageKey, next);
     return next;
   });
 
@@ -186,7 +215,7 @@ export function NotificationCenter({
 
   // กดรายการไหนถือว่าอ่านแล้ว แล้วปิดแผงเพื่อให้เห็นหน้าปลายทาง
   const selectItem = (item: NotificationCenterItem) => {
-    markRead([fingerprintOf(item)]);
+    markRead([item]);
     setIsOpen(false);
     item.onSelect?.();
   };
@@ -229,7 +258,7 @@ export function NotificationCenter({
             hasUnread={unreadItems.length > 0}
             isLoading={isLoading}
             onClose={() => setIsOpen(false)}
-            onMarkAllRead={() => markRead(visibleItems.map(fingerprintOf))}
+            onMarkAllRead={() => markRead(visibleItems)}
             onRefresh={onRefresh}
             readOnly={readOnly}
             total={total}
@@ -237,7 +266,7 @@ export function NotificationCenter({
 
           {/* จำกัดความสูงแล้วให้เลื่อนข้างใน กันแผงยาวเกินจอตอนมีรายการเยอะ */}
           <div className="notification-list max-h-[min(520px,65vh)] overflow-y-auto p-2">
-            <NotificationList items={visibleItems} onSelect={selectItem} readFingerprints={readFingerprints} />
+            <NotificationList items={visibleItems} onSelect={selectItem} readState={readState} />
           </div>
         </section>
       ) : null}

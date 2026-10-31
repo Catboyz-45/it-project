@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NavToggle } from "@/components/ui/NavShell";
+import { SuperAdminNotificationBell } from "@/components/admin/SuperAdminNotifications";
 
 // หัวหน้าที่ใช้ร่วมกันทุกหน้าของผู้ดูแลระบบ จะได้มีระยะห่างและขนาดตัวอักษรเหมือนกัน
 export function SuperAdminPageHeader({
@@ -20,6 +21,9 @@ export function SuperAdminPageHeader({
         <p className="mt-1 text-sm text-[#62646c]">{description}</p>
       </div>
     </div>
-    {actions}
+    <div className="flex items-center gap-3">
+      {actions}
+      <SuperAdminNotificationBell />
+    </div>
   </header>;
 }

@@ -3,6 +3,7 @@
 
 import { SyntheticEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // ขอลิงก์ตั้งรหัสผ่านใหม่ ตอบข้อความเดียวกันเสมอไม่ว่าอีเมลนั้นมีอยู่จริงหรือไม่
 // เพื่อไม่ให้ใครใช้หน้านี้ไล่เดาว่าอีเมลไหนสมัครไว้แล้ว
@@ -58,10 +59,10 @@ export function SetPasswordForm({ token, forced = false }: Readonly<{ token?: st
     finally { setLoading(false); }
   };
   return <form className="grid gap-5" onSubmit={submit}>
-    <label>รหัสผ่านใหม่ <input autoComplete="new-password" minLength={12} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
-    <label>ยืนยันรหัสผ่าน <input autoComplete="new-password" minLength={12} onChange={(event) => setConfirm(event.target.value)} required type="password" value={confirm} /></label>
-    {/* บอกเกณฑ์ไว้ตั้งแต่แรก ดีกว่าให้กรอกเสร็จแล้วค่อยโดนปฏิเสธ */}
-    <p className="text-sm text-[#62646c]">อย่างน้อย 12 ตัวอักษร</p>
+    <label>รหัสผ่านใหม่ <input aria-describedby="set-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
+    <label>ยืนยันรหัสผ่าน <input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setConfirm(event.target.value)} required type="password" value={confirm} /></label>
+    {/* บอกเกณฑ์ไว้ตั้งแต่แรกและติ๊กถูกระหว่างพิมพ์ ดีกว่าให้กรอกเสร็จแล้วค่อยโดนปฏิเสธ */}
+    <PasswordRequirements confirmation={confirm} id="set-password-requirements" password={password} />
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <button className="primary-button" disabled={loading} type="submit">{loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}</button>
   </form>;

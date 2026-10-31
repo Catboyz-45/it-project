@@ -211,7 +211,7 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
 
     const navigation = page.getByRole("navigation", { name: "เมนู Super Admin" });
-    const accounts = navigation.getByRole("link", { name: "บัญชีเจ้าของหอ", exact: true });
+    const accounts = navigation.getByRole("link", { name: /^บัญชีเจ้าของหอ(?:\s|$)/ });
     await activate(accounts);
     await expect(page).toHaveURL(/\/super-admin\/accounts$/);
     await expect(page.getByRole("heading", { name: "บัญชีเจ้าของหอ", exact: true })).toBeVisible();

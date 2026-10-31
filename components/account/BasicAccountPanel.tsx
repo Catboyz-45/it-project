@@ -2,12 +2,13 @@
 // เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
 import { SyntheticEvent, useState } from "react";
-import { CheckCircle2, ChevronRight, LockKeyhole, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { formatClientError, readApiPayload } from "@/lib/client/api-error";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
+import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // ข้อความผลลัพธ์ที่แสดงในหน้า แยกจาก toast เพราะต้องค้างไว้ให้อ่านได้จนกว่าจะทำใหม่
 type Message = { message: string; tone: "error" | "success" } | null;
@@ -124,10 +125,10 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: Re
         <header className="modal-header"><div><h2 id="basic-password-title">เปลี่ยนรหัสผ่าน</h2><p id="basic-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSaving} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="account-password-fields">
           <label><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={(event) => setPasswords((current) => ({ ...current, currentPassword: event.target.value }))} required type="password" value={passwords.currentPassword} /></label>
-          <label><span>รหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPasswords((current) => ({ ...current, newPassword: event.target.value }))} required type="password" value={passwords.newPassword} /></label>
+          <label><span>รหัสผ่านใหม่</span><input aria-describedby="basic-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPasswords((current) => ({ ...current, newPassword: event.target.value }))} required type="password" value={passwords.newPassword} /></label>
           <label><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPasswords((current) => ({ ...current, confirmPassword: event.target.value }))} required type="password" value={passwords.confirmPassword} /></label>
         </div>
-        <p className="account-password-hint"><LockKeyhole size={17} /> อย่างน้อย 12 ตัวอักษร พร้อมตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข</p>
+        <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="basic-password-requirements" password={passwords.newPassword} />
         {passwordMessage ? <p className={`account-settings-message ${passwordMessage.tone}`} role="alert">{passwordMessage.message}</p> : null}
         <footer className="modal-actions"><button disabled={isSaving} onClick={() => setIsEditingPassword(false)} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
       </form>
