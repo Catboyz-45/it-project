@@ -372,6 +372,12 @@ export const responseSchemas = {
     },
     generatedAt: dateTime,
   }),
+  SubscriptionPaymentSummary: entity(["pending", "approvedThisMonth", "approvedAmountThisMonth"], {
+    pending: { type: "integer" }, approvedThisMonth: { type: "integer" }, approvedAmountThisMonth: money,
+  }),
+  SubscriptionPaymentSuggestion: entity(["kind", "value", "detail"], {
+    kind: { type: "string", enum: ["property", "order", "plan"] }, value: text, detail: text,
+  }),
   SuperAdminNotificationCounts: entity(["pendingAccounts", "pendingSubscriptionPayments", "unreadSupportMessages"], {
     pendingAccounts: { type: "integer" }, pendingSubscriptionPayments: { type: "integer" }, unreadSupportMessages: { type: "integer" },
   }),
@@ -583,6 +589,8 @@ function sample(name) {
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],
     generatedAt: "2026-07-28T10:00:00.000Z",
   };
+  if (name === "SubscriptionPaymentSummary") return { pending: 3, approvedThisMonth: 5, approvedAmountThisMonth: "3495" };
+  if (name === "SubscriptionPaymentSuggestion") return { kind: "order", value: "SUB-2026-0001", detail: "หอพักทดลอง" };
   if (name === "SuperAdminNotificationCounts") return { pendingAccounts: 2, pendingSubscriptionPayments: 1, unreadSupportMessages: 3 };
   if (name === "PlatformDashboard") return {
     properties: { active: 12, totalSubscriptions: 12 },
@@ -805,6 +813,8 @@ const jsonSuccessRules = [
   [({ method, apiPath }) => apiPath.endsWith("/signed-document") && method === "post", () => data("UploadResult")],
   [({ apiPath }) => apiPath === "/api/v1/plans", () => data("SaasPlan", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/dashboard", () => data("PlatformDashboard")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/subscription-payments/summary", () => data("SubscriptionPaymentSummary")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/subscription-payments/suggestions", () => data("SubscriptionPaymentSuggestion", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/notifications", () => data("SuperAdminNotificationCounts")],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/plans", ({ method }) => data("SaasPlan", method === "get")],
   [({ apiPath }) => apiPath.endsWith("/super-admin/plans/{planId}"), () => data("SaasPlan")],
