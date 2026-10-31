@@ -394,6 +394,34 @@
   .account-menu .danger { @apply text-red-600 hover:bg-red-50!; }
   .account-menu > span { @apply block h-px bg-[#e4e4e7]; }
   .sidebar-account-footer > button { @apply justify-start!; }
+  .sidebar-collapse-toggle {
+    @apply mt-1 hidden min-h-9 w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-[#62636b] transition-colors duration-150 hover:bg-[#ededee] hover:text-[#292a30] md:flex;
+  }
+  /* ย่อเมนูเหลือแต่ไอคอน ใช้เฉพาะจอตั้งแต่ md ขึ้นไป บนมือถือเมนูย้ายไปอยู่บนหัวหน้าแบบ 2 คอลัมน์อยู่แล้ว
+     ความกว้างคอลัมน์ตามสถานะของ sidebar ผ่าน :has() จึงไม่ต้องยกสถานะขึ้นไปไว้ที่ DormDashboard */
+  @media (min-width: 768px) {
+    .shell { transition: grid-template-columns 200ms ease-out; }
+    .shell:has(> .sidebar-collapsed) { grid-template-columns: 68px minmax(0, 1fr); }
+    .sidebar-collapsed { @apply px-2; }
+    .sidebar-collapsed .brand { @apply justify-center p-1; }
+    .sidebar-collapsed .brand-copy,
+    .sidebar-collapsed .brand-switch-icon,
+    .sidebar-collapsed .sidebar-chevron,
+    .sidebar-collapsed nav a > span:not(.notification-badge),
+    .sidebar-collapsed nav button > span,
+    .sidebar-collapsed .sidebar-footer > button > span,
+    .sidebar-collapsed .sidebar-collapse-toggle > span { @apply hidden; }
+    .sidebar-collapsed nav a,
+    .sidebar-collapsed nav button,
+    .sidebar-collapsed .sidebar-footer > button,
+    .sidebar-collapsed .sidebar-collapse-toggle { @apply justify-center px-0; }
+    /* badge ลอยมุมขวาบนของไอคอนแทนการชิดขวา เพราะไม่มีข้อความให้ดันไปแล้ว */
+    .sidebar-collapsed .notification-badge { @apply absolute top-0.5 right-0.5 ml-0 min-w-4 px-1 py-0 text-[10px] leading-4; }
+    .sidebar-collapsed .sidebar-subnav > div { @apply ml-0 border-l-0 pl-0; }
+    /* เมนูหอพักและเมนูบัญชีกว้างเท่า sidebar อยู่เดิม พอย่อจะเหลือ 68px อ่านไม่ได้ จึงให้กว้างของตัวเอง */
+    .sidebar-collapsed .account-menu,
+    .sidebar-collapsed .sidebar-property-menu { @apply w-60; }
+  }
 
   /* bg-color แยกจาก bg-image เพราะ background-image ไม่รับสีธรรมดาเป็น layer
      ท้าย (ต้องเป็น <image> ทุก layer) ผสมสองค่านี้ไว้ใน bg-[...] เดียวจะถูก
