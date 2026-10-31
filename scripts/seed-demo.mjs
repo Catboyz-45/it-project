@@ -245,7 +245,8 @@ try {
           [demoId(`demo-meter-${tenant.room}-${monthOffset}-${type}`), propertyId, roomId, type, billingMonth, previous, current, rate, ownerId],
         );
       }
-      const invoiceKey = demoId(`demo-invoice-${tenant.room}-${monthOffset}`);
+      // คีย์แบบเดิมไว้ประกอบ id ของบิลและรายการในบิล ต้องผ่าน demoId() ครั้งเดียว ไม่งั้นไม่ตรงกับแถวเดิม
+      const invoiceKey = `demo-invoice-${tenant.room}-${monthOffset}`;
       const invoiceId = demoId(invoiceKey);
       const total = rent + water + electricity + 200;
       await run(
