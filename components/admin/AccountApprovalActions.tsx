@@ -2,7 +2,7 @@
 // เก็บสถานะของกล่องโต้ตอบและส่งคำขอจากเบราว์เซอร์
 
 import { useState } from "react";
-import { Building2, Check, KeyRound, X } from "lucide-react";
+import { Building2, Check, KeyRound, Mail, X } from "lucide-react";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
@@ -26,6 +26,14 @@ async function issueTemporaryPasswordRequest(userId: string) {
   const payload = await response.json() as { data?: { temporaryPassword: string }; error?: string };
   if (!response.ok || !payload.data) throw new Error(payload.error || "ออกรหัสผ่านชั่วคราวไม่สำเร็จ");
   return payload.data.temporaryPassword;
+}
+
+// ส่งลิงก์ตั้งรหัสผ่านทางอีเมล ผู้ดูแลระบบไม่เห็นรหัสผ่าน และรหัสเดิมยังใช้ได้จนกว่าเจ้าของหอจะตั้งใหม่
+async function sendResetLinkRequest(userId: string) {
+  const response = await fetch(`/api/v1/super-admin/users/${userId}/password-reset-link`, { method: "POST" });
+  const payload = await response.json() as { data?: { email: string }; error?: string };
+  if (!response.ok || !payload.data) throw new Error(payload.error || "ส่งลิงก์ตั้งรหัสผ่านไม่สำเร็จ");
+  return payload.data.email;
 }
 
 async function saveMembershipsRequest(userId: string, propertyIds: string[]) {
@@ -55,11 +63,12 @@ async function requestAllProperties() {
 }
 
 // เมนูจัดการบัญชี รายการขึ้นกับสถานะอนุมัติของบัญชีนั้น
-function accountMenuItems({ onApprove, onEditMemberships, onIssuePassword, onReject, pending, status }: {
+function accountMenuItems({ onApprove, onEditMemberships, onIssuePassword, onReject, onSendResetLink, pending, status }: {
   onApprove: () => void;
   onEditMemberships: () => void;
   onIssuePassword: () => void;
   onReject: () => void;
+  onSendResetLink: () => void;
   pending: boolean;
   status: "PENDING" | "APPROVED" | "REJECTED";
 }): ActionMenuItem[] {
@@ -67,7 +76,10 @@ function accountMenuItems({ onApprove, onEditMemberships, onIssuePassword, onRej
     { disabled: pending, icon: <Building2 aria-hidden="true" size={16} />, id: "memberships", label: "แก้ไขหอพักที่รับผิดชอบ", onSelect: onEditMemberships },
   ];
   if (status === "APPROVED") {
-    items.push({ disabled: pending, icon: <KeyRound aria-hidden="true" size={16} />, id: "temporary-password", label: "ออกรหัสผ่านชั่วคราว", onSelect: onIssuePassword });
+    items.push(
+      { disabled: pending, icon: <Mail aria-hidden="true" size={16} />, id: "reset-link", label: "ส่งลิงก์ตั้งรหัสผ่านทางอีเมล", onSelect: onSendResetLink },
+      { disabled: pending, icon: <KeyRound aria-hidden="true" size={16} />, id: "temporary-password", label: "ออกรหัสผ่านชั่วคราว", onSelect: onIssuePassword },
+    );
   }
   if (status === "PENDING") {
     items.push(
@@ -147,6 +159,7 @@ export function AccountApprovalActions({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [resetLinkEmail, setResetLinkEmail] = useState("");
   const [editingMemberships, setEditingMemberships] = useState(false);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   // เริ่มจากสิทธิ์ที่มีอยู่เดิม แก้บนสำเนา ของจริงเปลี่ยนเมื่อกดบันทึกเท่านั้น
@@ -174,10 +187,26 @@ export function AccountApprovalActions({
     setPending(true);
     setError("");
     setTemporaryPassword("");
+    setResetLinkEmail("");
     try {
       setTemporaryPassword(await issueTemporaryPasswordRequest(userId));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "ออกรหัสผ่านชั่วคราวไม่สำเร็จ");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function sendResetLink() {
+    if (!await confirm({ title: "ส่งลิงก์ตั้งรหัสผ่าน?", description: `ระบบจะส่งลิงก์ที่ใช้ได้ 30 นาทีไปที่อีเมลของ ${displayName} รหัสเดิมยังใช้ได้จนกว่าจะตั้งใหม่`, confirmLabel: "ส่งลิงก์" })) return;
+    setPending(true);
+    setError("");
+    setTemporaryPassword("");
+    setResetLinkEmail("");
+    try {
+      setResetLinkEmail(await sendResetLinkRequest(userId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "ส่งลิงก์ตั้งรหัสผ่านไม่สำเร็จ");
     } finally {
       setPending(false);
     }
@@ -216,12 +245,14 @@ export function AccountApprovalActions({
     onEditMemberships: () => void openMembershipEditor(),
     onIssuePassword: () => void issuePassword(),
     onReject: () => setRejecting(true),
+    onSendResetLink: () => void sendResetLink(),
     pending,
     status,
   });
 
   return <div className="grid gap-2">
     <ActionMenu items={items} label={`จัดการบัญชี ${displayName}`} />
+    {resetLinkEmail ? <output className="form-alert block">ส่งลิงก์ตั้งรหัสผ่านไปที่ {resetLinkEmail} แล้ว</output> : null}
     {temporaryPassword ? <output className="form-alert block"><strong>แสดงครั้งเดียว:</strong> <code>{temporaryPassword}</code></output> : null}
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <MembershipsDialog

@@ -64,6 +64,8 @@ json("put", "/api/v1/admin/properties/{propertyId}/settings",
     legalName: nullable(text({ maxLength: 160 })), lessorName: nullable(text({ maxLength: 160 })),
     address: text({ minLength: 1, maxLength: 1000 }), contactPhone: text({ minLength: 1, maxLength: 30 }),
     contactEmail: nullable(text({ format: "email" })), promptPayId: nullable(text({ pattern: "^[0-9]{10,15}$" })),
+    bankName: nullable(text({ minLength: 1, maxLength: 80 })), bankAccountNumber: nullable(text({ maxLength: 20 })),
+    bankAccountName: nullable(text({ minLength: 1, maxLength: 160 })),
     waterUnitRate: money, electricityUnitRate: money, billingDay: integer(1, 28), dueDay: integer(1, 31),
     lateFeePerDay: money, lateFeeCap: nullable(money), invoicePrefix: text({ minLength: 1, maxLength: 20 }),
     invoiceFooter: nullable(text({ maxLength: 2000 })), houseRules: nullable(text({ maxLength: 20000 })),
@@ -257,6 +259,12 @@ json("patch", "/api/v1/super-admin/users/{userId}/memberships",
   object(["propertyIds"], { propertyIds: array(id, { maxItems: 100 }) }),
   { propertyIds: ["property_01", "property_02"] });
 noBody("post", "/api/v1/super-admin/users/{userId}/temporary-password");
+noBody("post", "/api/v1/super-admin/users/{userId}/password-reset-link");
+json("put", "/api/v1/super-admin/payment-settings",
+  object([], {
+    bankName: nullable(text({ minLength: 1, maxLength: 80 })), bankAccountNumber: nullable(text({ maxLength: 20 })),
+    bankAccountName: nullable(text({ minLength: 1, maxLength: 160 })), promptPayId: nullable(text({ pattern: "^[0-9]{10,15}$" })),
+  }), { bankName: "กสิกรไทย", bankAccountNumber: "123-4-56789-0", bankAccountName: "Nestly", promptPayId: "0812345678" });
 
 // ไม่เจอใน Map คือโยน error ไปเลย บังคับให้คนเพิ่ม endpoint ใหม่ต้องมาลงทะเบียนที่นี่
 // ลืมแล้วจะรู้ตัวตั้งแต่ตอนรันสคริปต์ ไม่ใช่ไปเจอเอกสารที่ขาดหายทีหลัง

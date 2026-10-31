@@ -372,6 +372,17 @@ export const responseSchemas = {
     },
     generatedAt: dateTime,
   }),
+  BankTransferAccount: entity(["bankName", "bankAccountNumber", "bankAccountName"], {
+    bankName: { anyOf: [text, { type: "null" }] }, bankAccountNumber: { anyOf: [text, { type: "null" }] }, bankAccountName: { anyOf: [text, { type: "null" }] },
+  }),
+  PlatformPaymentSettings: entity(["bankName", "bankAccountNumber", "bankAccountName", "promptPayId", "updatedAt"], {
+    bankName: { anyOf: [text, { type: "null" }] }, bankAccountNumber: { anyOf: [text, { type: "null" }] }, bankAccountName: { anyOf: [text, { type: "null" }] }, promptPayId: { anyOf: [text, { type: "null" }] },
+    updatedAt: { anyOf: [dateTime, { type: "null" }] },
+  }),
+  SubscriptionPaymentInstructions: entity(["orderNumber", "amount", "bankName", "bankAccountNumber", "bankAccountName", "promptPayPayload"], {
+    orderNumber: text, amount: money, bankName: { anyOf: [text, { type: "null" }] }, bankAccountNumber: { anyOf: [text, { type: "null" }] }, bankAccountName: { anyOf: [text, { type: "null" }] }, promptPayPayload: { anyOf: [text, { type: "null" }] },
+  }),
+  PasswordResetLinkResult: entity(["email"], { email: { type: "string", format: "email" } }),
   SubscriptionPaymentSummary: entity(["pending", "approvedThisMonth", "approvedAmountThisMonth"], {
     pending: { type: "integer" }, approvedThisMonth: { type: "integer" }, approvedAmountThisMonth: money,
   }),
@@ -589,6 +600,10 @@ function sample(name) {
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],
     generatedAt: "2026-07-28T10:00:00.000Z",
   };
+  if (name === "BankTransferAccount") return { bankName: "กสิกรไทย", bankAccountNumber: "1234567890", bankAccountName: "หอพักบ้านสบาย" };
+  if (name === "PlatformPaymentSettings") return { bankName: "กสิกรไทย", bankAccountNumber: "1234567890", bankAccountName: "Nestly", promptPayId: "0812345678", updatedAt: "2026-11-01T10:00:00.000Z" };
+  if (name === "SubscriptionPaymentInstructions") return { orderNumber: "SUB-2026-0001", amount: "699", bankName: "กสิกรไทย", bankAccountNumber: "1234567890", bankAccountName: "Nestly", promptPayPayload: "00020101021229370016A000000677010111011300668123456785802TH5303764540369963040000" };
+  if (name === "PasswordResetLinkResult") return { email: "owner@example.com" };
   if (name === "SubscriptionPaymentSummary") return { pending: 3, approvedThisMonth: 5, approvedAmountThisMonth: "3495" };
   if (name === "SubscriptionPaymentSuggestion") return { kind: "order", value: "SUB-2026-0001", detail: "หอพักทดลอง" };
   if (name === "SuperAdminNotificationCounts") return { pendingAccounts: 2, pendingSubscriptionPayments: 1, unreadSupportMessages: 3 };
@@ -750,7 +765,7 @@ const requestExampleRules = [
 export function requestExample(method, apiPath) {
   // GET กับ DELETE ไม่มี body ส่วน temporary-password เป็น POST ที่ไม่ต้องส่งอะไรมาเลย
   if (method === "get" || method === "delete") return undefined;
-  if (apiPath.endsWith("/temporary-password")) return undefined;
+  if (apiPath.endsWith("/temporary-password") || apiPath.endsWith("/password-reset-link")) return undefined;
   const rule = requestExampleRules.find(([matches]) => matches(apiPath));
   // ที่เหลือคือเส้นอัปโหลดไฟล์ body เป็น multipart ไม่ใช่ JSON
   return rule ? rule[1] : { file: "(binary file)" };
@@ -813,6 +828,10 @@ const jsonSuccessRules = [
   [({ method, apiPath }) => apiPath.endsWith("/signed-document") && method === "post", () => data("UploadResult")],
   [({ apiPath }) => apiPath === "/api/v1/plans", () => data("SaasPlan", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/dashboard", () => data("PlatformDashboard")],
+  [({ apiPath }) => apiPath.endsWith("/payment-instructions"), () => data("SubscriptionPaymentInstructions")],
+  [({ apiPath }) => apiPath.endsWith("/payment-account"), () => data("BankTransferAccount")],
+  [({ apiPath }) => apiPath === "/api/v1/super-admin/payment-settings", () => data("PlatformPaymentSettings")],
+  [({ apiPath }) => apiPath.endsWith("/password-reset-link"), () => data("PasswordResetLinkResult")],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/subscription-payments/summary", () => data("SubscriptionPaymentSummary")],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/subscription-payments/suggestions", () => data("SubscriptionPaymentSuggestion", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/notifications", () => data("SuperAdminNotificationCounts")],

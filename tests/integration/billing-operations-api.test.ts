@@ -105,6 +105,22 @@ describe("meters and invoices", () => {
     expect(svg.status).toBe(200);
   });
 
+  // บัญชีธนาคารที่เจ้าของหอตั้งไว้ ผู้เช่าเห็นคู่กับ QR ในหน้าชำระบิล
+  it("shows the tenant the dorm's bank account for the bill", async () => {
+    const settings = {
+      address: "กรุงเทพฯ", contactPhone: "021234567", waterUnitRate: 18, electricityUnitRate: 7.5,
+      billingDay: 1, dueDay: 5, lateFeePerDay: 0, invoicePrefix: "INV", promptPayId: "0812345678",
+      bankName: "ไทยพาณิชย์", bankAccountNumber: "987-6-54321-0", bankAccountName: "หอทดสอบ",
+    };
+    // กรอกบัญชีไม่ครบชุดต้องถูกปฏิเสธ ผู้เช่าจะได้ไม่เห็นบัญชีที่โอนไม่ได้จริง
+    expect((await callApi("PUT", `${base}/settings`, { ...owner(), body: { ...settings, bankAccountName: null } })).status).toBe(400);
+    expect((await callApi("PUT", `${base}/settings`, { ...owner(), body: settings })).status).toBe(200);
+    const account = await callApi("GET", `/api/v1/tenant/invoices/${invoiceId}/payment-account`, tenant());
+    expect(account.status).toBe(200);
+    expect(account.json.data).toEqual({ bankName: "ไทยพาณิชย์", bankAccountNumber: "9876543210", bankAccountName: "หอทดสอบ" });
+    expect((await callApi("GET", `/api/v1/tenant/invoices/${invoiceId}/payment-account`, owner())).status).toBe(403);
+  });
+
   it("lets the tenant send a slip and the owner approve it, which marks the bill paid", async () => {
     const paymentPath = `/api/v1/tenant/invoices/${invoiceId}/payment-submissions`;
     // ไฟล์ที่ไม่ใช่รูปหรือ PDF ต้องถูกปฏิเสธ ไม่ว่าชื่อไฟล์จะบอกว่าอะไร
