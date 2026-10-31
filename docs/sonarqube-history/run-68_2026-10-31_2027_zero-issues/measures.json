@@ -1,0 +1,18 @@
+{
+  "coverage": "92.3",
+  "reliability_rating": "1.0",
+  "duplicated_lines_density": "0.9",
+  "code_smells": "0",
+  "software_quality_security_rating": "1.0",
+  "security_rating": "1.0",
+  "violations": "0",
+  "security_hotspots": "0",
+  "security_review_rating": "1.0",
+  "sqale_rating": "1.0",
+  "bugs": "0",
+  "alert_status": "OK",
+  "ncloc": "33246",
+  "software_quality_reliability_rating": "1.0",
+  "vulnerabilities": "0",
+  "software_quality_maintainability_rating": "1.0"
+}

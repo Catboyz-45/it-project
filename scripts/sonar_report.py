@@ -8,8 +8,11 @@ sonar_report.py
     python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --token <YOUR_TOKEN>
 
 เก็บรายการ issue ทั้งหมดเป็นไฟล์ JSON แยกหน้าด้วย (issues_page1.json, issues_page2.json, ...)
-รูปแบบเดียวกับผลของ GET /api/issues/search หน้าละ 200 รายการ:
+รูปแบบเดียวกับผลของ GET /api/issues/search หน้าละ 200 รายการ พร้อม measures.json ของรอบนั้น:
     python3 scripts/sonar_report.py ... --issues-dir docs/sonarqube-history/run-62
+
+ใส่ส่วน "เปรียบเทียบกับรอบก่อน" และ "สิ่งที่แก้ไข" ลงในรายงาน:
+    python3 scripts/sonar_report.py ... --baseline-dir docs/sonarqube-history/run-62 --changes changes.md
 
 ต้องติดตั้งไลบรารีก่อน:
     pip install requests reportlab
@@ -39,6 +42,7 @@ from reportlab.platypus import (
 # ---------------------------------------------------------------------------
 
 METRIC_KEYS = [
+    "violations",
     "bugs",
     "vulnerabilities",
     "security_hotspots",
@@ -161,14 +165,10 @@ def fetch_top_issues(host, token, project_key, limit=15):
 ISSUES_PAGE_SIZE = 200  # เพดานของ API ต่อหนึ่งหน้า
 
 
-def export_issue_pages(host, token, project_key, out_dir):
-    """เก็บ issue ที่ยังเปิดอยู่ทั้งหมดเป็นไฟล์ JSON หน้าละไฟล์ คืนรายชื่อไฟล์ที่สร้าง
-
-    เก็บคำตอบของ API ไว้ทั้งก้อนโดยไม่แก้อะไร จะได้เทียบกับไฟล์ตัวอย่างและรอบก่อน ๆ ได้ตรงกัน
-    """
-    os.makedirs(out_dir, exist_ok=True)
+def fetch_open_issue_pages(host, token, project_key):
+    """ดึง issue ที่ยังเปิดอยู่ทั้งหมด คืนคำตอบของ API ทีละหน้าตามลำดับ (มีอย่างน้อยหนึ่งหน้าเสมอ)"""
     url = f"{host}/api/issues/search"
-    written = []
+    pages = []
     page = 1
     while True:
         params = {
@@ -180,15 +180,63 @@ def export_issue_pages(host, token, project_key, out_dir):
         resp = requests.get(url, params=params, auth=(token, ""))
         resp.raise_for_status()
         data = resp.json()
-        path = os.path.join(out_dir, f"issues_page{page}.json")
+        pages.append(data)
+        total = data.get("paging", {}).get("total", data.get("total", 0))
+        # หยุดเมื่อครบทุกรายการแล้ว ไม่มี issue เลยก็ยังได้หน้า 1 ไว้เป็นหลักฐานว่าว่าง
+        if page * ISSUES_PAGE_SIZE >= total:
+            return pages
+        page += 1
+
+
+def export_issue_pages(pages, measures, out_dir):
+    """เก็บ issue เป็นไฟล์ JSON หน้าละไฟล์ พร้อม measures.json ไว้เทียบในรอบถัดไป คืนรายชื่อไฟล์ issue
+
+    เก็บคำตอบของ API ไว้ทั้งก้อนโดยไม่แก้อะไร จะได้เทียบกับไฟล์ตัวอย่างและรอบก่อน ๆ ได้ตรงกัน
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    written = []
+    for index, data in enumerate(pages, start=1):
+        path = os.path.join(out_dir, f"issues_page{index}.json")
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(data, handle, ensure_ascii=False, indent=2)
         written.append(path)
-        total = data.get("paging", {}).get("total", data.get("total", 0))
-        # หยุดเมื่อครบทุกรายการแล้ว ไม่มี issue เลยก็ยังเก็บหน้า 1 ไว้เป็นหลักฐานว่าว่าง
-        if page * ISSUES_PAGE_SIZE >= total:
-            return written, total
+    with open(os.path.join(out_dir, "measures.json"), "w", encoding="utf-8") as handle:
+        json.dump(measures, handle, ensure_ascii=False, indent=2)
+    return written
+
+
+def load_run(run_dir):
+    """อ่านผลของรอบที่เก็บไว้ คืน (measures, รายการ issue) ไม่มี measures.json ก็คืน dict ว่าง"""
+    measures = {}
+    measures_path = os.path.join(run_dir, "measures.json")
+    if os.path.exists(measures_path):
+        with open(measures_path, encoding="utf-8") as handle:
+            measures = json.load(handle)
+    issues = []
+    page = 1
+    while os.path.exists(os.path.join(run_dir, f"issues_page{page}.json")):
+        with open(os.path.join(run_dir, f"issues_page{page}.json"), encoding="utf-8") as handle:
+            issues.extend(json.load(handle).get("issues", []))
         page += 1
+    return measures, issues
+
+
+def software_quality_of(issue):
+    """หมวดของ issue ตามโหมด MQR (Security/Reliability/Maintainability) เอาผลกระทบแรกที่มี"""
+    impacts = issue.get("impacts") or []
+    return impacts[0]["softwareQuality"] if impacts else "MAINTAINABILITY"
+
+
+def summarize_issues(issues):
+    """นับ issue แยกตามหมวด severity และกฎ ใช้ในตารางเปรียบเทียบ"""
+    summary = {"quality": {}, "severity": {}, "rule": {}, "message": {}}
+    for issue in issues:
+        for key, value in (("quality", software_quality_of(issue)),
+                           ("severity", issue.get("severity", "-")),
+                           ("rule", issue.get("rule", "-"))):
+            summary[key][value] = summary[key].get(value, 0) + 1
+        summary["message"].setdefault(issue.get("rule", "-"), issue.get("message", ""))
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +247,8 @@ def rating_text(value):
     return RATING_LABEL.get(str(value), str(value))
 
 
-def build_pdf(output_path, project_name, project_key, host, measures, sev_counts, top_issues):
+def build_pdf(output_path, project_name, project_key, host, measures, sev_counts, top_issues,
+              comparison=None, changes_text=None):
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     doc = SimpleDocTemplate(
         output_path, pagesize=A4,
@@ -324,7 +373,101 @@ def build_pdf(output_path, project_name, project_key, host, measures, sev_counts
         ParagraphStyle("note", parent=normal, fontSize=8, textColor=colors.grey),
     ))
 
+    if comparison:
+        elements.extend(comparison_section(comparison, measures, font, h2_style, cell))
+    if changes_text:
+        elements.extend(changes_section(changes_text, h2_style, heading3, normal))
+
     doc.build(elements)
+
+
+def styled_table(rows, col_widths, font, font_size=9):
+    """ตารางหน้าตาเดียวกับตารางอื่นในรายงาน หัวตารางซ้ำทุกหน้าเมื่อยาวเกินหนึ่งหน้า"""
+    table = Table(rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3b3e99")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, -1), font),
+        ("FONTSIZE", (0, 0), (-1, -1), font_size),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    return table
+
+
+# ตัวชี้วัดที่ใช้เทียบก่อนกับหลัง (คีย์ ชื่อที่แสดง เป็น rating หรือไม่)
+COMPARE_METRICS = [
+    ("violations", "Issues ทั้งหมด", False),
+    ("software_quality_security_rating", "Security Rating", True),
+    ("software_quality_reliability_rating", "Reliability Rating", True),
+    ("software_quality_maintainability_rating", "Maintainability Rating", True),
+    ("security_review_rating", "Security Review Rating (Hotspots)", True),
+    ("coverage", "Test Coverage (%)", False),
+    ("duplicated_lines_density", "Duplicated Lines (%)", False),
+    ("ncloc", "Lines of Code", False),
+    ("alert_status", "Quality Gate", False),
+]
+
+
+def comparison_section(comparison, measures, font, h2_style, cell):
+    """ส่วนเปรียบเทียบกับรอบก่อน ตัวชี้วัด จำนวน issue แยกหมวด และกฎที่ issue ลดลง"""
+    before_measures, before, after = comparison["measures"], comparison["before"], comparison["after"]
+    out = [PageBreak(), Paragraph(f"เปรียบเทียบกับรอบก่อน ({escape(comparison['name'])})", h2_style)]
+
+    gate = {"OK": "PASSED", "ERROR": "FAILED"}
+    rows = [["ตัวชี้วัด", "ก่อน", "หลัง"]]
+    for key, label, is_rating in COMPARE_METRICS:
+        old, new = before_measures.get(key, "-"), measures.get(key, "-")
+        if key == "violations" and old == "-":
+            old = sum(before["quality"].values())
+        if is_rating:
+            old, new = rating_text(old), rating_text(new)
+        if key == "alert_status":
+            old, new = gate.get(old, old), gate.get(new, new)
+        rows.append([label, str(old), str(new)])
+    out += [styled_table(rows, [9 * cm, 4 * cm, 4 * cm], font), Spacer(1, 0.4 * cm)]
+
+    out.append(Paragraph("จำนวน Issues แยกตามหมวดและ Severity", h2_style))
+    rows = [["หมวด / Severity", "ก่อน", "หลัง", "ลดลง"]]
+    for group, keys in (("quality", ["SECURITY", "RELIABILITY", "MAINTAINABILITY"]), ("severity", SEVERITY_ORDER)):
+        for key in keys:
+            old, new = before[group].get(key, 0), after[group].get(key, 0)
+            rows.append([key.title() if group == "quality" else key, str(old), str(new), str(old - new)])
+    out += [styled_table(rows, [7 * cm, 3.3 * cm, 3.3 * cm, 3.4 * cm], font), Spacer(1, 0.4 * cm)]
+
+    out.append(Paragraph("Issues ที่แก้ไปแล้ว แยกตามกฎ", h2_style))
+    rows = [["กฎ", "ตัวอย่างข้อความจากรอบก่อน", "ก่อน", "หลัง"]]
+    for rule, old in sorted(before["rule"].items(), key=lambda item: -item[1]):
+        new = after["rule"].get(rule, 0)
+        if new < old:
+            message = before["message"].get(rule, "")[:160]
+            rows.append([Paragraph(escape(rule), cell), Paragraph(escape(message), cell), str(old), str(new)])
+    if len(rows) == 1:
+        rows.append(["-", "ไม่มีกฎที่ issue ลดลง", "-", "-"])
+    out.append(styled_table(rows, [4.2 * cm, 9.2 * cm, 1.8 * cm, 1.8 * cm], font, 8))
+    return out
+
+
+def changes_section(text, h2_style, heading3, normal):
+    """ส่วนสิ่งที่แก้ไข อ่านจากไฟล์ข้อความ บรรทัด "# " หัวข้อใหญ่ "## " หัวข้อย่อย "- " รายการ"""
+    bullet = ParagraphStyle("Bullet", parent=normal, leftIndent=12, bulletIndent=2, spaceAfter=2)
+    out = [PageBreak()]
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            out.append(Spacer(1, 0.15 * cm))
+        elif line.startswith("## "):
+            out.append(Paragraph(escape(line[3:]), heading3))
+        elif line.startswith("# "):
+            out.append(Paragraph(escape(line[2:]), h2_style))
+        elif line.startswith("- "):
+            out.append(Paragraph(escape(line[2:]), bullet, bulletText="•"))
+        else:
+            out.append(Paragraph(escape(line), normal))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -342,7 +485,9 @@ def main():
     parser.add_argument("--token", required=True, help="SonarQube Analysis/User Token")
     parser.add_argument("--output", default=None, help="ชื่อไฟล์ PDF ผลลัพธ์ (default: <project>_report.pdf)")
     parser.add_argument("--top", type=int, default=15, help="จำนวนตัวอย่าง issues ที่จะแสดง (default 15)")
-    parser.add_argument("--issues-dir", default=None, help="โฟลเดอร์ที่จะเก็บ issues_page1.json, issues_page2.json, ...")
+    parser.add_argument("--issues-dir", default=None, help="โฟลเดอร์ที่จะเก็บ issues_page1.json, issues_page2.json, ... และ measures.json")
+    parser.add_argument("--baseline-dir", default=None, help="โฟลเดอร์ของรอบก่อน (จาก --issues-dir) ใช้ทำตารางเปรียบเทียบ")
+    parser.add_argument("--changes", default=None, help="ไฟล์ข้อความ UTF-8 ที่สรุปสิ่งที่แก้ไข ใส่เป็นส่วนท้ายของรายงาน")
     args = parser.parse_args()
 
     host = args.host.rstrip("/")
@@ -358,15 +503,35 @@ def main():
         print(f"กำลังดึงตัวอย่าง issues (top {args.top}) ...")
         top_issues = fetch_top_issues(host, args.token, args.project, args.top)
 
+        pages = None
+        if args.baseline_dir or args.issues_dir:
+            print("กำลังดึง issue ที่ยังเปิดอยู่ทั้งหมด ...")
+            pages = fetch_open_issue_pages(host, args.token, args.project)
+
+        comparison = None
+        if args.baseline_dir:
+            before_measures, before_issues = load_run(args.baseline_dir)
+            comparison = {
+                "name": os.path.basename(os.path.normpath(args.baseline_dir)),
+                "measures": before_measures,
+                "before": summarize_issues(before_issues),
+                "after": summarize_issues([issue for page in pages for issue in page.get("issues", [])]),
+            }
+        changes_text = None
+        if args.changes:
+            with open(args.changes, encoding="utf-8") as handle:
+                changes_text = handle.read()
+
         print(f"กำลังสร้างไฟล์ PDF: {output}")
-        build_pdf(output, project_name, args.project, host, measures, sev_counts, top_issues)
+        build_pdf(output, project_name, args.project, host, measures, sev_counts, top_issues, comparison, changes_text)
 
         print(f"เสร็จสิ้น! สร้างรายงานที่ {output}")
 
         if args.issues_dir:
             print(f"กำลังเก็บ issue แยกหน้าลง {args.issues_dir} ...")
-            files, total = export_issue_pages(host, args.token, args.project, args.issues_dir)
-            print(f"เก็บ issue {total} รายการ เป็น {len(files)} หน้า: {', '.join(os.path.basename(f) for f in files)}")
+            files = export_issue_pages(pages, measures, args.issues_dir)
+            total = pages[0].get("paging", {}).get("total", 0)
+            print(f"เก็บ issue {total} รายการ เป็น {len(files)} หน้า: {', '.join(os.path.basename(f) for f in files)} และ measures.json")
 
     except requests.exceptions.HTTPError as e:
         print(f"เกิดข้อผิดพลาดในการเรียก API: {e}", file=sys.stderr)

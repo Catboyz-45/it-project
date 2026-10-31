@@ -77,6 +77,20 @@ python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --
 ```
 
 ตั้งชื่อ PDF ให้ไม่ลงท้ายด้วย `_report.pdf` ถ้าต้องการ commit ไฟล์นั้น เพราะ `.gitignore` กันชื่อแบบนั้นไว้
+โฟลเดอร์เดียวกันจะมี `measures.json` (ตัวชี้วัดของรอบนั้น) ไว้ใช้เทียบในรอบถัดไป
+
+### 7. ใส่ "เปรียบเทียบกับรอบก่อน" และ "สิ่งที่แก้ไข" ลงในรายงาน
+
+รายงานปกติเป็นภาพของการสแกนรอบเดียว ถ้าต้องการให้บอกว่าแก้อะไรไปบ้าง ให้ส่งโฟลเดอร์ของรอบก่อนกับไฟล์สรุปการแก้ไข
+
+```bash
+python3 scripts/sonar_report.py --host http://localhost:9000 --project nestly --token $SONAR_TOKEN \
+  --output docs/sonarqube-history/run-68/nestly_run68.pdf --issues-dir docs/sonarqube-history/run-68 \
+  --baseline-dir docs/sonarqube-history/run-62 --changes docs/sonarqube-history/run-68/changes.md
+```
+
+- `--baseline-dir` เพิ่มตารางตัวชี้วัดก่อนและหลัง จำนวน issue แยกหมวดและ severity และรายการกฎที่ issue ลดลง
+- `--changes` ใส่เนื้อหาจากไฟล์ข้อความ (UTF-8) ไว้ท้ายรายงาน บรรทัด `# ` เป็นหัวข้อใหญ่ `## ` หัวข้อย่อย และ `- ` เป็นรายการ
 
 ## การอ่านผล
 
