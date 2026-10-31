@@ -10,6 +10,7 @@ import { propertyRepository } from "@/lib/repositories/property-repository";
 import { tenantRepository } from "@/lib/repositories/tenant-repository";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
+import { tenantProfileDetailSelect, toTenantProfileDetails } from "@/lib/server/tenant-profile-details";
 import { formatVehicleType } from "@/lib/ui-labels";
 
 export async function getPropertyWorkspace(propertyId: string) {
@@ -120,6 +121,7 @@ export async function listPropertyTenants(
         address: item.tenantProfile.address ?? "",
         guardianName: item.tenantProfile.emergencyName ?? "",
         guardianPhone: item.tenantProfile.emergencyPhone ?? "",
+        ...toTenantProfileDetails(item.tenantProfile, item.ownerNote),
         occupantCount: item.room.occupancies.length,
         coOccupants: item.room.occupancies
           .filter((occupancy) => occupancy.tenantProfile.id !== item.tenantProfile.id)
@@ -158,10 +160,17 @@ export async function updatePropertyTenant(
 ) {
   const tenant = await tenantRepository.find(propertyId, tenantProfileId);
   if (!tenant) throw new ApiError(404, "ไม่พบผู้เช่า");
-  const { displayName, vehicle, ...profile } = input;
+  const { displayName, vehicle, ownerNote, ...profile } = input;
   return getDatabase().$transaction(async (database) => {
     if (displayName) {
       await database.user.update({ where: { id: tenant.user.id }, data: { displayName } });
+    }
+    // บันทึกอยู่กับการเข้าพักในหอนี้ แก้เฉพาะการเข้าพักที่ยังไม่จบ ประวัติการเข้าพักเก่าคงเดิม
+    if (ownerNote !== undefined) {
+      await database.roomOccupancy.updateMany({
+        where: { tenantProfileId, propertyId, status: { in: ["PENDING", "ACTIVE"] } },
+        data: { ownerNote },
+      });
     }
     await database.tenantProfile.update({
       where: { id: tenantProfileId },
@@ -180,6 +189,7 @@ export async function updatePropertyTenant(
       where: { id: tenantProfileId },
       select: {
         id: true, phone: true, address: true, emergencyName: true, emergencyPhone: true,
+        ...tenantProfileDetailSelect,
         vehicle: true,
         user: { select: { id: true, displayName: true, email: true, isActive: true } },
       },

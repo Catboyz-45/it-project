@@ -1,4 +1,5 @@
 import { getDatabase } from "@/lib/server/db";
+import { tenantProfileDetailSelect } from "@/lib/server/tenant-profile-details";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
 // รวมคำสั่งฐานข้อมูลของผู้เช่าไว้ที่เดียว route ไม่ต้องเขียน query เอง
@@ -24,7 +25,7 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
       orderBy: [{ room: { number: "asc" } }, { role: "asc" }, { id: "asc" }],
       ...paginationQuery(pagination),
       select: {
-        id: true, role: true, status: true, startedAt: true, createdAt: true,
+        id: true, role: true, status: true, startedAt: true, createdAt: true, ownerNote: true,
         room: {
           select: {
             id: true, number: true, monthlyRent: true, depositAmount: true,
@@ -42,6 +43,7 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
         tenantProfile: {
           select: {
             id: true, phone: true, address: true, emergencyName: true, emergencyPhone: true,
+            ...tenantProfileDetailSelect,
             vehicle: true,
             user: { select: { id: true, displayName: true, email: true, isActive: true } },
           },
@@ -68,6 +70,7 @@ find(propertyId: string, tenantProfileId: string) {
       where: { id: tenantProfileId, occupancies: { some: { propertyId } } },
       select: {
         id: true, phone: true, address: true, emergencyName: true, emergencyPhone: true,
+        ...tenantProfileDetailSelect,
         vehicle: true,
         user: { select: { id: true, displayName: true, email: true, isActive: true } },
         occupancies: {

@@ -196,6 +196,39 @@ describe("tenants", () => {
     expect(removed.json.data.vehicle).toBeNull();
     expect((await callApi("PATCH", path, { ...owner(), body: {} })).status).toBe(400);
   });
+
+  // ช่องเหล่านี้เคยแสดงบนฟอร์มแต่ไม่ถูกบันทึก ต้องบันทึกแล้วอ่านกลับมาได้ครบ
+  it("saves identity details and the owner note, then clears them", async () => {
+    const path = `${base}/tenants/${w.tenantProfileId}`;
+    const saved = await callApi("PATCH", path, {
+      ...owner(),
+      body: {
+        namePrefix: "นางสาว", nickname: "มิ้นท์", nationality: "ไทย", nationalId: "1-1017-00230-70-8",
+        birthDate: "2001-05-20", lineId: "mint.line", occupation: "นักศึกษา", organization: "มหาวิทยาลัยทดสอบ",
+        studentOrEmployeeId: "6501234", emergencyRelation: "มารดา", ownerNote: "แพ้ฝุ่น ขอห้องติดหน้าต่าง",
+      },
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.json.data).toMatchObject({ nationalId: "1101700230708", emergencyRelation: "มารดา" });
+
+    const listed = await callApi("GET", `${base}/tenants`, owner());
+    expect(listed.json.data.find((tenant: { id: string }) => tenant.id === w.tenantProfileId)).toMatchObject({
+      prefix: "นางสาว", nickname: "มิ้นท์", nationality: "ไทย", nationalId: "1101700230708", birthDate: "2001-05-20",
+      lineId: "mint.line", occupation: "นักศึกษา", organization: "มหาวิทยาลัยทดสอบ", studentOrEmployeeId: "6501234",
+      guardianRelation: "มารดา", note: "แพ้ฝุ่น ขอห้องติดหน้าต่าง",
+    });
+
+    // เลขตรวจสอบผิดต้องโดนปฏิเสธ และค่าเดิมต้องไม่เปลี่ยน
+    expect((await callApi("PATCH", path, { ...owner(), body: { nationalId: "1101700230709" } })).status).toBe(400);
+    // ผู้เช่าเรียก API ของเจ้าของหอเพื่อแก้เลขของตัวเองไม่ได้
+    expect((await callApi("PATCH", path, { cookie: w.cookies.tenant, body: { nationalId: null } })).status).toBe(403);
+
+    const cleared = await callApi("PATCH", path, { ...owner(), body: { nationalId: null, ownerNote: null } });
+    expect(cleared.status).toBe(200);
+    const relisted = await callApi("GET", `${base}/tenants`, owner());
+    expect(relisted.json.data.find((tenant: { id: string }) => tenant.id === w.tenantProfileId))
+      .toMatchObject({ nationalId: "", note: "", nickname: "มิ้นท์" });
+  });
 });
 
 describe("invitations and occupancy review", () => {

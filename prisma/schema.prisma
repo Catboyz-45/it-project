@@ -650,23 +650,34 @@ model RoomFurniture {
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
 /// ตาราง TenantProfile: เก็บข้อมูลและความสัมพันธ์ของ “Tenant Profile”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
 model TenantProfile {
-  id                String              @id @default(cuid())
-  userId            String              @unique
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phone             String              @db.VarChar(30)
-  address           String?             @db.VarChar(1000)
-  emergencyName     String?             @db.VarChar(160)
-  emergencyPhone    String?             @db.VarChar(30)
-  occupancies       RoomOccupancy[]
-  invitations       TenantInvitation[]  @relation("AcceptedInvitation")
-  payments          PaymentSubmission[]
-  tickets           ServiceTicket[]
-  chatConversations ChatConversation[]
-  vehicle           TenantVehicle?
-  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
-  receivedParcels   Parcel[]            @relation("ParcelReceiver")
-  recipientParcels  Parcel[]            @relation("ParcelRecipient")
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone               String              @db.VarChar(30)
+  address             String?             @db.VarChar(1000)
+  emergencyName       String?             @db.VarChar(160)
+  emergencyPhone      String?             @db.VarChar(30)
+  // ข้อมูลระบุตัวตนที่เจ้าของหอกรอกให้ ใช้ทำสัญญาและติดต่อ ไม่บังคับทุกช่อง
+  namePrefix          String?             @db.VarChar(20)
+  nickname            String?             @db.VarChar(60)
+  nationality         String?             @db.VarChar(60)
+  nationalId          String?             @db.VarChar(20)
+  birthDate           DateTime?           @db.Date
+  lineId              String?             @db.VarChar(60)
+  occupation          String?             @db.VarChar(120)
+  organization        String?             @db.VarChar(160)
+  studentOrEmployeeId String?             @db.VarChar(40)
+  emergencyRelation   String?             @db.VarChar(60)
+  occupancies         RoomOccupancy[]
+  invitations         TenantInvitation[]  @relation("AcceptedInvitation")
+  payments            PaymentSubmission[]
+  tickets             ServiceTicket[]
+  chatConversations   ChatConversation[]
+  vehicle             TenantVehicle?
+  createdAt           DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @db.Timestamptz(3)
+  receivedParcels     Parcel[]            @relation("ParcelReceiver")
+  recipientParcels    Parcel[]            @relation("ParcelRecipient")
 }
 
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
@@ -727,6 +738,8 @@ model RoomOccupancy {
   startedAt        DateTime?             @db.Timestamptz(3)
   endedAt          DateTime?             @db.Timestamptz(3)
   endReason        String?               @db.VarChar(500)
+  // บันทึกของเจ้าของหอผูกกับการเข้าพักครั้งนี้ ผู้เช่าย้ายไปหออื่นแล้วหอใหม่จะไม่เห็น
+  ownerNote        String?               @db.VarChar(2000)
   approvedAt       DateTime?             @db.Timestamptz(3)
   approvedByUserId String?
   approvedBy       User?                 @relation("OccupancyReviewer", fields: [approvedByUserId], references: [id], onDelete: SetNull)

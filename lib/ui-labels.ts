@@ -13,6 +13,7 @@ const statusLabels: Record<string, string> = {
   FAILED: "ไม่สำเร็จ",
   IN_PROGRESS: "กำลังดำเนินการ",
   OPEN: "รับเรื่องแล้ว",
+  OVERDUE: "เกินกำหนดชำระ",
   PAID: "ชำระแล้ว",
   PENDING: "รอดำเนินการ",
   PENDING_PAYMENT: "รอชำระเงิน",

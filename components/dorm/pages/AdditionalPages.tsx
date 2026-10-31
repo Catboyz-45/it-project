@@ -524,13 +524,15 @@ export type Complaint = {
   owner: string;
   date: string;
   hasUnreadReply?: boolean;
+  type?: "REPAIR" | "COMPLAINT";
   status: "รับเรื่องแล้ว" | "กำลังตรวจสอบ" | "แก้ไขแล้ว" | "ยกเลิกแล้ว";
   detail?: string;
   priority?: "NORMAL" | "URGENT";
   updatedAt?: string;
 };
 
-// หน้าเรื่องร้องเรียน ไล่สถานะจากรับเรื่อง ไปตรวจสอบ แล้วปิดงาน
+// หน้าแจ้งซ่อมและร้องเรียน รวมสองประเภทไว้ที่เดียว ไล่สถานะจากรับเรื่อง ไปตรวจสอบ แล้วปิดงาน
+// ต้องรวมกัน เพราะป้ายตัวเลขบนเมนูนับเรื่องที่ค้างทั้งสองประเภท แยกหน้าแล้วงานซ่อมที่ค้างจะไม่มีที่ให้เห็น
 export function ComplaintsPage({
   complaints: initialComplaints,
   initialLoaded = false,
@@ -568,10 +570,10 @@ export function ComplaintsPage({
     if (append) setIsLoadingMore(true);
     setFormError("");
     try {
-      const response = await fetch(`/api/v1/admin/properties/${propertyId}/tickets?type=COMPLAINT&page=${targetPage}&pageSize=50`, { cache: "no-store" });
+      const response = await fetch(`/api/v1/admin/properties/${propertyId}/tickets?page=${targetPage}&pageSize=50`, { cache: "no-store" });
       const payload = await response.json() as {
         data?: Array<{
-          id: string; title: string; detail: string; priority: "NORMAL" | "URGENT"; status: string; createdAt: string; updatedAt: string; hasUnreadReply: boolean;
+          id: string; type: "REPAIR" | "COMPLAINT"; title: string; detail: string; priority: "NORMAL" | "URGENT"; status: string; createdAt: string; updatedAt: string; hasUnreadReply: boolean;
           room: { number: string } | null;
           tenantProfile: { user: { displayName: string } } | null;
         }>;
@@ -586,6 +588,7 @@ export function ComplaintsPage({
         owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
         date: new Date(item.createdAt).toLocaleString("th-TH"),
         hasUnreadReply: item.hasUnreadReply,
+        type: item.type,
         status: complaintStatusLabels[item.status] ?? "รับเรื่องแล้ว",
         detail: item.detail, priority: item.priority, updatedAt: item.updatedAt,
       }));
@@ -641,7 +644,7 @@ export function ComplaintsPage({
   // ยกเลิกเรื่อง ไม่ได้ลบทิ้ง ประวัติกับข้อความเดิมยังอยู่ให้ตรวจย้อนหลังได้
   const cancelComplaint = async (complaint: Complaint) => {
     // ถามยืนยันก่อน เพราะย้อนกลับไม่ได้
-    if (!await confirm({ title: "ยกเลิกเรื่องร้องเรียน?", description: `เรื่อง “${complaint.title}” จะถูกปิดเป็นยกเลิก ประวัติและข้อความเดิมยังคงอยู่เพื่อตรวจสอบ`, confirmLabel: "ยกเลิกเรื่อง", variant: "danger" })) return;
+    if (!await confirm({ title: "ยกเลิกเรื่องนี้?", description: `เรื่อง “${complaint.title}” จะถูกปิดเป็นยกเลิก ประวัติและข้อความเดิมยังคงอยู่เพื่อตรวจสอบ`, confirmLabel: "ยกเลิกเรื่อง", variant: "danger" })) return;
     setFormError("");
     try {
       const response = await fetch(`/api/v1/admin/properties/${propertyId}/tickets/${complaint.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "CANCELLED", expectedUpdatedAt: complaint.updatedAt }) });
@@ -655,27 +658,27 @@ export function ComplaintsPage({
       {formError ? <p className="form-alert error" role="alert">{formError}</p> : null}
       {readOnly ? <ReadOnlyNotice>เปิดดูสถานะและอ่านข้อความตอบกลับได้ แต่ไม่สามารถเปลี่ยนสถานะหรือส่งคำตอบใหม่</ReadOnlyNotice> : null}
       <div className="figma-summary-grid four">
-        <Summary label="เรื่องร้องเรียนทั้งหมด" value={`${complaints.length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="indigo" />
+        <Summary label="เรื่องทั้งหมด" value={`${complaints.length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="indigo" />
         <Summary label="รายการใหม่" value={`${complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="red" />
         <Summary label="กำลังตรวจสอบ" value={`${complaints.filter((item) => item.status === "กำลังตรวจสอบ").length} รายการ`} icon={<Clock3 size={20} />} tone="orange" />
         <Summary label="แก้ไขแล้ว" value={`${complaints.filter((item) => item.status === "แก้ไขแล้ว").length} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
       </div>
-      <nav aria-label="เลือกมุมมองเรื่องร้องเรียน" className="repair-section-tabs">
-        <Link className="active" href={ownerPagePath(propertyId, "complaints")}>ร้องเรียน</Link>
+      <nav aria-label="เลือกมุมมองแจ้งซ่อมและร้องเรียน" className="repair-section-tabs">
+        <Link className="active" href={ownerPagePath(propertyId, "complaints")}>ทั้งหมด</Link>
         <Link href={ownerPagePath(propertyId, "repairHistory")}>ประวัติที่เสร็จแล้ว</Link>
       </nav>
       <article className="figma-table-card">
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td>{item.id}</td><td><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
+            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td>{item.id}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
               items={[
                 { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: replyTicketId === item.id ? "ปิดข้อความ" : "เปิดข้อความ", onSelect: () => setReplyTicketId((current) => current === item.id ? null : item.id) },
-                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่องร้องเรียน", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
+                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
                 ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
-                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่องร้องเรียน", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
+                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
               ]}
-              label={`จัดการเรื่องร้องเรียน ${item.id}`}
+              label={`จัดการเรื่อง ${item.id}`}
             /></td></tr>)}</tbody>
           </table>
         </div>
@@ -687,11 +690,11 @@ export function ComplaintsPage({
         /></div> : null}
         <TablePagination page={page} setPage={setPage} totalItems={complaints.length} totalPages={totalPages} />
         {hasNextPage ? <button className="secondary-button" disabled={isLoadingMore} onClick={() => void loadComplaints(serverPage + 1, true)} type="button">
-          {isLoadingMore ? "กำลังโหลด..." : "โหลดเรื่องร้องเรียนเพิ่มเติม"}
+          {isLoadingMore ? "กำลังโหลด..." : "โหลดรายการเพิ่มเติม"}
         </button> : null}
       </article>
       {editingComplaint && !readOnly ? <Dialog ariaDescribedBy="complaint-edit-description" ariaLabelledBy="complaint-edit-title" className="modal-md" onClose={() => setEditingComplaint(null)}>
-        <header className="modal-header"><div><h2 id="complaint-edit-title">แก้ไขเรื่องร้องเรียน</h2><p id="complaint-edit-description">ประวัติสถานะและข้อความตอบกลับจะไม่ถูกลบ</p></div><Button aria-label="ปิด" onClick={() => setEditingComplaint(null)} variant="icon">×</Button></header>
+        <header className="modal-header"><div><h2 id="complaint-edit-title">แก้ไขเรื่อง</h2><p id="complaint-edit-description">ประวัติสถานะและข้อความตอบกลับจะไม่ถูกลบ</p></div><Button aria-label="ปิด" onClick={() => setEditingComplaint(null)} variant="icon">×</Button></header>
         <div className="modal-form"><label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} required value={editForm.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setEditForm((current) => ({ ...current, detail: event.target.value }))} required rows={5} value={editForm.detail} /></label><DropdownField label="ความเร่งด่วน" onChange={(value) => setEditForm((current) => ({ ...current, priority: value as "NORMAL" | "URGENT" }))} options={[{ value: "NORMAL", label: "ปกติ" }, { value: "URGENT", label: "ด่วน" }]} value={editForm.priority} /></div>
         <footer className="modal-actions"><Button onClick={() => setEditingComplaint(null)} variant="secondary">ยกเลิก</Button><Button disabled={!editForm.title.trim() || !editForm.detail.trim()} isLoading={isSaving} onClick={() => void saveComplaint()}>บันทึกการแก้ไข</Button></footer>
       </Dialog> : null}

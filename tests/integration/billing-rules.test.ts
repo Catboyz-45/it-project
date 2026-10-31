@@ -150,3 +150,17 @@ describe("room rules", () => {
     })).rejects.toMatchObject({ status: 409 });
   });
 });
+
+describe("payment slips", () => {
+  // บิลยอดศูนย์ต้องได้ข้อความที่อธิบายได้ ไม่ใช่ข้อผิดพลาดของระบบจากข้อจำกัดในฐานข้อมูล
+  it("refuses a slip for an invoice with nothing to pay", async () => {
+    await recordBothMeters(w.room.id, "2026-12");
+    const draft = await generateInvoice(w.property.id, { roomId: w.room.id, billingMonth: "2026-12", issueImmediately: false });
+    const issued = await issueInvoice(w.property.id, draft.id, draft.version);
+    await getDatabase().invoice.update({ where: { id: issued.id }, data: { subtotal: 0, total: 0 } });
+    await expect(createPaymentSubmission({
+      tenantProfileId: w.tenantProfileId, invoiceId: issued.id, storageKey: "payment-slips/test/zero.png", mimeType: "image/png", size: 10,
+    })).rejects.toMatchObject({ status: 409, message: expect.stringContaining("ไม่มียอดที่ต้องชำระ") });
+    await getDatabase().invoice.update({ where: { id: issued.id }, data: { status: "CANCELLED", cancelledAt: new Date() } });
+  });
+});

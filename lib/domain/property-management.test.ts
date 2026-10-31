@@ -43,6 +43,20 @@ describe("property management validation", () => {
     expect(updateTenantProfileSchema.safeParse({ vehicle: null }).success).toBe(true);
   });
 
+  it("normalizes identity details and rejects impossible values", () => {
+    const parsed = updateTenantProfileSchema.parse({ nationalId: "1-1017-00230-70-8", birthDate: "2000-02-29" });
+    expect(parsed.nationalId).toBe("1101700230708");
+    expect(parsed.birthDate?.toISOString()).toBe("2000-02-29T00:00:00.000Z");
+    // ส่ง null มาคือล้างค่า ต้องผ่าน
+    expect(updateTenantProfileSchema.safeParse({ nationalId: null, birthDate: null }).success).toBe(true);
+    expect(updateTenantProfileSchema.safeParse({ nationalId: "1101700230709" }).success).toBe(false);
+    // ปี พ.ศ. ใส่ลงช่อง ค.ศ. กลายเป็นวันในอนาคต ต้องไม่ผ่าน
+    expect(updateTenantProfileSchema.safeParse({ birthDate: "2543-01-01" }).success).toBe(false);
+    expect(updateTenantProfileSchema.safeParse({ birthDate: "1899-12-31" }).success).toBe(false);
+    expect(updateTenantProfileSchema.safeParse({ birthDate: "01/02/2000" }).success).toBe(false);
+    expect(updateTenantProfileSchema.safeParse({ ownerNote: "x".repeat(2001) }).success).toBe(false);
+  });
+
   // แพ็กเกจมี endpoint ของตัวเองแล้ว รูปแบบเก่าที่ฝังมาด้วยต้องไม่ผ่าน กันของเก่าแอบเข้ามาแก้สิทธิ์
   it("rejects legacy embedded subscription updates", () => {
     expect(superAdminPropertyUpdateSchema.safeParse({

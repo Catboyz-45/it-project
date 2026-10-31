@@ -5,6 +5,7 @@ import {
   createSubscriptionOrderSchema,
   monthlyEquivalent,
   reviewSubscriptionPaymentSchema,
+  startOfBangkokMonth,
   updateSaasPlanSchema,
   usagePercent,
 } from "@/lib/domain/saas";
@@ -54,5 +55,14 @@ describe("SaaS plans", () => {
   it("normalizes yearly revenue and caps usage", () => {
     expect(monthlyEquivalent(12000, "YEARLY")).toBe(1000);
     expect(usagePercent(35, 30)).toBe(100);
+  });
+});
+
+describe("Bangkok month boundary", () => {
+  // 00:30 วันที่ 1 ตามเวลาไทย ยังเป็นวันสุดท้ายของเดือนก่อนตาม UTC ต้องนับเป็นเดือนใหม่ตามเวลาไทย
+  it("starts the month at midnight Thai time", () => {
+    expect(startOfBangkokMonth(new Date("2026-10-31T17:30:00.000Z")).toISOString()).toBe("2026-10-31T17:00:00.000Z");
+    expect(startOfBangkokMonth(new Date("2026-10-15T05:00:00.000Z")).toISOString()).toBe("2026-09-30T17:00:00.000Z");
+    expect(startOfBangkokMonth(new Date("2027-01-01T03:00:00.000Z")).toISOString()).toBe("2026-12-31T17:00:00.000Z");
   });
 });

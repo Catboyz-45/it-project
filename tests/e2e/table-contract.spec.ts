@@ -21,7 +21,7 @@ const ownerTables = [
   { columns: 6, path: "/parcels", title: "พัสดุ" },
   { columns: 8, path: "/meters/water", title: "มิเตอร์น้ำ" },
   { columns: 5, path: "/announcements", title: "ประกาศ" },
-  { columns: 6, path: "/tickets", title: "เรื่องร้องเรียน" },
+  { columns: 6, path: "/tickets", title: "แจ้งซ่อมและร้องเรียน" },
   // สองแท็บนี้อยู่ในหน้าผู้เช่า เก็บแท็บที่เลือกไว้ใน URL จึงเข้าตรงได้
   { columns: 8, path: "/tenants?tab=pending", title: "คำขอเข้าพัก" },
   { columns: 6, path: "/tenants?tab=transitions", title: "ประวัติย้ายออก/ย้ายห้อง" },

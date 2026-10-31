@@ -56,7 +56,7 @@ test.describe("งบคำขอของแต่ละหน้า", () => {
     await page.waitForLoadState("networkidle");
 
     const before = calls.length;
-    await page.getByRole("button", { name: /จัดการเรื่องร้องเรียน/ }).first().click();
+    await page.getByRole("button", { name: /จัดการเรื่อง/ }).first().click();
     await page.getByRole("menuitem", { name: /เปิดข้อความ/ }).click();
     await page.waitForTimeout(5000);
     const opened = calls.length - before;

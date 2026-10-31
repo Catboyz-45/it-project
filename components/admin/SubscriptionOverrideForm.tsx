@@ -2,6 +2,9 @@
 // แก้แพ็กเกจของหอด้วยสิทธิ์ผู้ดูแลระบบ ใช้เฉพาะตอนช่วยเหลือลูกค้าหรือแก้สถานะ
 
 import { SyntheticEvent, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
+import { Dialog } from "@/components/ui/Dialog";
+import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -37,7 +40,28 @@ async function saveSubscriptionRequest(propertyId: string, body: unknown) {
   if (!response.ok) throw new Error(result.error || "กำหนดแพ็กเกจไม่สำเร็จ");
 }
 
-export function SubscriptionOverrideForm() {
+// ปุ่มบนหัวหน้าที่เปิดป็อปอัพแก้แพ็กเกจ เครื่องมือนี้ข้ามการชำระเงิน จึงไม่วางฟอร์มกางค้างไว้ข้างคิวตรวจสลิป
+export function SubscriptionOverrideButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  return <>
+    <button className="secondary-button" onClick={() => setIsOpen(true)} type="button">
+      <SlidersHorizontal aria-hidden="true" size={16} /> เปลี่ยนแพ็กเกจด้วยตนเอง
+    </button>
+    {/* เรนเดอร์ฟอร์มเฉพาะตอนเปิด รายชื่อหอและแพ็กเกจจึงโหลดตอนต้องใช้จริงเท่านั้น */}
+    {isOpen ? <Dialog ariaDescribedBy="subscription-override-description" ariaLabelledBy="subscription-override-title" className="modal-md" onClose={() => setIsOpen(false)}>
+      <header className="modal-header">
+        <div>
+          <h2 id="subscription-override-title">เปลี่ยนแพ็กเกจด้วยตนเอง</h2>
+          <p id="subscription-override-description">ข้ามการชำระเงิน ใช้เฉพาะตอนช่วยเหลือลูกค้าหรือแก้สถานะ การซื้อปกติให้เจ้าของหอสั่งซื้อเอง ทุกการเปลี่ยนแปลงบันทึกลง Audit Log</p>
+        </div>
+        <IconButton label="ปิด" onClick={() => setIsOpen(false)}><X aria-hidden="true" size={20} /></IconButton>
+      </header>
+      <SubscriptionOverrideForm onCancel={() => setIsOpen(false)} />
+    </Dialog> : null}
+  </>;
+}
+
+function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void }>) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [billingInterval, setBillingInterval] = useState("MONTHLY");
@@ -86,35 +110,36 @@ export function SubscriptionOverrideForm() {
     }
   };
 
-  return <div className="grid gap-5">
+  return <form className="modal-form" onSubmit={submit}>
     {message ? <p className="form-alert error" role="alert">{message}</p> : null}
-    <section className="panel">
-      <div className="mb-5"><h2 className="text-base font-semibold">Admin override แพ็กเกจ SaaS</h2><p className="text-sm text-[#62646c]">ใช้เฉพาะกรณีช่วยเหลือลูกค้าหรือแก้สถานะด้วย Super Admin; การซื้อปกติทำผ่านคำสั่งซื้อของเจ้าของหอ</p></div>
-      <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={submit}>
-        <label>ค้นหาหอพัก<input onChange={(event) => properties.setQuery(event.target.value)} placeholder="ชื่อหรือชื่อย่อ" value={properties.query} /></label>
-        <div>
-          <DropdownField label="หอพัก" onChange={setPropertyId} options={properties.items.map((property) => ({ label: property.name, value: property.id }))} value={propertyId} />
-          {properties.hasMore ? <button onClick={properties.loadMore} type="button">โหลดเพิ่ม</button> : null}
-        </div>
-        <label>ค้นหาแพ็กเกจ<input onChange={(event) => plans.setQuery(event.target.value)} placeholder="ชื่อหรือรหัส" value={plans.query} /></label>
-        <div>
-          <DropdownField label="แพ็กเกจ" onChange={setPlanId} options={plans.items.map((plan) => ({ label: `${plan.name} · ${plan.maxRooms} ห้อง`, value: plan.id }))} value={planId} />
-          {plans.hasMore ? <button onClick={plans.loadMore} type="button">โหลดเพิ่ม</button> : null}
-        </div>
-        {properties.query.trim() && properties.items.length === 0 ? <div className="md:col-span-2 xl:col-span-5"><SearchEmptyState description="ลองใช้ชื่อหรือชื่อย่ออื่น" title="ไม่พบหอพักที่ค้นหา" /></div> : null}
-        {plans.query.trim() && plans.items.length === 0 ? <div className="md:col-span-2 xl:col-span-5"><SearchEmptyState description="ลองใช้ชื่อหรือรหัสแพ็กเกจอื่น" title="ไม่พบแพ็กเกจที่ค้นหา" /></div> : null}
-        <DropdownField label="รอบบิล" onChange={setBillingInterval} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} />
-        {/* แพ็กเกจย้อนหลังได้ เช่นมาคีย์ของที่เริ่มไปแล้ว ปฏิทินจึงไม่ปิดวันในอดีต */}
-        <DatePickerField label="เริ่มใช้งาน" minDate={new Date(2000, 0, 1)} onChange={setStartsAt} value={startsAt} />
-        <DatePickerField
-          label="หมดอายุ"
-          minDate={startsAt ? new Date(`${startsAt}T00:00:00`) : new Date(2000, 0, 1)}
-          onChange={setExpiresAt}
-          value={expiresAt}
-        />
-        <button aria-describedby={!pending && blocked ? "subscription-override-disabled-reason" : undefined} className="primary-button md:col-span-2 xl:col-span-5" disabled={pending || blocked} type="submit">บันทึกแพ็กเกจ</button>
-        {!pending && blocked ? <p className="disabled-reason md:col-span-2 xl:col-span-5" id="subscription-override-disabled-reason">{blockedReason}</p> : null}
-      </form>
-    </section>
-  </div>;
+    <div className="modal-grid">
+      <label>ค้นหาหอพัก<input onChange={(event) => properties.setQuery(event.target.value)} placeholder="ชื่อหรือชื่อย่อ" value={properties.query} /></label>
+      <div>
+        <DropdownField label="หอพัก" onChange={setPropertyId} options={properties.items.map((property) => ({ label: property.name, value: property.id }))} value={propertyId} />
+        {properties.hasMore ? <button onClick={properties.loadMore} type="button">โหลดเพิ่ม</button> : null}
+      </div>
+      <label>ค้นหาแพ็กเกจ<input onChange={(event) => plans.setQuery(event.target.value)} placeholder="ชื่อหรือรหัส" value={plans.query} /></label>
+      <div>
+        <DropdownField label="แพ็กเกจ" onChange={setPlanId} options={plans.items.map((plan) => ({ label: `${plan.name} · ${plan.maxRooms} ห้อง`, value: plan.id }))} value={planId} />
+        {plans.hasMore ? <button onClick={plans.loadMore} type="button">โหลดเพิ่ม</button> : null}
+      </div>
+      {properties.query.trim() && properties.items.length === 0 ? <div className="full-width"><SearchEmptyState description="ลองใช้ชื่อหรือชื่อย่ออื่น" title="ไม่พบหอพักที่ค้นหา" /></div> : null}
+      {plans.query.trim() && plans.items.length === 0 ? <div className="full-width"><SearchEmptyState description="ลองใช้ชื่อหรือรหัสแพ็กเกจอื่น" title="ไม่พบแพ็กเกจที่ค้นหา" /></div> : null}
+      {/* รอบบิลกินเต็มแถว วันเริ่มกับวันหมดอายุจะได้อยู่คู่กันในแถวถัดไป */}
+      <div className="full-width"><DropdownField label="รอบบิล" onChange={setBillingInterval} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} /></div>
+      {/* แพ็กเกจย้อนหลังได้ เช่นมาคีย์ของที่เริ่มไปแล้ว ปฏิทินจึงไม่ปิดวันในอดีต */}
+      <DatePickerField label="เริ่มใช้งาน" minDate={new Date(2000, 0, 1)} onChange={setStartsAt} value={startsAt} />
+      <DatePickerField
+        label="หมดอายุ"
+        minDate={startsAt ? new Date(`${startsAt}T00:00:00`) : new Date(2000, 0, 1)}
+        onChange={setExpiresAt}
+        value={expiresAt}
+      />
+    </div>
+    {!pending && blocked ? <p className="disabled-reason" id="subscription-override-disabled-reason">{blockedReason}</p> : null}
+    <footer className="modal-actions">
+      <button disabled={pending} onClick={onCancel} type="button">ยกเลิก</button>
+      <button aria-describedby={!pending && blocked ? "subscription-override-disabled-reason" : undefined} className="primary-button" disabled={pending || blocked} type="submit">{pending ? "กำลังบันทึก..." : "บันทึกแพ็กเกจ"}</button>
+    </footer>
+  </form>;
 }

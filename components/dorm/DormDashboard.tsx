@@ -57,7 +57,7 @@ const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   electricMeter: { title: "ค่าน้ำและค่าไฟ", subtitle: "บันทึกมิเตอร์รายเดือนของแต่ละห้อง" },
   invoices: { title: "บิลและการเงิน", subtitle: "จัดการบิลค่าเช่าและภาพรวมการเงินของหอพัก" },
   repairHistory: { title: "ประวัติการซ่อม", subtitle: "ค้นหางานซ่อมที่เสร็จแล้วตามชั้น ห้อง หรือรายการซ่อม" },
-  complaints: { title: "เรื่องร้องเรียน", subtitle: "ติดตาม ตรวจสอบ และจัดการเรื่องร้องเรียนจากผู้เช่า" },
+  complaints: { title: "แจ้งซ่อมและร้องเรียน", subtitle: "ติดตาม ตรวจสอบ และจัดการเรื่องแจ้งซ่อมและร้องเรียนจากผู้เช่า" },
   parcels: { title: "คลังพัสดุ", subtitle: "ระบบรับพัสดุสำหรับผู้เช่า" },
   announcements: { title: "ประกาศ/ข่าวสาร", subtitle: "สร้างและเผยแพร่ข่าวสารถึงผู้เช่าในหอพัก" },
   invitations: { title: "คำเชิญผู้เช่า", subtitle: "สร้าง ติดตาม และยกเลิกคำเชิญเข้าพักรายห้อง" },
@@ -153,7 +153,10 @@ export function DormDashboard({
   const activeProperty = availableProperties.find((property) => property.id === propertyId) ?? availableProperties[0];
 
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
-  const selectedTenant = selectedRoom ? tenants.find((tenant) => tenant.roomId === selectedRoom.id) : undefined;
+  // ห้องที่มีผู้พักร่วมมีผู้เช่าหลายคน ต้องเลือกผู้เช่าหลักของห้อง ไม่ใช่คนแรกที่เจอในรายการ
+  const selectedTenant = selectedRoom
+    ? tenants.find((tenant) => tenant.id === selectedRoom.tenantId) ?? tenants.find((tenant) => tenant.roomId === selectedRoom.id)
+    : undefined;
   const detailTenant = detailTenantId ? tenants.find((tenant) => tenant.id === detailTenantId) : undefined;
   // สิทธิ์การใช้งานขึ้นกับสถานะแพ็กเกจ ใช้งานเต็ม ช่วงผ่อนผัน หรืออ่านอย่างเดียว
   // ตัวนี้เป็นแค่การซ่อนปุ่มให้ผู้ใช้รู้ตัว ส่วนการบังคับจริงอยู่ที่เซิร์ฟเวอร์ทุกครั้ง
@@ -248,9 +251,14 @@ export function DormDashboard({
     await refreshDashboard();
   };
 
-  const saveRoomEdit = ({ room }: RoomEditPayload) => {
+  const saveRoomEdit = ({ room, tenant }: RoomEditPayload) => {
     if (!ensureWritable()) return;
-    void runMutation(() => saveRoomRequest(propertyId, room), () => setIsRoomModalOpen(false), "บันทึกห้องไม่สำเร็จ");
+    // ผู้เช่าที่มีอยู่จริงเท่านั้นที่บันทึกได้ ผู้เช่าใหม่ต้องเข้ามาทางรหัสเชิญ
+    const existingTenant = tenant && tenants.some((item) => item.id === tenant.id) ? tenant : undefined;
+    void runMutation(async () => {
+      await saveRoomRequest(propertyId, room);
+      if (existingTenant) await saveTenantRequest(propertyId, existingTenant);
+    }, () => setIsRoomModalOpen(false), "บันทึกห้องไม่สำเร็จ");
   };
 
   const saveTenantEdit = ({ tenant }: TenantEditPayload) => {

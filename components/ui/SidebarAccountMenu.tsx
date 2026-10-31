@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLogout } from "@/lib/client/use-logout";
 
 // เมนูนี้ใช้ได้สองฝั่ง ผู้เช่ากับผู้ดูแลระบบ
 type SidebarAccountRole = "TENANT" | "SUPER_ADMIN";
@@ -46,7 +47,7 @@ export function SidebarAccountMenu({
   const pathname = usePathname();
   const config = roleConfig[role];
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { isLoggingOut, logout } = useLogout();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,27 +72,6 @@ export function SidebarAccountMenu({
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [isOpen]);
-
-  const logout = async () => {
-    // กันกดซ้ำระหว่างรอเซิร์ฟเวอร์ตอบ จะได้ไม่ยิงลบ session สองรอบ
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    try {
-      // ต้องเป็น POST เพราะเป็นการเปลี่ยนสถานะ เซิร์ฟเวอร์จะได้ลบ session และล้างคุกกี้
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      // ให้เซิร์ฟเวอร์เป็นคนบอกปลายทาง เพราะแต่ละบทบาทกลับไปคนละหน้า
-      const result = await response.json() as { redirectTo?: string };
-      // assign ไม่ใช่ router.push เพื่อให้โหลดหน้าใหม่ทั้งหมด ข้อมูลของผู้ใช้เดิมจะได้ไม่ค้างในหน่วยความจำ
-      window.location.assign(result.redirectTo || "/login");
-    } catch {
-      // ต่อเน็ตไม่ติดก็ปลดล็อกปุ่มให้กดใหม่ได้ ไม่ปล่อยค้างว่ากำลังออกจากระบบ
-      setIsLoggingOut(false);
-    }
-  };
 
   return <div className="sidebar-footer sidebar-account-footer" ref={containerRef}>
     {isOpen ? <div className="account-menu" role="menu">

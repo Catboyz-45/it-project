@@ -130,9 +130,9 @@ async function loadRepairHistory(propertyId: string, userId: string) {
   };
 }
 
-// เรื่องร้องเรียนคือ ticket ชนิด COMPLAINT แปลงให้เป็นรูปที่หน้าจอใช้
+// หน้าแจ้งซ่อมและร้องเรียนรวมทั้งสองประเภท แปลงให้เป็นรูปที่หน้าจอใช้
 async function loadComplaints(propertyId: string, userId: string) {
-  const result = await listAdminTickets(propertyId, userId, { page: 1, pageSize: 50 }, "COMPLAINT");
+  const result = await listAdminTickets(propertyId, userId, { page: 1, pageSize: 50 });
   return result.data.map((item) => ({
     id: item.id,
     title: item.title,
@@ -140,6 +140,7 @@ async function loadComplaints(propertyId: string, userId: string) {
     owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
     date: new Date(item.createdAt).toLocaleString("th-TH"),
     hasUnreadReply: item.hasUnreadReply,
+    type: item.type,
     status: ticketStatusLabels[item.status] ?? "รับเรื่องแล้ว",
   }));
 }

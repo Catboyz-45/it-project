@@ -3,20 +3,23 @@
 
 import { SyntheticEvent, useCallback, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { DatePickerField } from "@/components/dorm/DatePickerField";
+import { DatePickerField, formatDisplayDate } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { OccupancyTransitionModal, type MoveRoomLeaseDraft } from "@/components/dorm/OccupancyTransitionModal";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { currency } from "@/lib/dorm-utils";
+import { isValidIdentityDocumentNumber } from "@/lib/domain/identity-document";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Tenant } from "@/types/dorm";
-import { UnitInput } from "@/components/ui/UnitInput";
 
 // สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
+
+// วันเกิดเลือกได้ตั้งแต่ปี ค.ศ. 1900 จนถึงวันนี้ ตรงกับที่เซิร์ฟเวอร์ยอมรับ
+const earliestBirthDate = new Date(1900, 0, 1);
 
 // รวมการตั้งชื่อ id ไว้ที่เดียว ทั้งตอนวางลงหน้าและตอนหาเพื่อเลื่อนไป
 const tenantSectionId = (tab: TenantTab) => `tenant-section-${tab}`;
@@ -80,10 +83,10 @@ export function TenantDetailModal({
       setError("กรุณากรอกชื่อและเบอร์โทรของผู้เช่า");
       return;
     }
-    // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
-    if (!draft.startDate || !draft.contractEnd || draft.contractEnd < draft.startDate) {
-      scrollToSection("contract");
-      setError("กรุณาตรวจสอบวันเริ่มและวันสิ้นสุดสัญญา");
+    // ตรวจรูปแบบก่อนส่ง ผู้ใช้จะได้รู้ทันทีว่าพิมพ์ผิด ส่วนเซิร์ฟเวอร์ตรวจซ้ำอีกรอบ
+    if (draft.nationalId?.trim() && !isValidIdentityDocumentNumber(draft.nationalId)) {
+      scrollToSection("personal");
+      setError("เลขบัตรประชาชนหรือหนังสือเดินทางไม่ถูกต้อง");
       return;
     }
     // เลือกว่ามีรถแล้วต้องมีทะเบียน ไม่งั้นข้อมูลที่บันทึกไว้ใช้ทำอะไรต่อไม่ได้
@@ -132,17 +135,18 @@ export function TenantDetailModal({
                   <Field label="คำนำหน้า">
                     <DropdownField
                       onChange={(value) => update("prefix", value)}
-                      options={[{ value: "นาย", label: "นาย" }, { value: "นางสาว", label: "นางสาว" }, { value: "นาง", label: "นาง" }, { value: "อื่น ๆ", label: "อื่น ๆ" }]}
-                      value={draft.prefix ?? "นาย"}
+                      options={[{ value: "", label: "ไม่ระบุ" }, { value: "นาย", label: "นาย" }, { value: "นางสาว", label: "นางสาว" }, { value: "นาง", label: "นาง" }, { value: "อื่น ๆ", label: "อื่น ๆ" }]}
+                      value={draft.prefix ?? ""}
                     />
                   </Field>
                   <TextField label="ชื่อ-นามสกุล" required value={draft.name} onChange={(value) => update("name", value)} />
                   <TextField label="ชื่อเล่น" value={draft.nickname ?? ""} onChange={(value) => update("nickname", value)} />
-                  <TextField label="สัญชาติ" value={draft.nationality ?? "ไทย"} onChange={(value) => update("nationality", value)} />
-                  <TextField label="เลขบัตรประชาชน/หนังสือเดินทาง" maxLength={20} value={draft.nationalId ?? ""} onChange={(value) => update("nationalId", value)} />
-                  <TextField label="วันเกิด (ไม่บังคับ)" placeholder="วว/ดด/ปปปป" value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
+                  <TextField label="สัญชาติ" placeholder="เช่น ไทย" value={draft.nationality ?? ""} onChange={(value) => update("nationality", value)} />
+                  <TextField label="เลขบัตรประชาชน/หนังสือเดินทาง" maxLength={24} value={draft.nationalId ?? ""} onChange={(value) => update("nationalId", value)} />
+                  <DatePickerField label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
                   <TextField label="เบอร์โทร" inputMode="tel" required value={draft.phone} onChange={(value) => update("phone", value)} />
-                  <TextField label="อีเมล" inputMode="email" value={draft.email ?? ""} onChange={(value) => update("email", value)} />
+                  {/* อีเมลคือชื่อที่ผู้เช่าใช้เข้าสู่ระบบ เจ้าของหอเปลี่ยนแทนไม่ได้ จึงแสดงอย่างเดียว */}
+                  <div className="tenant-config-summary"><span>อีเมลที่ใช้เข้าสู่ระบบ</span><strong>{draft.email || "-"}</strong></div>
                   <TextField label="LINE ID" value={draft.lineId ?? ""} onChange={(value) => update("lineId", value)} />
                   <p className="tenant-config-helper full-width">เก็บเลขประจำตัวเฉพาะเมื่อจำเป็นต่อสัญญา และจำกัดสิทธิ์การเข้าถึงข้อมูลส่วนบุคคล</p>
                 </div>
@@ -158,8 +162,8 @@ export function TenantDetailModal({
                   <Field label="ความสัมพันธ์">
                     <DropdownField
                       onChange={(value) => update("guardianRelation", value)}
-                      options={["บิดา", "มารดา", "ผู้ปกครอง", "คู่สมรส", "ญาติ", "เพื่อน", "อื่น ๆ"].map((value) => ({ value, label: value }))}
-                      value={draft.guardianRelation ?? "ผู้ปกครอง"}
+                      options={[{ value: "", label: "ไม่ระบุ" }, ...["บิดา", "มารดา", "ผู้ปกครอง", "คู่สมรส", "ญาติ", "เพื่อน", "อื่น ๆ"].map((value) => ({ value, label: value }))]}
+                      value={draft.guardianRelation ?? ""}
                     />
                   </Field>
                   <TextField label="เบอร์ผู้ติดต่อฉุกเฉิน (ไม่บังคับ)" inputMode="tel" value={draft.guardianPhone} onChange={(value) => update("guardianPhone", value)} />
@@ -170,9 +174,10 @@ export function TenantDetailModal({
                 <div className="tenant-config-grid">
                   <div className="tenant-config-summary"><span>ห้องพัก</span><strong>ห้อง {draft.roomId}</strong></div>
                   <div className="tenant-config-summary"><span>เงินประกันปัจจุบัน</span><strong>{currency.format(draft.deposit)}</strong></div>
-                  <DatePickerField label="วันเริ่มสัญญา" value={draft.startDate} onChange={(value) => update("startDate", value)} />
-                  <DatePickerField label="วันสิ้นสุดสัญญา" minDate={draft.startDate ? new Date(`${draft.startDate}T00:00:00`) : undefined} value={draft.contractEnd ?? ""} onChange={(value) => update("contractEnd", value)} />
-                  <NumberField label="เงินประกัน" min={0} unit="บาท" value={draft.deposit} onChange={(value) => update("deposit", value)} />
+                  {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงอย่างเดียว แก้ได้ที่หน้าสัญญาเช่า */}
+                  <div className="tenant-config-summary"><span>วันเริ่มสัญญา</span><strong>{draft.startDate ? formatDisplayDate(draft.startDate) : "-"}</strong></div>
+                  <div className="tenant-config-summary"><span>วันสิ้นสุดสัญญา</span><strong>{draft.contractEnd ? formatDisplayDate(draft.contractEnd) : "ยังไม่ระบุ"}</strong></div>
+                  <p className="tenant-config-helper full-width">แก้ไขวันสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
                   <div className="tenant-config-summary"><span>จำนวนผู้พักที่ใช้งาน</span><strong>{draft.occupantCount ?? 1} คน</strong></div>
                   <div className="full-width">
                     <span className="mb-2 block text-sm font-semibold">ผู้พักร่วมในระบบ</span>
@@ -242,11 +247,6 @@ function TextField({ className = "", disabled = false, inputMode, label, maxLeng
   className?: string; disabled?: boolean; inputMode?: "email" | "tel" | "text"; label: string; maxLength?: number; onChange: (value: string) => void; placeholder?: string; required?: boolean; value: string;
 }>) {
   return <label className={className}><span>{label}</span><input disabled={disabled} inputMode={inputMode} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} value={value} /></label>;
-}
-
-// ช่องกรอกตัวเลข แปลงค่าว่างเป็น 0 เพราะผู้เรียกรับเฉพาะ number
-function NumberField({ label, min, onChange, unit, value }: Readonly<{ label: string; min: number; onChange: (value: number) => void; unit?: string; value: number | "" }>) {
-  return <label><span>{label}</span><UnitInput min={min} onChange={(event) => onChange(event.target.value === "" ? 0 : Number(event.target.value))} type="number" unit={unit} value={value} /></label>;
 }
 
 // ช่องกรอกข้อความหลายบรรทัด ใช้กับที่อยู่และหมายเหตุ

@@ -250,9 +250,11 @@ try {
       const invoiceId = demoId(invoiceKey);
       const total = rent + water + electricity + 200;
       await run(
-        `INSERT INTO "Invoice" ("id","propertyId","roomId","invoiceNumber","billingMonth","dueDate","status","total","version","createdAt","updatedAt")
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-         ON CONFLICT ("id") DO UPDATE SET "status" = EXCLUDED."status", "total" = EXCLUDED."total", "updatedAt" = CURRENT_TIMESTAMP`,
+        // ต้องใส่ subtotal ด้วย งานคิดค่าปรับตอนเลยกำหนดคำนวณยอดใหม่จาก subtotal + ค่าปรับ
+        // ถ้าปล่อยเป็น 0 บิลที่เลยกำหนดจะกลายเป็นยอด 0 แล้วผู้เช่าส่งสลิปไม่ได้
+        `INSERT INTO "Invoice" ("id","propertyId","roomId","invoiceNumber","billingMonth","dueDate","status","subtotal","total","version","createdAt","updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+         ON CONFLICT ("id") DO UPDATE SET "status" = EXCLUDED."status", "subtotal" = EXCLUDED."subtotal", "lateFee" = 0, "total" = EXCLUDED."total", "updatedAt" = CURRENT_TIMESTAMP`,
         [
           invoiceId, propertyId, roomId, `INV-DEMO-${tenant.room}-${3 + monthOffset}`,
           billingMonth, new Date(billingMonth.getTime() + 4 * 24 * 60 * 60 * 1000), status, total,

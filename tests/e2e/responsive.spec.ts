@@ -68,10 +68,16 @@ test("tenant portal remains usable on a mobile viewport", async ({ page }) => {
   await expect(page).toHaveURL(/\/tenant/);
   await expect(page.getByRole("navigation", { name: "เมนูผู้เช่าบนมือถือ", exact: true })).toBeVisible();
   await expectNoPageOverflow(page);
+  // ผู้เช่าใช้แถบเมนูล่างแทนลิ้นชัก บนหัวหน้าจึงต้องไม่มีปุ่มแฮมเบอร์เกอร์
+  await expect(page.locator("header").getByRole("button", { name: "เปิดเมนู", exact: true })).toHaveCount(0);
+  // ทั้งเอกสารต้องไม่กว้างเกินจอ ถ้าเกิน แถบเมนูล่างที่ยึดขอบจอจะยืดตามจนต้องเลื่อนดูปุ่มสุดท้าย
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 
   // เมนูมือถือซ่อนรายการที่เหลือไว้ใต้ปุ่มเพิ่มเติม ต้องกดเปิดก่อนถึงจะกดลิงก์ข้างในได้
   const mobileNavigation = page.getByRole("navigation", { name: "เมนูผู้เช่าบนมือถือ", exact: true });
   await mobileNavigation.getByText("เพิ่มเติม", { exact: true }).click();
+  // ไม่มีแถบข้างบนมือถือ ปุ่มออกจากระบบจึงต้องอยู่ในเมนูนี้
+  await expect(mobileNavigation.getByRole("button", { name: "ออกจากระบบ", exact: true })).toBeVisible();
   await mobileNavigation.getByRole("link", { name: "บัญชีของฉัน", exact: true }).click();
   await expect(page.getByRole("heading", { name: "บัญชีของฉัน" })).toBeVisible();
   await expectNoPageOverflow(page);

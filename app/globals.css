@@ -142,6 +142,12 @@
     border-color: #4651c7 !important;
   }
 
+  /* หัวเรื่องหรือกล่องที่รับโฟกัสด้วยโค้ด (tabindex="-1") เช่นหลังลบแถวสุดท้ายแล้วย้ายโฟกัสมาที่หัวการ์ด
+     เป็นแค่ที่พักโฟกัสให้โปรแกรมอ่านหน้าจอ ผู้ใช้กด Tab มาหยุดเองไม่ได้ จึงไม่ต้องวาดกรอบดำของเบราว์เซอร์ */
+  [tabindex="-1"]:focus {
+    outline: none;
+  }
+
   /* ช่องกรอกและเมนูข้างมักอยู่ในกล่องที่เลื่อนได้ (หน้าต่าง modal, แถบเมนู) ซึ่งตัดทุกอย่างที่ล้นขอบ
      วงโฟกัสด้านบนยื่นออกนอกตัวเองราว 6px จึงโดนตัดจนดูเหมือนชนขอบ
      ย้ายวงเข้ามาอยู่ด้านในขอบแทน ยังหนา 3px สีเดิมและเห็นชัดเหมือนเดิม */
@@ -381,7 +387,8 @@
   /* หน้าแรกของผู้เช่าเคยมีการ์ดขาวใบใหญ่ครอบทุกอย่างอีกชั้น ซึ่งอีกสองโรลไม่มี
      ตอนนี้แต่ละส่วนเป็นการ์ดของตัวเองแล้ว ชั้นครอบจึงเหลือแค่การจัดระยะ */
   .tenant-home { @apply isolate; }
-  .tenant-home-surface { @apply grid gap-5; }
+  /* minmax(0,1fr) ให้คอลัมน์หดตามจอได้ ค่าเริ่มต้นของ grid ยืดตามความกว้างขั้นต่ำของการ์ดข้างใน จนล้นจอมือถือ */
+  .tenant-home-surface { @apply grid grid-cols-[minmax(0,1fr)] gap-5; }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
   /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
@@ -496,7 +503,8 @@
   .dashboard-actions, .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
     @apply flex flex-wrap items-center gap-2;
   }
-  .work-item-grid { @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3; }
+  /* คอลัมน์เดียวบนมือถือต้องหดได้ ไม่งั้นข้อความยาวในการ์ดดันคอลัมน์ให้กว้างเกินกรอบของส่วน */
+  .work-item-grid { @apply grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 xl:grid-cols-3; }
   .work-item-grid > a, .work-item-grid > button, .work-item-grid > div {
     @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
@@ -572,6 +580,11 @@
   .figma-list-page, .figma-rooms-page, .meter-figma-page, .repair-page, .additional-page, .settings-page, .contracts-page, .invoices-page {
     @apply space-y-5 px-6 py-6;
   }
+  /* หน้าพวกนี้เว้นขอบให้แล้ว แถวการ์ดสรุปข้างในไม่ต้องเว้นซ้ำ
+     ไม่งั้นด้านบนห่างเกินและการ์ดเยื้องเข้าไปไม่ตรงแนวกับตารางด้านล่าง */
+  :is(.figma-list-page, .figma-rooms-page, .meter-figma-page, .repair-page, .additional-page, .settings-page, .contracts-page, .invoices-page) > :is(.stats, .figma-summary-grid, .parcel-summary-grid) {
+    @apply p-0;
+  }
   .additional-page { @apply relative; }
   .additional-page-actions { @apply absolute right-6 -top-[42px] flex justify-end; }
   .figma-inline-tabs, .meter-mode-tabs, .repair-filters, .repair-section-tabs {
@@ -639,7 +652,8 @@
   .figma-table-card table:not(.figma-grid-table) :is(thead, tbody) > tr > :first-child,
   .meter-table-card table :is(thead, tbody) > tr > :first-child,
   .repair-board table :is(thead, tbody) > tr > :first-child,
-  .panel.overflow-hidden table :is(thead, tbody) > tr > :first-child {
+  .panel.overflow-hidden table :is(thead, tbody) > tr > :first-child,
+  .subscription-review table :is(thead, tbody) > tr > :first-child {
     @apply sticky left-0 z-[1];
   }
   .figma-grid-table > tbody > .figma-table-row:nth-child(odd) { @apply bg-[#fff] hover:bg-[#fafafa]; }
@@ -775,6 +789,9 @@
   .repair-history-meta > span { @apply rounded-full bg-[#f4f4f5] px-3 py-1 text-xs font-bold text-[#555761]; }
   .repair-history-row > small { @apply col-start-1 text-xs text-[#62646c]; }
   .repair-history-page-list > .empty-state { @apply m-6 bg-[#fafafa] text-[#62646c]; }
+  .parcel-empty-state { @apply m-6 bg-[#fafafa]; }
+  .ticket-type-tag { @apply mr-2 inline-flex rounded-full bg-[#f1f5f9] px-2 py-0.5 align-middle text-xs font-semibold text-[#475569]; }
+  .ticket-type-tag.is-repair { @apply bg-[#eef0ff] text-[#3f48b0]; }
   .figma-icon-action { @apply grid size-11 min-h-11 min-w-11 place-items-center rounded-md border border-[#d4d4d8] bg-[#fff] text-[#555761] transition-colors duration-150 hover:bg-[#f4f4f5] hover:text-[#292a30] lg:size-9 lg:min-h-9 lg:min-w-9; }
   .icon-button {
     @apply relative inline-grid shrink-0 place-items-center rounded-md border border-[#d4d4d8] bg-[#fff] text-[#555761] duration-150 ease-out hover:bg-[#f4f4f5] hover:text-[#292a30] disabled:hover:bg-[#fff] disabled:hover:text-[#555761];
@@ -876,6 +893,61 @@
   .payment-slip-toolbar strong, .payment-slip-toolbar a { @apply flex items-center gap-2; }
   .payment-slip-toolbar a { @apply text-xs font-bold text-brand-green hover:underline; }
   .payment-slip-preview { @apply h-[560px] overflow-hidden rounded-2xl border border-white/10 bg-[#2b2d35]; }
+  /* หน้าตรวจค่าสมาชิกของแอดมินใหญ่ แบบ Google Admin console: การ์ดสรุป ชิปกรอง ตาราง และแผงสลิปด้านขวา
+     จอแคบกว่า 1280px แผงสลิปลงไปอยู่ใต้ตาราง */
+  .subscription-review-summary { @apply mb-5 p-0; }
+  .subscription-review { @apply overflow-visible rounded-xl border border-[#e4e4e7] bg-[#fff]; }
+  .subscription-review-toolbar { @apply flex flex-wrap items-center gap-3 border-b border-[#e4e4e7] p-4; }
+  .subscription-review-toolbar > .search-suggest { @apply min-w-60 flex-1; }
+  .subscription-review-chips { @apply flex flex-wrap gap-2; }
+  .subscription-review-chips button {
+    @apply inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#d4d4d8] bg-[#fff] px-3.5 text-sm font-medium text-[#3f3f46] transition-colors hover:bg-[#f4f4f5];
+  }
+  .subscription-review-chips button[aria-pressed="true"] { @apply border-brand/30 bg-brand/10 text-[#3f48b0]; }
+  .subscription-review-chips button > span { @apply rounded-full bg-brand px-1.5 text-[11px] leading-[18px] font-semibold text-[#fff]; }
+  .subscription-review-body { @apply grid xl:grid-cols-[minmax(0,1fr)_380px]; }
+  .subscription-review-table { @apply min-w-0; }
+  .subscription-review-table .figma-table-wrap { @apply rounded-none border-0; }
+  .subscription-review-table tbody tr { @apply cursor-pointer; }
+  /* สีทึบไม่ใช่สีโปร่ง เพราะคอลัมน์แรกปักไว้ ตอนเลื่อนตารางไปทางขวาจะได้ไม่เห็นตัวหนังสือของคอลัมน์อื่นลอดใต้ */
+  .subscription-review-table tbody td { @apply bg-[#fff]; }
+  .subscription-review-table tbody tr[aria-selected="true"] > td { @apply bg-[#f5f6fe]; }
+  .subscription-review-row-button { @apply border-0 bg-transparent p-0 text-left font-semibold text-[#292a30] hover:underline; }
+  .subscription-review-empty { @apply m-0 p-10 text-center text-sm text-[#62646c]; }
+  .subscription-review-detail { @apply min-w-0 border-t border-[#e4e4e7] p-5 xl:border-t-0 xl:border-l; }
+  .subscription-review-placeholder { @apply grid h-full min-h-60 place-content-center justify-items-center gap-2 text-sm text-[#62646c]; }
+  .subscription-review-article { @apply grid content-start gap-4; }
+  .subscription-review-detail-head { @apply flex items-start justify-between gap-3; }
+  .subscription-review-detail-head h2 { @apply m-0 text-base font-semibold text-[#0f0f0f]; }
+  .subscription-review-detail-head p { @apply mt-1 text-sm text-[#62646c]; }
+  .subscription-review-open { @apply inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-brand no-underline hover:bg-brand/[.06]; }
+  .subscription-review-slip { @apply relative h-[320px] overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#f4f4f5]; }
+  .subscription-review-slip img { @apply object-contain; }
+  .subscription-review-slip iframe { @apply h-full w-full border-0 bg-white; }
+  .subscription-review-slip-missing { @apply grid h-full place-content-center justify-items-center gap-2 p-6 text-center text-sm text-[#62646c]; }
+  .subscription-review-facts { @apply m-0 grid grid-cols-2 gap-x-4 gap-y-3; }
+  .subscription-review-facts > div:first-child { @apply col-span-full; }
+  .subscription-review-facts dt { @apply text-xs text-[#62646c]; }
+  .subscription-review-facts dd { @apply m-0 mt-1 flex items-center gap-1.5 text-sm font-medium text-[#292a30]; }
+  .subscription-review-amount { @apply text-2xl! font-semibold! tabular-nums; }
+  .subscription-review-actions { @apply grid grid-cols-2 gap-2 border-t border-[#f0f0f2] pt-4; }
+  .subscription-review-actions button { @apply inline-flex items-center justify-center gap-2 rounded-full; }
+  .subscription-review-status { @apply justify-self-start; }
+  .badge-rejected { @apply border-red-200 bg-red-50 text-[#991b1b]; }
+
+  /* ช่องค้นหาที่แนะนำคำระหว่างพิมพ์ รายการแนะนำลอยใต้ช่อง ส่วนที่ตรงกับที่พิมพ์เป็นตัวหนา */
+  .search-suggest { @apply relative; }
+  .search-suggest-field { @apply relative block; }
+  .search-suggest-field > svg { @apply pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#62646c]; }
+  .search-suggest-field input { @apply w-full pl-9; }
+  .search-suggest-list {
+    @apply absolute inset-x-0 top-[calc(100%+4px)] z-30 m-0 max-h-72 list-none overflow-y-auto rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
+  }
+  .search-suggest-list[hidden] { @apply hidden; }
+  .search-suggest-list li { @apply flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-[#292a30]; }
+  .search-suggest-list li:hover, .search-suggest-list li[aria-selected="true"] { @apply bg-brand/[.07]; }
+  .search-suggest-list mark { @apply bg-transparent font-bold text-[#0f0f0f]; }
+  .search-suggest-list small { @apply shrink-0 text-xs text-[#62646c]; }
   .payment-slip-preview iframe { @apply h-full w-full border-0 bg-white; }
   .payment-slip-preview > div { @apply grid h-full place-content-center justify-items-center gap-2 p-6 text-center text-white/45; }
   .payment-rejection-note { @apply mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-4; }
@@ -1013,9 +1085,11 @@
     .admin-table-export { width: 100%; }
   }
 
+  /* ป็อปอัพทั้งระบบใช้หน้าตาแบบ YouTube บนจอใหญ่: มุมโค้ง 12px ไม่มีเส้นขอบ ไม่มีแถบเทาท้ายกล่อง ปุ่มทรงแคปซูล
+     บนมือถือ (ดูช่วง max-width: 767px) กล่องฟอร์มเป็น bottom sheet ส่วนกล่องยืนยันเป็นแบบ iOS alert */
   .modal-backdrop {
-    @apply fixed inset-0 z-50 grid place-items-center bg-[#202124]/55 p-4 backdrop-blur-[2px];
-    animation: modal-backdrop-enter 300ms ease-in-out both;
+    @apply fixed inset-0 z-50 grid place-items-center bg-[#0f0f0f]/50 p-4;
+    animation: modal-backdrop-enter 200ms ease-out both;
   }
   .modal-backdrop > .modal,
   .modal-backdrop > .repair-flow-modal,
@@ -1041,18 +1115,19 @@
   .form-alert.warning { @apply border-[#b45309] bg-amber-50 text-[#92400e]; }
   /* ค่าเริ่มต้นเท่ากล่องใหญ่สุดของ Cal คือ 48rem ของเดิม 56rem กว้างกว่าที่เขายอมให้กล่องกว้างได้
      และกว้างกว่ากล่องอื่นในระบบที่ใช้ modal-md อยู่แล้วเกือบทั้งหมด */
+  /* overflow-x-hidden กันแถบเลื่อนแนวนอนโผล่ เมื่อมีอะไรยื่นเกินขอบในกล่องแม้นิดเดียว */
   .modal, .room-edit-modal, .tenant-config-modal, .repair-flow-modal, .repair-schedule-modal {
-    @apply max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-[#d4d4d8] bg-[#fff] p-7 shadow-[0_16px_48px_rgba(0,0,0,.14),0_4px_12px_rgba(0,0,0,.08)] sm:p-10;
+    @apply max-h-[90vh] w-full max-w-3xl overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border-0 bg-[#fff] p-6 shadow-[0_4px_32px_rgba(0,0,0,.16),0_1px_4px_rgba(0,0,0,.06)];
   }
   /* ความกว้างหน้าต่างซ้อน: ค่าเริ่มต้นกว้างพอสำหรับฟอร์มสองคอลัมน์ ส่วนกล่อง
      ยืนยันและฟอร์มคอลัมน์เดียวแคบลง เพราะยิ่งกว้างยิ่งต้องกวาดตาไกลกว่าจะอ่านจบ */
   .modal-sm { @apply max-w-lg; }
   .modal-md { @apply max-w-2xl; }
-  .modal-header { @apply mb-6 flex items-start justify-between gap-4; }
-  .modal-header h2 { @apply m-0 text-xl leading-tight font-semibold tracking-[-.01em] text-[#26272d]; }
+  .modal-header { @apply mb-5 flex items-start justify-between gap-4; }
+  .modal-header h2 { @apply m-0 text-lg leading-snug font-semibold text-[#0f0f0f]; }
   .modal-header h3 { @apply m-0 text-base font-semibold text-[#26272d]; }
   .modal-header p:not(.eyebrow), .modal-header small { @apply mt-1 block text-sm leading-6 text-[#60616b]; }
-  .modal-header > button { @apply grid size-11 shrink-0 place-items-center rounded-md bg-transparent text-xl font-normal leading-none text-[#60616b] transition-colors hover:bg-[#f4f4f5] hover:text-[#292a30] lg:size-9; }
+  .modal-header > button { @apply -mt-1 -mr-2 grid size-11 shrink-0 place-items-center rounded-full bg-transparent text-xl font-normal leading-none text-[#3f3f46] transition-colors hover:bg-[#f2f2f2] hover:text-[#0f0f0f] lg:size-10; }
   .modal-form, .repair-owner-form, .parcel-form { @apply grid gap-5; }
   .modal :is(label, .field-stack), .repair-owner-form label, .parcel-form label { @apply gap-2 text-sm font-medium text-[#292a30]; }
   .modal textarea { @apply min-h-32 w-full rounded-md border-[#8b8d96] bg-[#fff] px-3 text-sm text-[#292a30] shadow-none focus:border-brand; }
@@ -1069,26 +1144,28 @@
   .tenant-config-modal .modal-grid,
   .tenant-config-modal .tenant-config-grid { @apply grid-cols-1; }
   .full-width { @apply col-span-full; }
+  /* แถบปุ่มติดขอบล่างของกล่องตอนเนื้อหายาวจนต้องเลื่อน ระยะติดลบล่างเท่ากับระยะขอบของกล่องพอดี จึงไม่ล้นจนเกิดแถบเลื่อน */
   .modal-actions {
-    @apply mt-8 -mx-7 -mb-7 flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-0 border-t border-[#e4e4e7] bg-[#fafafa] px-7 py-4 sm:-mx-10 sm:-mb-10 sm:px-10;
+    @apply sticky bottom-0 z-[1] mt-6 -mb-6 flex flex-wrap items-center justify-end gap-2 border-0 border-t border-solid border-[#ececec] bg-[#fff] pt-4 pb-6;
   }
-  .modal-actions button:not(.app-button) { @apply min-h-11 rounded-md border border-[#8b8d96] bg-[#fff] px-4 text-sm font-semibold text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5] lg:min-h-9; }
-  .modal-actions button:not(.app-button):last-child, .modal-actions .primary-button { @apply border-brand bg-brand text-[#fff] hover:bg-[#4651c7]; }
-  .modal-actions .app-button { @apply min-h-11 lg:min-h-9; }
+  /* ปุ่มในกล่องเป็นทรงแคปซูล ปุ่มรองเป็นพื้นเทาอ่อนไม่มีกรอบ ปุ่มหลักเป็นสีทึบ เหมือนกล่องของ YouTube */
+  .modal-actions :is(button, .app-button) { @apply min-h-11 rounded-full px-5 text-sm font-semibold lg:min-h-10; }
+  .modal-actions button:not(.app-button) { @apply border border-transparent bg-[#f2f2f2] text-[#0f0f0f] shadow-none transition-colors duration-150 hover:bg-[#e5e5e5]; }
+  .modal-actions button:not(.app-button):last-child, .modal-actions .primary-button { @apply border-transparent bg-brand text-[#fff] hover:bg-[#4651c7]; }
+  .modal-actions .app-button--secondary,
+  .modal-actions .app-button--tertiary { @apply border-transparent bg-[#f2f2f2] text-[#0f0f0f] shadow-none hover:bg-[#e5e5e5]; }
+  .modal-actions :is(.app-button--primary, .app-button--danger) { @apply border-transparent shadow-none; }
   .modal-summary { @apply self-end rounded-md border border-[#e4e4e7] bg-[#fafafa] px-3 py-2; }
   .modal-summary span { @apply block text-sm text-[#62646c]; }
   .modal-summary strong { @apply mt-0.5 block text-lg; }
   .modal-summary.full-width { @apply self-auto p-4; }
-  .confirmation-modal { @apply max-w-2xl; }
-  .confirmation-alert-modal { @apply max-w-lg p-6 sm:p-7; }
-  .confirmation-alert-modal .modal-header { @apply mb-6; }
-  .confirmation-alert-modal .modal-header h2 { @apply text-2xl; }
-  .confirmation-alert-modal .modal-header p:not(.eyebrow) { @apply text-sm; }
-  .confirmation-alert-modal .modal-actions { @apply mt-6; }
-  .confirmation-alert-modal .modal-actions .app-button { @apply min-h-12 text-base; }
-  .confirmation-dialog-copy { @apply flex items-start gap-4; }
-  .confirmation-dialog-icon { @apply grid size-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-700; }
-  .confirmation-dialog-header.danger h2 { @apply text-red-800; }
+  .room-status-locked small { @apply mt-1 block text-xs text-[#62646c]; }
+  .room-editor-hint { @apply col-span-full m-0 text-sm text-[#62646c]; }
+  /* กล่องยืนยัน: แคบ ข้อความสั้น ไม่มีปุ่ม X (กด Esc หรือยกเลิกได้) แบบกล่องยืนยันของ YouTube */
+  .confirmation-modal { @apply max-w-[25rem]; }
+  .confirmation-modal .modal-header { @apply mb-0 block; }
+  .confirmation-modal .modal-header p { @apply mt-2 text-sm leading-6 text-[#3f3f46]; }
+  .confirmation-modal .modal-actions { @apply mt-5 border-t-0 pt-0; }
   .eyebrow { @apply mb-2 text-xs font-bold uppercase tracking-[.16em] text-brand; }
   /* แผงเลื่อนจากขอบขวา แบบ Sheet ของ Cal ที่เขาใช้ตอนแก้ข้อมูลของรายการหนึ่ง
      ยึดขอบขวา เว้นขอบบนล่างไว้ กว้าง 32rem เท่าของเขา และเรียงหัวข้อลงมาคอลัมน์เดียว */
@@ -1116,8 +1193,9 @@
   .room-editor-section > header p { @apply mt-1 text-sm text-[#696a73]; }
   .room-editor-section-body { @apply p-0; }
   .tenant-config-form { @apply grid gap-5; }
+  /* แผงด้านข้างเลื่อนเฉพาะเนื้อหาข้างใน แถบปุ่มอยู่นอกส่วนที่เลื่อนอยู่แล้ว จึงไม่ต้องติดขอบแบบกล่องทั่วไป */
   .room-editor-form > .modal-actions, .tenant-config-form > .modal-actions {
-    @apply mx-0 -mb-6 w-full px-6 sm:mx-0 sm:px-6;
+    @apply static mx-0 mb-0 w-full px-0 pb-0;
   }
   .room-editor-actions,
   .tenant-config-actions {
@@ -1513,14 +1591,22 @@
       scroll-margin-bottom: calc(5.25rem + env(safe-area-inset-bottom));
     }
     .tenant-navigation { @apply hidden; }
-    .tenant-topbar { @apply items-start pt-5; }
+    .tenant-topbar { @apply mb-4 items-start px-4 pt-5 pb-4; }
     .tenant-topbar h1 { @apply text-2xl; }
-    .tenant-header-actions { @apply w-full justify-between; }
-    .tenant-header-actions > label { @apply min-w-0 flex-1; }
+    /* แถวใต้หัวเรื่อง: ตัวเลือกห้องยืดเต็มแถว กระดิ่งชิดขวา ไม่ปล่อยช่องโหว่ตรงกลาง */
+    .tenant-header-actions { @apply w-full flex-wrap; }
+    .tenant-header-actions > .dropdown-field { @apply order-first min-w-0 flex-1; }
+    .tenant-header-actions > .page-header-slot:empty { @apply hidden; }
+    /* ปุ่มของหน้า เช่น "แจ้งเรื่อง" ลงไปอยู่แถวถัดไปเต็มความกว้าง ไม่เบียดตัวเลือกห้องจนชื่อหอโดนตัด */
+    .tenant-header-actions > .page-header-slot:not(:empty) { @apply order-last basis-full; }
+    .tenant-header-actions > .page-header-slot :is(button, a) { @apply w-full justify-center; }
     .tenant-header-actions select { @apply w-full; }
-    .tenant-content { @apply px-4 py-5; }
+    /* การ์ดสรุปในแต่ละส่วนไม่ต้องเว้นขอบซ้อนกับขอบของส่วน จอแคบจะได้เหลือที่ให้เนื้อหา */
+    .tenant-content .app-section :is(.figma-summary-grid, .stats) { @apply p-0; }
     .tenant-home { @apply rounded-xl; }
-    .tenant-home-surface { @apply p-5; }
+    /* มือถือจอแคบ ไม่ต้องเว้นขอบซ้อนหลายชั้น การ์ดแต่ละใบเว้นขอบของตัวเองอยู่แล้ว */
+    .tenant-home-surface { @apply gap-4 p-0; }
+    .tenant-content .app-section { @apply p-4; }
     .tenant-mobile-navigation {
       @apply fixed right-0 bottom-0 left-0 z-50 grid grid-cols-5 border-t border-[#dedfe5] bg-[#fff]/95 px-1 pt-1 shadow-[0_-8px_30px_rgba(30,31,36,.10)] backdrop-blur-xl;
       padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
@@ -1544,6 +1630,8 @@
     .tenant-mobile-more-menu > strong { @apply px-3 py-2 text-sm; }
     .tenant-mobile-more-menu > a { @apply flex min-h-12 items-center gap-3 rounded-xl px-3 font-bold text-[#4d4f58] no-underline; }
     .tenant-mobile-more-menu > a.active { @apply bg-brand/10 text-[#4651c7]; }
+    .tenant-mobile-more-divider { @apply mx-3 my-1 block h-px bg-[#e4e4e7]; }
+    .tenant-mobile-logout { @apply flex min-h-12 w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left font-bold text-[#b91c1c] hover:bg-red-50 disabled:opacity-60; }
     .dropdown-field { @apply min-w-0; }
     .shell { @apply block; }
     /* บนมือถือแถบข้างเป็นลิ้นชัก ซ่อนนอกจอไว้จนกดปุ่มแฮมเบอร์เกอร์
@@ -1600,10 +1688,16 @@
     .rooms-view-toggle { @apply ml-auto; }
     .room-building-head, .room-floor-stack { @apply px-4; }
     .room-plan-grid { @apply grid-cols-2; }
-    .modal-backdrop { @apply items-end p-0 sm:items-center sm:p-4; }
+    /* มือถือ: กล่องฟอร์มเลื่อนขึ้นจากขอบล่างเป็น bottom sheet มีขีดจับด้านบนให้รู้ว่าเป็นแผ่นที่ปัดลงได้ */
+    .modal-backdrop { @apply items-end p-0; }
     .modal, .room-edit-modal, .tenant-config-modal, .repair-flow-modal, .repair-schedule-modal {
-      @apply max-h-[96dvh] rounded-b-none rounded-t-2xl p-5 sm:max-h-[92vh] sm:rounded-xl;
+      @apply inset-x-0 bottom-0 top-auto max-h-[92dvh] max-w-none rounded-b-none rounded-t-2xl px-5 pt-3 pb-5;
+      animation: modal-sheet-enter 260ms cubic-bezier(.2,.8,.2,1) both;
     }
+    .modal:not(.confirmation-modal)::before {
+      @apply mx-auto mb-4 block h-1 w-9 rounded-full bg-[#d4d4d8] content-[''];
+    }
+    .room-edit-modal, .tenant-config-modal { @apply fixed; }
     .room-edit-modal,
     .tenant-config-modal {
       @apply block h-auto overflow-y-auto;
@@ -1613,9 +1707,26 @@
       @apply grid min-h-0;
     }
     .modal-header { @apply mb-5; }
-    .modal-actions { @apply -mx-5 -mb-5 flex-col items-stretch gap-2 rounded-b-none px-5 sm:rounded-b-xl; }
+    /* ปุ่มเต็มความกว้างเรียงลงมา ปุ่มหลักอยู่บนสุดใกล้นิ้วโป้ง และเว้นระยะจากแถบล่างของ iPhone */
+    .modal-actions { @apply -mb-5 flex-col-reverse items-stretch gap-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]; }
     .modal-actions > * { @apply w-full; }
-    .modal-actions button { @apply min-h-12 px-4 text-sm; }
+    .modal-actions :is(button, .app-button) { @apply min-h-12 px-4 text-[15px]; }
+
+    /* กล่องยืนยันบนมือถือเป็นแบบ iOS alert: อยู่กลางจอ ข้อความกึ่งกลาง ปุ่มเป็นตัวอักษรเต็มแถวคั่นด้วยเส้นบาง */
+    .modal-backdrop:has(> .confirmation-modal) { @apply items-center p-8; }
+    .modal.confirmation-modal {
+      @apply inset-auto max-h-[80dvh] w-full max-w-[17.5rem] rounded-[14px] p-0 text-center;
+      animation: modal-alert-enter 200ms cubic-bezier(.2,.8,.2,1) both;
+    }
+    .confirmation-modal .modal-header { @apply px-4 pt-5 pb-4; }
+    .confirmation-modal .modal-header h2 { @apply text-[17px] font-semibold; }
+    .confirmation-modal .modal-header p { @apply mt-1 text-[13px] leading-5; }
+    .confirmation-modal .modal-actions { @apply static m-0 flex-col-reverse gap-0 bg-transparent p-0; }
+    .confirmation-modal .modal-actions :is(button, .app-button) {
+      @apply min-h-11 w-full rounded-none border-0 border-t border-solid border-[#d4d4d8] bg-transparent text-[17px] font-normal text-brand shadow-none hover:bg-[#f2f2f2];
+    }
+    .confirmation-modal .modal-actions :is(.app-button--primary, .app-button--danger) { @apply font-semibold; }
+    .confirmation-modal .modal-actions .app-button--danger { @apply text-[#b91c1c]; }
     .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid, .furniture-grid { @apply grid-cols-1; }
     .room-editor-layout { @apply flex flex-col gap-5; }
     .room-edit-modal .room-editor-layout,
@@ -1829,10 +1940,15 @@ input[type="file"]:not(.sr-only):not(.chat-file-input) {
   background: var(--ui-control-background);
   color: var(--ui-control-text);
   padding: 0.25rem;
+  /* ให้บรรทัดสูงเท่าพื้นที่ด้านใน ปุ่มกับชื่อไฟล์จะอยู่กึ่งกลางแนวตั้งพอดี ไม่ไหลลงไปชนขอบล่าง */
+  line-height: calc(var(--ui-control-height) - 0.5rem - 2px);
 }
 
+/* ความสูงปุ่มคิดจากความสูงช่อง ช่องบนเดสก์ท็อปเตี้ยเหลือ 36px ถ้าปุ่มสูงตายตัว 38px จะล้นจนโดนตัดขอบ */
 input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
-  height: 2.375rem;
+  height: calc(var(--ui-control-height) - 0.5rem - 2px);
+  margin-block: 0;
+  vertical-align: top;
   margin-inline-end: 0.75rem;
   border: 0;
   border-radius: 0.5rem;
@@ -1927,8 +2043,13 @@ select:disabled {
 }
 
 @keyframes modal-sheet-enter {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0.6; transform: translateY(100%); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-alert-enter {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes toast-enter {
@@ -1983,6 +2104,7 @@ select:disabled {
   .repair-history-meta { @apply justify-start; }
   .repair-history-row > small { @apply col-start-auto; }
   .repair-history-page-list > .empty-state { @apply m-4; }
+  .parcel-empty-state { @apply m-4; }
   .loading-skeleton-table { @apply border-0 bg-transparent; }
 
   .room-edit-modal,

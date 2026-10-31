@@ -278,15 +278,18 @@ function ParcelTable({ actionFeedback, activeView, isLoading, onCancel, onEdit, 
 }
 
 function ParcelEmptyState({ activeView }: Readonly<{ activeView: ParcelView }>) {
+  // ใช้หน้าตากล่องว่างแบบเดียวกับหน้าอื่น มีระยะห่างจากขอบการ์ด ไม่ชิดซ้ายเหมือนข้อความธรรมดา
   if (activeView === "waiting") {
-    return <div className="repair-empty">
-      <strong>ยังไม่มีพัสดุรอรับ</strong><p>พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ</p>
-      <span>กดเพิ่มพัสดุเพื่อบันทึกรายการใหม่</span>
+    return <div className="empty-state parcel-empty-state">
+      <PackageCheck aria-hidden="true" />
+      <strong>ยังไม่มีพัสดุรอรับ</strong>
+      <p>พัสดุที่ลงทะเบียนแล้วจะแสดงที่นี่จนกว่าผู้เช่าจะมารับ</p>
     </div>;
   }
-  return <div className="repair-empty">
-    <strong>ยังไม่มีประวัติรับพัสดุ</strong><p>พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่</p>
-    <span>รายการจะย้ายมาที่นี่หลังจากกดรับแล้ว</span>
+  return <div className="empty-state parcel-empty-state">
+    <CheckCircle2 aria-hidden="true" />
+    <strong>ยังไม่มีประวัติรับพัสดุ</strong>
+    <p>พัสดุที่ผู้เช่ารับไปแล้วจะย้ายมาที่นี่</p>
   </div>;
 }
 

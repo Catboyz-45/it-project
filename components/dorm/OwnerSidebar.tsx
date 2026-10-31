@@ -46,7 +46,7 @@ const menuItems: MenuItem[] = [
 
 const secondaryMenuItems: MenuItem[] = [
   { key: "invoices", label: "บิลและการเงิน", icon: QrCode },
-  { key: "complaints", label: "ร้องเรียน", icon: Wrench },
+  { key: "complaints", label: "แจ้งซ่อม/ร้องเรียน", icon: Wrench },
   { key: "parcels", label: "คลังพัสดุ", icon: PackageCheck },
 ];
 

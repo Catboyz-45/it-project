@@ -159,6 +159,38 @@ describe("self-service subscription orders", () => {
     expect((await callApi("PATCH", path, { ...admin, body: { status: "REJECTED" } })).status).toBe(400);
     expect((await callApi("PATCH", path, { ...admin, body: { status: "REJECTED", rejectionNote: "ยอดไม่ตรง" } })).status).toBe(200);
   });
+
+  // หน้าตรวจค่าสมาชิกกรองตามสถานะ สรุปยอดเดือนนี้ และแนะนำคำค้นจากคำที่พิมพ์ไม่ครบ
+  it("filters reviewed slips, summarises this month, and suggests search terms", async () => {
+    const admin = { cookie: w.cookies.superAdmin };
+    const listIds = async (status: string) => (await callApi("GET", `/api/v1/super-admin/subscription-payments?status=${status}&pageSize=100`, admin))
+      .json.data.map((payment: { id: string; status: string }) => payment);
+    const approved = await listIds("APPROVED");
+    const rejected = await listIds("REJECTED");
+    expect(approved.length).toBeGreaterThan(0);
+    expect(approved.every((payment: { status: string }) => payment.status === "APPROVED")).toBe(true);
+    expect(rejected.every((payment: { status: string }) => payment.status === "REJECTED")).toBe(true);
+    // ค่าเริ่มต้นคือคิวรอตรวจ ของที่ตรวจแล้วต้องไม่หลุดเข้ามา
+    const pending = await listIds("PENDING_REVIEW");
+    expect(pending.some((payment: { id: string }) => approved.some((done: { id: string }) => done.id === payment.id))).toBe(false);
+    expect((await callApi("GET", "/api/v1/super-admin/subscription-payments?status=PAID", admin)).status).toBe(400);
+
+    const summary = await callApi("GET", "/api/v1/super-admin/subscription-payments/summary", admin);
+    expect(summary.status).toBe(200);
+    expect(summary.json.data.approvedThisMonth).toBeGreaterThan(0);
+    expect(Number(summary.json.data.approvedAmountThisMonth)).toBeGreaterThan(0);
+
+    // พิมพ์แค่บางส่วนของชื่อหอก็ต้องได้คำแนะนำ และไม่พิมพ์อะไรต้องได้รายการว่าง ไม่ใช่ทุกอย่างในระบบ
+    const partialName = w.property.name.slice(0, 6);
+    const suggestions = await callApi("GET", `/api/v1/super-admin/subscription-payments/suggestions?status=ALL&query=${encodeURIComponent(partialName)}`, admin);
+    expect(suggestions.json.data).toContainEqual(expect.objectContaining({ kind: "property", value: w.property.name }));
+    const empty = await callApi("GET", "/api/v1/super-admin/subscription-payments/suggestions?query=", admin);
+    expect(empty.json.data).toEqual([]);
+
+    // เจ้าของหอเห็นตัวเลขของทั้งระบบไม่ได้
+    expect((await callApi("GET", "/api/v1/super-admin/subscription-payments/summary", owner())).status).toBe(403);
+    expect((await callApi("GET", "/api/v1/super-admin/subscription-payments/suggestions?query=a", owner())).status).toBe(403);
+  });
 });
 
 describe("scheduled maintenance job", () => {

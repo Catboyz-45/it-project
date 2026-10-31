@@ -68,15 +68,17 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     // เปิดกล่องแล้วโฟกัสต้องย้ายเข้าไปข้างใน ไม่ค้างอยู่ข้างหลังจนกด Tab หลุดออกไปหลังกล่อง
     await expect.poll(() => tenantDialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
 
-    const startDateTrigger = tenantDialog.getByRole("button", { name: "วันเริ่มสัญญา" });
+    // วันสัญญาในกล่องนี้แสดงอย่างเดียวแล้ว (แก้ที่หน้าสัญญา) จึงทดสอบปฏิทินกับช่องวันเกิดแทน
+    const startDateTrigger = tenantDialog.getByRole("button", { name: "วันเกิด (ไม่บังคับ)" });
     await activate(startDateTrigger);
-    const calendar = page.getByRole("dialog", { name: "เลือกวันเริ่มสัญญา" });
+    const calendar = page.getByRole("dialog", { name: "เลือกวันเกิด (ไม่บังคับ)" });
     await expect(calendar).toBeVisible();
     // ปฏิทินมีแค่วันเดียวที่ Tab เข้าถึงได้ ที่เหลือใช้ลูกศรเลื่อน จึงอ่านวันที่จากช่องที่โฟกัสอยู่
     await expect.poll(() => page.locator(":focus").getAttribute("data-date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const initialDate = await page.locator(":focus").getAttribute("data-date");
     expect(initialDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    await page.keyboard.press("ArrowRight");
+    // วันเกิดเลือกวันในอนาคตไม่ได้ จึงเลื่อนย้อนไปวันก่อนหน้าแทน
+    await page.keyboard.press("ArrowLeft");
     await expect.poll(() => page.locator(":focus").getAttribute("data-date")).not.toBe(initialDate);
     // ไล่กดปุ่มที่ปฏิทินต้องรองรับให้ครบ ไม่เช็คผลทีละปุ่ม แค่ต้องไม่พังกลางทาง
     await page.keyboard.press("ArrowDown");

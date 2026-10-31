@@ -1,7 +1,11 @@
 import { z } from "zod";
+import { isValidIdentityDocumentNumber, normalizeIdentityDocumentNumber } from "@/lib/domain/identity-document";
 import { recordIdSchema } from "@/lib/domain/record-id";
 
 const money = z.coerce.number().min(0).max(10_000_000);
+
+// ช่องข้อมูลผู้เช่าที่ไม่บังคับ ส่ง null มาคือล้างค่า ไม่ส่งมาเลยคือไม่ได้แก้ช่องนั้น
+const optionalProfileText = (maxLength: number) => z.string().trim().max(maxLength).nullable().optional();
 
 // แก้ข้อมูลหอ ทุกช่องเป็น optional เพราะแก้ทีละช่องได้ แต่ต้องมีอย่างน้อยหนึ่งช่อง
 export const updatePropertySchema = z.object({
@@ -44,6 +48,22 @@ export const updateTenantProfileSchema = z.object({
   address: z.string().trim().max(1000).nullable().optional(),
   emergencyName: z.string().trim().max(160).nullable().optional(),
   emergencyPhone: z.string().trim().max(30).nullable().optional(),
+  namePrefix: optionalProfileText(20),
+  nickname: optionalProfileText(60),
+  nationality: optionalProfileText(60),
+  nationalId: z.string().transform(normalizeIdentityDocumentNumber)
+    .refine(isValidIdentityDocumentNumber, "เลขบัตรประชาชนหรือหนังสือเดินทางไม่ถูกต้อง")
+    .nullable().optional(),
+  // วันเกิดต้องเป็นวันในอดีตและไม่เก่าเกินจริง กันพิมพ์ปี พ.ศ. ลงช่องที่รับ ค.ศ.
+  birthDate: z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`))
+    .refine((value) => value.getUTCFullYear() >= 1900 && value <= new Date(), "วันเกิดไม่ถูกต้อง")
+    .nullable().optional(),
+  lineId: optionalProfileText(60),
+  occupation: optionalProfileText(120),
+  organization: optionalProfileText(160),
+  studentOrEmployeeId: optionalProfileText(40),
+  emergencyRelation: optionalProfileText(60),
+  ownerNote: optionalProfileText(2000),
   // ส่ง null มาได้ หมายถึงไม่มีรถ ต่างจากไม่ส่งมาเลยซึ่งแปลว่าไม่ได้แก้ส่วนนี้
   vehicle: z.object({
     type: z.enum(["MOTORCYCLE", "CAR", "BICYCLE", "OTHER"]),

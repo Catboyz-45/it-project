@@ -3,10 +3,11 @@
 
 import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
-import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
+import { formatDisplayDate } from "@/components/dorm/DatePickerField";
 import { currency } from "@/lib/dorm-utils";
+import { isValidIdentityDocumentNumber } from "@/lib/domain/identity-document";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
@@ -14,15 +15,21 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { Room, RoomStatus, Tenant } from "@/types/dorm";
 import { UnitInput } from "@/components/ui/UnitInput";
 
-// สามสถานะนี้คุมว่าห้องออกบิลได้ไหมและรับผู้เช่าใหม่ได้ไหม
+// ห้องที่ไม่มีคนอยู่สลับได้แค่ว่างกับซ่อมบำรุง ส่วน "มีผู้เช่า" เกิดจากการอนุมัติเข้าพักเท่านั้น
+// และห้องที่มีคนอยู่จะว่างได้ก็ต่อเมื่อย้ายออก เซิร์ฟเวอร์ปฏิเสธการเปลี่ยนแบบอื่นอยู่แล้ว
 const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "available", label: "ว่าง" },
-  { value: "occupied", label: "มีผู้เช่า" },
   { value: "maintenance", label: "ซ่อมบำรุง" },
 ];
 
 // as const ทำให้ TypeScript รู้ว่ามีแค่สี่ค่านี้ ไม่ใช่ string อะไรก็ได้
 // เรียงตามลำดับที่ปรากฏบนหน้าจอ เพราะใช้หาว่าตอนนี้เลื่อนมาถึงหัวข้อไหนแล้ว
+
+// ช่วงสัญญาแบบอ่านอย่างเดียว ยังไม่มีวันสิ้นสุดก็บอกตรง ๆ แทนการเว้นว่าง
+function describeLeasePeriod(tenant: Tenant | undefined) {
+  if (!tenant?.startDate) return "ยังไม่มีสัญญา";
+  return `${formatDisplayDate(tenant.startDate)} – ${tenant.contractEnd ? formatDisplayDate(tenant.contractEnd) : "ยังไม่ระบุ"}`;
+}
 
 // removeTenant แยกออกมาต่างหาก เพราะ tenant เป็น undefined บอกไม่ได้ว่าตั้งใจลบหรือไม่มีตั้งแต่แรก
 export interface RoomEditPayload {
@@ -53,34 +60,28 @@ export function RoomEditModal({
   const [rent, setRent] = useState(String(room.rent));
   const [floorId, setFloorId] = useState(room.floorId ?? "");
   const [roomType, setRoomType] = useState<Room["roomType"]>(room.roomType);
-  const [waterMeter, setWaterMeter] = useState(String(room.waterMeter));
-  const [electricMeter, setElectricMeter] = useState(String(room.electricMeter));
   const [furniture, setFurniture] = useState<string[]>(room.furniture);
   const [name, setName] = useState(tenant?.name ?? "");
   const [phone, setPhone] = useState(tenant?.phone ?? "");
   const [nationalId, setNationalId] = useState(tenant?.nationalId ?? "");
-  const [startDate, setStartDate] = useState(tenant?.startDate ?? "");
-  const [contractEnd, setContractEnd] = useState(tenant?.contractEnd ?? "");
-  const [deposit, setDeposit] = useState(String(tenant?.deposit ?? room.rent));
   // ฐานข้อมูลเก็บ "-" แทนค่าว่าง แต่ในช่องกรอกต้องเป็นว่างจริง ๆ ไม่งั้นผู้ใช้ต้องมาลบขีดเอง
   const [address, setAddress] = useState(tenant?.address === "-" ? "" : tenant?.address ?? "");
   const [guardianName, setGuardianName] = useState(tenant?.guardianName === "-" ? "" : tenant?.guardianName ?? "");
   const [guardianPhone, setGuardianPhone] = useState(tenant?.guardianPhone === "-" ? "" : tenant?.guardianPhone ?? "");
   const [formError, setFormError] = useState("");
-  // สถานะห้องเป็นตัวตัดสินว่าต้องกรอกข้อมูลผู้เช่าไหม เปลี่ยนเป็นว่างแล้วบันทึกคือถอดผู้เช่าออก
-  const hasTenant = status === "occupied";
+  // ห้องที่มีผู้เช่าล็อกสถานะไว้ จะเปลี่ยนได้ต้องผ่านการย้ายออกหรือย้ายห้องเท่านั้น
+  const isOccupied = room.status === "occupied";
+  const hasTenant = isOccupied && Boolean(tenant);
   // เก็บภาพค่าเริ่มต้นไว้เทียบ จะได้รู้ว่าผู้ใช้แก้อะไรไปแล้วหรือยัง
   const initialSnapshot = useMemo(() => JSON.stringify({
     address: tenant?.address === "-" ? "" : tenant?.address ?? "",
-    contractEnd: tenant?.contractEnd ?? "",
-    deposit: String(tenant?.deposit ?? room.rent), electricMeter: String(room.electricMeter),
     floorId: room.floorId ?? "", furniture: room.furniture, guardianName: tenant?.guardianName === "-" ? "" : tenant?.guardianName ?? "",
     guardianPhone: tenant?.guardianPhone === "-" ? "" : tenant?.guardianPhone ?? "", name: tenant?.name ?? "",
     nationalId: tenant?.nationalId ?? "", phone: tenant?.phone ?? "", rent: String(room.rent), roomType: room.roomType,
-    startDate: tenant?.startDate ?? "", status: room.status, waterMeter: String(room.waterMeter),
+    status: room.status,
   }), [room, tenant]);
   // คีย์ต้องเรียงเหมือนกับของเดิมเป๊ะ ๆ เพราะเทียบเป็นสตริง ไม่ได้เทียบทีละฟิลด์
-  const currentSnapshot = JSON.stringify({ address, contractEnd, deposit, electricMeter, floorId, furniture, guardianName, guardianPhone, name, nationalId, phone, rent, roomType, startDate, status, waterMeter });
+  const currentSnapshot = JSON.stringify({ address, floorId, furniture, guardianName, guardianPhone, name, nationalId, phone, rent, roomType, status });
   // โหมดอ่านอย่างเดียวแก้อะไรไม่ได้อยู่แล้ว จึงไม่ต้องถามตอนปิด
   const isDirty = !readOnly && currentSnapshot !== initialSnapshot;
   const { confirm, confirmationDialog } = useConfirmation();
@@ -99,15 +100,10 @@ export function RoomEditModal({
     setRent(String(room.rent));
     setFloorId(room.floorId ?? "");
     setRoomType(room.roomType);
-    setWaterMeter(String(room.waterMeter));
-    setElectricMeter(String(room.electricMeter));
     setFurniture(room.furniture);
     setName(tenant?.name ?? "");
     setPhone(tenant?.phone ?? "");
     setNationalId(tenant?.nationalId ?? "");
-    setStartDate(tenant?.startDate ?? "");
-    setContractEnd(tenant?.contractEnd ?? "");
-    setDeposit(String(tenant?.deposit ?? room.rent));
     setAddress(tenant?.address === "-" ? "" : tenant?.address ?? "");
     setGuardianName(tenant?.guardianName === "-" ? "" : tenant?.guardianName ?? "");
     setGuardianPhone(tenant?.guardianPhone === "-" ? "" : tenant?.guardianPhone ?? "");
@@ -125,13 +121,13 @@ export function RoomEditModal({
     // กันไว้อีกชั้น เผื่อมีทางกดส่งที่เล็ดลอดจาก fieldset ที่ปิดไว้
     if (readOnly) return;
 
-    if (hasTenant && (!name.trim() || !phone.trim() || !startDate || !contractEnd)) {
-      setFormError("กรุณากรอกชื่อ เบอร์โทร และช่วงสัญญาของผู้เช่าให้ครบ");
+    if (hasTenant && (!name.trim() || !phone.trim())) {
+      setFormError("กรุณากรอกชื่อและเบอร์โทรของผู้เช่าให้ครบ");
       return;
     }
-    // เทียบสตริงวันที่ได้ตรง ๆ เพราะรูปแบบ YYYY-MM-DD เรียงตามตัวอักษรแล้วตรงกับเรียงตามเวลา
-    if (hasTenant && contractEnd < startDate) {
-      setFormError("วันสิ้นสุดสัญญาต้องอยู่หลังวันเริ่มสัญญา");
+    // ตรวจรูปแบบก่อนส่ง ผู้ใช้จะได้รู้ทันทีว่าพิมพ์ผิด ส่วนเซิร์ฟเวอร์ตรวจซ้ำอีกรอบ
+    if (hasTenant && nationalId.trim() && !isValidIdentityDocumentNumber(nationalId)) {
+      setFormError("เลขบัตรประชาชนหรือหนังสือเดินทางไม่ถูกต้อง");
       return;
     }
 
@@ -143,8 +139,6 @@ export function RoomEditModal({
           ...tenant,
           // แปลงค่าว่างกลับเป็น "-" ให้ตรงกับที่ฐานข้อมูลเก็บ
           address: address.trim() || "-",
-          contractEnd,
-          deposit: Number(deposit) || 0,
           guardianName: guardianName.trim() || "-",
           guardianPhone: guardianPhone.trim() || "-",
           id: tenantId,
@@ -152,7 +146,9 @@ export function RoomEditModal({
           nationalId: nationalId.trim(),
           phone: phone.trim(),
           roomId: room.id,
-          startDate,
+          // สัญญากับเงินประกันกล่องนี้ไม่ได้แก้ คงค่าเดิมไว้
+          deposit: tenant?.deposit ?? 0,
+          startDate: tenant?.startDate ?? "",
           vehicleDetail: tenant?.vehicleDetail ?? "",
           vehiclePlate: tenant?.vehiclePlate ?? "",
           vehicleType: tenant?.vehicleType ?? "ไม่มีรถ",
@@ -163,7 +159,6 @@ export function RoomEditModal({
       removeTenant: !hasTenant,
       room: {
         ...room,
-        electricMeter: Number(electricMeter) || 0,
         floor: floorOptions.find((item) => item.id === floorId)?.number ?? room.floor,
         floorId,
         furniture,
@@ -172,7 +167,6 @@ export function RoomEditModal({
         roomType,
         status,
         tenantId: hasTenant ? tenantId : undefined,
-        waterMeter: Number(waterMeter) || 0,
       },
       tenant: nextTenant,
     });
@@ -199,7 +193,13 @@ export function RoomEditModal({
             <header><div><h3>ข้อมูลห้อง</h3><p>สถานะ ประเภท และตำแหน่งของห้อง</p></div></header>
             <div className="room-editor-section-body modal-grid">
               <div className="modal-field">
-                <DropdownField label="สถานะห้อง" value={status} onChange={(value) => setStatus(value as RoomStatus)} options={roomStatusOptions} />
+                {isOccupied ? (
+                  <div className="modal-summary room-status-locked">
+                    <span>สถานะห้อง</span>
+                    <strong>มีผู้เช่า</strong>
+                    <small>เปลี่ยนได้ผ่านการย้ายออกหรือย้ายห้องในรายละเอียดผู้เช่า</small>
+                  </div>
+                ) : <DropdownField label="สถานะห้อง" value={status} onChange={(value) => setStatus(value as RoomStatus)} options={roomStatusOptions} />}
               </div>
               <div className="modal-field">
                 <DropdownField
@@ -219,9 +219,11 @@ export function RoomEditModal({
             <header><div><h3>ค่าเช่าและมิเตอร์</h3><p>ข้อมูลที่ใช้คำนวณบิลประจำเดือน</p></div></header>
             <div className="room-editor-section-body modal-grid">
               <label><span>ค่าเช่าต่อเดือน</span><UnitInput min={0} required type="number" unit="บาท/เดือน" value={rent} onChange={(event) => setRent(event.target.value)} /></label>
-              <label><span>เลขมิเตอร์น้ำล่าสุด</span><UnitInput min={0} required type="number" unit="หน่วย" value={waterMeter} onChange={(event) => setWaterMeter(event.target.value)} /></label>
-              <label><span>เลขมิเตอร์ไฟล่าสุด</span><UnitInput min={0} required type="number" unit="หน่วย" value={electricMeter} onChange={(event) => setElectricMeter(event.target.value)} /></label>
               <div className="modal-summary"><span>ค่าเช่าปัจจุบัน</span><strong>{currency.format(Number(rent) || 0)}</strong></div>
+              {/* เลขมิเตอร์มาจากการจดประจำเดือน แก้ตรงนี้ไม่ได้ เพราะบิลที่ออกไปแล้วอ้างอิงเลขเหล่านี้ */}
+              <div className="modal-summary"><span>มิเตอร์น้ำล่าสุด</span><strong>{room.waterMeter.toLocaleString("th-TH")} หน่วย</strong></div>
+              <div className="modal-summary"><span>มิเตอร์ไฟล่าสุด</span><strong>{room.electricMeter.toLocaleString("th-TH")} หน่วย</strong></div>
+              <p className="room-editor-hint">จดเลขมิเตอร์ประจำเดือนได้ที่หน้าค่าน้ำและค่าไฟ</p>
             </div>
           </section>
 
@@ -244,17 +246,17 @@ export function RoomEditModal({
           </section>
 
           <section className="room-editor-section tenant-editor-section" id="room-section-tenant">
-            <header><div><h3>ข้อมูลผู้เช่า</h3><p>{hasTenant ? "แก้ไขข้อมูลติดต่อ สัญญา และข้อมูลฉุกเฉิน" : "เปลี่ยนสถานะห้องเป็นมีผู้เช่าเพื่อเพิ่มผู้เช่า"}</p></div></header>
+            <header><div><h3>ข้อมูลผู้เช่า</h3><p>{hasTenant ? "แก้ไขข้อมูลติดต่อและข้อมูลฉุกเฉิน" : "ผู้เช่าใหม่เข้าพักด้วยรหัสเชิญ แล้วเจ้าของหออนุมัติการเข้าพัก"}</p></div></header>
             {hasTenant ? (
               <div className="room-editor-section-body modal-grid">
                 <label><span>ชื่อ-นามสกุล *</span><input required value={name} onChange={(event) => setName(event.target.value)} /></label>
                 <label><span>เบอร์โทร *</span><input inputMode="tel" required value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
-                {/* ตัดทุกอย่างที่ไม่ใช่ตัวเลขทิ้งตั้งแต่ตอนพิมพ์ ผู้ใช้จะได้ไม่ต้องมาลบขีดเอง */}
-                <label><span>เลขบัตรประชาชน</span><input inputMode="numeric" maxLength={13} value={nationalId} onChange={(event) => setNationalId(event.target.value.replace(/\D/g, ""))} /></label>
-                <label><span>เงินประกัน</span><UnitInput min={0} type="number" unit="บาท" value={deposit} onChange={(event) => setDeposit(event.target.value)} /></label>
-                <DatePickerField label="วันเริ่มสัญญา *" value={startDate} onChange={setStartDate} />
-                {/* จำกัดไม่ให้เลือกวันก่อนวันเริ่มสัญญา ตั้งแต่ในปฏิทินเลย */}
-                <DatePickerField label="วันสิ้นสุดสัญญา *" minDate={startDate ? new Date(`${startDate}T00:00:00`) : new Date()} value={contractEnd} onChange={setContractEnd} />
+                {/* รับทั้งบัตรประชาชนและหนังสือเดินทาง จึงไม่ตัดตัวอักษรทิ้ง ขีดกับเว้นวรรคเซิร์ฟเวอร์ตัดให้เอง */}
+                <label><span>เลขบัตรประชาชน/หนังสือเดินทาง</span><input autoComplete="off" maxLength={24} value={nationalId} onChange={(event) => setNationalId(event.target.value)} /></label>
+                {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงอย่างเดียว แก้ได้ที่หน้าสัญญาเช่า */}
+                <div className="modal-summary"><span>ช่วงสัญญา</span><strong>{describeLeasePeriod(tenant)}</strong></div>
+                <div className="modal-summary"><span>เงินประกัน</span><strong>{currency.format(tenant?.deposit ?? 0)}</strong></div>
+                <p className="room-editor-hint">แก้ไขช่วงสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
                 <label className="full-width"><span>ที่อยู่ตามทะเบียนบ้าน</span><textarea value={address} onChange={(event) => setAddress(event.target.value)} /></label>
                 <label><span>ชื่อผู้ติดต่อฉุกเฉิน/ผู้ปกครอง</span><input value={guardianName} onChange={(event) => setGuardianName(event.target.value)} /></label>
                 <label><span>เบอร์ผู้ติดต่อฉุกเฉิน</span><input inputMode="tel" value={guardianPhone} onChange={(event) => setGuardianPhone(event.target.value)} /></label>

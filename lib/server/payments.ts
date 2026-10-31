@@ -21,7 +21,7 @@ export async function getTenantPromptPay(tenantProfileId: string, invoiceId: str
   // ไม่เจอตอบว่าไม่พบ ไม่แยกว่าไม่มีบิลจริงหรือมีแต่ไม่ใช่ของคนนี้
   if (!invoice) throw new ApiError(404, "ไม่พบบิลที่ชำระได้");
   const promptPayId = invoice.property.settings?.promptPayId;
-  if (!promptPayId) throw new ApiError(409, "หอพักยังไม่ได้ตั้งค่า PromptPay");
+  if (!promptPayId) throw new ApiError(409, "หอพักยังไม่ได้ตั้งค่า PromptPay กรุณาโอนตามช่องทางที่หอพักแจ้ง แล้วแนบสลิปด้านล่าง");
   let payload: string;
   try {
     payload = createPromptPayPayload(promptPayId, Number(invoice.total));
@@ -49,6 +49,8 @@ export async function createPaymentSubmission(input: {
       select: { id: true, propertyId: true, total: true },
     });
     if (!invoice) throw new ApiError(404, "ไม่พบบิลที่ส่งหลักฐานได้");
+    // บิลยอดศูนย์ไม่มีอะไรต้องจ่าย และฐานข้อมูลก็ไม่รับหลักฐานยอดศูนย์ บอกให้ชัดดีกว่าปล่อยเป็นข้อผิดพลาดของระบบ
+    if (invoice.total.lte(0)) throw new ApiError(409, "บิลนี้ไม่มียอดที่ต้องชำระ กรุณาติดต่อหอพักเพื่อตรวจสอบยอด");
     const pending = await database.paymentSubmission.count({
       where: { invoiceId: invoice.id, tenantProfileId: input.tenantProfileId, status: "PENDING_REVIEW" },
     });

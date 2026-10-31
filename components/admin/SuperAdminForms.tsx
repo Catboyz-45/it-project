@@ -4,16 +4,15 @@
 
 import { AdminAccountForm } from "@/components/admin/AdminAccountForm";
 import { PropertyCreateForm } from "@/components/admin/PropertyCreateForm";
-import { SubscriptionOverrideForm } from "@/components/admin/SubscriptionOverrideForm";
 
-type SuperAdminFormSection = "property" | "account" | "subscription";
+// การแก้แพ็กเกจด้วยตนเองย้ายไปเป็นป็อปอัพบนหน้าการชำระสมาชิกแล้ว (SubscriptionOverrideButton)
+type SuperAdminFormSection = "property" | "account";
 
 export function SuperAdminForms({
-  sections = ["property", "account", "subscription"],
+  sections = ["property", "account"],
 }: Readonly<{ sections?: SuperAdminFormSection[] }>) {
   return <>
     {sections.includes("property") ? <PropertyCreateForm /> : null}
     {sections.includes("account") ? <AdminAccountForm /> : null}
-    {sections.includes("subscription") ? <SubscriptionOverrideForm /> : null}
   </>;
 }

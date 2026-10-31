@@ -1,5 +1,6 @@
 import type { OwnerWorkspaceReadModel } from "@/types/dashboard";
 import { getDatabase } from "@/lib/server/db";
+import { toTenantProfileDetails } from "@/lib/server/tenant-profile-details";
 import { formatVehicleType } from "@/lib/ui-labels";
 
 // ก้อนนี้เป็นภาพรวมของพื้นที่ทำงาน ไม่ใช่ endpoint สำหรับดูประวัติหรือส่งออกข้อมูล
@@ -126,6 +127,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
       address: item.tenantProfile.address ?? "",
       guardianName: item.tenantProfile.emergencyName ?? "",
       guardianPhone: item.tenantProfile.emergencyPhone ?? "",
+      ...toTenantProfileDetails(item.tenantProfile, item.ownerNote),
       occupantCount: activeOccupantsByRoom.get(item.roomId)?.length ?? 1,
       coOccupants: (activeOccupantsByRoom.get(item.roomId) ?? [])
         .filter((occupancy) => occupancy.tenantProfileId !== item.tenantProfileId)

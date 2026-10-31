@@ -8,23 +8,29 @@ export type ApiErrorPayload = {
 // Error ที่พก requestId ติดมาด้วย จะได้แสดงให้ผู้ใช้เห็นเวลาต้องแจ้งปัญหา
 export class ClientApiError extends Error {
   readonly requestId?: string;
+  // รหัสสถานะ HTTP ถ้ารู้ ใช้แยกว่าเป็นเงื่อนไขทางธุรกิจที่ตั้งใจตอบ หรือระบบขัดข้องจริง
+  readonly status?: number;
 
-  constructor(message: string, requestId?: string) {
+  constructor(message: string, requestId?: string, status?: number) {
     super(message);
     this.name = "ClientApiError";
     this.requestId = requestId;
+    this.status = status;
   }
 }
 
-export function createApiError(payload: ApiErrorPayload, fallbackMessage: string) {
-  return new ClientApiError(payload.error || fallbackMessage, payload.requestId);
+export function createApiError(payload: ApiErrorPayload, fallbackMessage: string, status?: number) {
+  return new ClientApiError(payload.error || fallbackMessage, payload.requestId, status);
 }
 
 // แปลงข้อผิดพลาดเป็นข้อความที่ผู้ใช้อ่านรู้เรื่อง ไม่หลุดรายละเอียดภายในระบบออกไป
 export function formatClientError(error: unknown, fallbackMessage: string) {
   // ไม่ใช่ Error ก็แปลว่ามีอะไรผิดปกติที่เราไม่รู้ ใช้ข้อความสำรองไปเลย
   if (!(error instanceof Error)) return fallbackMessage;
-  const requestId = error instanceof ClientApiError ? error.requestId : undefined;
+  // ข้อผิดพลาด 4xx คือเงื่อนไขที่ระบบตั้งใจบอก เช่น "หอพักยังไม่ได้ตั้งค่า PromptPay" ข้อความอธิบายครบแล้ว
+  // แนบรหัสอ้างอิงเฉพาะตอนระบบขัดข้องหรือไม่รู้สถานะ ซึ่งผู้ใช้ต้องใช้รหัสนี้แจ้งทีมงาน
+  const isExpectedFailure = error instanceof ClientApiError && error.status !== undefined && error.status < 500;
+  const requestId = error instanceof ClientApiError && !isExpectedFailure ? error.requestId : undefined;
   return requestId ? `${error.message} (รหัสอ้างอิง: ${requestId})` : error.message;
 }
 
@@ -38,7 +44,7 @@ export async function readApiPayload<T extends ApiErrorPayload>(
     payload = await response.json() as T;
   } catch {
     // ตอบกลับมาไม่ใช่ JSON เช่นหน้า error ของ proxy ก็ยังพอเอา requestId จาก header ได้
-    throw new ClientApiError(fallbackMessage, response.headers.get("x-request-id") ?? undefined);
+    throw new ClientApiError(fallbackMessage, response.headers.get("x-request-id") ?? undefined, response.status);
   }
 
   if (!response.ok) {
@@ -46,7 +52,7 @@ export async function readApiPayload<T extends ApiErrorPayload>(
       ...payload,
       // เอาจากตัวข้อมูลก่อน ไม่มีค่อยไปเอาจาก header
       requestId: payload.requestId ?? response.headers.get("x-request-id") ?? undefined,
-    }, fallbackMessage);
+    }, fallbackMessage, response.status);
   }
   return payload;
 }

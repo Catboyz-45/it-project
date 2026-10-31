@@ -66,11 +66,23 @@ export const reviewSubscriptionPaymentSchema = z.object({
   }
 });
 
+// หน้าตรวจค่าสมาชิกแบ่งหน้าละ 12 รายการ วางไว้ที่นี่ไม่ใช่ในไฟล์ "use client"
+// เพราะหน้าฝั่งเซิร์ฟเวอร์ต้องใช้ค่าจริงตอนดึงหน้าแรก ค่าที่ import จากไฟล์ client จะกลายเป็นตัวอ้างอิงแทนตัวเลข
+export const subscriptionPaymentPageSize = 12;
+
+// ตัวกรองหน้าตรวจค่าสมาชิกของแอดมินใหญ่ อ่านจาก query string จึงรับค่าว่างได้และตัดคำค้นที่ยาวเกิน
+// ALL คือทุกสถานะ ค่าเริ่มต้นคือรอตรวจ เพราะเป็นงานที่ต้องทำ
+export const subscriptionPaymentFilterSchema = z.object({
+  status: z.enum(["PENDING_REVIEW", "APPROVED", "REJECTED", "ALL"]).default("PENDING_REVIEW"),
+  query: z.string().trim().max(160).optional().transform((value) => value || undefined),
+});
+
 export type CreateSaasPlanInput = z.infer<typeof createSaasPlanSchema>;
 export type UpdateSaasPlanInput = z.infer<typeof updateSaasPlanSchema>;
 export type AssignSubscriptionInput = z.infer<typeof assignSubscriptionSchema>;
 export type CreateSubscriptionOrderInput = z.infer<typeof createSubscriptionOrderSchema>;
 export type ReviewSubscriptionPaymentInput = z.infer<typeof reviewSubscriptionPaymentSchema>;
+export type SubscriptionPaymentFilter = z.infer<typeof subscriptionPaymentFilterSchema>;
 
 // แปลงยอดรายปีเป็นต่อเดือน เพื่อให้เทียบรายได้ของแพ็กเกจต่างรอบบิลกันได้
 export function monthlyEquivalent(priceAmount: number, interval: "MONTHLY" | "YEARLY") {
@@ -80,4 +92,11 @@ export function monthlyEquivalent(priceAmount: number, interval: "MONTHLY" | "YE
 export function usagePercent(used: number, limit: number) {
   if (limit <= 0) return 100;
   return Math.min(100, Math.round((used / limit) * 10_000) / 100);
+}
+
+// ต้นเดือนตามเวลาไทย (UTC+7) ไม่ใช่ต้นเดือนตาม UTC ไม่งั้นยอดของเช้าวันที่ 1 จะไปตกเดือนก่อน
+export function startOfBangkokMonth(now = new Date()) {
+  const bangkokOffsetMs = 7 * 60 * 60 * 1000;
+  const local = new Date(now.getTime() + bangkokOffsetMs);
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - bangkokOffsetMs);
 }

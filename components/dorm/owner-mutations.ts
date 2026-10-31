@@ -47,6 +47,17 @@ function tenantContactBody(tenant: Tenant) {
     address: optionalTenantText(tenant.address),
     emergencyName: optionalTenantText(tenant.guardianName),
     emergencyPhone: optionalTenantText(tenant.guardianPhone),
+    namePrefix: optionalTenantText(tenant.prefix ?? ""),
+    nickname: optionalTenantText(tenant.nickname ?? ""),
+    nationality: optionalTenantText(tenant.nationality ?? ""),
+    nationalId: optionalTenantText(tenant.nationalId ?? ""),
+    birthDate: optionalTenantText(tenant.birthDate ?? ""),
+    lineId: optionalTenantText(tenant.lineId ?? ""),
+    occupation: optionalTenantText(tenant.occupation ?? ""),
+    organization: optionalTenantText(tenant.organization ?? ""),
+    studentOrEmployeeId: optionalTenantText(tenant.studentOrEmployeeId ?? ""),
+    emergencyRelation: optionalTenantText(tenant.guardianRelation ?? ""),
+    ownerNote: optionalTenantText(tenant.note ?? ""),
   };
 }
 

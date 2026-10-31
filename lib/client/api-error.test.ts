@@ -7,6 +7,14 @@ describe("client API errors", () => {
     expect(formatClientError(error, "ผิดพลาด")).toBe("บันทึกไม่สำเร็จ (รหัสอ้างอิง: req-123)");
   });
 
+  // เงื่อนไขที่ตั้งใจตอบ (4xx) อธิบายตัวเองอยู่แล้ว ไม่ต้องพ่วงรหัสอ้างอิงให้ดูเหมือนระบบพัง
+  it("keeps expected 4xx messages clean but tags server failures", () => {
+    expect(formatClientError(createApiError({ error: "หอพักยังไม่ได้ตั้งค่า PromptPay", requestId: "req-1" }, "ผิดพลาด", 409), "ผิดพลาด"))
+      .toBe("หอพักยังไม่ได้ตั้งค่า PromptPay");
+    expect(formatClientError(createApiError({ error: "ไม่สามารถดำเนินการได้", requestId: "req-2" }, "ผิดพลาด", 500), "ผิดพลาด"))
+      .toBe("ไม่สามารถดำเนินการได้ (รหัสอ้างอิง: req-2)");
+  });
+
   // ค่าที่ไม่ใช่ Error ต้องได้ข้อความสำรอง ไม่ใช่ข้อความว่างหรือรายละเอียดภายในระบบ
   it("uses a safe fallback for unknown errors", () => {
     expect(formatClientError(null, "ไม่สามารถดำเนินการได้")).toBe("ไม่สามารถดำเนินการได้");

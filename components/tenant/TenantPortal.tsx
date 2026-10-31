@@ -22,6 +22,7 @@ import {
   ListChecks,
   LoaderCircle,
   MessageSquare,
+  LogOut,
   MoreHorizontal,
   Package,
   Paperclip,
@@ -44,6 +45,7 @@ import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { appSidebarId, NavShell, NavToggle } from "@/components/ui/NavShell";
+import { useLogout } from "@/lib/client/use-logout";
 import { useRefreshOnFocus } from "@/lib/client/use-refresh-on-focus";
 import { SidebarAccountMenu } from "@/components/ui/SidebarAccountMenu";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -440,6 +442,7 @@ export function TenantPortal({
   }, []);
 
   const activeTabItem = tabs.find(({ id }) => id === activeTab) ?? tabs[0];
+  const { isLoggingOut, logout } = useLogout();
 
   // useMemo ให้ object ของ context เปลี่ยนเฉพาะตอนข้อมูลข้างในเปลี่ยน หน้าย่อยจะได้ไม่ render ซ้ำโดยไม่จำเป็น
   const portalValue = useMemo<TenantPortalValue>(() => ({
@@ -472,8 +475,8 @@ export function TenantPortal({
     </aside>
     <section className="workspace tenant-workspace">
       <header className="topbar tenant-topbar">
+        {/* ผู้เช่าบนมือถือใช้แถบเมนูล่างแทนลิ้นชัก จึงไม่มีปุ่มแฮมเบอร์เกอร์บนหัวหน้า */}
         <div className="topbar-heading">
-          <NavToggle placement="topbar" />
           <div>
             <h1>{activeTabItem.label}</h1>
             <p className="page-subtitle">{tabDescriptions[activeTab]}</p>
@@ -493,7 +496,8 @@ export function TenantPortal({
       </header>
     <TenantAccessBanner accessState={accessState} onRetry={() => void notificationResource.reload()} />
     {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
-    <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6">
+    {/* ระยะของมือถือต้องเป็น utility เหมือนกัน กฎใน CSS ของคอมโพเนนต์แพ้ px-6 py-6 เสมอ */}
+    <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6 max-md:px-4 max-md:pt-0 max-md:pb-5">
       <section className="min-w-0">{children}</section>
     </div>
     </section>
@@ -523,6 +527,12 @@ export function TenantPortal({
               {notificationCount(id) > 0 ? <span className="notification-badge ml-auto">{notificationCount(id) > 99 ? "99+" : notificationCount(id)}</span> : null}
             </Link>
           ))}
+          {/* บนมือถือไม่มีแถบข้าง ปุ่มออกจากระบบจึงต้องอยู่ในเมนูนี้ แยกด้วยเส้นกันกดพลาด */}
+          <span aria-hidden="true" className="tenant-mobile-more-divider" />
+          <button className="tenant-mobile-logout" disabled={isLoggingOut} onClick={() => void logout()} type="button">
+            <LogOut aria-hidden="true" size={20} />
+            <span>{isLoggingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</span>
+          </button>
         </div>
       </details>
     </nav>
@@ -1282,7 +1292,8 @@ function SubmissionHistory({ submissions }: Readonly<{ submissions: Submission[]
 function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
   const promptPay = useApiResource<{ invoiceNumber: string; amount: string; payload: string }>(`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr?format=json`);
   if (promptPay.isLoading) return <Loading />;
-  if (promptPay.error || !promptPay.data) return <div className="form-alert error">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
+  // สร้าง QR ไม่ได้ไม่ได้แปลว่าจ่ายไม่ได้ ยังโอนเองแล้วแนบสลิปได้ จึงใช้กล่องเตือนสีเหลือง ไม่ใช่สีแดง
+  if (promptPay.error || !promptPay.data) return <div className="form-alert warning">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
   return <div className="text-center">
     <strong className="block text-lg">สแกน PromptPay</strong>
     <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
@@ -1454,7 +1465,8 @@ function TicketHistoryTable({ historyTotal, onRead, onToggleReply, openReplyTick
 
 // มุมมองปัจจุบันเป็นการ์ด เปิดการตอบกลับได้ทีละเรื่อง
 function TicketCards({ onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
-  return <>
+  // เว้นระยะระหว่างการ์ดแบบเดียวกับรายการบิล ไม่ให้การ์ดชนกันเป็นก้อนเดียว
+  return <div className="grid gap-3">
     {resource.data.map((ticket) => <Panel key={ticket.id} title={ticket.title}>
       <TicketDetailsContent
         onRead={onRead}
@@ -1464,7 +1476,7 @@ function TicketCards({ onRead, onToggleReply, openReplyTicketId, readOnly, resou
         toggleReply={() => onToggleReply(ticket.id)}
       />
     </Panel>)}
-  </>;
+  </div>;
 }
 
 // เรื่องแจ้งมีสองประเภท แจ้งซ่อมกับร้องเรียน
@@ -1492,7 +1504,7 @@ function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggl
     <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {ticketEventLabel(event)}</li>)}</ol>
+    <ol className="mt-4 grid gap-2 border-t border-[#e4e4e7] pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {ticketEventLabel(event)}</li>)}</ol>
     {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
   </>;

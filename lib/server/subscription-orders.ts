@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import type {
   CreateSubscriptionOrderInput,
   ReviewSubscriptionPaymentInput,
+  SubscriptionPaymentFilter,
 } from "@/lib/domain/saas";
+import { startOfBangkokMonth } from "@/lib/domain/saas";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
@@ -135,15 +137,32 @@ export async function createSubscriptionPayment(input: {
   return result.payment;
 }
 
-export async function listPendingSubscriptionPayments(pagination: PaginationInput, query?: string) {
-  const where = { status: "PENDING_REVIEW" as const, ...(query ? { order: { OR: [{ orderNumber: { contains: query, mode: "insensitive" as const } }, { planName: { contains: query, mode: "insensitive" as const } }, { property: { name: { contains: query, mode: "insensitive" as const } } }] } } : {}) };
+// คำค้นเดียวใช้ได้กับชื่อหอ เลขคำสั่งซื้อ และชื่อแพ็กเกจ ไม่ต้องให้ผู้ใช้เลือกว่าจะค้นช่องไหน
+function subscriptionPaymentWhere({ query, status }: SubscriptionPaymentFilter) {
+  return {
+    ...(status === "ALL" ? {} : { status }),
+    ...(query ? { order: { OR: [
+      { orderNumber: { contains: query, mode: "insensitive" as const } },
+      { planName: { contains: query, mode: "insensitive" as const } },
+      { property: { name: { contains: query, mode: "insensitive" as const } } },
+    ] } } : {}),
+  };
+}
+
+// รายการหลักฐานค่าสมาชิกของทุกหอ แบ่งหน้าและกรองตามสถานะ
+// รอตรวจเรียงเก่าสุดก่อนเหมือนคิว ส่วนที่ตรวจแล้วเรียงล่าสุดก่อนเพราะมักย้อนดูเรื่องที่เพิ่งเกิด
+export async function listSubscriptionPayments(pagination: PaginationInput, filter: SubscriptionPaymentFilter) {
+  const where = subscriptionPaymentWhere(filter);
+  const orderBy = filter.status === "PENDING_REVIEW"
+    ? [{ submittedAt: "asc" as const }, { id: "asc" as const }]
+    : [{ submittedAt: "desc" as const }, { id: "desc" as const }];
   const [rows, total] = await getDatabase().$transaction([getDatabase().subscriptionPayment.findMany({
     where,
-    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+    orderBy,
     ...paginationQuery(pagination),
     select: {
       id: true, orderId: true, amount: true, mimeType: true, sizeBytes: true,
-      status: true, submittedAt: true,
+      status: true, submittedAt: true, reviewedAt: true, rejectionNote: true,
       order: {
         select: {
           orderNumber: true, propertyId: true, planName: true,
@@ -154,6 +173,49 @@ export async function listPendingSubscriptionPayments(pagination: PaginationInpu
     },
   }), getDatabase().subscriptionPayment.count({ where })]);
   return toPaginatedResult(rows.map((row) => ({ ...row, amount: row.amount.toString() })), pagination, total);
+}
+
+// ตัวเลขสรุปบนหัวหน้าตรวจค่าสมาชิก: งานค้าง กับผลของเดือนนี้
+export async function getSubscriptionPaymentSummary(now = new Date()) {
+  const monthStart = startOfBangkokMonth(now);
+  const approvedThisMonth = { status: "APPROVED" as const, reviewedAt: { gte: monthStart } };
+  const [pending, approved] = await getDatabase().$transaction([
+    getDatabase().subscriptionPayment.count({ where: { status: "PENDING_REVIEW" } }),
+    getDatabase().subscriptionPayment.aggregate({ where: approvedThisMonth, _count: { _all: true }, _sum: { amount: true } }),
+  ]);
+  return {
+    pending,
+    approvedThisMonth: approved._count._all,
+    approvedAmountThisMonth: (approved._sum.amount ?? 0).toString(),
+  };
+}
+
+// คำแนะนำระหว่างพิมพ์ช่องค้นหา: ชื่อหอ เลขคำสั่งซื้อ และแพ็กเกจที่มีคำนี้อยู่ พิมพ์ไม่ครบก็เจอ
+// ดึงจากหลักฐานที่ตรงสถานะที่กำลังดูอยู่เท่านั้น จะได้ไม่แนะนำคำที่เลือกแล้วไม่เจออะไร
+export async function suggestSubscriptionPaymentTerms(filter: SubscriptionPaymentFilter, limit = 8) {
+  const query = filter.query;
+  if (!query) return [];
+  const statusWhere = subscriptionPaymentWhere({ ...filter, query: undefined });
+  const contains = { contains: query, mode: "insensitive" as const };
+  const [properties, orders, plans] = await getDatabase().$transaction([
+    getDatabase().property.findMany({
+      where: { name: contains, subscriptionOrders: { some: { payments: { some: statusWhere } } } },
+      orderBy: { name: "asc" }, take: limit, select: { name: true },
+    }),
+    getDatabase().subscriptionOrder.findMany({
+      where: { orderNumber: contains, payments: { some: statusWhere } },
+      orderBy: { orderNumber: "asc" }, take: limit, select: { orderNumber: true, property: { select: { name: true } } },
+    }),
+    getDatabase().subscriptionOrder.findMany({
+      where: { planName: contains, payments: { some: statusWhere } },
+      distinct: ["planName"], orderBy: { planName: "asc" }, take: limit, select: { planName: true },
+    }),
+  ]);
+  return [
+    ...properties.map(({ name }) => ({ kind: "property" as const, value: name, detail: "หอพัก" })),
+    ...orders.map(({ orderNumber, property }) => ({ kind: "order" as const, value: orderNumber, detail: property.name })),
+    ...plans.map(({ planName }) => ({ kind: "plan" as const, value: planName, detail: "แพ็กเกจ" })),
+  ].slice(0, limit);
 }
 
 // คืนที่อยู่ไฟล์สลิปให้ผู้เรียกที่ตรวจสิทธิ์มาแล้ว ไม่ได้ตรวจสิทธิ์ซ้ำในนี้
