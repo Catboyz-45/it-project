@@ -136,7 +136,7 @@ test.describe("owner journey", () => {
     await page.getByLabel("เมนูหลัก").getByRole("link", { name: /สัญญาเช่า/ }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.propertyId}/contracts$`));
     await expect(page.getByText("CTR-E2E-E101", { exact: false })).toBeVisible();
-    await expect(page.getByText("ฉบับแก้ไขที่", { exact: true })).toBeVisible();
+    await expect(page.getByText("v1", { exact: true })).toBeVisible();
 
     await page.getByLabel("เมนูหลัก").getByRole("link", { name: /บิลและการเงิน/ }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.propertyId}/invoices$`));
@@ -183,7 +183,7 @@ test.describe("tenant journey", () => {
     await expect(page).toHaveURL(/\/tenant\/lease$/);
     await expect(page.getByRole("heading", { name: "สัญญาปัจจุบัน" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "CTR-E2E-E101" })).toBeVisible();
-    await expect(page.getByText("v1", { exact: true })).toBeVisible();
+    await expect(page.getByText("ฉบับแก้ไขที่", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "ประกาศ", exact: true }).click();
     await expect(page.getByRole("heading", { name: "ประกาศ E2E" })).toBeVisible();
