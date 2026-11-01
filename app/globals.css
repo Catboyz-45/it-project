@@ -1021,6 +1021,8 @@
   .priority-list button strong, .priority-list button span { @apply block; }
   .priority-list button span { @apply mt-1 text-sm text-[#62646c]; }
   .priority-list button small { @apply inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 font-bold text-[#fff]; }
+  .priority-list button.is-clear { @apply border-[#e4e4e7] bg-[#fff] hover:bg-[#fafafa]; }
+  .priority-list button.is-clear small { @apply bg-transparent px-0 font-semibold text-brand; }
   .quick-actions { @apply grid! grid-cols-3; }
   .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/[.06] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:bg-brand hover:text-[#fff]; }
   .dashboard-actions { @apply grid-cols-2!; }
@@ -1698,11 +1700,16 @@
     .workspace-section-tabs { @apply px-4; }
     .additional-page-actions { @apply static mb-4 justify-stretch; }
     .additional-page-actions > .primary-button { @apply w-full; }
-    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-1 px-4; }
+    /* มือถือวางการ์ดตัวเลขสองใบต่อแถว เรียงทีละใบแล้วต้องเลื่อนนานกว่าจะถึงงานที่ต้องทำ
+       ซ่อนไอคอนประกอบ ให้ที่ว่างกับตัวเลขซึ่งเป็นข้อมูลจริง */
+    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-2 gap-2.5 px-4; }
     .figma-summary-grid.three,
     .figma-summary-grid.four,
     .figma-summary-grid.five,
-    .figma-summary-grid.six { grid-template-columns: minmax(0, 1fr); }
+    .figma-summary-grid.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) { @apply min-h-0 p-3; }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) > span { @apply hidden; }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) strong { @apply text-lg; }
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
     .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
@@ -2276,4 +2283,28 @@ select:disabled {
     color: #4b4d55;
   }
   .meter-figma-table tbody td input { width: 100%; min-height: 2.75rem; font-size: 1rem; }
+}
+
+/* จอมือถือ ตารางบิลของเจ้าของหอกว้างเกินจอ ยอดเงินกับสถานะหลุดไปทางขวา
+   เปลี่ยนแต่ละแถวเป็นการ์ด: เลขบิลกับเมนูอยู่บน ห้องกับยอดรวมอยู่กลาง ผู้เช่ากับสถานะอยู่ล่าง
+   ซ่อนค่าเช่า ค่าน้ำ ค่าไฟรายช่อง ดูได้จาก PDF ของบิล ลำดับช่องต้องตรงกับ InvoicesPage */
+@media (max-width: 767px) {
+  .figma-table-wrap:has(> .invoice-table) { max-height: none; overflow: visible; }
+  .invoice-table .figma-table-head { display: none; }
+  .invoice-table .figma-table-row {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "bill action" "room total" "tenant status";
+    gap: 0.25rem 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+  .invoice-table .figma-table-row > td { position: static; padding: 0; }
+  .invoice-table .figma-table-row > td:nth-child(1) { grid-area: bill; font-weight: 600; }
+  .invoice-table .figma-table-row > td:nth-child(2) { grid-area: room; color: #4b4d55; }
+  .invoice-table .figma-table-row > td:nth-child(2)::before { content: "ห้อง "; }
+  .invoice-table .figma-table-row > td:nth-child(3) { grid-area: tenant; color: #4b4d55; }
+  .invoice-table .figma-table-row > td:nth-child(4) { grid-area: total; justify-self: end; }
+  .invoice-table .figma-table-row > td:nth-child(5) { grid-area: status; justify-self: end; }
+  .invoice-table .figma-table-row > td:nth-child(n + 6):not(:last-child) { display: none; }
+  .invoice-table .figma-table-row > td:last-child { grid-area: action; justify-self: end; }
 }
