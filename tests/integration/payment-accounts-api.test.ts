@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { getDatabase } from "@/lib/server/db";
 import { createWorkspaceFixture } from "./helpers";
@@ -98,6 +99,23 @@ describe("password reset link sent by the super admin", () => {
 
     // ส่งให้บัญชีผู้เช่าไม่ได้ เพราะเมนูนี้มีไว้ช่วยเจ้าของหอเท่านั้น
     expect((await callApi("POST", `/api/v1/super-admin/users/${w.tenantUserId}/password-reset-link`, admin())).status).toBe(404);
+  });
+
+  // บัญชีที่ admin:bootstrap สร้างใช้ id แบบ UUID เคยโดนตอบว่าไม่พบบัญชีทุกเมนู
+  it("works for owner accounts created by the bootstrap script with UUID ids", async () => {
+    for (const [key, value] of Object.entries(emailEnv)) vi.stubEnv(key, value);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
+    const id = randomUUID();
+    await getDatabase().user.create({
+      data: { id, email: `bootstrap-owner-${w.suffix}@example.test`, passwordHash: "x", displayName: "เจ้าของหอจากสคริปต์", role: "PROPERTY_ADMIN", approvalStatus: "APPROVED" },
+    });
+    try {
+      const response = await callApi("POST", `/api/v1/super-admin/users/${id}/password-reset-link`, admin());
+      expect(response.status).toBe(200);
+    } finally {
+      await getDatabase().passwordResetToken.deleteMany({ where: { userId: id } });
+      await getDatabase().user.delete({ where: { id } });
+    }
   });
 
   it("tells the super admin when the email could not be sent", async () => {

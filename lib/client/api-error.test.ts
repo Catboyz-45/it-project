@@ -15,6 +15,13 @@ describe("client API errors", () => {
       .toBe("ไม่สามารถดำเนินการได้ (รหัสอ้างอิง: req-2)");
   });
 
+  // บอกว่าช่องไหนผิดด้วยข้อความภาษาไทยที่เขียนไว้ในกฎ แต่ไม่โชว์ข้อความอังกฤษของ Zod
+  it("prefers a Thai field message over the generic validation error", () => {
+    const issues = [{ path: "bankName", message: "Too small: expected string to have >=1 characters" }, { path: "bankAccountNumber", message: "เลขบัญชีต้องเป็นตัวเลข 10-12 หลัก" }];
+    expect(createApiError({ error: "ข้อมูลไม่ถูกต้อง", issues }, "ผิดพลาด", 400).message).toBe("เลขบัญชีต้องเป็นตัวเลข 10-12 หลัก");
+    expect(createApiError({ error: "ข้อมูลไม่ถูกต้อง", issues: [issues[0]] }, "ผิดพลาด", 400).message).toBe("ข้อมูลไม่ถูกต้อง");
+  });
+
   // ค่าที่ไม่ใช่ Error ต้องได้ข้อความสำรอง ไม่ใช่ข้อความว่างหรือรายละเอียดภายในระบบ
   it("uses a safe fallback for unknown errors", () => {
     expect(formatClientError(null, "ไม่สามารถดำเนินการได้")).toBe("ไม่สามารถดำเนินการได้");

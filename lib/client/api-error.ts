@@ -3,7 +3,16 @@ export type ApiErrorPayload = {
   error?: string;
   // รหัสอ้างอิงของคำขอ ผู้ใช้แจ้งรหัสนี้มา ทีมงานจะหา log ของคำขอนั้นเจอ
   requestId?: string;
+  // ช่องที่กรอกผิด ส่งมาเมื่อตรวจข้อมูลไม่ผ่าน (400)
+  issues?: Array<{ path: string; message: string }>;
 };
+
+// ข้อความของ Zod ที่เราไม่ได้เขียนเองเป็นภาษาอังกฤษ ผู้ใช้อ่านไม่รู้เรื่อง
+// จึงหยิบเฉพาะข้อความภาษาไทยที่เขียนไว้ในกฎ ไม่มีก็ใช้ข้อความรวม "ข้อมูลไม่ถูกต้อง" ตามเดิม
+const thaiText = /[\u0E00-\u0E7F]/;
+function firstReadableIssue(payload: ApiErrorPayload) {
+  return payload.issues?.find((issue) => thaiText.test(issue.message))?.message;
+}
 
 // Error ที่พก requestId ติดมาด้วย จะได้แสดงให้ผู้ใช้เห็นเวลาต้องแจ้งปัญหา
 export class ClientApiError extends Error {
@@ -20,7 +29,7 @@ export class ClientApiError extends Error {
 }
 
 export function createApiError(payload: ApiErrorPayload, fallbackMessage: string, status?: number) {
-  return new ClientApiError(payload.error || fallbackMessage, payload.requestId, status);
+  return new ClientApiError(firstReadableIssue(payload) || payload.error || fallbackMessage, payload.requestId, status);
 }
 
 // แปลงข้อผิดพลาดเป็นข้อความที่ผู้ใช้อ่านรู้เรื่อง ไม่หลุดรายละเอียดภายในระบบออกไป
