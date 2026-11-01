@@ -360,7 +360,7 @@ function OrderCard({ isOpenOrder, onUpload, order, propertyId, submitting }: Rea
     {latestPayment?.rejectionNote ? <p className="form-alert error mt-3">ปฏิเสธ: {latestPayment.rejectionNote}</p> : null}
     {order.status === "PENDING_PAYMENT" ? <div className="mt-4">
       <PaymentInstructions orderId={order.id} propertyId={propertyId} />
-      <label className="secondary-button mt-4 inline-flex cursor-pointer">
+      <label className="secondary-button relative mt-4 inline-flex cursor-pointer">
         <Upload size={17} /> ส่งสลิป
         <input accept="image/png,image/jpeg,application/pdf" className="sr-only" disabled={submitting} onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
