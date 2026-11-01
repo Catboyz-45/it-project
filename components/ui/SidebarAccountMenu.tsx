@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import { AccountChip, type AccountRoleTone } from "@/components/ui/AccountChip";
 import { useEffect, useRef, useState } from "react";
 import { useLogout } from "@/lib/client/use-logout";
 
@@ -15,19 +16,22 @@ const roleConfig: Record<SidebarAccountRole, {
   accountHref: string;
   accountLabel: string;
   context: string;
-  triggerLabel: string;
+  roleLabel: string;
+  tone: AccountRoleTone;
 }> = {
   TENANT: {
     accountHref: "/tenant/account",
     accountLabel: "บัญชีและความปลอดภัย",
     context: "พื้นที่ผู้เช่า",
-    triggerLabel: "บัญชีของฉัน",
+    roleLabel: "ผู้เช่า",
+    tone: "tenant",
   },
   SUPER_ADMIN: {
     accountHref: "/super-admin/account",
     accountLabel: "บัญชีและความปลอดภัย",
     context: "Nestly Control",
-    triggerLabel: "บัญชีผู้ดูแลระบบ",
+    roleLabel: "ผู้ดูแลระบบ",
+    tone: "admin",
   },
 };
 
@@ -96,15 +100,13 @@ export function SidebarAccountMenu({
       // บอกโปรแกรมอ่านหน้าจอว่าปุ่มนี้เปิดเมนู และตอนนี้เปิดอยู่หรือยัง
       aria-expanded={isOpen}
       aria-haspopup="menu"
-      aria-label="เปิดเมนูบัญชี"
+      aria-label={`เปิดเมนูบัญชี ${displayName} ${config.roleLabel}`}
       // ไฮไลต์ไว้เมื่อกำลังอยู่หน้าบัญชีอยู่แล้ว
-      className={pathname === config.accountHref ? "active" : ""}
+      className={`account-chip-trigger${pathname === config.accountHref ? " active" : ""}`}
       onClick={() => setIsOpen((current) => !current)}
       type="button"
     >
-      <UserRound aria-hidden="true" size={18} />
-      {/* truncate กันชื่อยาวดันปุ่มจนแถบข้างเบี้ยว */}
-      <span className="min-w-0 flex-1 truncate text-left">{config.triggerLabel}</span>
+      <AccountChip context={role === "TENANT" ? contextLabel : undefined} name={displayName} roleLabel={config.roleLabel} tone={config.tone} />
     </button>
   </div>;
 }

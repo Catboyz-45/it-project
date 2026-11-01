@@ -1,7 +1,7 @@
 "use client";
 // เก็บสถานะของฟอร์มและส่งคำขอสมัครจากเบราว์เซอร์
 
-import { SyntheticEvent, useState } from "react";
+import { SyntheticEvent, useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
@@ -13,6 +13,16 @@ export function TenantRegistrationForm() {
   const [pending, setPending] = useState(false);
   // เก็บไว้แค่ให้เช็คลิสต์ติ๊กถูกตามที่พิมพ์ ค่าที่ส่งจริงยังอ่านจากฟอร์มเหมือนช่องอื่น
   const [password, setPassword] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
+
+  // ลิงก์ในอีเมลคำเชิญพารหัสมาหลัง # (/register#code=...) อ่านแล้วกรอกให้ แล้วลบออกจากแถบที่อยู่
+  // ส่วนหลัง # ไม่ถูกส่งไปที่เซิร์ฟเวอร์ และลบออกเพื่อไม่ให้รหัสค้างในประวัติหรือถูกแชร์ต่อพร้อมลิงก์
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.hash.slice(1)).get("code");
+    if (!code) return;
+    setInvitationCode(code);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
 
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     // กันเบราว์เซอร์รีเฟรชหน้าตามพฤติกรรมฟอร์มปกติ
@@ -42,6 +52,7 @@ export function TenantRegistrationForm() {
       // ล้างฟอร์มเมื่อสมัครสำเร็จเท่านั้น สมัครไม่ผ่านที่กรอกไว้จะได้ยังอยู่ให้แก้
       setMessage(payload.data.message);
       event.currentTarget.reset();
+      setInvitationCode("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "สมัครผู้เช่าไม่สำเร็จ");
     } finally {
@@ -52,7 +63,7 @@ export function TenantRegistrationForm() {
   return <form className="login-form tenant-registration-form" onSubmit={submit}>
     {/* รหัสเชิญยาว 32 ตัวขึ้นไป ปิด autoComplete เพราะเป็นค่าที่ใช้ครั้งเดียว ไม่ควรให้เบราว์เซอร์จำ */}
     <label className="tenant-invitation-field"><span>รหัสเชิญจากหอพัก</span>
-      <input autoComplete="off" minLength={32} name="invitationCode" placeholder="วางรหัสเชิญที่ได้รับ" required />
+      <input autoComplete="off" minLength={32} name="invitationCode" onChange={(event) => setInvitationCode(event.target.value)} placeholder="วางรหัสเชิญที่ได้รับ" required value={invitationCode} />
     </label>
     {/* สองข้อแรกบังคับติ๊ก ส่วนข่าวสารเป็นความสมัครใจและถอนได้ทีหลัง ตามหลักการขอความยินยอม */}
     <fieldset className="legal-consent-fields">

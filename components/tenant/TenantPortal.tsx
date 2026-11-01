@@ -22,6 +22,7 @@ import {
   ListChecks,
   LoaderCircle,
   MessageSquare,
+  FileCheck2,
   LogOut,
   MoreHorizontal,
   Package,
@@ -467,7 +468,9 @@ export function TenantPortal({
         ))}
       </nav>
       <SidebarAccountMenu
-        contextLabel={active?.property.shortName ?? "พื้นที่ผู้เช่า"}
+        // ป้ายใต้ชื่อบอกหอและห้องที่กำลังใช้งาน ผู้เช่าที่พักหลายที่จะได้ไม่สับสน
+        // เลขห้องขึ้นก่อน ชื่อหอยาวจนโดนตัดก็ยังเห็นเลขห้อง
+        contextLabel={active ? `ห้อง ${active.room.number} · ${active.property.shortName}` : "พื้นที่ผู้เช่า"}
         displayName={account.user.displayName}
         email={account.user.email}
         role="TENANT"
@@ -1208,6 +1211,10 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: Readonly<{ id: str
 
   return <section aria-label={`รายละเอียดบิล ${invoice.invoiceNumber}`} className="border-t border-[#e4e4e7] bg-[#fcfcfe] p-5" id={id}>
     <InvoiceLineItems detail={detail} />
+    {/* จ่ายแล้วเปิดใบเสร็จได้ทันที ระบบสร้างจากบิลจริงทุกครั้ง เปิดในแท็บใหม่เพื่อบันทึกหรือพิมพ์ */}
+    {invoice.status === "PAID" ? <a className="secondary-button tenant-receipt-link" href={`/api/v1/tenant/invoices/${invoice.id}/receipt`} rel="noreferrer" target="_blank">
+      <FileCheck2 aria-hidden="true" size={17} /> ดาวน์โหลดใบเสร็จรับเงิน (PDF)
+    </a> : null}
     <InvoicePaymentBox
       invoice={invoice}
       onSubmitted={async () => { await Promise.all([submissions.reload(), onChanged()]); }}

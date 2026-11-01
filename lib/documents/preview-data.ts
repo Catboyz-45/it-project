@@ -2,6 +2,7 @@ import type { DocumentData } from "@/lib/documents/placeholders";
 import type { DocumentKind } from "@/lib/documents/types";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
+import { getReceiptPreviewData } from "@/lib/documents/receipt-data";
 
 // หาข้อมูลจริงจากหอนั้นมาใช้ดูตัวอย่างเอกสาร ไม่ใช้ข้อมูลสมมติ
 // เจ้าของหอจะได้เห็นว่าเอกสารจริงหน้าตาเป็นยังไงกับข้อมูลของตัวเอง
@@ -9,6 +10,7 @@ export async function getDocumentPreviewData(
   propertyId: string,
   kind: DocumentKind,
 ): Promise<DocumentData> {
+  if (kind === "receipt") return getReceiptPreviewData(propertyId);
   if (kind === "contract") {
     const lease = await getDatabase().lease.findFirst({
       where: { propertyId },

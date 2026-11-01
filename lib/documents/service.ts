@@ -2,7 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { generatePdf } from "@/lib/documents/pdf";
 import type { DocumentData } from "@/lib/documents/placeholders";
-import { getTemplate, toDatabaseKind } from "@/lib/documents/repository";
+import { defaultTemplates } from "@/lib/documents/default-templates";
+import { getTemplate, saveTemplate, toDatabaseKind } from "@/lib/documents/repository";
 import { getStorageAdapter } from "@/lib/documents/storage";
 import { renderTemplate, wrapPrintableHtml } from "@/lib/documents/templates";
 import type { DocumentKind } from "@/lib/documents/types";
@@ -11,8 +12,10 @@ import { getServerEnv } from "@/lib/server/env";
 
 // สร้าง PDF จาก Template ของหอนั้น ใช้ทั้งตอนดูตัวอย่างและตอนสร้างจริง
 export async function renderDocumentPdf(propertyId: string, kind: DocumentKind, data: DocumentData) {
-  const template = await getTemplate(propertyId, kind);
-  if (!template) throw new Error(`No active ${kind} template`);
+  // หอที่ยังไม่เคยเปิดหน้าแก้ Template จะยังไม่มีแถวของตัวเอง ใช้ของตั้งต้นแล้วบันทึกไว้ เหมือนตอนเปิดหน้าแก้
+  // ไม่งั้นขอใบเสร็จครั้งแรกจะพังทั้งที่ระบบมี Template ตั้งต้นให้อยู่แล้ว
+  const template = await getTemplate(propertyId, kind)
+    ?? await saveTemplate(propertyId, kind, defaultTemplates[kind].name, defaultTemplates[kind].html);
   // แทนช่อง {{...}} ด้วยข้อมูลจริง แล้วห่อด้วย HTML ที่มีสไตล์สำหรับพิมพ์
   const body = renderTemplate(kind, template.html, data);
   const html = wrapPrintableHtml(body, `${template.name} ${data.reference_id}`);

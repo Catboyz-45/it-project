@@ -8,8 +8,10 @@ import type {
 } from "@/lib/domain/tenant-onboarding";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
+import { appLink, type EmailDelivery, isEmailConfigured, logEmailFailure, sendEmail } from "@/lib/server/email";
 import { getServerEnv } from "@/lib/server/env";
 import { hashPassword } from "@/lib/server/password";
+import { platformProfile } from "@/lib/platform-profile";
 import { recordRequiredPolicies } from "@/lib/server/legal-policies";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 import { assertSubscriptionWriteAccess } from "@/lib/server/subscription-guard";
@@ -151,10 +153,43 @@ export async function createInvitation(
         expiresAt: new Date(Date.now() + input.expiresInDays * 86_400_000),
         createdByUserId,
       },
-      select: { id: true, status: true, intendedRole: true, expiresAt: true, room: { select: { number: true } } },
+      select: {
+        id: true, status: true, intendedRole: true, expiresAt: true,
+        room: { select: { number: true } },
+        property: { select: { name: true } },
+      },
     });
   });
-  return { invitation, invitationCode: code };
+  // รหัสสร้างสำเร็จแล้วค่อยส่งอีเมล ส่งไม่ผ่านก็ไม่ยกเลิกคำเชิญ เจ้าของหอยังคัดลอกรหัสไปส่งเองได้
+  let emailStatus: "not_requested" | EmailDelivery | "failed" = "not_requested";
+  if (input.email) {
+    try {
+      emailStatus = await sendTenantInvitationEmail(input.email, code, invitation);
+    } catch (error) {
+      logEmailFailure("tenant_invitation_email_failed", invitation.id, error);
+      emailStatus = "failed";
+    }
+  }
+  const { property, ...invitationData } = invitation;
+  return { invitation: { ...invitationData, propertyName: property.name }, invitationCode: code, emailStatus };
+}
+
+// อีเมลคำเชิญ ลิงก์ใส่รหัสไว้หลังเครื่องหมาย # เบราว์เซอร์ไม่ส่งส่วนนี้ไปที่เซิร์ฟเวอร์
+// รหัสจึงไม่ไปค้างใน log ของเซิร์ฟเวอร์หรือหัว Referer หน้าสมัครอ่านแล้วกรอกให้เอง
+async function sendTenantInvitationEmail(
+  email: string,
+  code: string,
+  invitation: { expiresAt: Date; intendedRole: "PRIMARY" | "CO_OCCUPANT"; room: { number: string }; property: { name: string } },
+) {
+  if (!isEmailConfigured() && process.env.NODE_ENV !== "production") return "skipped" as const;
+  const link = appLink(`/register#code=${encodeURIComponent(code)}`);
+  const role = invitation.intendedRole === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม";
+  const expiresAt = invitation.expiresAt.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Bangkok" });
+  return sendEmail({
+    to: email,
+    subject: `คำเชิญเข้าพัก ${invitation.property.name} ห้อง ${invitation.room.number}`,
+    text: `สวัสดีครับ/ค่ะ\n\n${invitation.property.name} เชิญคุณสมัครเป็น${role}ของห้อง ${invitation.room.number} บน ${platformProfile.name}\nเปิดลิงก์นี้เพื่อสมัคร ระบบจะกรอกรหัสเชิญให้อัตโนมัติ:\n${link}\n\nลิงก์ใช้ได้ถึงวันที่ ${expiresAt} และใช้ได้ครั้งเดียว หลังสมัครแล้วต้องรอหอพักอนุมัติการเข้าพักก่อนจึงจะเข้าใช้งานได้\n\nหากคุณไม่ได้ติดต่อหอพักนี้ สามารถละเว้นอีเมลนี้ได้`,
+  }, "ไม่สามารถส่งอีเมลคำเชิญได้");
 }
 
 // สมัครเป็นผู้เช่า สร้างบัญชี โปรไฟล์ และคำขอเข้าพักในคำสั่งเดียว

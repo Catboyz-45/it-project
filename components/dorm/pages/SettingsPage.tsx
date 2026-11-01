@@ -437,6 +437,7 @@ function SettingsSectionBody({
             </fieldset>
             <DocumentTemplatePanel editable={!readOnly} kind="contract" propertyId={propertyId} />
             <DocumentTemplatePanel editable={!readOnly} kind="invoice" propertyId={propertyId} />
+            <DocumentTemplatePanel editable={!readOnly} kind="receipt" propertyId={propertyId} />
           </>
     );
   }

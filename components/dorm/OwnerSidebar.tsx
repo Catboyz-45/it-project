@@ -21,6 +21,7 @@ import {
   PackageCheck,
   QrCode,
   Settings,
+  ShieldCheck,
   UserRound,
   Wrench,
   Zap,
@@ -30,6 +31,7 @@ import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import { MenuBadge } from "@/components/dorm/OwnerShellParts";
 import { appSidebarId, NavToggle } from "@/components/ui/NavShell";
+import { AccountChip } from "@/components/ui/AccountChip";
 
 export type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
 
@@ -90,6 +92,13 @@ export function OwnerSidebar({
         <span>ประกาศ/ข่าวสาร</span>
       </Link>
     </nav>
+    {/* ตั้งค่าหอแยกออกมาเป็นเมนูของตัวเองแบบ GitHub/Stripe ปุ่มบัญชีข้างล่างจะเหลือแค่เรื่องบัญชี ไม่ปนกัน */}
+    <div className="sidebar-footer-links">
+      <Link className={isSettingsArea(activePage) ? "active" : ""} href={ownerPagePath(propertyId, "settings")}>
+        <Settings size={18} />
+        <span>ตั้งค่าหอ</span>
+      </Link>
+    </div>
     <AccountMenu
       accountEmail={accountEmail}
       accountName={accountName}
@@ -225,8 +234,7 @@ function AccountMenu({ accountEmail, accountName, activePage, activeProperty, na
         <span>{accountName}</span>
         {accountEmail ? <small>{accountEmail}</small> : null}
       </p>
-      <button onClick={() => go("account")} type="button"><UserRound size={18} /> บัญชีและความปลอดภัย</button>
-      <button onClick={() => go("settings")} type="button"><Settings size={18} /> ตั้งค่าระบบ</button>
+      <button onClick={() => go("account")} type="button"><ShieldCheck size={18} /> บัญชีและความปลอดภัย</button>
       <span />
       <button onClick={() => go("help")} type="button"><HelpCircle size={18} /> ช่วยเหลือ</button>
       <span />
@@ -234,13 +242,13 @@ function AccountMenu({ accountEmail, accountName, activePage, activeProperty, na
     </div> : null}
     <button
       aria-expanded={isOpen}
-      aria-label="เปิดเมนูตั้งค่า"
-      className={isSettingsArea(activePage) ? "active" : ""}
+      aria-haspopup="menu"
+      aria-label={`เปิดเมนูบัญชี ${accountName} เจ้าของหอ`}
+      className={`account-chip-trigger${activePage === "account" ? " active" : ""}`}
       onClick={() => setIsOpen((current) => !current)}
       type="button"
     >
-      <UserRound size={18} />
-      <span>ตั้งค่า</span>
+      <AccountChip context={activeProperty.shortName} name={accountName} roleLabel="เจ้าของหอ" tone="owner" />
     </button>
   </div>;
 }

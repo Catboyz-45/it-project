@@ -1692,6 +1692,11 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 30
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
                   }
                 },
                 "additionalProperties": false
@@ -1699,7 +1704,8 @@
               "example": {
                 "roomId": "room_a101",
                 "intendedRole": "PRIMARY",
-                "expiresInDays": 7
+                "expiresInDays": 7,
+                "email": "tenant@example.com"
               }
             }
           }
@@ -2143,6 +2149,63 @@
                     "items": [],
                     "paymentSubmissions": []
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/properties/{propertyId}/invoices/{invoiceId}/receipt": {
+      "get": {
+        "operationId": "getAdminPropertiesByPropertyIdInvoicesByInvoiceIdReceipt",
+        "summary": "GET /api/v1/admin/properties/{propertyId}/invoices/{invoiceId}/receipt",
+        "description": "Implementation: app/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]/receipt/route.ts",
+        "tags": [
+          "Billing"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PropertyId"
+          },
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized private file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -10648,6 +10711,60 @@
                     "promptPayId": "0812345678",
                     "invoiceId": "invoice_01"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/invoices/{invoiceId}/receipt": {
+      "get": {
+        "operationId": "getTenantInvoicesByInvoiceIdReceipt",
+        "summary": "GET /api/v1/tenant/invoices/{invoiceId}/receipt",
+        "description": "Implementation: app/api/v1/tenant/invoices/[invoiceId]/receipt/route.ts",
+        "tags": [
+          "Tenant Portal"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized private file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
