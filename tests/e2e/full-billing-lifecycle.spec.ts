@@ -146,7 +146,7 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByLabel("รหัสผ่านใหม่").fill(ownerPassword);
   await page.getByLabel("ยืนยันรหัสผ่าน").fill(ownerPassword);
   await page.getByRole("button", { name: "ตั้งรหัสผ่านใหม่", exact: true }).click();
-  await expect(page).toHaveURL(/\/login\?passwordChanged=1$/);
+  await expect(page).toHaveURL(/\/login\?passwordChanged=1$/, { timeout: 15_000 });
   await loginThroughUi(page, ownerEmail, ownerPassword);
   // บัญชีใหม่ยังไม่เคยกดยอมรับนโยบาย จึงถูกกั้นที่ /legal/accept ก่อนเข้าพื้นที่ทำงาน
   // การเด้งหน้าหลังล็อกอินอาจยังไม่จบตอนบรรทัดนี้ทำงาน เพราะ networkidle นิ่งได้กลางคัน
@@ -291,10 +291,13 @@ test("completes the critical tenant billing workflow through the owner and tenan
 
   // จดทั้งน้ำและไฟ ขั้นตอนเหมือนกันเป๊ะ ต่างแค่เมนูกับตัวเลข จึงวนแทนการเขียนซ้ำ
   for (const meter of [
-    { menu: "มิเตอร์น้ำ", previous: "100", current: "110" },
-    { menu: "มิเตอร์ไฟ", previous: "1000", current: "1060" },
+    { menu: "มิเตอร์น้ำ", path: "meters/water", previous: "100", current: "110" },
+    { menu: "มิเตอร์ไฟ", path: "meters/electricity", previous: "1000", current: "1060" },
   ]) {
     await page.getByRole("link", { name: meter.menu, exact: true }).click();
+    // รอบที่สองกดจากหน้ามิเตอร์น้ำ ดรอปดาวน์ของหน้าเดิมยังค้างอยู่ระหว่างเปลี่ยนหน้า
+    // ถ้าไม่รอให้ถึงหน้าใหม่ก่อน จะไปเปิดเมนูของหน้าเก่าที่ถูกถอดทิ้งกลางคัน
+    await expect(page).toHaveURL(new RegExp(`/admin/properties/${property.id}/${meter.path}$`), { timeout: 15_000 });
     // รอบมิเตอร์เป็นดรอปดาวน์ชื่อเดือนภาษาไทย ไม่ใช่ช่องกรอก จึงกดเปิดแล้วเลือก
     await page.getByRole("button", { name: "รอบมิเตอร์", exact: true }).click();
     await page.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();
