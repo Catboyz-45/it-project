@@ -374,6 +374,12 @@ export const responseSchemas = {
     },
     generatedAt: dateTime,
   }),
+  InvitationRoomOption: entity(["id", "number", "buildingName", "floorNumber", "status", "capacity", "occupantCount", "hasPrimaryTenant", "primaryTenantName", "pendingInvitationCount"], {
+    id, number: text, buildingName: text, floorNumber: { type: "integer" },
+    status: { type: "string", enum: ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "INACTIVE"] },
+    capacity: { type: "integer" }, occupantCount: { type: "integer" }, hasPrimaryTenant: { type: "boolean" },
+    primaryTenantName: { anyOf: [text, { type: "null" }] }, pendingInvitationCount: { type: "integer" },
+  }),
   BankTransferAccount: entity(["bankName", "bankAccountNumber", "bankAccountName"], {
     bankName: { anyOf: [text, { type: "null" }] }, bankAccountNumber: { anyOf: [text, { type: "null" }] }, bankAccountName: { anyOf: [text, { type: "null" }] },
   }),
@@ -601,6 +607,10 @@ function sample(name) {
     subscription: null,
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],
     generatedAt: "2026-07-28T10:00:00.000Z",
+  };
+  if (name === "InvitationRoomOption") return {
+    id: "room_a101", number: "A101", buildingName: "อาคาร A", floorNumber: 1, status: "OCCUPIED", capacity: 2,
+    occupantCount: 1, hasPrimaryTenant: true, primaryTenantName: "สมชาย ใจดี", pendingInvitationCount: 0,
   };
   if (name === "BankTransferAccount") return { bankName: "กสิกรไทย", bankAccountNumber: "1234567890", bankAccountName: "หอพักบ้านสบาย" };
   if (name === "PlatformPaymentSettings") return { bankName: "กสิกรไทย", bankAccountNumber: "1234567890", bankAccountName: "Nestly", promptPayId: "0812345678", updatedAt: "2026-11-01T10:00:00.000Z" };
@@ -832,6 +842,7 @@ const jsonSuccessRules = [
   [({ apiPath }) => apiPath === "/api/v1/super-admin/dashboard", () => data("PlatformDashboard")],
   [({ apiPath }) => apiPath.endsWith("/payment-instructions"), () => data("SubscriptionPaymentInstructions")],
   [({ apiPath }) => apiPath.endsWith("/payment-account"), () => data("BankTransferAccount")],
+  [({ apiPath }) => apiPath.endsWith("/invitations/rooms"), () => data("InvitationRoomOption", true)],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/payment-settings", () => data("PlatformPaymentSettings")],
   [({ apiPath }) => apiPath.endsWith("/password-reset-link"), () => data("PasswordResetLinkResult")],
   [({ apiPath }) => apiPath === "/api/v1/super-admin/subscription-payments/summary", () => data("SubscriptionPaymentSummary")],

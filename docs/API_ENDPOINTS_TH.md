@@ -85,6 +85,7 @@
 | `GET` | `/api/v1/admin/properties/[propertyId]/exports/[resource]` | อ่านหรือจัดการหอพักตาม HTTP method และสิทธิ์ของผู้ใช้ |
 | `DELETE` | `/api/v1/admin/properties/[propertyId]/invitations/[invitationId]` | อ่านหรือจัดการคำเชิญผู้เช่าตาม HTTP method และสิทธิ์ของผู้ใช้ |
 | `GET` `POST` | `/api/v1/admin/properties/[propertyId]/invitations` | อ่านหรือจัดการคำเชิญผู้เช่าตาม HTTP method และสิทธิ์ของผู้ใช้ |
+| `GET` | `/api/v1/admin/properties/[propertyId]/invitations/rooms` | ห้องทั้งหอพร้อมสถานะ ว่าง มีผู้เช่าหลัก เต็ม ปิดซ่อม และจำนวนคำเชิญที่ค้างอยู่ ใช้กับช่องเลือกห้องตอนสร้างคำเชิญ |
 | `PATCH` | `/api/v1/admin/properties/[propertyId]/invoices/[invoiceId]` | อ่านหรือจัดการบิลตาม HTTP method และสิทธิ์ของผู้ใช้ |
 | `POST` | `/api/v1/admin/properties/[propertyId]/invoices/bulk` | อ่านหรือจัดการบิลตาม HTTP method และสิทธิ์ของผู้ใช้ |
 | `GET` | `/api/v1/admin/properties/[propertyId]/invoices/preflight` | อ่านหรือจัดการบิลตาม HTTP method และสิทธิ์ของผู้ใช้ |

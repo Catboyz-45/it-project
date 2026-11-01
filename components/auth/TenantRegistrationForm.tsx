@@ -30,7 +30,10 @@ export function TenantRegistrationForm() {
     setPending(true);
     setError("");
     setMessage("");
-    const data = new FormData(event.currentTarget);
+    // เก็บตัวฟอร์มไว้ก่อน await เพราะ React ล้าง event.currentTarget เป็น null ทันทีที่ฟังก์ชันหยุดรอ
+    // ถ้าไปเรียกทีหลังจะล้มทั้งที่สมัครสำเร็จแล้ว และผู้ใช้เห็นข้อความผิดพลาดซ้อนกับข้อความสำเร็จ
+    const form = event.currentTarget;
+    const data = new FormData(form);
     try {
       const response = await fetch("/api/v1/tenant/register", {
         method: "POST",
@@ -51,8 +54,10 @@ export function TenantRegistrationForm() {
       if (!response.ok || !payload.data) throw new Error(payload.error || "สมัครผู้เช่าไม่สำเร็จ");
       // ล้างฟอร์มเมื่อสมัครสำเร็จเท่านั้น สมัครไม่ผ่านที่กรอกไว้จะได้ยังอยู่ให้แก้
       setMessage(payload.data.message);
-      event.currentTarget.reset();
+      form.reset();
       setInvitationCode("");
+      // reset() ล้างช่องรหัสผ่านแต่ไม่ล้างค่าที่เช็คลิสต์ใช้ ต้องล้างเองไม่งั้นติ๊กถูกค้างอยู่
+      setPassword("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "สมัครผู้เช่าไม่สำเร็จ");
     } finally {

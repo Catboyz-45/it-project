@@ -1841,6 +1841,82 @@
         }
       }
     },
+    "/api/v1/admin/properties/{propertyId}/invitations/rooms": {
+      "get": {
+        "operationId": "getAdminPropertiesByPropertyIdInvitationsRooms",
+        "summary": "GET /api/v1/admin/properties/{propertyId}/invitations/rooms",
+        "description": "Implementation: app/api/v1/admin/properties/[propertyId]/invitations/rooms/route.ts",
+        "tags": [
+          "Rooms"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PropertyId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InvitationRoomOption"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "room_a101",
+                      "number": "A101",
+                      "buildingName": "อาคาร A",
+                      "floorNumber": 1,
+                      "status": "OCCUPIED",
+                      "capacity": 2,
+                      "occupantCount": 1,
+                      "hasPrimaryTenant": true,
+                      "primaryTenantName": "สมชาย ใจดี",
+                      "pendingInvitationCount": 0
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/admin/properties/{propertyId}/invoices": {
       "get": {
         "operationId": "listInvoices",
@@ -16451,6 +16527,68 @@
           "email": {
             "type": "string",
             "format": "email"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InvitationRoomOption": {
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "buildingName",
+          "floorNumber",
+          "status",
+          "capacity",
+          "occupantCount",
+          "hasPrimaryTenant",
+          "primaryTenantName",
+          "pendingInvitationCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "number": {
+            "type": "string"
+          },
+          "buildingName": {
+            "type": "string"
+          },
+          "floorNumber": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "OCCUPIED",
+              "MAINTENANCE",
+              "INACTIVE"
+            ]
+          },
+          "capacity": {
+            "type": "integer"
+          },
+          "occupantCount": {
+            "type": "integer"
+          },
+          "hasPrimaryTenant": {
+            "type": "boolean"
+          },
+          "primaryTenantName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingInvitationCount": {
+            "type": "integer"
           }
         },
         "additionalProperties": false

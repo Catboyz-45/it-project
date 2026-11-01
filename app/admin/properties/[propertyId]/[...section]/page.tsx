@@ -4,11 +4,10 @@ import type { PageKey } from "@/types/navigation";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
 import { requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
-import { listRooms } from "@/lib/server/property-structure";
 import { listSaasPlans } from "@/lib/server/saas";
 import { listPropertySubscriptionOrders } from "@/lib/server/subscription-orders";
 import { listPropertyTenants } from "@/lib/server/property-management";
-import { listInvitations, listPendingOccupancies } from "@/lib/server/tenant-onboarding";
+import { listInvitationRoomOptions, listInvitations, listPendingOccupancies } from "@/lib/server/tenant-onboarding";
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 import { listPaymentSubmissions } from "@/lib/server/payments";
 import { toClientData } from "@/lib/server/client-data";
@@ -149,8 +148,8 @@ async function loadComplaints(propertyId: string, userId: string) {
 // หน้าคำเชิญต้องใช้ทั้งรายการห้องและรายการคำเชิญ ดึงพร้อมกันเพราะไม่ต้องรอผลของกันและกัน
 async function loadInvitations(propertyId: string) {
   const [rooms, invitations] = await Promise.all([
-    // listRooms คืนอาร์เรย์ตรง ๆ ไม่ได้แบ่งหน้า
-    listRooms(propertyId),
+    // ห้องพร้อมสถานะ ว่าง มีผู้เช่า หรือมีคำเชิญค้าง ไม่ได้แบ่งหน้า
+    listInvitationRoomOptions(propertyId),
     listInvitations(propertyId, { page: 1, pageSize: 20 }),
   ]);
   return toClientData({

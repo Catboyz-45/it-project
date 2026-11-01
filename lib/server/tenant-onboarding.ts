@@ -6,6 +6,7 @@ import type {
   ReviewOccupancyInput,
   TenantRegistrationInput,
 } from "@/lib/domain/tenant-onboarding";
+import type { InvitationRoomOption } from "@/lib/domain/invitation-rooms";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { appLink, type EmailDelivery, isEmailConfigured, logEmailFailure, sendEmail } from "@/lib/server/email";
@@ -106,6 +107,41 @@ export async function listInvitations(propertyId: string, pagination: Pagination
     },
   });
   return toPaginatedResult(rows, pagination);
+}
+
+// ห้องทั้งหอพร้อมสถานะสำหรับช่องเลือกห้องในหน้าคำเชิญ ดึงในคำสั่งเดียว ไม่ไล่ถามทีละห้อง
+export async function listInvitationRoomOptions(propertyId: string): Promise<InvitationRoomOption[]> {
+  const now = new Date();
+  const rooms = await getDatabase().room.findMany({
+    where: { propertyId },
+    orderBy: [{ building: { code: "asc" } }, { floor: { number: "asc" } }, { number: "asc" }],
+    select: {
+      id: true, number: true, status: true, capacity: true,
+      building: { select: { name: true } },
+      floor: { select: { number: true } },
+      // ใช้เงื่อนไขเดียวกับ createInvitation นับคนที่รออนุมัติด้วย เพราะเขาจองที่ในห้องไว้แล้ว
+      occupancies: {
+        where: { status: { in: ["PENDING", "ACTIVE"] } },
+        select: { role: true, tenantProfile: { select: { user: { select: { displayName: true } } } } },
+      },
+      _count: { select: { invitations: { where: { status: "PENDING", expiresAt: { gt: now } } } } },
+    },
+  });
+  return rooms.map((room) => {
+    const primary = room.occupancies.find((occupancy) => occupancy.role === "PRIMARY");
+    return {
+      id: room.id,
+      number: room.number,
+      buildingName: room.building.name,
+      floorNumber: room.floor.number,
+      status: room.status,
+      capacity: room.capacity,
+      occupantCount: room.occupancies.length,
+      hasPrimaryTenant: Boolean(primary),
+      primaryTenantName: primary?.tenantProfile.user.displayName ?? null,
+      pendingInvitationCount: room._count.invitations,
+    };
+  });
 }
 
 export async function listPendingOccupancies(propertyId: string, pagination: PaginationInput) {

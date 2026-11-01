@@ -14,17 +14,15 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { DropdownField } from "@/components/dorm/DropdownField";
+import { InvitationRoomPicker } from "@/components/dorm/InvitationRoomPicker";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
-
-// ห้องที่เลือกได้ตอนสร้างคำเชิญ
-type RoomOption = {
-  id: string;
-  number: string;
-  status: string;
-  capacity: number;
-  building: { name: string; code: string };
-  floor: { number: number; label: string | null };
-};
+import {
+  defaultInvitationRoomId,
+  type InvitationRoomOption,
+  invitationRoomState,
+  isInvitationRoomSelectable,
+  suggestedInvitationRole,
+} from "@/lib/domain/invitation-rooms";
 
 // คำเชิญหนึ่งใบ ตัวรหัสจริงไม่ได้อยู่ในนี้ เพราะฐานข้อมูลเก็บแค่ค่า hash
 type Invitation = {
@@ -70,16 +68,20 @@ async function readData<T>(response: Response): Promise<T> {
 // initialData ส่งมาจาก Server Component ของหน้านี้ ห้องกับคำเชิญจึงมาพร้อม HTML
 // ไม่ต้องยิงสองคำขอหลัง hydrate เสร็จ
 export function InvitationsPage({ initialData = null, propertyId, readOnly = false }: Readonly<{
-  initialData?: { invitations: Invitation[]; pageInfo: PageInfo; rooms: RoomOption[] } | null;
+  initialData?: { invitations: Invitation[]; pageInfo: PageInfo; rooms: InvitationRoomOption[] } | null;
   propertyId: string;
   readOnly?: boolean;
 }>) {
-  const [rooms, setRooms] = useState<RoomOption[]>(initialData?.rooms ?? []);
+  const [rooms, setRooms] = useState<InvitationRoomOption[]>(initialData?.rooms ?? []);
   const [invitations, setInvitations] = useState<Invitation[]>(initialData?.invitations ?? []);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(initialData?.pageInfo ?? null);
   const skipInitialLoadRef = useRef(initialData !== null);
-  const [roomId, setRoomId] = useState("");
-  const [intendedRole, setIntendedRole] = useState<"PRIMARY" | "CO_OCCUPANT">("PRIMARY");
+  // เลือกห้องว่างไว้ให้ตั้งแต่แรก ปุ่มสร้างคำเชิญจะได้กดได้เลยโดยไม่ต้องเปิดช่องเลือกก่อน
+  const [roomId, setRoomId] = useState(() => defaultInvitationRoomId(initialData?.rooms ?? []));
+  const [intendedRole, setIntendedRole] = useState<"PRIMARY" | "CO_OCCUPANT">(() => {
+    const room = initialData?.rooms.find((option) => option.id === defaultInvitationRoomId(initialData.rooms));
+    return room ? suggestedInvitationRole(room) : "PRIMARY";
+  });
   const [expiresInDays, setExpiresInDays] = useState(7);
   const [inviteeEmail, setInviteeEmail] = useState("");
   const [createdCode, setCreatedCode] = useState("");
@@ -97,8 +99,8 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
     try {
       const { availableRooms, invitationPage } = await requestInvitationData(propertyId, targetPage);
       setRooms(availableRooms);
-      // คงห้องที่เลือกไว้ถ้ายังมีอยู่ ไม่งั้นเด้งไปห้องแรก กันช่องเลือกว่างเปล่า
-      setRoomId((current) => availableRooms.some((room) => room.id === current) ? current : availableRooms[0]?.id ?? "");
+      // คงห้องที่เลือกไว้ถ้ายังเลือกได้อยู่ ไม่งั้นย้ายไปห้องว่างห้องแรก กันช่องเลือกว่างเปล่า
+      setRoomId((current) => availableRooms.some((room) => room.id === current && isInvitationRoomSelectable(room)) ? current : defaultInvitationRoomId(availableRooms));
       setInvitations((current) => append ? [...current, ...invitationPage.data] : invitationPage.data);
       setPageInfo(invitationPage.pageInfo);
     } catch (cause) {
@@ -200,11 +202,14 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
         onCopy={copyCode}
         onSubmit={createInvitation}
         roomId={roomId}
+        onSelectRoom={(room) => {
+          setRoomId(room.id);
+          setIntendedRole(suggestedInvitationRole(room));
+        }}
         rooms={rooms}
         setExpiresInDays={setExpiresInDays}
         setIntendedRole={setIntendedRole}
         setInviteeEmail={setInviteeEmail}
-        setRoomId={setRoomId}
         submitting={submitting}
       />}
 
@@ -280,7 +285,7 @@ function formatDateTime(value: string) {
 // ดึงรายการห้องและประวัติคำเชิญพร้อมกัน ไม่ต้องรอผลของกันและกัน
 async function requestInvitationData(propertyId: string, page: number) {
   const [availableRooms, invitationPage] = await Promise.all([
-    readData<RoomOption[]>(await fetch(`/api/v1/admin/properties/${propertyId}/rooms`, { cache: "no-store", credentials: "same-origin" })),
+    readData<InvitationRoomOption[]>(await fetch(`/api/v1/admin/properties/${propertyId}/invitations/rooms`, { cache: "no-store", credentials: "same-origin" })),
     requestInvitationPage(propertyId, page),
   ]);
   return { availableRooms, invitationPage };
@@ -300,7 +305,7 @@ async function requestInvitationPage(propertyId: string, page: number) {
 }
 
 // ฟอร์มสร้างคำเชิญ พร้อมกล่องแสดงรหัสที่เพิ่งสร้าง
-function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedRole, inviteeEmail, loading, onCopy, onSubmit, roomId, rooms, setExpiresInDays, setIntendedRole, setInviteeEmail, setRoomId, submitting }: Readonly<{
+function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedRole, inviteeEmail, loading, onCopy, onSelectRoom, onSubmit, roomId, rooms, setExpiresInDays, setIntendedRole, setInviteeEmail, submitting }: Readonly<{
   copied: boolean;
   createdCode: string;
   expiresInDays: number;
@@ -308,17 +313,18 @@ function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedR
   inviteeEmail: string;
   loading: boolean;
   onCopy: () => Promise<void>;
+  onSelectRoom: (room: InvitationRoomOption) => void;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => Promise<void>;
   roomId: string;
-  rooms: RoomOption[];
+  rooms: InvitationRoomOption[];
   setExpiresInDays: (days: number) => void;
   setIntendedRole: (role: "PRIMARY" | "CO_OCCUPANT") => void;
   setInviteeEmail: (email: string) => void;
-  setRoomId: (roomId: string) => void;
   submitting: boolean;
 }>) {
   const hasRooms = rooms.length > 0;
-  return <section className="panel settings-section">
+  const selectedRoom = rooms.find((room) => room.id === roomId);
+  return <section className="panel settings-section invitation-create-section">
     <div className="settings-section-head">
       <div>
         <h2>สร้างคำเชิญผู้เช่า</h2>
@@ -327,8 +333,9 @@ function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedR
     </div>
 
     <form className="grid gap-4 lg:grid-cols-[1fr_220px_160px]" onSubmit={onSubmit}>
-      <DropdownField disabled={submitting || !hasRooms} label="ห้อง" onChange={setRoomId} options={rooms.map((room) => ({ label: `ห้อง ${room.number} · ${room.building.name} ชั้น ${room.floor.number}`, value: room.id }))} value={roomId} />
-      <DropdownField disabled={submitting} label="สิทธิ์ผู้พัก" onChange={(value) => setIntendedRole(value as "PRIMARY" | "CO_OCCUPANT")} options={[{ label: "ผู้เช่าหลัก", value: "PRIMARY" }, { label: "ผู้พักร่วม", value: "CO_OCCUPANT" }]} value={intendedRole} />
+      <InvitationRoomPicker disabled={submitting || !hasRooms} onChange={onSelectRoom} rooms={rooms} value={roomId} />
+      {/* ห้องที่มีผู้เช่าหลักแล้วเลือกผู้เช่าหลักไม่ได้ เซิร์ฟเวอร์ก็ปฏิเสธอยู่ดี ปิดไว้ตั้งแต่ตรงนี้ */}
+      <DropdownField disabled={submitting} label="สิทธิ์ผู้พัก" onChange={(value) => setIntendedRole(value as "PRIMARY" | "CO_OCCUPANT")} options={[{ disabled: Boolean(selectedRoom?.hasPrimaryTenant), label: "ผู้เช่าหลัก", value: "PRIMARY" }, { label: "ผู้พักร่วม", value: "CO_OCCUPANT" }]} value={intendedRole} />
       <DropdownField disabled={submitting} label="อายุรหัส" onChange={(value) => setExpiresInDays(Number(value))} options={[1, 3, 7, 14, 30].map((days) => ({ label: `${days} วัน`, value: String(days) }))} value={String(expiresInDays)} />
       <label className="lg:col-span-2"><span>อีเมลผู้เช่า (ไม่บังคับ)</span><input autoComplete="off" disabled={submitting} inputMode="email" maxLength={254} onChange={(event) => setInviteeEmail(event.target.value)} placeholder="tenant@example.com" type="email" value={inviteeEmail} /></label>
       <button
@@ -341,10 +348,23 @@ function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedR
         {submitting ? "กำลังสร้าง..." : "สร้างคำเชิญ"}
       </button>
     </form>
+    {selectedRoom ? <SelectedRoomHint room={selectedRoom} /> : null}
     {!submitting && !roomId && hasRooms ? <p className="disabled-reason mt-3" id="invitation-create-disabled-reason">เลือกห้องที่จะเชิญผู้เช่าก่อนสร้างคำเชิญ</p> : null}
     {!loading && !hasRooms ? <p className="disabled-reason mt-4" id="invitation-create-disabled-reason">ยังไม่มีห้องที่ใช้สร้างคำเชิญ กรุณาสร้างห้องก่อน</p> : null}
     <CreatedCodeBox code={createdCode} copied={copied} onCopy={onCopy} />
   </section>;
+}
+
+// บอกเรื่องที่ควรรู้ของห้องที่เลือกก่อนกดสร้าง ห้องว่างธรรมดาไม่ต้องบอกอะไร
+function SelectedRoomHint({ room }: Readonly<{ room: InvitationRoomOption }>) {
+  const state = invitationRoomState(room);
+  if (state === "occupied") {
+    return <p className="mt-3 text-sm text-[#62646c]">ห้อง {room.number} มีผู้เช่าหลักแล้ว{room.primaryTenantName ? ` (${room.primaryTenantName})` : ""} เชิญได้เฉพาะผู้พักร่วม พักอยู่ {room.occupantCount}/{room.capacity} คน</p>;
+  }
+  if (state === "invited") {
+    return <p className="mt-3 text-sm text-amber-800">ห้อง {room.number} มีคำเชิญที่ยังไม่ได้ใช้ {room.pendingInvitationCount} ใบ ตรวจในประวัติคำเชิญด้านล่างก่อนสร้างซ้ำ</p>;
+  }
+  return null;
 }
 
 // รหัสที่เพิ่งสร้าง แสดงครั้งเดียวเพราะระบบเก็บแค่ค่า hash
