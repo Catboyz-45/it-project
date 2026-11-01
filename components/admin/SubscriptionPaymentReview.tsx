@@ -16,6 +16,13 @@ import { subscriptionPaymentPageSize } from "@/lib/domain/saas";
 import { formatThaiDateTime } from "@/lib/thai-format";
 
 type PaymentStatus = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+// ข้อความตอนไม่มีรายการ แท็บ "ทั้งหมด" ไม่ใช่สถานะใดสถานะหนึ่ง จึงต้องพูดต่างจากแท็บอื่น
+function paymentEmptyMessage(status: PaymentStatusFilter) {
+  if (status === "PENDING_REVIEW") return "ไม่มีรายการรอตรวจสอบ ตรวจครบแล้ว";
+  if (status === "ALL") return "ยังไม่มีหอพักส่งหลักฐานชำระค่าแพ็กเกจ";
+  return "ยังไม่มีรายการในสถานะนี้";
+}
+
 export type PaymentStatusFilter = PaymentStatus | "ALL";
 
 // หลักฐานการโอนค่าสมาชิกที่เจ้าของหอส่งมา คนละเรื่องกับค่าเช่าที่ผู้เช่าจ่าย
@@ -257,7 +264,7 @@ function PaymentTable({ hasQuery, onSelect, payments, selectedId, status }: Read
     return <SearchEmptyState description="ลองพิมพ์ชื่อหอ เลขคำสั่งซื้อ หรือแพ็กเกจให้สั้นลง" title="ไม่พบรายการที่ค้นหา" />;
   }
   if (payments.length === 0) {
-    return <p className="subscription-review-empty">{status === "PENDING_REVIEW" ? "ไม่มีรายการรอตรวจสอบ ตรวจครบแล้ว" : "ยังไม่มีรายการในสถานะนี้"}</p>;
+    return <p className="subscription-review-empty">{paymentEmptyMessage(status)}</p>;
   }
   return <div className="figma-table-wrap">
     <table>

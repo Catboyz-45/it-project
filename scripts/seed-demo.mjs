@@ -74,10 +74,13 @@ try {
     [planId],
   );
   await run(
-    `INSERT INTO "PropertySubscription" ("propertyId","planId","planName","maxRooms","status","startsAt","expiresAt","createdAt","updatedAt")
-     VALUES ($1,$2,'แพ็กเกจสาธิต',50,'ACTIVE',$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+    // ราคาต้องตรงกับแพ็กเกจ ไม่งั้นแดชบอร์ดผู้ดูแลระบบขึ้นรายได้ต่อเดือน ฿0 ทั้งที่มีสมาชิกใช้งานอยู่
+    `INSERT INTO "PropertySubscription" ("propertyId","planId","planName","maxRooms","status","billingInterval","priceAmount","startsAt","expiresAt","createdAt","updatedAt")
+     VALUES ($1,$2,'แพ็กเกจสาธิต',50,'ACTIVE','MONTHLY',1500,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT ("propertyId") DO UPDATE SET
-       "status" = 'ACTIVE', "expiresAt" = EXCLUDED."expiresAt", "updatedAt" = CURRENT_TIMESTAMP`,
+       "status" = 'ACTIVE', "expiresAt" = EXCLUDED."expiresAt",
+       "priceAmount" = CASE WHEN "PropertySubscription"."priceAmount" = 0 THEN EXCLUDED."priceAmount" ELSE "PropertySubscription"."priceAmount" END,
+       "updatedAt" = CURRENT_TIMESTAMP`,
     [propertyId, planId, daysFromNow(-30), daysFromNow(365)],
   );
 
