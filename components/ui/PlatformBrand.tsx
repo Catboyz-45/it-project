@@ -35,7 +35,7 @@ export function PlatformBrand({
         <strong className="block truncate font-black">
           {platformProfile.name}{context ? ` ${context}` : ""}
         </strong>
-        {showTagline ? <small className="block truncate">{platformProfile.tagline}</small> : null}
+        {showTagline ? <small className="block leading-snug">{platformProfile.tagline}</small> : null}
       </div>
     </div>
   );

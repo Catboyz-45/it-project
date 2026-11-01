@@ -14,7 +14,8 @@ export function Metric({ icon, label, value, detail, tone = "indigo" }: Readonly
       <div className="min-w-0">
         <small>{label}</small>
         <strong>{value}</strong>
-        <em>{detail}</em>
+        {/* ภาษาไทยไม่มีตัวเอียงจริง เบราว์เซอร์จะเอียงเองจนดูไม่สวย จึงใช้ตัวปกติ */}
+        <small className="mt-1 block">{detail}</small>
       </div>
       <span>{icon}</span>
     </article>

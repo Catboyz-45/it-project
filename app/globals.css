@@ -325,6 +325,7 @@
   .badge-solid { @apply border-transparent bg-[#be123c] font-semibold text-[#fff]; }
   .badge-paid { @apply border-emerald-200 bg-emerald-50 text-[#065f46]; }
   .badge-pending { @apply border-amber-200 bg-amber-50 text-[#92400e]; }
+  .badge-overdue { @apply border-red-200 bg-red-50 text-[#b91c1c]; }
   .panel {
     @apply rounded-xl border border-[#e4e4e7] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
@@ -389,6 +390,17 @@
   .tenant-home { @apply isolate; }
   /* minmax(0,1fr) ให้คอลัมน์หดตามจอได้ ค่าเริ่มต้นของ grid ยืดตามความกว้างขั้นต่ำของการ์ดข้างใน จนล้นจอมือถือ */
   .tenant-home-surface { @apply grid grid-cols-[minmax(0,1fr)] gap-5; }
+  /* แถบชำระเงินบนหน้าแรกผู้เช่า สีม่วงตามแบรนด์ตอนยังไม่ถึงกำหนด เปลี่ยนเป็นแดงเมื่อเลยกำหนด */
+  .tenant-pay-banner { @apply flex flex-wrap items-center gap-4 rounded-2xl border border-[#d9dbfb] bg-[#f4f5ff] p-4 sm:flex-nowrap sm:p-5; }
+  .tenant-pay-banner.is-late { @apply border-[#fecaca] bg-[#fef2f2]; }
+  .tenant-pay-banner-icon { @apply grid size-11 shrink-0 place-items-center rounded-xl bg-white text-brand; }
+  .tenant-pay-banner.is-late .tenant-pay-banner-icon { @apply text-[#dc2626]; }
+  .tenant-pay-banner > div { @apply flex-1; }
+  .tenant-pay-banner p { @apply text-sm text-[#4b4d55]; }
+  .tenant-pay-banner strong { @apply block text-2xl font-bold text-[#292a30]; }
+  .tenant-pay-banner-due { @apply text-sm font-semibold text-brand; }
+  .tenant-pay-banner.is-late .tenant-pay-banner-due { @apply text-[#dc2626]; }
+  .tenant-pay-banner .primary-button { @apply w-full justify-center sm:w-auto; }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
   /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
