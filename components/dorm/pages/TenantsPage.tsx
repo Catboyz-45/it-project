@@ -12,6 +12,7 @@ import { PendingTenantApprovals } from "@/components/dorm/PendingTenantApprovals
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
+import { formatThaiDate, formatThaiPhone } from "@/lib/thai-format";
 
 // หน้าผู้เช่า มีสามแท็บ ผู้เช่าปัจจุบัน คำขอเข้าพัก และประวัติการย้าย
 type TenantView = "active" | "pending" | "transitions";
@@ -100,7 +101,7 @@ function TenantRow({ onOpenDetail, tenant }: Readonly<{ onOpenDetail: (tenant: T
   return <tr className="figma-table-row" onClick={openDetail}>
     <td className="tenant-name-cell">{tenant.name}</td>
     <td>{tenant.roomId}</td>
-    <td className="muted-cell">{tenant.phone}</td>
+    <td className="muted-cell">{formatThaiPhone(tenant.phone)}</td>
     <td>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</td>
     <td className="muted-cell">{leasePeriodText(tenant)}</td>
     <td><em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{displayStatus ? leaseStatusText[displayStatus] : "ไม่มีสัญญา"}</em></td>
@@ -299,7 +300,7 @@ function TransitionRows({ rows }: Readonly<{ rows: TransitionRow[] }>) {
       <tbody>{rows.map((row) => <tr key={row.id}>
         <td><strong>{row.tenantName}</strong><small className="block opacity-60">{row.reason}</small></td>
         <td>{transitionSummary(row)}</td>
-        <td>{new Date(row.effectiveDate).toLocaleDateString("th-TH")}</td>
+        <td>{formatThaiDate(row.effectiveDate)}</td>
         <td>{currency.format(row.depositAmount)}</td>
         <td>
           {settlementSummary(row)}

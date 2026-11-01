@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Anuphan } from "next/font/google";
 import "@/app/globals.css";
+import { ThaiValidationMessages } from "@/components/ui/ThaiValidationMessages";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { platformProfile } from "@/lib/platform-profile";
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html className={anuphan.variable} lang="th">
       <body>
+        <ThaiValidationMessages />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

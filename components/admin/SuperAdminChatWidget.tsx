@@ -8,6 +8,7 @@ import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // หนึ่งห้องสนทนา ผู้ดูแลระบบคุยกับเจ้าของหอแต่ละหอคนละห้อง
 type SupportConversation = {
@@ -186,7 +187,7 @@ function ConversationList({ conversations, hasNextPage, isLoading, isLoadingMore
       <span className="chat-list-avatar support"><Building2 aria-hidden="true" size={19} /></span>
       <span className="min-w-0 flex-1">
         <strong className="block truncate">{conversation.propertyName}</strong>
-        <small>{conversation.lastMessageAt ? `ล่าสุด ${new Date(conversation.lastMessageAt).toLocaleString("th-TH")}` : "ยังไม่มีข้อความ"}</small>
+        <small>{conversation.lastMessageAt ? `ล่าสุด ${formatThaiDateTime(conversation.lastMessageAt)}` : "ยังไม่มีข้อความ"}</small>
       </span>
       <UnreadBadge className="notification-badge" count={conversation.unreadCount} />
     </button>)}

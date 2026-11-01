@@ -39,6 +39,7 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { UnitInput } from "@/components/ui/UnitInput";
+import { formatThaiDate } from "@/lib/thai-format";
 
 // สัญญาหนึ่งฉบับ
 type Lease = {
@@ -116,7 +117,7 @@ function dateInput(value: string) {
 
 // แปลงเป็นข้อความแบบไทยไว้แสดงในตาราง
 function dateDisplay(value: string) {
-  return new Date(value).toLocaleDateString("th-TH");
+  return formatThaiDate(value);
 }
 
 // คำนวณช่วงของสัญญาใหม่ให้ต่อจากฉบับเดิมพอดี ไม่ทับและไม่เว้นช่อง

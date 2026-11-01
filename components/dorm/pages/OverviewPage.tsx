@@ -10,6 +10,7 @@ import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { AppSection } from "@/components/ui/AppSection";
 import { InvoiceList, Metric } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
+import { formatThaiDate } from "@/lib/thai-format";
 
 // เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
 // 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน ส่วน ceil ทำให้เศษของวันนับเป็นหนึ่งวันเต็ม
@@ -110,7 +111,7 @@ function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscript
   const remainingDays = calendarDaysUntil(subscription.expiresAt);
   return {
     count: remainingDays <= 30 ? 1 : 0,
-    detail: `แพ็กเกจหมดอายุ ${new Date(subscription.expiresAt).toLocaleDateString("th-TH")}`,
+    detail: `แพ็กเกจหมดอายุ ${formatThaiDate(subscription.expiresAt)}`,
     icon: <CreditCard size={20} />,
     page: "subscription",
     title: remainingDays < 0 ? "แพ็กเกจหมดอายุแล้ว" : "แพ็กเกจใกล้หมดอายุ",

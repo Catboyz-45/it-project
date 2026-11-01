@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { Empty, Panel, Status } from "@/components/tenant/primitives";
 import { Package } from "lucide-react";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 export type TenantParcel = {
   id: string; status: string; note: string | null; imageUrl: string | null;
@@ -14,8 +15,8 @@ export function ParcelCard(item: Readonly<TenantParcel>) {
       {item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}
       <div>
         <p>{item.note || "ไม่มีหมายเหตุ"}</p>
-        <time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>
-        {item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}
+        <time className="text-sm text-[#62646c]">รับเข้าระบบ {formatThaiDateTime(item.registeredAt)}</time>
+        {item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {formatThaiDateTime(item.receivedAt)}</time> : null}
       </div>
     </div>
   </Panel>;
@@ -33,8 +34,8 @@ export function ParcelHistoryTable({ items, total }: Readonly<{ items: TenantPar
         <tbody>{items.map((item) => <tr key={item.id}>
           <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#62646c]">ไม่มีรูป</span>}</td>
           <td>{item.note || "ไม่มีหมายเหตุ"}</td>
-          <td>{new Date(item.registeredAt).toLocaleString("th-TH")}</td>
-          <td>{item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : "—"}</td>
+          <td>{formatThaiDateTime(item.registeredAt)}</td>
+          <td>{item.receivedAt ? formatThaiDateTime(item.receivedAt) : "—"}</td>
           <td><Status value={item.status} /></td>
         </tr>)}</tbody>
       </table>

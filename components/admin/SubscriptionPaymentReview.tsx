@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { SearchSuggestField, type SearchSuggestion } from "@/components/ui/SearchSuggestField";
 import { subscriptionPaymentPageSize } from "@/lib/domain/saas";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 type PaymentStatus = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 export type PaymentStatusFilter = PaymentStatus | "ALL";
@@ -270,7 +271,7 @@ function PaymentTable({ hasQuery, onSelect, payments, selectedId, status }: Read
         </td>
         <td>{payment.order.planName} · {intervalLabel(payment)}</td>
         <td className="tabular-nums">{formatAmount(payment.amount)}</td>
-        <td>{new Date(payment.submittedAt).toLocaleString("th-TH")}</td>
+        <td>{formatThaiDateTime(payment.submittedAt)}</td>
         <td><span className={`badge ${statusBadge[payment.status]}`}>{statusLabels[payment.status]}</span></td>
       </tr>)}</tbody>
     </table>
@@ -308,9 +309,9 @@ function PaymentDetail({ isReviewing, onApprove, onReject, payment }: Readonly<{
     <dl className="subscription-review-facts">
       <div><dt>ยอดในสลิปต้องเท่ากับ</dt><dd className="subscription-review-amount">{formatAmount(payment.amount)}</dd></div>
       <div><dt>แพ็กเกจ</dt><dd>{payment.order.planName} · {intervalLabel(payment)}</dd></div>
-      <div><dt>ส่งเมื่อ</dt><dd>{new Date(payment.submittedAt).toLocaleString("th-TH")}</dd></div>
+      <div><dt>ส่งเมื่อ</dt><dd>{formatThaiDateTime(payment.submittedAt)}</dd></div>
       <div><dt>ไฟล์</dt><dd><FileText aria-hidden="true" size={14} /> {fileLabel(payment)}</dd></div>
-      {payment.reviewedAt ? <div><dt>ตรวจเมื่อ</dt><dd>{new Date(payment.reviewedAt).toLocaleString("th-TH")}</dd></div> : null}
+      {payment.reviewedAt ? <div><dt>ตรวจเมื่อ</dt><dd>{formatThaiDateTime(payment.reviewedAt)}</dd></div> : null}
       {payment.rejectionNote ? <div className="full-width"><dt>เหตุผลที่ปฏิเสธ</dt><dd>{payment.rejectionNote}</dd></div> : null}
     </dl>
     {/* ตรวจแล้วย้อนกลับไม่ได้ ปุ่มจึงมีเฉพาะรายการที่ยังรอตรวจ */}

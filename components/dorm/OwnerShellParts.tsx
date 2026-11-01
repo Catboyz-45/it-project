@@ -9,6 +9,7 @@ import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import type { SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { isSubscriptionExpiringSoon } from "@/components/dorm/owner-notifications";
+import { formatThaiDate } from "@/lib/thai-format";
 
 // ป้ายตัวเลขบนเมนู ซ่อนไปเลยเมื่อไม่มีอะไรค้าง
 export function MenuBadge({ count, isReadOnly }: Readonly<{ count: number; isReadOnly: boolean }>) {
@@ -78,7 +79,7 @@ export function SubscriptionAccessBanner({
       <div>
         <strong>อยู่ในช่วงผ่อนผันหลังแพ็กเกจหมดอายุ</strong>
         <p>
-          ยังแก้ไขข้อมูลได้ถึง {graceEndsAt ? new Date(graceEndsAt).toLocaleDateString("th-TH") : "-"} หลังจากนั้นระบบจะเปลี่ยนเป็นโหมดอ่านอย่างเดียว
+          ยังแก้ไขข้อมูลได้ถึง {graceEndsAt ? formatThaiDate(graceEndsAt) : "-"} หลังจากนั้นระบบจะเปลี่ยนเป็นโหมดอ่านอย่างเดียว
         </p>
       </div>
       <Link className="primary-button" href={ownerPagePath(propertyId, "subscription")}>ต่ออายุแพ็กเกจ</Link>
@@ -88,7 +89,7 @@ export function SubscriptionAccessBanner({
   if (isSubscriptionExpiringSoon(aggregation)) {
     // block เพราะ output เป็น inline โดยค่าเริ่มต้น แต่แถบนี้ต้องกินความกว้างเต็มแถว
     return <output className="form-alert block">
-      แพ็กเกจ {subscription.planName} ใกล้หมดอายุวันที่ {new Date(subscription.expiresAt).toLocaleDateString("th-TH")}
+      แพ็กเกจ {subscription.planName} ใกล้หมดอายุวันที่ {formatThaiDate(subscription.expiresAt)}
       {" · "}<Link href={ownerPagePath(propertyId, "subscription")}>ตรวจสอบและต่ออายุ</Link>
     </output>;
   }

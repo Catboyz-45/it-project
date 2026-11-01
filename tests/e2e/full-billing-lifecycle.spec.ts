@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { pickDate } from "./helpers/date-picker";
 import { openLoginForm } from "./helpers/login";
+import { currentThaiMonth, formatThaiMonth } from "@/lib/thai-format";
 
 // เทสต์นี้สร้างทุกอย่างขึ้นใหม่เอง จึงต้องเริ่มจากบัญชีซูเปอร์แอดมินตั้งต้นใน env
 const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
@@ -61,7 +62,7 @@ test("completes the critical tenant billing workflow through the owner and tenan
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const ownerEmail = `journey-owner-${suffix}@example.test`;
   const tenantEmail = `journey-tenant-${suffix}@example.test`;
-  const billingMonth = new Date().toISOString().slice(0, 7);
+  const billingMonth = currentThaiMonth();
   const leaseStart = `${billingMonth}-01`;
   const leaseEnd = `${Number(billingMonth.slice(0, 4)) + 1}-${billingMonth.slice(5)}-01`;
 
@@ -294,7 +295,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
     { menu: "มิเตอร์ไฟ", previous: "1000", current: "1060" },
   ]) {
     await page.getByRole("link", { name: meter.menu, exact: true }).click();
-    await page.getByLabel("รอบเดือนบันทึกมิเตอร์").fill(billingMonth);
+    // รอบมิเตอร์เป็นดรอปดาวน์ชื่อเดือนภาษาไทย ไม่ใช่ช่องกรอก จึงกดเปิดแล้วเลือก
+    await page.getByRole("button", { name: "รอบมิเตอร์", exact: true }).click();
+    await page.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();
     await page.getByPlaceholder("ค้นหาห้องหรือผู้เช่า...").fill(room.data.number);
     const meterRow = page.getByRole("row").filter({
       has: page.getByText(room.data.number, { exact: true }),
@@ -317,7 +320,8 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await openInvoicesPage(page, property.id);
   await page.getByRole("button", { name: "สร้างร่างรายห้อง", exact: true }).click();
   const invoiceDialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
-  await invoiceDialog.getByLabel("เดือนที่ออกบิล").fill(billingMonth);
+  await invoiceDialog.getByRole("button", { name: "เดือนที่ออกบิล", exact: true }).click();
+  await invoiceDialog.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();
   // ช่องห้องเป็น dropdown ที่เขียนเอง ไม่ใช่ <select> ของเบราว์เซอร์ จึงต้องกดเปิดแล้วเลือก
   await invoiceDialog.getByLabel("ห้อง").click();
   await page.getByRole("option", { name: `ห้อง ${room.data.number} · มีผู้เช่า`, exact: true }).click();

@@ -12,6 +12,7 @@ import { listInvitations, listPendingOccupancies } from "@/lib/server/tenant-onb
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 import { listPaymentSubmissions } from "@/lib/server/payments";
 import { toClientData } from "@/lib/server/client-data";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
 // ค่าใน enum ของฐานข้อมูลเป็นตัวพิมพ์ใหญ่ ส่วนหน้าจอใช้คำของตัวเอง
@@ -124,8 +125,8 @@ async function loadRepairHistory(propertyId: string, userId: string) {
       roomId: item.room?.number ?? "-",
       status: "done" as const,
       title: item.title,
-      updatedAt: new Date(item.updatedAt).toLocaleString("th-TH"),
-      completedAt: item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("th-TH") : undefined,
+      updatedAt: formatThaiDateTime(item.updatedAt),
+      completedAt: item.resolvedAt ? formatThaiDateTime(item.resolvedAt) : undefined,
     })),
   };
 }
@@ -138,7 +139,7 @@ async function loadComplaints(propertyId: string, userId: string) {
     title: item.title,
     room: item.room?.number ?? "-",
     owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
-    date: new Date(item.createdAt).toLocaleString("th-TH"),
+    date: formatThaiDateTime(item.createdAt),
     hasUnreadReply: item.hasUnreadReply,
     type: item.type,
     status: ticketStatusLabels[item.status] ?? "รับเรื่องแล้ว",

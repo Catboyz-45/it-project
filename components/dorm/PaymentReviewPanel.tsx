@@ -15,6 +15,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // หลักฐานการโอนที่ผู้เช่าส่งมาหนึ่งรายการ
 type PaymentSubmission = {
@@ -397,8 +398,8 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
       {/* วางยอดที่แจ้งกับยอดตามบิลติดกัน ผู้ตรวจจะได้เห็นทันทีว่าตรงกันหรือไม่ */}
       <div><span>ยอดที่แจ้งชำระ</span><strong>{currency.format(Number(payment.amount))}</strong></div>
       <div><span>ยอดตามบิล</span><strong>{currency.format(Number(payment.invoice.total))}</strong></div>
-      <div><span>ส่งหลักฐานเมื่อ</span><strong>{new Date(payment.submittedAt).toLocaleString("th-TH")}</strong></div>
-      <div><span>ตรวจสอบเมื่อ</span><strong>{payment.reviewedAt ? new Date(payment.reviewedAt).toLocaleString("th-TH") : "ยังไม่ได้ตรวจสอบ"}</strong></div>
+      <div><span>ส่งหลักฐานเมื่อ</span><strong>{formatThaiDateTime(payment.submittedAt)}</strong></div>
+      <div><span>ตรวจสอบเมื่อ</span><strong>{payment.reviewedAt ? formatThaiDateTime(payment.reviewedAt) : "ยังไม่ได้ตรวจสอบ"}</strong></div>
     </div>
     <div className="payment-slip-toolbar"><strong><ReceiptText size={17} /> หลักฐานการชำระ</strong>{payment.slipAvailable ? <a href={slipUrl} rel="noreferrer" target="_blank"><ExternalLink size={15} /> เปิดหน้าต่างใหม่</a> : null}</div>
     <div className="payment-slip-preview">

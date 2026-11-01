@@ -37,6 +37,7 @@ import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // ขอบเขตผู้รับประกาศ ไล่จากกว้างไปแคบ ทั้งหอ อาคาร ชั้น หรือระบุห้อง
 type AnnouncementAudience = "ALL_TENANTS" | "BUILDING" | "FLOOR" | "ROOM";
@@ -127,7 +128,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
         buildingId: item.building?.id,
         floorId: item.floor?.id,
         roomIds: item.rooms.map(({ room }) => rooms.find((candidate) => candidate.id === room.number)?.databaseId).filter((id): id is string => Boolean(id)),
-        date: new Date(item.publishAt ?? item.publishedAt ?? item.createdAt).toLocaleString("th-TH"),
+        date: formatThaiDateTime(item.publishAt ?? item.publishedAt ?? item.createdAt),
         status: announcementStatusLabels[item.status] ?? "เผยแพร่แล้ว",
         updatedAt: item.updatedAt,
         publishAt: item.publishAt,
@@ -587,7 +588,7 @@ export function ComplaintsPage({
         title: item.title,
         room: item.room?.number ?? "-",
         owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
-        date: new Date(item.createdAt).toLocaleString("th-TH"),
+        date: formatThaiDateTime(item.createdAt),
         hasUnreadReply: item.hasUnreadReply,
         type: item.type,
         status: complaintStatusLabels[item.status] ?? "รับเรื่องแล้ว",
