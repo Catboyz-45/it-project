@@ -342,7 +342,8 @@
   .brand-platform-mark { @apply grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl; }
   .brand-copy { @apply min-w-0 flex-1; }
   .brand strong { @apply block truncate text-[15px] font-semibold tracking-[-.01em]; }
-  .brand small { @apply block truncate text-xs text-[#73757d]; }
+  /* คำโปรยตัดขึ้นบรรทัดใหม่แทนการตัดเป็น "…" ข้อความสั้นอยู่แล้ว ตัดกลางคำภาษาไทยแล้วอ่านไม่รู้เรื่อง */
+  .brand small { @apply block text-xs leading-snug text-[#55575f]; }
   .brand-switch-icon { @apply shrink-0 text-[#73757d]; }
   .sidebar nav { @apply grid gap-1 overflow-y-auto; }
   .sidebar nav button, .sidebar nav a, .sidebar-footer > button, .sidebar-footer-links > a {
@@ -402,6 +403,13 @@
   .tenant-pay-banner-due { @apply text-sm font-semibold text-brand; }
   .tenant-pay-banner.is-late .tenant-pay-banner-due { @apply text-[#dc2626]; }
   .tenant-pay-banner .primary-button { @apply w-full justify-center sm:w-auto; }
+  /* ช่องแนบสลิปแทนปุ่มเลือกไฟล์ของเบราว์เซอร์ ซึ่งขึ้นภาษาอังกฤษในเครื่องที่ตั้งภาษาอังกฤษ */
+  .slip-picker { @apply flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-brand/30 bg-[#f8f8ff] p-4 transition-colors hover:border-brand/60 hover:bg-[#f2f3ff]; }
+  .slip-picker:focus-within { @apply outline-2 outline-offset-2 outline-brand; }
+  .slip-picker strong { @apply text-[#292a30]; }
+  .slip-picker small { @apply mt-0.5 text-sm text-[#55575f]; }
+  .slip-picker-icon { @apply grid size-14 shrink-0 place-items-center rounded-xl bg-white text-brand; }
+  .slip-picker-preview { @apply size-14 shrink-0 rounded-xl object-cover; }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
   /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
@@ -542,6 +550,8 @@
     @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
   .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
+  /* สถานะว่างกินเต็มแถว จัดกลางแนวตั้ง ไม่ถูกกฎ flex ของการ์ดงานบีบจนข้อความตกบรรทัดเป็นท่อน ๆ */
+  .work-item-grid > .empty-state { @apply col-span-full grid min-h-36 place-items-center gap-1 border-dashed text-center; }
   .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff] text-[#62646c]; }
   .work-item-icon > svg { @apply size-4; }
   .work-item-copy { @apply min-w-0 flex-1; }
@@ -1014,6 +1024,8 @@
   .priority-list button strong, .priority-list button span { @apply block; }
   .priority-list button span { @apply mt-1 text-sm text-[#62646c]; }
   .priority-list button small { @apply inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 font-bold text-[#fff]; }
+  .priority-list button.is-clear { @apply border-[#e4e4e7] bg-[#fff] hover:bg-[#fafafa]; }
+  .priority-list button.is-clear small { @apply bg-transparent px-0 font-semibold text-brand; }
   .quick-actions { @apply grid! grid-cols-3; }
   .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/[.06] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:bg-brand hover:text-[#fff]; }
   .dashboard-actions { @apply grid-cols-2!; }
@@ -1691,11 +1703,16 @@
     .workspace-section-tabs { @apply px-4; }
     .additional-page-actions { @apply static mb-4 justify-stretch; }
     .additional-page-actions > .primary-button { @apply w-full; }
-    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-1 px-4; }
+    /* มือถือวางการ์ดตัวเลขสองใบต่อแถว เรียงทีละใบแล้วต้องเลื่อนนานกว่าจะถึงงานที่ต้องทำ
+       ซ่อนไอคอนประกอบ ให้ที่ว่างกับตัวเลขซึ่งเป็นข้อมูลจริง */
+    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-2 gap-2.5 px-4; }
     .figma-summary-grid.three,
     .figma-summary-grid.four,
     .figma-summary-grid.five,
-    .figma-summary-grid.six { grid-template-columns: minmax(0, 1fr); }
+    .figma-summary-grid.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) { @apply min-h-0 p-3; }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) > span { @apply hidden; }
+    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) strong { @apply text-lg; }
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
     .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
@@ -2269,4 +2286,28 @@ select:disabled {
     color: #4b4d55;
   }
   .meter-figma-table tbody td input { width: 100%; min-height: 2.75rem; font-size: 1rem; }
+}
+
+/* จอมือถือ ตารางบิลของเจ้าของหอกว้างเกินจอ ยอดเงินกับสถานะหลุดไปทางขวา
+   เปลี่ยนแต่ละแถวเป็นการ์ด: เลขบิลกับเมนูอยู่บน ห้องกับยอดรวมอยู่กลาง ผู้เช่ากับสถานะอยู่ล่าง
+   ซ่อนค่าเช่า ค่าน้ำ ค่าไฟรายช่อง ดูได้จาก PDF ของบิล ลำดับช่องต้องตรงกับ InvoicesPage */
+@media (max-width: 767px) {
+  .figma-table-wrap:has(> .invoice-table) { max-height: none; overflow: visible; }
+  .invoice-table .figma-table-head { display: none; }
+  .invoice-table .figma-table-row {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "bill action" "room total" "tenant status";
+    gap: 0.25rem 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+  .invoice-table .figma-table-row > td { position: static; padding: 0; }
+  .invoice-table .figma-table-row > td:nth-child(1) { grid-area: bill; font-weight: 600; }
+  .invoice-table .figma-table-row > td:nth-child(2) { grid-area: room; color: #4b4d55; }
+  .invoice-table .figma-table-row > td:nth-child(2)::before { content: "ห้อง "; }
+  .invoice-table .figma-table-row > td:nth-child(3) { grid-area: tenant; color: #4b4d55; }
+  .invoice-table .figma-table-row > td:nth-child(4) { grid-area: total; justify-self: end; }
+  .invoice-table .figma-table-row > td:nth-child(5) { grid-area: status; justify-self: end; }
+  .invoice-table .figma-table-row > td:nth-child(n + 6):not(:last-child) { display: none; }
+  .invoice-table .figma-table-row > td:last-child { grid-area: action; justify-self: end; }
 }

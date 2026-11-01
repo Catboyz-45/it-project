@@ -366,6 +366,7 @@ export function DormDashboard({
           furnitureOptions={dashboardData.settings.furnitureOptions}
           onClose={() => setIsRoomModalOpen(false)}
           onSave={saveRoomEdit}
+          roomTypes={dashboardData.settings.roomTypes}
           readOnly={isReadOnly}
           room={selectedRoom}
           tenant={selectedTenant}

@@ -5,6 +5,7 @@ import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 import { formatStatus } from "@/lib/ui-labels";
+import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-format";
 
 // หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน อ่านอย่างเดียว ไม่มีปุ่มแก้ไข
 export default async function PropertyDetailPage({
@@ -72,7 +73,7 @@ export default async function PropertyDetailPage({
   return (
     <>
       <SuperAdminPageHeader
-        description={`${property.shortName} · สร้างเมื่อ ${property.createdAt.toLocaleDateString("th-TH")}`}
+        description={`${property.shortName} · สร้างเมื่อ ${formatThaiDate(property.createdAt)}`}
         title={property.name}
       />
       <Link
@@ -116,7 +117,7 @@ export default async function PropertyDetailPage({
             </p>
             <p>
               <small className="block text-[#62646c]">หมดอายุ</small>
-              {property.subscription.expiresAt.toLocaleDateString("th-TH")}
+              {formatThaiDate(property.subscription.expiresAt)}
             </p>
           </div>
         ) : (
@@ -125,7 +126,7 @@ export default async function PropertyDetailPage({
       </section>
       <section className="panel overflow-hidden p-0">
         <div className="p-5">
-          <h2 className="text-base font-semibold">ประวัติ Subscription</h2>
+          <h2 className="text-base font-semibold">ประวัติแพ็กเกจและคำสั่งซื้อ</h2>
           <p className="text-sm text-[#62646c]">คำสั่งซื้อและการต่ออายุล่าสุด</p>
         </div>
         <div className="figma-table-wrap">
@@ -148,7 +149,7 @@ export default async function PropertyDetailPage({
                   <td>{order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"}</td>
                   <td>฿{Number(order.amount).toLocaleString("th-TH")}</td>
                   <td>{formatStatus(order.status)}</td>
-                  <td>{order.createdAt.toLocaleString("th-TH")}</td>
+                  <td>{formatThaiDateTime(order.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

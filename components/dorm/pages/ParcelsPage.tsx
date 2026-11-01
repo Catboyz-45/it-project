@@ -361,11 +361,21 @@ function ParcelRegisterDialog({ floorRooms, floors, form, isOpen, isSaving, onCl
         <span>หมายเหตุ</span>
         <input onChange={(event) => onNoteChange(event.target.value)} placeholder="เช่น กล่องใหญ่ / ซองเอกสาร" value={form.note} />
       </label>
-      <label className="parcel-photo-upload">
-        <span>รูปพัสดุ</span>
-        <input accept="image/*" onChange={(event) => onImageUpload(event.target.files?.[0])} type="file" />
-        <strong><ImageUp size={16} /> {form.imageUrl ? "เลือกรูปแล้ว" : "อัปโหลดรูป"}</strong>
-      </label>
+      {/* ใช้หน้าตาเดียวกับช่องแนบสลิปของผู้เช่า แทนปุ่มเลือกไฟล์ของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษ
+          เลือกแล้วเห็นรูปทันที ถ่ายรูปจากมือถือได้เพราะ accept เป็นรูปภาพ */}
+      <div className="grid gap-1.5">
+        <span className="text-sm font-semibold">รูปพัสดุ (ไม่บังคับ)</span>
+        <label className="slip-picker">
+          <input accept="image/*" className="sr-only" onChange={(event) => onImageUpload(event.target.files?.[0])} type="file" />
+          {form.imageUrl
+            ? <Image alt="ตัวอย่างรูปพัสดุที่เลือก" className="slip-picker-preview" height={56} src={form.imageUrl} unoptimized width={56} />
+            : <span className="slip-picker-icon"><ImageUp aria-hidden="true" size={24} /></span>}
+          <span className="min-w-0">
+            <strong className="block">{form.imageUrl ? "เลือกรูปแล้ว" : "ถ่ายรูปหรือเลือกรูปพัสดุ"}</strong>
+            <small className="block">{form.imageUrl ? "แตะเพื่อเปลี่ยนรูป" : "ช่วยให้ผู้เช่าจำได้ว่าเป็นกล่องไหน"}</small>
+          </span>
+        </label>
+      </div>
     </div>
     <div className="modal-actions">
       <Button onClick={onClose} variant="secondary">ยกเลิก</Button>

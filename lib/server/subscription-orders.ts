@@ -32,6 +32,12 @@ function serializeOrder<T extends { amount: { toString(): string }; payments: Ar
   };
 }
 
+// "YYYYMMDD" ตามเวลาไทย en-CA ให้รูปแบบปี-เดือน-วันเรียงพร้อมเลขศูนย์นำหน้า
+function bangkokDateKey(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(date).replaceAll("-", "");
+}
+
 export async function listPropertySubscriptionOrders(propertyId: string, pagination: PaginationInput) {
   const rows = await getDatabase().subscriptionOrder.findMany({
     where: { propertyId },
@@ -70,7 +76,8 @@ export async function createSubscriptionOrder(
     try {
       const order = await database.subscriptionOrder.create({
         data: {
-          orderNumber: `SUB-${now.toISOString().slice(0, 10).replaceAll("-", "")}-${randomUUID().slice(0, 8).toUpperCase()}`,
+          // วันที่ในเลขคำสั่งซื้อใช้เวลาไทย สั่งซื้อตอนเช้าวันที่ 1 จะได้ไม่ขึ้นเป็นวันที่ 31 ของเดือนก่อนตามเวลา UTC
+          orderNumber: `SUB-${bangkokDateKey(now)}-${randomUUID().slice(0, 8).toUpperCase()}`,
           propertyId, planId: plan.id, planCode: plan.code, planName: plan.name,
           type, billingInterval: input.billingInterval, amount,
           maxProperties: plan.maxProperties, maxRooms: plan.maxRooms,

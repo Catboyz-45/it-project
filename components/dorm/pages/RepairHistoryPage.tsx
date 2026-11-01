@@ -10,6 +10,7 @@ import { ServerTablePagination, type ServerPageInfo } from "@/components/dorm/Ta
 import { createApiError, formatClientError } from "@/lib/client/api-error";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // tickets ที่ส่งมาคือชุดแรกที่เซิร์ฟเวอร์เตรียมไว้ หน้าถัดไปโหลดเองจากเบราว์เซอร์
 type RepairHistoryPageProps = {
@@ -53,8 +54,8 @@ export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets:
         category: "ทั่วไป",
         priority: item.priority === "URGENT" ? "ด่วน" : "ปกติ",
         status: "done",
-        completedAt: item.resolvedAt ? new Date(item.resolvedAt).toLocaleString("th-TH") : undefined,
-        updatedAt: new Date(item.updatedAt).toLocaleString("th-TH"),
+        completedAt: item.resolvedAt ? formatThaiDateTime(item.resolvedAt) : undefined,
+        updatedAt: formatThaiDateTime(item.updatedAt),
       }));
       setTickets(mapped);
       setPageInfo(payload.pageInfo);

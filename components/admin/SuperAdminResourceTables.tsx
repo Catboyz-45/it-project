@@ -20,6 +20,7 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
 import { UnitInput } from "@/components/ui/UnitInput";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 type PageInfo = {
   page: number;
@@ -545,7 +546,7 @@ export function SuperAdminResourceTables({
                     {logs.map((log) => (
                       <tr key={log.id}>
                         <td className="whitespace-nowrap">
-                          {new Date(log.createdAt).toLocaleString("th-TH")}
+                          {formatThaiDateTime(log.createdAt)}
                         </td>
                         <td>{log.user?.email ?? "-"}</td>
                         <td>{log.property?.name ?? "-"}</td>

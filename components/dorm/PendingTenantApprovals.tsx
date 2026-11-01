@@ -12,6 +12,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
+import { formatThaiDateTime, formatThaiPhone } from "@/lib/thai-format";
 
 // คำขอเข้าพักหนึ่งรายการที่ยังรอเจ้าของหอตรวจ
 type PendingOccupancy = {
@@ -215,8 +216,8 @@ function ApprovalsBody({ hasQuery, isLoading, onReview, pageItems, readOnly, rev
           <td>{request.room.number}</td>
           <td>{request.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</td>
           <td className="muted-cell">{request.tenantProfile.user.email}</td>
-          <td>{request.tenantProfile.phone}</td>
-          <td className="muted-cell">{new Date(request.createdAt).toLocaleString("th-TH")}</td>
+          <td>{formatThaiPhone(request.tenantProfile.phone)}</td>
+          <td className="muted-cell">{formatThaiDateTime(request.createdAt)}</td>
           <td><em className="figma-status warning">รอตรวจสอบ</em></td>
           <td className="contract-actions">
             {/* ซ่อนปุ่มจัดการทั้งหมดในโหมดอ่านอย่างเดียว ไม่ใช่แค่ทำให้กดไม่ได้ */}

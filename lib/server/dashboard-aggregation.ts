@@ -150,6 +150,9 @@ export async function getSuperAdminDashboardAggregation() {
     getDatabase().property.count({ where: { isActive: true } }),
     getDatabase().user.groupBy({ by: ["role"], where: { isActive: true, approvalStatus: "APPROVED" }, _count: true }),
     getDatabase().propertySubscription.findMany({
+      // นับเฉพาะหอที่เปิดอยู่ ให้ตรงกับตัวเลข "หอที่เปิดใช้งาน" หอที่ปิดไปแล้ว
+      // รวมถึงหอพักชั่วคราวที่ migration สร้างไว้เก็บข้อมูลเก่า ไม่ควรโผล่เป็นสมาชิกทดลองใช้
+      where: { property: { isActive: true } },
       include: { plan: { select: { code: true, name: true } }, property: { select: { name: true, isActive: true } } },
       orderBy: { expiresAt: "asc" },
     }),

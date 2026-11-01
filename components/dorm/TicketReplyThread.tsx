@@ -5,6 +5,7 @@ import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react"
 import { LoaderCircle, MessageSquareReply, Send } from "lucide-react";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // ข้อความตอบกลับหนึ่งข้อความที่ API ส่งมา
 type Reply = {
@@ -136,7 +137,7 @@ export function TicketReplyThread({
             <strong className="block text-xs">{reply.authorUser?.displayName ?? "ผู้ใช้ที่ถูกลบ"}</strong>
             {/* pre-wrap คงการขึ้นบรรทัดที่ผู้ใช้พิมพ์ break-words กันข้อความยาวรวดเดียวดันกล่องจนล้น */}
             <p className="whitespace-pre-wrap break-words">{reply.body}</p>
-            <time className="mt-1 block text-xs opacity-65">{new Date(reply.createdAt).toLocaleString("th-TH")}</time>
+            <time className="mt-1 block text-xs opacity-65">{formatThaiDateTime(reply.createdAt)}</time>
           </article>;
         })}
       </div>

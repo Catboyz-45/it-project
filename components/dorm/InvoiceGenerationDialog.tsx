@@ -8,6 +8,13 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiData } from "@/lib/client/api-error";
+import { currentThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+
+// เดือนถัดไปของ "YYYY-MM" ใช้เป็นตัวเลือกบนสุดของเดือนที่ออกบิล เดือนใน Date.UTC นับจาก 0 จึงส่งเลขเดือนเดิมไปได้เลย
+function nextMonth(month: string) {
+  const [year, value] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, value, 1)).toISOString().slice(0, 7);
+}
 
 // สร้างทีละห้อง หรือสร้างให้ทุกห้องที่พร้อมในครั้งเดียว
 type Mode = "single" | "bulk";
@@ -81,8 +88,8 @@ export function InvoiceGenerationDialog({
   const eligibleRooms = useMemo(() => rooms.filter((room) => room.status === "occupied" && room.databaseId), [rooms]);
   const [step, setStep] = useState<Step>(1);
   const [mode, setMode] = useState<Mode>(initialMode);
-  // ตั้งต้นเป็นเดือนปัจจุบันในรูปแบบ YYYY-MM ซึ่งตรงกับที่ input type="month" ต้องการ
-  const [billingMonth, setBillingMonth] = useState(new Date().toISOString().slice(0, 7));
+  // ตั้งต้นเป็นเดือนปัจจุบันตามเวลาไทยในรูปแบบ YYYY-MM
+  const [billingMonth, setBillingMonth] = useState(() => currentThaiMonth());
   const [roomId, setRoomId] = useState(eligibleRooms[0]?.databaseId ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -238,7 +245,13 @@ function ScopeStep({ billingMonth, eligibleRooms, mode, onInvalidate, roomId, se
       <button className={mode === "bulk" ? "active" : ""} onClick={() => changeMode("bulk")} type="button"><Files size={17} /> ทั้งหอ</button>
     </div>
     <div className="modal-grid">
-      <label><span>เดือนที่ออกบิล</span><input onChange={(event) => { setBillingMonth(event.target.value); onInvalidate(); }} required type="month" value={billingMonth} /></label>
+      {/* ชื่อเดือนภาษาไทยแทนช่องเดือนของเบราว์เซอร์ ให้เลือกล่วงหน้าได้หนึ่งเดือน เผื่อออกบิลก่อนสิ้นเดือน */}
+      <DropdownField
+        label="เดือนที่ออกบิล"
+        onChange={(value) => { setBillingMonth(value); onInvalidate(); }}
+        options={thaiMonthOptions(nextMonth(currentThaiMonth()), 13, billingMonth)}
+        value={billingMonth}
+      />
       {mode === "single"
         ? <DropdownField label="ห้อง" onChange={(value) => { setRoomId(value); onInvalidate(); }} options={roomOptions(eligibleRooms)} value={roomId} />
         : <div className="modal-summary"><span>ขอบเขต</span><strong>{eligibleRooms.length} ห้องที่มีผู้เช่า</strong></div>}

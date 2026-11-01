@@ -17,6 +17,13 @@ export type MaintenanceJobResult = {
   expiryRemindersSent: number;
 } & FileRetentionResult;
 
+// งานรอบนี้เปลี่ยนข้อมูลหรือมีไฟล์ที่ลบไม่สำเร็จไหม งานรันทุก 5 นาที
+// ถ้าบันทึกทุกรอบ บันทึกการใช้งานจะมีวันละ 288 แถวที่ไม่มีอะไรเกิดขึ้น กลบเหตุการณ์ที่สำคัญจริง
+export function maintenanceJobChangedData(result: MaintenanceJobResult) {
+  if (result.status !== "completed") return false;
+  return Object.values(result).some((value) => typeof value === "number" && value > 0);
+}
+
 const emptyRetentionResult = (): FileRetentionResult => ({
   paymentSlipsPurged: 0,
   generatedDocumentsPurged: 0,

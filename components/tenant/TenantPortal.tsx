@@ -11,6 +11,8 @@ import { SyntheticEvent, Fragment, ReactNode, createContext, useCallback, useCon
 import {
   AlertCircle,
   ArrowRight,
+  Download,
+  ImagePlus,
   Bell,
   Clock3,
   CheckCircle2,
@@ -55,6 +57,8 @@ import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
 import { describeInvoiceDue } from "@/lib/domain/invoice-due";
+import { formatBankAccount, formatThaiDate, formatThaiDateTime, formatThaiPhone } from "@/lib/thai-format";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { formatStatus } from "@/lib/ui-labels";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
@@ -144,6 +148,8 @@ const tabDescriptions: Record<TenantTab, string> = {
 const mobilePrimaryTabs = tabs.filter(({ id }) => ["home", "invoices", "parcels", "tickets"].includes(id));
 // แชทกับบัญชีไม่อยู่ในเมนูหลักของจอกว้าง เพราะมีปุ่มของตัวเองอยู่แล้ว
 const navigationTabs = tabs.filter(({ id }) => !["chat", "account"].includes(id));
+// หน้าที่ผู้พักร่วมเปิดไม่ได้ เพราะบิลและสัญญาเป็นเรื่องของผู้เช่าหลัก
+const primaryOnlyTabs = new Set<TenantTab>(["invoices", "lease"]);
 const mobileMoreTabs = tabs.filter(({ id }) => ["lease", "announcements", "account"].includes(id));
 
 // ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
@@ -464,7 +470,8 @@ export function TenantPortal({
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
-        {navigationTabs.map(({ id, icon: Icon, label }) => (
+        {/* ผู้พักร่วมไม่เห็นบิลและสัญญา ซ่อนเมนูไปเลย ดีกว่าให้กดเข้าไปเจอแค่ข้อความว่าไม่มีสิทธิ์ */}
+        {navigationTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
           <TenantNavLink count={notificationCount(id)} icon={<Icon size={19} />} isActive={activeTab === id} key={id} label={label} tab={id} />
         ))}
       </nav>
@@ -475,6 +482,7 @@ export function TenantPortal({
         displayName={account.user.displayName}
         email={account.user.email}
         role="TENANT"
+        roleLabel={primary ? "ผู้เช่า" : "ผู้พักร่วม"}
       />
     </aside>
     <section className="workspace tenant-workspace">
@@ -506,7 +514,7 @@ export function TenantPortal({
     </div>
     </section>
     <nav aria-label="เมนูผู้เช่าบนมือถือ" className="tenant-mobile-navigation">
-      {mobilePrimaryTabs.map(({ id, icon: Icon, label }) => (
+      {mobilePrimaryTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
         <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
           <span className="tenant-mobile-nav-icon">
             <Icon aria-hidden="true" size={21} />
@@ -524,7 +532,7 @@ export function TenantPortal({
         </summary>
         <div className="tenant-mobile-more-menu">
           <strong>เมนูเพิ่มเติม</strong>
-          {mobileMoreTabs.map(({ id, icon: Icon, label }) => (
+          {mobileMoreTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
             <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
               <Icon aria-hidden="true" size={20} />
               <span>{label}</span>
@@ -735,9 +743,9 @@ function AccountPanel({
         <h2>ข้อมูลบัญชี</h2>
         <div className="account-detail-row"><strong>ชื่อ-นามสกุล</strong><span>{account.user.displayName}</span><button onClick={() => { setProfileError(""); setProfileMessage(""); setIsEditingProfile(true); }} type="button">แก้ไข</button></div>
         <div className="account-detail-row"><strong>อีเมล</strong><span>{account.user.email}</span><small>จัดการโดยผู้ดูแลหอพัก</small></div>
-        <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{account.phone || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
+        <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{formatThaiPhone(account.phone) || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
         <div className="account-detail-row"><strong>ที่อยู่</strong><span>{account.address || "ยังไม่ระบุ"}</span><small>ข้อมูลส่วนตัว</small></div>
-        <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{account.emergencyPhone || "ยังไม่ระบุเบอร์"}</small></div>
+        <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"}</small></div>
         {profileMessage ? <output className="account-settings-message success block">{profileMessage}</output> : null}
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
       </section>
@@ -760,8 +768,8 @@ function AccountPanel({
             <strong>{occupancy.property.name} · ห้อง {occupancy.room.number}</strong>
             <p className="text-sm text-[#62646c]">
               {occupancy.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}
-              {occupancy.startedAt ? ` · เริ่ม ${new Date(occupancy.startedAt).toLocaleDateString("th-TH")}` : ""}
-              {occupancy.endedAt ? ` · สิ้นสุด ${new Date(occupancy.endedAt).toLocaleDateString("th-TH")}` : ""}
+              {occupancy.startedAt ? ` · เริ่ม ${formatThaiDate(occupancy.startedAt)}` : ""}
+              {occupancy.endedAt ? ` · สิ้นสุด ${formatThaiDate(occupancy.endedAt)}` : ""}
             </p>
           </div>
           <span className="badge">{occupancyLabels[occupancy.status]}</span>
@@ -927,7 +935,7 @@ function HomePanel({
         <HomePriorityCard
           tone="blue"
           detail={waitingParcel
-            ? `${waitingParcel.note || "พัสดุใหม่"} · ${new Date(waitingParcel.registeredAt).toLocaleDateString("th-TH")}`
+            ? `${waitingParcel.note || "พัสดุใหม่"} · ${formatThaiDate(waitingParcel.registeredAt)}`
             : "ไม่มีพัสดุรอรับ"}
           href={tenantPagePath("parcels")}
           icon={<Package />}
@@ -959,18 +967,18 @@ function HomePanel({
     <div className="grid gap-4 sm:grid-cols-3">
       <InfoCard label="ค่าเช่าต่อเดือน" value={currency.format(Number(room.monthlyRent))} />
       <InfoCard label="ประเภทห้อง" value={room.roomType} />
-      <InfoCard label="เริ่มเข้าพัก" value={startedAt ? new Date(startedAt).toLocaleDateString("th-TH") : "-"} />
+      <InfoCard label="เริ่มเข้าพัก" value={startedAt ? formatThaiDate(startedAt) : "-"} />
     </div>
 
     <details className="rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 group">
       <summary className="cursor-pointer list-none text-sm font-semibold">ข้อมูลห้องและช่องทางติดต่อ</summary>
       <dl className="mt-5 grid gap-4 sm:grid-cols-2">
         <Info label="ที่อยู่" value={room.property.settings?.address ?? "-"} />
-        <Info label="โทรศัพท์" value={room.property.settings?.contactPhone ?? "-"} />
+        <Info label="โทรศัพท์" value={formatThaiPhone(room.property.settings?.contactPhone) || "-"} />
         <Info label="อีเมล" value={room.property.settings?.contactEmail ?? "-"} />
         <Info label="ติดต่อฉุกเฉิน" value={room.property.settings?.emergencyContact ?? "-"} />
         <Info label="อุปกรณ์ในห้อง" value={furniture.join(", ") || "-"} />
-        <Info label="เบอร์ผู้เช่า" value={account.phone} />
+        <Info label="เบอร์ผู้เช่า" value={formatThaiPhone(account.phone) || "-"} />
       </dl>
       {room.property.settings?.houseRules ? <div className="mt-5 rounded-xl border border-[#e4e4e7] bg-[#fafafa] p-4"><strong>กฎของหอพัก</strong><p className="mt-2 whitespace-pre-wrap">{room.property.settings.houseRules}</p></div> : null}
     </details>
@@ -1195,7 +1203,7 @@ function InvoiceHistoryTable({ expandedInvoiceId, historyTotal, onChanged, onTog
             <td>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</td>
             <td><strong>{currency.format(Number(invoice.total))}</strong></td>
             <td><Status value={invoice.status} /></td>
-            <td>{completedAt ? new Date(completedAt).toLocaleDateString("th-TH") : "—"}</td>
+            <td>{completedAt ? formatThaiDate(completedAt) : "—"}</td>
             <td><button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggle(invoice.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
           </tr>
           {isExpanded ? <tr><td className="p-0!" colSpan={6}><InvoiceDetails id={panelId} invoice={invoice} onChanged={onChanged} readOnly={readOnly} /></td></tr> : null}
@@ -1227,7 +1235,7 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
 
 // บิลที่ยังค้างบอกเป็นจำนวนวัน เลยกำหนดแล้วเป็นสีแดง บิลที่จ่ายหรือยกเลิกแล้วบอกแค่วันครบกำหนด
 function InvoiceDueText({ invoice }: Readonly<{ invoice: Invoice }>) {
-  if (!["PENDING", "OVERDUE"].includes(invoice.status)) return <>ครบกำหนด {new Date(invoice.dueDate).toLocaleDateString("th-TH")}</>;
+  if (!["PENDING", "OVERDUE"].includes(invoice.status)) return <>ครบกำหนด {formatThaiDate(invoice.dueDate)}</>;
   const due = describeInvoiceDue(invoice.dueDate);
   return <span className={due.isLate ? "font-semibold text-[#dc2626]" : undefined}>{due.text}</span>;
 }
@@ -1275,8 +1283,12 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
   readOnly: boolean;
 }>) {
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // คืนหน่วยความจำของรูปตัวอย่างเมื่อเปลี่ยนรูปหรือออกจากหน้า
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   if (!payable) return null;
   if (readOnly) return <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice>;
@@ -1291,6 +1303,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
       const response = await fetch(`/api/v1/tenant/invoices/${invoice.id}/payment-submissions`, { method: "POST", credentials: "same-origin", body });
       await apiData(response);
       setFile(null);
+      setPreviewUrl(null);
       await onSubmitted();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ");
@@ -1299,18 +1312,37 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
     }
   };
 
-  // ยังไม่ได้เลือกไฟล์ก็กดส่งไม่ได้ และต้องบอกเหตุผลไว้ให้เห็นด้วย
-  const missingFile = !file && !isSending;
+  // เลือกไฟล์แล้วโชว์รูปสลิปให้เห็นทันที ผู้เช่าจะได้แน่ใจว่าแนบรูปถูกใบก่อนกดส่ง
+  // ไฟล์ใหญ่เกินบอกตั้งแต่ตอนเลือก ไม่ต้องรออัปโหลดแล้วค่อยรู้ เซิร์ฟเวอร์ยังตรวจซ้ำอีกชั้น
+  const chooseFile = (nextFile: File | null) => {
+    setError("");
+    if (nextFile && nextFile.size > slipMaxBytes) {
+      setFile(null);
+      setPreviewUrl(null);
+      setError("ไฟล์ใหญ่เกิน 5 MB กรุณาเลือกรูปสลิปที่เล็กลง");
+      return;
+    }
+    setFile(nextFile);
+    setPreviewUrl(nextFile?.type.startsWith("image/") ? URL.createObjectURL(nextFile) : null);
+  };
 
   return <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
     <PromptPayQr invoice={invoice} />
     <BankTransferAccount invoice={invoice} />
-    <label><span>อัปโหลดสลิป PNG, JPG หรือ PDF ไม่เกิน 5 MB</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
+    <label className="slip-picker">
+      <input accept="image/png,image/jpeg,application/pdf,.pdf" className="sr-only" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} type="file" />
+      {previewUrl
+        ? <Image alt="ตัวอย่างสลิปที่เลือก" className="slip-picker-preview" height={96} src={previewUrl} unoptimized width={96} />
+        : <span className="slip-picker-icon">{file ? <FileText aria-hidden="true" size={26} /> : <ImagePlus aria-hidden="true" size={26} />}</span>}
+      <span className="min-w-0">
+        <strong className="block truncate">{file ? file.name : "แนบสลิปโอนเงิน"}</strong>
+        <small className="block">{file ? "แตะเพื่อเปลี่ยนไฟล์" : "รูปภาพหรือ PDF ไม่เกิน 5 MB"}</small>
+      </span>
+    </label>
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
-    <button aria-describedby={missingFile ? "payment-slip-disabled-reason" : undefined} className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button">
+    <button className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button">
       <Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}
     </button>
-    {missingFile ? <p className="disabled-reason" id="payment-slip-disabled-reason">เลือกไฟล์สลิปก่อนส่งหลักฐานการชำระเงิน</p> : null}
   </div>;
 }
 
@@ -1319,12 +1351,15 @@ function SubmissionHistory({ submissions }: Readonly<{ submissions: Submission[]
   return <div className="mt-5">
     <strong>ประวัติหลักฐาน</strong>
     {submissions?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}>
-      <span>{new Date(item.submittedAt).toLocaleString("th-TH")}</span>
+      <span>{formatThaiDateTime(item.submittedAt)}</span>
       <span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span>
     </div>)}
     {submissions?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}
   </div>;
 }
+
+// ขนาดเดียวกับที่เซิร์ฟเวอร์รับ เช็กก่อนส่งเพื่อบอกผู้เช่าได้เร็วขึ้น
+const slipMaxBytes = 5 * 1024 * 1024;
 
 function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
   const promptPay = useApiResource<{ invoiceNumber: string; amount: string; payload: string }>(`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr?format=json`);
@@ -1334,7 +1369,12 @@ function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
   return <div className="text-center">
     <strong className="block text-lg">สแกน PromptPay</strong>
     <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
-    <p className="mt-2 text-sm text-[#62646c]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
+    <p className="mt-2 text-sm text-[#55575f]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
+    {/* สแกน QR บนจอมือถือเครื่องเดียวกันไม่ได้ ต้องบันทึกรูปแล้วเปิดในแอปธนาคาร ปุ่มนี้จึงสำคัญกับคนจ่ายผ่านมือถือ */}
+    <a className="secondary-button mt-3 inline-flex" download={`promptpay-${invoice.invoiceNumber}.png`} href={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`}>
+      <Download aria-hidden="true" size={17} /> บันทึกรูป QR
+    </a>
+    <p className="mt-2 text-xs text-[#55575f]">บันทึกรูปแล้วเปิดในแอปธนาคาร เลือก “สแกนจากรูปภาพ”</p>
   </div>;
 }
 
@@ -1343,9 +1383,13 @@ function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
   const account = useApiResource<{ bankName: string | null; bankAccountNumber: string | null; bankAccountName: string | null }>(`/api/v1/tenant/invoices/${invoice.id}/payment-account`);
   if (account.isLoading || account.error || !account.data?.bankAccountNumber) return null;
   return <dl className="grid gap-1 rounded-xl bg-[#f3f3f5] p-3 text-center text-sm" data-testid="tenant-bank-account">
-    <dt className="text-[#62646c]">หรือโอนเข้าบัญชี</dt>
+    <dt className="text-[#55575f]">หรือโอนเข้าบัญชี</dt>
     <dd className="font-bold">{account.data.bankName}</dd>
-    <dd className="font-mono text-base">{account.data.bankAccountNumber}</dd>
+    {/* โชว์แบบมีขีดคั่นให้อ่านตรวจง่าย แต่คัดลอกเฉพาะตัวเลข วางในแอปธนาคารได้ทันที */}
+    <dd className="flex flex-wrap items-center justify-center gap-2">
+      <span className="font-mono text-lg tracking-wide">{formatBankAccount(account.data.bankAccountNumber)}</span>
+      <CopyButton label="เลขบัญชี" value={account.data.bankAccountNumber.replace(/\D/g, "")} />
+    </dd>
     <dd>{account.data.bankAccountName}</dd>
   </dl>;
 }
@@ -1366,7 +1410,7 @@ function TenantLeaseCard({ lease, title }: Readonly<{ lease: Lease; title: strin
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
     <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>
-    <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} /><Info label="วันเริ่มต้น" value={new Date(lease.startDate).toLocaleDateString("th-TH")} /><Info label="วันสิ้นสุด" value={new Date(lease.endDate).toLocaleDateString("th-TH")} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
+    <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} /><Info label="วันเริ่มต้น" value={formatThaiDate(lease.startDate)} /><Info label="วันสิ้นสุด" value={formatThaiDate(lease.endDate)} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
     {lease.hasSignedDocument
       ? <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
       : <p className="mt-5 text-sm text-[#62646c]">เจ้าของหอยังไม่ได้อัปโหลดไฟล์สัญญาที่ลงนามแล้ว ขอสำเนาได้ที่สำนักงานหอพัก</p>}
@@ -1377,7 +1421,7 @@ function TenantLeaseCard({ lease, title }: Readonly<{ lease: Lease; title: strin
 type Announcement = { id: string; title: string; content: string; publishedAt: string | null; publishAt: string | null; createdAt: string };
 function AnnouncementsPanel() {
   const resource = usePaginatedResource<Announcement>("/api/v1/tenant/announcements");
-  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ" emptyDescription="ประกาศจากหอพักจะมาแสดงที่นี่">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{new Date(item.publishedAt ?? item.publishAt ?? item.createdAt).toLocaleString("th-TH")}</time></Panel>}</ResourceList>;
+  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ" emptyDescription="ประกาศจากหอพักจะมาแสดงที่นี่">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{formatThaiDateTime(item.publishedAt ?? item.publishAt ?? item.createdAt)}</time></Panel>}</ResourceList>;
 }
 
 type Parcel = { id: string; status: string; note: string | null; registeredAt: string; receivedAt: string | null; imageUrl: string | null };
@@ -1395,12 +1439,12 @@ function ParcelsPanel() {
           <tbody>{resource.data.map((item) => <tr key={item.id}>
             <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#62646c]">ไม่มีรูป</span>}</td>
             <td>{item.note || "ไม่มีหมายเหตุ"}</td>
-            <td>{new Date(item.registeredAt).toLocaleString("th-TH")}</td>
-            <td>{item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : "—"}</td>
+            <td>{formatThaiDateTime(item.registeredAt)}</td>
+            <td>{item.receivedAt ? formatThaiDateTime(item.receivedAt) : "—"}</td>
             <td><Status value={item.status} /></td>
           </tr>)}</tbody>
         </table>
-      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList loadingColumns={5} loadingVariant={view === "history" ? "table" : "list"} resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {new Date(item.registeredAt).toLocaleString("th-TH")}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {new Date(item.receivedAt).toLocaleString("th-TH")}</time> : null}</div></div></Panel>}</ResourceList>}
+      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList loadingColumns={5} loadingVariant={view === "history" ? "table" : "list"} resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {formatThaiDateTime(item.registeredAt)}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {formatThaiDateTime(item.receivedAt)}</time> : null}</div></div></Panel>}</ResourceList>}
     </div>
   </div>;
 }
@@ -1501,7 +1545,7 @@ function TicketHistoryTable({ historyTotal, onRead, onToggleReply, openReplyTick
           <tr>
             <th className="px-6 py-4 text-sm font-bold" scope="row">{ticket.title}</th>
             <td>{ticketTypeLabel(ticket.type)}</td>
-            <td>{new Date(ticket.createdAt).toLocaleString("th-TH")}</td>
+            <td>{formatThaiDateTime(ticket.createdAt)}</td>
             <td><Status value={ticket.status} /></td>
             <td><button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggleReply(ticket.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
           </tr>
@@ -1555,7 +1599,7 @@ function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggl
     <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t border-[#e4e4e7] pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{new Date(event.createdAt).toLocaleString("th-TH")}</time> · {ticketEventLabel(event)}</li>)}</ol>
+    <ol className="mt-4 grid gap-2 border-t border-[#e4e4e7] pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{formatThaiDateTime(event.createdAt)}</time> · {ticketEventLabel(event)}</li>)}</ol>
     {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
   </>;
@@ -1714,7 +1758,7 @@ function TenantChatMessages({ endRef, hasOlderMessages, isLoading, isLoadingOlde
       <strong>{item.senderName}</strong>
       {item.body ? <p>{item.body}</p> : null}
       <TenantChatAttachment attachment={item.attachment} />
-      <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString("th-TH")}</time>
+      <time dateTime={item.createdAt}>{formatThaiDateTime(item.createdAt)}</time>
     </article>)}
     <div ref={endRef} />
   </div>;

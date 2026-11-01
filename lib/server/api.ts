@@ -54,9 +54,10 @@ type SuccessAuditInput = Omit<AuditInput, "request" | "requestId" | "result">;
 function recordSuccessAudit(
   request: NextRequest,
   requestId: string,
-  audit?: SuccessAuditInput,
+  audit?: SuccessAuditInput | false,
 ) {
-  if (request.method === "GET" || request.method === "HEAD") return;
+  // false คือผู้เรียกตั้งใจไม่บันทึก เช่นงานเบื้องหลังรอบที่ไม่ได้เปลี่ยนข้อมูลอะไร
+  if (audit === false || request.method === "GET" || request.method === "HEAD") return;
   const context = getRequestActorContext(request);
   const recordSuccess = () => writeAuditLogSafely({
     userId: context.userId,
@@ -83,7 +84,7 @@ export function apiSuccessResponse(
   request: NextRequest,
   body: Record<string, unknown>,
   init?: { status?: number; headers?: HeadersInit },
-  audit?: SuccessAuditInput,
+  audit?: SuccessAuditInput | false,
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
@@ -99,7 +100,7 @@ export function apiSuccessBinaryResponse(
   request: NextRequest,
   body: BodyInit | null,
   init: ResponseInit,
-  audit?: SuccessAuditInput,
+  audit?: SuccessAuditInput | false,
 ) {
   // ใช้ requestId ที่ proxy ส่งมา ไม่มีก็สร้างเอง ผู้ใช้จะได้อ้างอิงรหัสนี้เวลาแจ้งปัญหา
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();

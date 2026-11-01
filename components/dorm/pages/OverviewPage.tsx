@@ -10,6 +10,7 @@ import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { AppSection } from "@/components/ui/AppSection";
 import { InvoiceList, Metric } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
+import { formatThaiDate } from "@/lib/thai-format";
 
 // เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
 // 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน ส่วน ceil ทำให้เศษของวันนับเป็นหนึ่งวันเต็ม
@@ -110,7 +111,7 @@ function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscript
   const remainingDays = calendarDaysUntil(subscription.expiresAt);
   return {
     count: remainingDays <= 30 ? 1 : 0,
-    detail: `แพ็กเกจหมดอายุ ${new Date(subscription.expiresAt).toLocaleDateString("th-TH")}`,
+    detail: `แพ็กเกจหมดอายุ ${formatThaiDate(subscription.expiresAt)}`,
     icon: <CreditCard size={20} />,
     page: "subscription",
     title: remainingDays < 0 ? "แพ็กเกจหมดอายุแล้ว" : "แพ็กเกจใกล้หมดอายุ",
@@ -310,13 +311,19 @@ export function OverviewPage({
   const urgentItems = [
     {
       action: readOnly ? "ดูรายการ" : "ตรวจบิล",
-      detail: `${finance.overdueInvoices} บิลเลยกำหนด รวม ${currency.format(finance.overdueAmount)}`,
+      count: finance.overdueInvoices,
+      detail: finance.overdueInvoices
+        ? `${finance.overdueInvoices} บิลเลยกำหนด รวม ${currency.format(finance.overdueAmount)}`
+        : "ไม่มีบิลเลยกำหนด",
       onClick: () => setActivePage("invoices"),
       title: "บิลค้างชำระ",
     },
     {
       action: "ดูสัญญา",
-      detail: `${nearContracts.length} สัญญาใกล้หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`,
+      count: nearContracts.length,
+      detail: nearContracts.length
+        ? `${nearContracts.length} สัญญาใกล้หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`
+        : `ไม่มีสัญญาที่หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`,
       onClick: () => setActivePage("contracts"),
       title: "สัญญาใกล้หมด",
     },
@@ -382,7 +389,8 @@ export function OverviewPage({
         >
           <div className="priority-list">
             {urgentItems.map((item) => (
-              <button aria-label={`${item.title}: ${item.detail} กดเพื่อ${item.action}`} className="interactive-card" key={item.title} onClick={item.onClick} type="button">
+              // เรื่องที่เป็นศูนย์ยังกดเข้าไปดูได้ แต่ทำเป็นสีจาง ไม่แย่งความสนใจจากเรื่องที่ต้องทำจริง
+              <button aria-label={`${item.title}: ${item.detail} กดเพื่อ${item.action}`} className={`interactive-card${item.count === 0 ? " is-clear" : ""}`} key={item.title} onClick={item.onClick} type="button">
                 <div>
                   <strong>{item.title}</strong>
                   <span>{item.detail}</span>

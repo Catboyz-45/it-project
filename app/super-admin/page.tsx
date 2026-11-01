@@ -80,7 +80,7 @@ export default async function SuperAdminPage() {
       <div className="figma-summary-grid three">
         <Stat icon={<DoorOpen />} label="ห้องในระบบ" tone="indigo" value={aggregation.usage.rooms} />
         <Stat icon={<UsersRound />} label="ผู้เช่าที่ใช้งาน" tone="indigo" value={aggregation.usage.activeTenants} />
-        <Stat icon={<Wrench />} label="Ticket ที่ยังเปิด" tone="orange" value={aggregation.operations.openTickets} />
+        <Stat icon={<Wrench />} label="เรื่องแจ้งที่ยังเปิด" tone="orange" value={aggregation.operations.openTickets} />
       </div>
     </AppSection>
   </>;

@@ -14,6 +14,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, RoomStatus, Tenant } from "@/types/dorm";
 import { UnitInput } from "@/components/ui/UnitInput";
+import { roomTypeLabel } from "@/lib/ui-labels";
 
 // ห้องที่ไม่มีคนอยู่สลับได้แค่ว่างกับซ่อมบำรุง ส่วน "มีผู้เช่า" เกิดจากการอนุมัติเข้าพักเท่านั้น
 // และห้องที่มีคนอยู่จะว่างได้ก็ต่อเมื่อย้ายออก เซิร์ฟเวอร์ปฏิเสธการเปลี่ยนแบบอื่นอยู่แล้ว
@@ -31,6 +32,13 @@ function describeLeasePeriod(tenant: Tenant | undefined) {
   return `${formatDisplayDate(tenant.startDate)} – ${tenant.contractEnd ? formatDisplayDate(tenant.contractEnd) : "ยังไม่ระบุ"}`;
 }
 
+// ตัวเลือกประเภทห้อง ถ้าห้องนี้ใช้ประเภทที่ถูกลบจากหน้าตั้งค่าไปแล้ว ก็ยังใส่ค่าเดิมไว้ ไม่ให้ช่องเปลี่ยนค่าเอง
+function roomTypeOptions(roomTypes: Array<{ name: string }>, current: string) {
+  const names = roomTypes.map((item) => item.name);
+  if (current && !names.includes(current)) names.unshift(current);
+  return names.map((name) => ({ value: name, label: roomTypeLabel(name) }));
+}
+
 // removeTenant แยกออกมาต่างหาก เพราะ tenant เป็น undefined บอกไม่ได้ว่าตั้งใจลบหรือไม่มีตั้งแต่แรก
 export interface RoomEditPayload {
   removeTenant: boolean;
@@ -44,6 +52,7 @@ export function RoomEditModal({
   tenant,
   floorOptions,
   furnitureOptions,
+  roomTypes,
   onClose,
   onSave,
   readOnly = false,
@@ -52,6 +61,8 @@ export function RoomEditModal({
   tenant?: Tenant;
   floorOptions: Array<{ id: string; number: number }>;
   furnitureOptions: string[];
+  // ประเภทห้องที่หอตั้งไว้ในหน้าตั้งค่า ห้องเก็บชื่อประเภทนี้ ไม่ใช่รหัสตายตัว
+  roomTypes: Array<{ name: string; rent: number }>;
   onClose: () => void;
   onSave: (payload: RoomEditPayload) => void;
   readOnly?: boolean;
@@ -202,11 +213,18 @@ export function RoomEditModal({
                 ) : <DropdownField label="สถานะห้อง" value={status} onChange={(value) => setStatus(value as RoomStatus)} options={roomStatusOptions} />}
               </div>
               <div className="modal-field">
+                {/* ตัวเลือกมาจากประเภทห้องที่หอตั้งไว้ เดิมเป็น fan/air ตายตัวซึ่งไม่ตรงกับค่าที่เก็บจริง
+                    ช่องเลยโชว์ตัวเลือกแรกแทนค่าจริง กดบันทึกแล้วประเภทห้องถูกเปลี่ยนโดยไม่ตั้งใจ */}
                 <DropdownField
                   label="ประเภทห้อง"
                   value={roomType}
-                  onChange={(value) => setRoomType(value as Room["roomType"])}
-                  options={[{ value: "fan", label: "ห้องพัดลม" }, { value: "air", label: "ห้องแอร์" }]}
+                  onChange={(value) => {
+                    setRoomType(value as Room["roomType"]);
+                    // เปลี่ยนประเภทห้องแล้วเติมค่าเช่าของประเภทนั้นให้ ผู้ใช้ยังแก้ทับได้
+                    const config = roomTypes.find((item) => item.name === value);
+                    if (config) setRent(String(config.rent));
+                  }}
+                  options={roomTypeOptions(roomTypes, room.roomType)}
                 />
               </div>
               <div className="modal-field">

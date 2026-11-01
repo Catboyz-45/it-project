@@ -18,6 +18,15 @@ import {
 // ตรวจค่าที่กรอกก่อนส่ง คืนข้อความว่างเมื่อผ่านทุกข้อ
 // ทุกช่องในฟอร์มนี้เก็บค่าไว้ใน state ไม่ได้อ่านจาก FormData จึงต้องเช็คเอง
 // และปฏิทินที่เขียนเองก็ไม่มี required ของเบราว์เซอร์ให้พึ่ง
+// วันหมดอายุตั้งต้นตามรอบบิล รายเดือนบวกหนึ่งเดือน รายปีบวกหนึ่งปี ผู้ดูแลยังเปลี่ยนเองได้
+function defaultExpiry(startsAt: string, billingInterval: string) {
+  if (!startsAt) return "";
+  const date = new Date(`${startsAt}T00:00:00.000Z`);
+  if (billingInterval === "YEARLY") date.setUTCFullYear(date.getUTCFullYear() + 1);
+  else date.setUTCMonth(date.getUTCMonth() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 function validationError({ expiresAt, planId, propertyId, startsAt }: {
   expiresAt: string;
   planId: string;
@@ -67,7 +76,17 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
   const [billingInterval, setBillingInterval] = useState("MONTHLY");
   // ปฏิทินที่เขียนเองเก็บค่าไว้ใน state ไม่ใช่ใน FormData แบบ input ของเบราว์เซอร์
   const [startsAt, setStartsAt] = useState(() => new Date().toISOString().slice(0, 10));
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState(() => defaultExpiry(new Date().toISOString().slice(0, 10), "MONTHLY"));
+  // จำว่าผู้ดูแลเลือกวันหมดอายุเองแล้วหรือยัง ถ้าเลือกเองก็ไม่คำนวณทับตอนเปลี่ยนวันเริ่มหรือรอบบิล
+  const [expiryChosen, setExpiryChosen] = useState(false);
+  const changeStartsAt = (value: string) => {
+    setStartsAt(value);
+    if (!expiryChosen) setExpiresAt(defaultExpiry(value, billingInterval));
+  };
+  const changeBillingInterval = (value: string) => {
+    setBillingInterval(value);
+    if (!expiryChosen) setExpiresAt(defaultExpiry(startsAt, value));
+  };
 
   const properties = usePagedOptions<PropertyOption>({
     endpoint: "/api/v1/super-admin/properties",
@@ -126,13 +145,13 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
       {properties.query.trim() && properties.items.length === 0 ? <div className="full-width"><SearchEmptyState description="ลองใช้ชื่อหรือชื่อย่ออื่น" title="ไม่พบหอพักที่ค้นหา" /></div> : null}
       {plans.query.trim() && plans.items.length === 0 ? <div className="full-width"><SearchEmptyState description="ลองใช้ชื่อหรือรหัสแพ็กเกจอื่น" title="ไม่พบแพ็กเกจที่ค้นหา" /></div> : null}
       {/* รอบบิลกินเต็มแถว วันเริ่มกับวันหมดอายุจะได้อยู่คู่กันในแถวถัดไป */}
-      <div className="full-width"><DropdownField label="รอบบิล" onChange={setBillingInterval} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} /></div>
+      <div className="full-width"><DropdownField label="รอบบิล" onChange={changeBillingInterval} options={[{ label: "รายเดือน", value: "MONTHLY" }, { label: "รายปี", value: "YEARLY" }]} value={billingInterval} /></div>
       {/* แพ็กเกจย้อนหลังได้ เช่นมาคีย์ของที่เริ่มไปแล้ว ปฏิทินจึงไม่ปิดวันในอดีต */}
-      <DatePickerField label="เริ่มใช้งาน" minDate={new Date(2000, 0, 1)} onChange={setStartsAt} value={startsAt} />
+      <DatePickerField label="เริ่มใช้งาน" minDate={new Date(2000, 0, 1)} onChange={changeStartsAt} value={startsAt} />
       <DatePickerField
         label="หมดอายุ"
         minDate={startsAt ? new Date(`${startsAt}T00:00:00`) : new Date(2000, 0, 1)}
-        onChange={setExpiresAt}
+        onChange={(value) => { setExpiresAt(value); setExpiryChosen(true); }}
         value={expiresAt}
       />
     </div>

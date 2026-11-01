@@ -122,6 +122,9 @@ export function TablePagination({
     ? "ไม่พบรายการ"
     : `พบ ${totalItems.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${page.toLocaleString("th-TH")} จาก ${totalPages.toLocaleString("th-TH")} หน้า รายการที่ ${firstItem.toLocaleString("th-TH")} ถึง ${lastItem.toLocaleString("th-TH")}`;
 
+  // ตารางว่างมีข้อความว่างของตัวเองอยู่แล้ว ไม่ต้องโชว์ "แสดง 0 ถึง 0" กับปุ่มหน้า 1 ซ้ำอีก
+  if (totalItems === 0) return <LiveAnnouncement message={resultSummary} />;
+
   return (
     <>
       <LiveAnnouncement message={resultSummary} />
@@ -161,6 +164,11 @@ export function ServerTablePagination({
   const resultSummary = paginationSummary({
     currentItemCount, disabled, firstItem, lastItem, pageInfo, totalPages,
   });
+
+  // หน้าแรกที่ไม่มีข้อมูลเลยไม่ต้องมีแถบแบ่งหน้า ตารางว่างบอกเองแล้วว่าไม่มีรายการ
+  if (!disabled && pageInfo.page === 1 && !pageInfo.hasNextPage && (pageInfo.total === 0 || currentItemCount === 0)) {
+    return <LiveAnnouncement message={resultSummary} />;
+  }
 
   return (
     <>

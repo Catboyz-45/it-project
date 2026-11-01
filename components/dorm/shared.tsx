@@ -5,6 +5,7 @@ import { Plus, QrCode } from "lucide-react";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import type { Invoice, Room, Tenant } from "@/types/dorm";
 import { roomTypeLabel } from "@/lib/ui-labels";
+import { formatThaiMonth, formatThaiPhone } from "@/lib/thai-format";
 
 // การ์ดตัวเลขสรุปบนหน้าภาพรวม tone คุมแค่สี ไม่มีผลกับข้อมูล
 export function Metric({ icon, label, value, detail, tone = "indigo" }: Readonly<{ icon: ReactNode; label: string; value: ReactNode; detail: string; tone?: "blue" | "green" | "indigo" | "orange" | "red" }>) {
@@ -58,7 +59,7 @@ export function RoomDetailPanel({ onEditTenant, selectedRoom, selectedTenant }: 
         <div><dt>สถานะ</dt><dd><span className={getStatusClass(selectedRoom.status)}>{statusText[selectedRoom.status]}</span></dd></div>
         <div><dt>ประเภท</dt><dd>{roomTypeLabel(selectedRoom.roomType)}</dd></div>
         <div><dt>ค่าเช่า</dt><dd>{currency.format(selectedRoom.rent)}</dd></div>
-        <div><dt>เบอร์โทร</dt><dd>{selectedTenant?.phone ?? "-"}</dd></div>
+        <div><dt>เบอร์โทร</dt><dd>{formatThaiPhone(selectedTenant?.phone) || "-"}</dd></div>
         <div><dt>สัญญาถึง</dt><dd>{selectedTenant?.contractEnd ?? "-"}</dd></div>
         <div><dt>เฟอร์นิเจอร์</dt><dd>{selectedRoom.furniture.length} รายการ</dd></div>
       </dl>
@@ -79,7 +80,7 @@ export function InvoiceList({ invoices }: Readonly<{ invoices: Invoice[] }>) {
           <div className="qr-box"><QrCode size={28} /></div>
           <div>
             <strong>{invoice.id}</strong>
-            <small>ห้อง {invoice.roomId} · {invoice.tenantName} · {invoice.month}</small>
+            <small>ห้อง {invoice.roomId} · {invoice.tenantName} · {formatThaiMonth(invoice.month)}</small>
           </div>
           <span className={getStatusClass(invoice.status)}>{statusText[invoice.status]}</span>
           {/* totalInvoice รวมค่าเช่ากับค่าน้ำค่าไฟให้แล้ว อย่าบวกเองซ้ำตรงนี้ */}

@@ -37,6 +37,7 @@ import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 // ขอบเขตผู้รับประกาศ ไล่จากกว้างไปแคบ ทั้งหอ อาคาร ชั้น หรือระบุห้อง
 type AnnouncementAudience = "ALL_TENANTS" | "BUILDING" | "FLOOR" | "ROOM";
@@ -68,6 +69,11 @@ function todayInputValue() {
 }
 
 // หน้าประกาศ ส่งถึงทั้งหอหรือเจาะจงอาคาร ชั้น หรือห้อง และตั้งเวลาเผยแพร่ได้
+// เลขอ้างอิงสั้นของเรื่องแจ้ง ใช้หกตัวท้ายของรหัสในระบบ พอให้คุยกับผู้เช่าได้ว่าเรื่องไหน ไม่ต้องโชว์รหัสยาว 25 ตัว
+function ticketReference(id: string) {
+  return `#${id.slice(-6).toUpperCase()}`;
+}
+
 export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false, onChanged, propertyId, readOnly = false, recipientRoomCount, rooms }: Readonly<{
   initialAnnouncements: Announcement[];
   // true = เซิร์ฟเวอร์ส่งรายการมาให้แล้ว ไม่ต้องยิงซ้ำตอนเปิดหน้า
@@ -127,7 +133,7 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
         buildingId: item.building?.id,
         floorId: item.floor?.id,
         roomIds: item.rooms.map(({ room }) => rooms.find((candidate) => candidate.id === room.number)?.databaseId).filter((id): id is string => Boolean(id)),
-        date: new Date(item.publishAt ?? item.publishedAt ?? item.createdAt).toLocaleString("th-TH"),
+        date: formatThaiDateTime(item.publishAt ?? item.publishedAt ?? item.createdAt),
         status: announcementStatusLabels[item.status] ?? "เผยแพร่แล้ว",
         updatedAt: item.updatedAt,
         publishAt: item.publishAt,
@@ -587,7 +593,7 @@ export function ComplaintsPage({
         title: item.title,
         room: item.room?.number ?? "-",
         owner: item.tenantProfile?.user.displayName ?? "ไม่ระบุชื่อ",
-        date: new Date(item.createdAt).toLocaleString("th-TH"),
+        date: formatThaiDateTime(item.createdAt),
         hasUnreadReply: item.hasUnreadReply,
         type: item.type,
         status: complaintStatusLabels[item.status] ?? "รับเรื่องแล้ว",
@@ -672,14 +678,14 @@ export function ComplaintsPage({
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td>{item.id}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
+            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
               items={[
                 { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: replyTicketId === item.id ? "ปิดข้อความ" : "เปิดข้อความ", onSelect: () => setReplyTicketId((current) => current === item.id ? null : item.id) },
                 ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
                 ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
                 ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
               ]}
-              label={`จัดการเรื่อง ${item.id}`}
+              label={`จัดการเรื่อง ${item.title} ${ticketReference(item.id)}`}
             /></td></tr>)}</tbody>
           </table>
         </div>

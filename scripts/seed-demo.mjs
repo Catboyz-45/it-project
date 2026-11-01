@@ -74,10 +74,13 @@ try {
     [planId],
   );
   await run(
-    `INSERT INTO "PropertySubscription" ("propertyId","planId","planName","maxRooms","status","startsAt","expiresAt","createdAt","updatedAt")
-     VALUES ($1,$2,'แพ็กเกจสาธิต',50,'ACTIVE',$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+    // ราคาต้องตรงกับแพ็กเกจ ไม่งั้นแดชบอร์ดผู้ดูแลระบบขึ้นรายได้ต่อเดือน ฿0 ทั้งที่มีสมาชิกใช้งานอยู่
+    `INSERT INTO "PropertySubscription" ("propertyId","planId","planName","maxRooms","status","billingInterval","priceAmount","startsAt","expiresAt","createdAt","updatedAt")
+     VALUES ($1,$2,'แพ็กเกจสาธิต',50,'ACTIVE','MONTHLY',1500,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT ("propertyId") DO UPDATE SET
-       "status" = 'ACTIVE', "expiresAt" = EXCLUDED."expiresAt", "updatedAt" = CURRENT_TIMESTAMP`,
+       "status" = 'ACTIVE', "expiresAt" = EXCLUDED."expiresAt",
+       "priceAmount" = CASE WHEN "PropertySubscription"."priceAmount" = 0 THEN EXCLUDED."priceAmount" ELSE "PropertySubscription"."priceAmount" END,
+       "updatedAt" = CURRENT_TIMESTAMP`,
     [propertyId, planId, daysFromNow(-30), daysFromNow(365)],
   );
 
@@ -98,10 +101,13 @@ try {
   // เช็กซ้ำด้วยชื่อ ไม่ใช่ id เพราะกดบันทึกหน้าตั้งค่าแล้วระบบสร้างแถวใหม่ด้วย id ใหม่ รัน seed ซ้ำจะชนชื่อเดิม
   for (const [index, [name, rent]] of [["ห้องแอร์", 4500], ["ห้องพัดลม", 3200]].entries()) {
     await run(
-      `INSERT INTO "RoomTypeConfig" ("id","propertyId","name","monthlyRent","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-       ON CONFLICT ("propertyId","name") DO UPDATE SET "monthlyRent" = EXCLUDED."monthlyRent", "updatedAt" = CURRENT_TIMESTAMP`,
-      [demoId(`demo-roomtype-${index}`), propertyId, name, rent],
+      // เงินประกันสองเท่าของค่าเช่า ตรงกับห้องที่สร้างด้านล่าง ไม่งั้นหน้าตั้งค่าขึ้นว่าประกัน 0 บาท
+      `INSERT INTO "RoomTypeConfig" ("id","propertyId","name","monthlyRent","depositAmount","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("propertyId","name") DO UPDATE SET "monthlyRent" = EXCLUDED."monthlyRent",
+         "depositAmount" = CASE WHEN "RoomTypeConfig"."depositAmount" = 0 THEN EXCLUDED."depositAmount" ELSE "RoomTypeConfig"."depositAmount" END,
+         "updatedAt" = CURRENT_TIMESTAMP`,
+      [demoId(`demo-roomtype-${index}`), propertyId, name, rent, rent * 2],
     );
   }
   for (const [index, name] of ["เตียง", "ตู้เสื้อผ้า", "โต๊ะทำงาน", "เครื่องปรับอากาศ"].entries()) {
@@ -208,16 +214,19 @@ try {
     );
   }
 
+  // ค่าเช่าของสัญญาและบิลต้องตรงกับค่าเช่าของห้อง ห้อง 202 เป็นห้องแอร์ จะคิด 3,200 แบบห้องพัดลมไม่ได้
+  const roomRent = (number) => rooms.find((room) => room.number === number)?.rent ?? 3200;
+
   // สัญญาของผู้เช่าหลักแต่ละห้อง
   for (const tenant of tenants.filter((item) => item.role === "PRIMARY")) {
     await run(
       `INSERT INTO "Lease" ("id","propertyId","roomId","leaseNumber","startDate","endDate","monthlyRent","depositAmount","status","currentVersion","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVE',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-       ON CONFLICT ("id") DO UPDATE SET "status" = 'ACTIVE', "updatedAt" = CURRENT_TIMESTAMP`,
+       ON CONFLICT ("id") DO UPDATE SET "status" = 'ACTIVE', "monthlyRent" = EXCLUDED."monthlyRent", "depositAmount" = EXCLUDED."depositAmount", "updatedAt" = CURRENT_TIMESTAMP`,
       [
         demoId(`demo-lease-${tenant.key}`), propertyId, demoId(`demo-room-${tenant.room}`),
-        `CTR-DEMO-${tenant.room}`, daysFromNow(-120), daysFromNow(245), tenant.room === "101" ? 4500 : 3200,
-        (tenant.room === "101" ? 4500 : 3200) * 2,
+        `CTR-DEMO-${tenant.room}`, daysFromNow(-120), daysFromNow(245), roomRent(tenant.room),
+        roomRent(tenant.room) * 2,
       ],
     );
     // ผูกสัญญากับการเข้าพัก ไม่ใช่กับตัวผู้เช่าตรง ๆ เพราะคนเดียวย้ายห้องได้
@@ -234,7 +243,7 @@ try {
     const billingMonth = monthStart(monthOffset);
     for (const tenant of tenants.filter((item) => item.role === "PRIMARY")) {
       const roomId = demoId(`demo-room-${tenant.room}`);
-      const rent = tenant.room === "101" ? 4500 : 3200;
+      const rent = roomRent(tenant.room);
       const step = 3 + monthOffset;
       let water = 0;
       let electricity = 0;

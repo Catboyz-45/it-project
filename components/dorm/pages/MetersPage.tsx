@@ -12,6 +12,7 @@ import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
+import { currentThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
 
 // หนึ่งแถวของใบจดมิเตอร์ ห้องหนึ่งห้องในรอบเดือนหนึ่ง
 type MeterWorksheetRow = {
@@ -152,11 +153,14 @@ function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor
       options={[{ value: "all", label: "ทุกชั้น" }, ...floors.map((item) => ({ value: String(item), label: `ชั้น ${item}` }))]}
       value={floor}
     />
-    <label>
-      รอบมิเตอร์
-      {/* เพดานเป็นเดือนปัจจุบัน เพราะยังจดมิเตอร์ของเดือนที่ยังไม่ถึงไม่ได้ */}
-      <input aria-label="รอบเดือนบันทึกมิเตอร์" max={currentMonth} onChange={(event) => onBillingMonthChange(event.target.value)} type="month" value={billingMonth} />
-    </label>
+    {/* ดรอปดาวน์ชื่อเดือนภาษาไทย แทนช่องเดือนของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษและปี ค.ศ.
+        เดือนล่าสุดคือเดือนปัจจุบัน เพราะยังจดมิเตอร์ของเดือนที่ยังไม่ถึงไม่ได้ ย้อนหลังได้สองปี */}
+    <DropdownField
+      label="รอบมิเตอร์"
+      onChange={onBillingMonthChange}
+      options={thaiMonthOptions(currentMonth, 24, billingMonth)}
+      value={billingMonth}
+    />
     <label className="meter-search">
       <Search size={16} />
       <input onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} />
@@ -195,7 +199,7 @@ export function MetersPage({
   readOnly?: boolean;
 }>) {
   const notify = useToast();
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = currentThaiMonth();
   const [billingMonth, setBillingMonth] = useState(currentMonth);
   const [building, setBuilding] = useState("all");
   const [floor, setFloor] = useState("all");

@@ -13,8 +13,16 @@ import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { SearchSuggestField, type SearchSuggestion } from "@/components/ui/SearchSuggestField";
 import { subscriptionPaymentPageSize } from "@/lib/domain/saas";
+import { formatThaiDateTime } from "@/lib/thai-format";
 
 type PaymentStatus = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+// ข้อความตอนไม่มีรายการ แท็บ "ทั้งหมด" ไม่ใช่สถานะใดสถานะหนึ่ง จึงต้องพูดต่างจากแท็บอื่น
+function paymentEmptyMessage(status: PaymentStatusFilter) {
+  if (status === "PENDING_REVIEW") return "ไม่มีรายการรอตรวจสอบ ตรวจครบแล้ว";
+  if (status === "ALL") return "ยังไม่มีหอพักส่งหลักฐานชำระค่าแพ็กเกจ";
+  return "ยังไม่มีรายการในสถานะนี้";
+}
+
 export type PaymentStatusFilter = PaymentStatus | "ALL";
 
 // หลักฐานการโอนค่าสมาชิกที่เจ้าของหอส่งมา คนละเรื่องกับค่าเช่าที่ผู้เช่าจ่าย
@@ -256,7 +264,7 @@ function PaymentTable({ hasQuery, onSelect, payments, selectedId, status }: Read
     return <SearchEmptyState description="ลองพิมพ์ชื่อหอ เลขคำสั่งซื้อ หรือแพ็กเกจให้สั้นลง" title="ไม่พบรายการที่ค้นหา" />;
   }
   if (payments.length === 0) {
-    return <p className="subscription-review-empty">{status === "PENDING_REVIEW" ? "ไม่มีรายการรอตรวจสอบ ตรวจครบแล้ว" : "ยังไม่มีรายการในสถานะนี้"}</p>;
+    return <p className="subscription-review-empty">{paymentEmptyMessage(status)}</p>;
   }
   return <div className="figma-table-wrap">
     <table>
@@ -270,7 +278,7 @@ function PaymentTable({ hasQuery, onSelect, payments, selectedId, status }: Read
         </td>
         <td>{payment.order.planName} · {intervalLabel(payment)}</td>
         <td className="tabular-nums">{formatAmount(payment.amount)}</td>
-        <td>{new Date(payment.submittedAt).toLocaleString("th-TH")}</td>
+        <td>{formatThaiDateTime(payment.submittedAt)}</td>
         <td><span className={`badge ${statusBadge[payment.status]}`}>{statusLabels[payment.status]}</span></td>
       </tr>)}</tbody>
     </table>
@@ -308,9 +316,9 @@ function PaymentDetail({ isReviewing, onApprove, onReject, payment }: Readonly<{
     <dl className="subscription-review-facts">
       <div><dt>ยอดในสลิปต้องเท่ากับ</dt><dd className="subscription-review-amount">{formatAmount(payment.amount)}</dd></div>
       <div><dt>แพ็กเกจ</dt><dd>{payment.order.planName} · {intervalLabel(payment)}</dd></div>
-      <div><dt>ส่งเมื่อ</dt><dd>{new Date(payment.submittedAt).toLocaleString("th-TH")}</dd></div>
+      <div><dt>ส่งเมื่อ</dt><dd>{formatThaiDateTime(payment.submittedAt)}</dd></div>
       <div><dt>ไฟล์</dt><dd><FileText aria-hidden="true" size={14} /> {fileLabel(payment)}</dd></div>
-      {payment.reviewedAt ? <div><dt>ตรวจเมื่อ</dt><dd>{new Date(payment.reviewedAt).toLocaleString("th-TH")}</dd></div> : null}
+      {payment.reviewedAt ? <div><dt>ตรวจเมื่อ</dt><dd>{formatThaiDateTime(payment.reviewedAt)}</dd></div> : null}
       {payment.rejectionNote ? <div className="full-width"><dt>เหตุผลที่ปฏิเสธ</dt><dd>{payment.rejectionNote}</dd></div> : null}
     </dl>
     {/* ตรวจแล้วย้อนกลับไม่ได้ ปุ่มจึงมีเฉพาะรายการที่ยังรอตรวจ */}

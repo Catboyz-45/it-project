@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
 import { ApiError, apiErrorResponse, apiSuccessResponse } from "@/lib/server/api";
 import { getServerEnv } from "@/lib/server/env";
-import { runMaintenanceJob } from "@/lib/server/maintenance-job";
+import { maintenanceJobChangedData, runMaintenanceJob } from "@/lib/server/maintenance-job";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
       request,
       { data: result },
       { status: result.status === "already_running" ? 202 : 200, headers: { "Cache-Control": "no-store" } },
-      { action: "MAINTENANCE_JOB_RUN", targetType: "BackgroundJob", targetId: result.status },
+      // บันทึกเฉพาะรอบที่มีอะไรเปลี่ยนจริง รอบที่ล้มเหลวยังถูกบันทึกผ่าน apiErrorResponse เหมือนเดิม
+      maintenanceJobChangedData(result)
+        ? { action: "MAINTENANCE_JOB_RUN", targetType: "BackgroundJob", targetId: result.status }
+        : false,
     );
   } catch (error) {
     // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ

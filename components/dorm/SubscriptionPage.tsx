@@ -7,6 +7,8 @@ import { AlertCircle, CalendarDays, CheckCircle2, Clock3, CreditCard, LockKeyhol
 import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
+import { formatBankAccount, formatThaiDate, formatThaiDateTime } from "@/lib/thai-format";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 // ราคาเป็นสตริงเพราะฝั่งเซิร์ฟเวอร์ใช้ Decimal ส่งเป็น number ตรง ๆ จะปัดเศษเพี้ยน
 type Plan = {
@@ -188,7 +190,7 @@ function accessModeLabel(accessMode: NonNullable<Subscription>["accessMode"]) {
 
 // วันที่แบบไทย คืนขีดกลางเมื่อไม่มีวันที่
 function thaiDate(value: Date | string | null | undefined) {
-  return value ? new Date(value).toLocaleDateString("th-TH") : "-";
+  return value ? formatThaiDate(value) : "-";
 }
 
 // ข้อความใต้เส้นเวลา บอกว่าตอนนี้อยู่ขั้นไหนและจะเกิดอะไรต่อ
@@ -367,10 +369,10 @@ function OrderCard({ isOpenOrder, onUpload, order, propertyId, submitting }: Rea
           void onUpload(order.id, file);
         }} type="file" />
       </label>
-      <p className="mt-2 flex items-center gap-1 text-xs text-[#73757d]"><AlertCircle size={13} /> PNG, JPG หรือ PDF ขนาดไม่เกิน 5 MB · คำสั่งซื้อหมดอายุ {new Date(order.expiresAt).toLocaleString("th-TH")}</p>
+      <p className="mt-2 flex items-center gap-1 text-xs text-[#73757d]"><AlertCircle size={13} /> PNG, JPG หรือ PDF ขนาดไม่เกิน 5 MB · คำสั่งซื้อหมดอายุ {formatThaiDateTime(order.expiresAt)}</p>
     </div> : null}
     {order.status === "PENDING_REVIEW" ? <p className="mt-3 flex items-center gap-2 text-sm text-amber-700"><Clock3 size={16} /> ส่งหลักฐานแล้ว รอ Super Admin ตรวจสอบ ไม่ต้องส่งซ้ำ</p> : null}
-    {order.status === "PAID" ? <p className="mt-3 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 size={16} /> เปิดใช้งานแล้ว {order.activatedAt ? new Date(order.activatedAt).toLocaleString("th-TH") : ""}</p> : null}
+    {order.status === "PAID" ? <p className="mt-3 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 size={16} /> เปิดใช้งานแล้ว {order.activatedAt ? formatThaiDateTime(order.activatedAt) : ""}</p> : null}
   </article>;
 }
 
@@ -411,7 +413,10 @@ function PaymentInstructions({ orderId, propertyId }: Readonly<{ orderId: string
     {bankAccountNumber ? <dl className="grid gap-1 text-sm">
       <dt className="text-[#73757d]">โอนเข้าบัญชี</dt>
       <dd className="font-bold">{bankName}</dd>
-      <dd className="font-mono text-base">{bankAccountNumber}</dd>
+      <dd className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-base">{formatBankAccount(bankAccountNumber)}</span>
+        <CopyButton label="เลขบัญชี" value={bankAccountNumber.replace(/\D/g, "")} />
+      </dd>
       <dd>{bankAccountName}</dd>
     </dl> : null}
   </div>;
