@@ -201,13 +201,15 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     await expect(page).toHaveURL(/\/tenant\/invoices$/);
 
     // รายละเอียดบิลกางออกในหน้าเลย ไม่ใช่กล่องซ้อน จึงกดปุ่มเดิมซ้ำเพื่อปิด ไม่ได้ใช้ Escape
+    // บิลที่ยังไม่จ่ายเปิดไว้ให้ตั้งแต่เข้าหน้า กดครั้งแรกจึงเป็นการปิด กดอีกครั้งเปิดกลับ
     const invoice = page.getByRole("button", { name: /E2E-202607-E101/ });
-    await activate(invoice);
     const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
     await expect(invoiceDetails).toBeVisible();
-    await expect(invoice).toBeFocused();
     await activate(invoice);
     await expect(invoiceDetails).toBeHidden();
+    await expect(invoice).toBeFocused();
+    await activate(invoice);
+    await expect(invoiceDetails).toBeVisible();
     await expect(invoice).toBeFocused();
   });
 

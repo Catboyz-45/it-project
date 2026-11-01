@@ -162,7 +162,7 @@ test.describe.serial("subscription access UX", () => {
     await setAccessMode("FULL");
     await login(page, e2e.ownerEmail);
     const mainMenu = page.getByLabel("เมนูหลัก");
-    await expect(mainMenu.getByRole("link", { name: "แพ็กเกจ SaaS" })).toHaveCount(0);
+    await expect(mainMenu.getByRole("link", { name: "แพ็กเกจสมาชิก" })).toHaveCount(0);
     await expect(mainMenu.getByRole("link", { name: "คำเชิญผู้เช่า" })).toHaveCount(0);
     await expect(page.getByText(/แพ็กเกจ E2E Standard · ใช้/)).toHaveCount(0);
     await page.goto(`/admin/properties/${e2e.propertyId}/settings`);
@@ -220,7 +220,9 @@ test.describe.serial("subscription access UX", () => {
     await expect(page.getByRole("alert").filter({ hasText: "หอพักนี้อยู่ในโหมดอ่านอย่างเดียว" })).toBeVisible();
 
     await page.goto("/tenant/invoices");
-    await page.getByRole("button", { name: /E2E-202607-E101/ }).click();
+    // บิลที่ยังไม่จ่ายใบแรกเปิดรายละเอียดไว้ให้เอง กดเฉพาะตอนที่ยังปิดอยู่ ไม่งั้นจะกลายเป็นกดปิด
+    const invoiceButton = page.getByRole("button", { name: /E2E-202607-E101/ });
+    if ((await invoiceButton.getAttribute("aria-expanded")) !== "true") await invoiceButton.click();
     const invoice = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
     await expect(invoice.getByText("ไม่สามารถชำระหรือส่งสลิปใหม่ได้", { exact: false })).toBeVisible();
     await expect(invoice.getByRole("button", { name: "ส่งหลักฐาน" })).toHaveCount(0);

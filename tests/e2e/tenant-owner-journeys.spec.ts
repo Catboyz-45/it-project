@@ -170,8 +170,7 @@ test.describe("tenant journey", () => {
     await page.reload();
     await expect(page).toHaveURL(/\/tenant\/invoices$/);
     await expect(page.getByRole("heading", { name: "บิลและชำระเงิน" })).toBeVisible();
-    // รายละเอียดบิลกางออกในหน้าเลย ไม่ใช่กล่องซ้อน กดปุ่มเดิมซ้ำคือปิด
-    await page.getByRole("button", { name: /E2E-202607-E101/ }).click();
+    // รายละเอียดบิลกางออกในหน้าเลย ไม่ใช่กล่องซ้อน บิลที่ยังไม่จ่ายเปิดไว้ให้เอง กดปุ่มเดิมคือปิด
     const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
     await expect(invoiceDetails.getByText("สแกน PromptPay")).toBeVisible();
     // QR PromptPay ต้องถูกสร้างขึ้นจริง ไม่ใช่รูปเปล่าหรือรูปแตก

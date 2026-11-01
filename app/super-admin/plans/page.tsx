@@ -10,7 +10,7 @@ export default async function SuperAdminPlansPage() {
   return <>
     <SuperAdminPageHeader
       description="ตรวจสอบราคา ขีดจำกัดห้อง สถานะการขาย และจำนวนสมาชิกของแต่ละแพ็กเกจ"
-      title="แพ็กเกจ SaaS"
+      title="แพ็กเกจสมาชิก"
     />
     <SuperAdminResourceTables initialTables={{ "plans": initialTable }} resources={["plans"]} />
   </>;

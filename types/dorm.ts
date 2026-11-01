@@ -17,6 +17,8 @@ export interface Room {
   floorId?: string;
   floor: number;
   rent: number;
+  // เงินประกันตั้งต้นของห้อง ใช้เติมให้ตอนสร้างสัญญา ไม่มีก็ให้ผู้ใช้กรอกเอง
+  deposit?: number;
   roomType: string;
   furniture: string[];
   status: RoomStatus;

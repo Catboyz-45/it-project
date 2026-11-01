@@ -54,6 +54,7 @@ import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
+import { describeInvoiceDue } from "@/lib/domain/invoice-due";
 import { formatStatus } from "@/lib/ui-labels";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
@@ -911,10 +912,12 @@ function HomePanel({
       </div>
     ) : null}
 
+    {isPrimary && unpaidInvoice ? <PayNowBanner invoice={unpaidInvoice} /> : null}
+
     <AppSection description="บิล พัสดุ และเรื่องที่กำลังติดตาม" icon={<Gauge />} title="ภาพรวมที่ต้องรู้">
       <div className="figma-summary-grid three">
         <HomePriorityCard
-          tone="orange"
+          tone={isPrimary && unpaidInvoice && describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "red" : "orange"}
           detail={unpaidInvoiceDetail(isPrimary, unpaidInvoice)}
           href={tenantPagePath("invoices")}
           icon={<ReceiptText />}
@@ -980,7 +983,21 @@ function HomePanel({
 function unpaidInvoiceDetail(isPrimary: boolean, invoice: Invoice | undefined) {
   if (!isPrimary) return "ผู้พักร่วมไม่ต้องดำเนินการ";
   if (!invoice) return "ไม่มีบิลที่ต้องชำระ";
-  return `ครบกำหนด ${new Date(invoice.dueDate).toLocaleDateString("th-TH")}`;
+  return describeInvoiceDue(invoice.dueDate).text;
+}
+
+// แถบชำระเงินบนสุดของหน้าแรก บิลค้างคือเรื่องที่ผู้เช่าต้องทำก่อนอย่างอื่น จึงต้องเห็นปุ่มจ่ายทันทีโดยไม่ต้องหา
+function PayNowBanner({ invoice }: Readonly<{ invoice: Invoice }>) {
+  const due = describeInvoiceDue(invoice.dueDate);
+  return <section aria-label="บิลที่ต้องชำระ" className={`tenant-pay-banner ${due.isLate ? "is-late" : ""}`}>
+    <span className="tenant-pay-banner-icon"><ReceiptText aria-hidden="true" size={22} /></span>
+    <div className="min-w-0">
+      <p>บิล {invoice.invoiceNumber}</p>
+      <strong>{currency.format(Number(invoice.total))}</strong>
+      <span className="tenant-pay-banner-due">{due.text}</span>
+    </div>
+    <Link className="primary-button" href={tenantPagePath("invoices")}>ชำระเงิน <ArrowRight aria-hidden="true" size={17} /></Link>
+  </section>;
 }
 
 function unpaidInvoiceValue(isPrimary: boolean, invoice: Invoice | undefined) {
@@ -1004,10 +1021,10 @@ function HomeTaskList({ isLoading, isPrimary, openTicket, summary, unpaidInvoice
 
   return <div className="work-item-grid">
     {showInvoiceTask && unpaidInvoice ? <HomeTask
-      detail={`บิล ${unpaidInvoice.invoiceNumber} ครบกำหนด ${new Date(unpaidInvoice.dueDate).toLocaleDateString("th-TH")}`}
+      detail={`บิล ${unpaidInvoice.invoiceNumber} · ${describeInvoiceDue(unpaidInvoice.dueDate).text}`}
       href={tenantPagePath("invoices")}
       icon={<ReceiptText size={20} />}
-      label={unpaidInvoice.status === "OVERDUE" ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
+      label={unpaidInvoice.status === "OVERDUE" || describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
     /> : null}
     {waitingParcels > 0 ? <HomeTask detail={`มีพัสดุรอรับ ${waitingParcels} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" /> : null}
     {openTickets > 0 ? <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${openTickets} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" /> : null}
@@ -1101,10 +1118,15 @@ function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: Ten
   const reloadCurrentInvoices = currentResource.reload;
   const reloadInvoiceHistory = historyResource.reload;
   const resource = view === "current" ? currentResource : historyResource;
-  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+  // undefined คือผู้ใช้ยังไม่ได้กดเลือกเอง ตอนนั้นเปิดบิลที่ต้องจ่ายใบแรกไว้ให้เลย จะได้เห็น QR ทันทีไม่ต้องกดขยายหา
+  const [chosenInvoiceId, setChosenInvoiceId] = useState<string | null | undefined>(undefined);
+  const firstPayableId = view === "current"
+    ? currentResource.data.find((invoice) => ["PENDING", "OVERDUE"].includes(invoice.status))?.id ?? null
+    : null;
+  const expandedInvoiceId = chosenInvoiceId === undefined ? firstPayableId : chosenInvoiceId;
 
   const changeView = (nextView: TenantRecordView) => {
-    setExpandedInvoiceId(null);
+    setChosenInvoiceId(null);
     setView(nextView);
   };
 
@@ -1114,7 +1136,7 @@ function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: Ten
   }, [reloadCurrentInvoices, reloadInvoiceHistory]);
 
   const toggleExpanded = (invoiceId: string) => {
-    setExpandedInvoiceId((current) => current === invoiceId ? null : invoiceId);
+    setChosenInvoiceId(expandedInvoiceId === invoiceId ? null : invoiceId);
   };
 
   return <div className="grid gap-5">
@@ -1191,7 +1213,7 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
       const panelId = `tenant-invoice-details-${invoice.id}`;
       return <article className={`panel overflow-hidden p-0 transition ${isExpanded ? "border-brand" : ""}`} key={invoice.id}>
         <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => onToggle(invoice.id)} type="button">
-          <span><strong className="block text-lg">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · ครบกำหนด {new Date(invoice.dueDate).toLocaleDateString("th-TH")}</small></span>
+          <span><strong className="block text-lg">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · <InvoiceDueText invoice={invoice} /></small></span>
           <span className="flex shrink-0 items-center gap-4 text-right">
             <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><Status value={invoice.status} /></span>
             <span className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" title={isExpanded ? "ยุบรายละเอียด" : "ขยายรายละเอียด"}><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></span>
@@ -1201,6 +1223,13 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
       </article>;
     })}
   </div>;
+}
+
+// บิลที่ยังค้างบอกเป็นจำนวนวัน เลยกำหนดแล้วเป็นสีแดง บิลที่จ่ายหรือยกเลิกแล้วบอกแค่วันครบกำหนด
+function InvoiceDueText({ invoice }: Readonly<{ invoice: Invoice }>) {
+  if (!["PENDING", "OVERDUE"].includes(invoice.status)) return <>ครบกำหนด {new Date(invoice.dueDate).toLocaleDateString("th-TH")}</>;
+  const due = describeInvoiceDue(invoice.dueDate);
+  return <span className={due.isLate ? "font-semibold text-[#dc2626]" : undefined}>{due.text}</span>;
 }
 
 function InvoiceDetails({ id, invoice, onChanged, readOnly }: Readonly<{ id: string; invoice: Invoice; onChanged: () => Promise<void>; readOnly: boolean }>) {

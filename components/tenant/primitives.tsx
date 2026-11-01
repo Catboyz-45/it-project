@@ -20,6 +20,12 @@ export function Empty({ description, icon, text }: Readonly<{ description?: stri
   return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}</div>;
 }
 
+// สีบอกความหมายก่อนอ่าน เขียวคือเสร็จแล้ว แดงคือเลยกำหนดหรือถูกปฏิเสธ ที่เหลือเป็นสีกลาง
+const statusTone: Record<string, string> = {
+  PAID: "badge-paid", APPROVED: "badge-paid", RESOLVED: "badge-paid",
+  OVERDUE: "badge-overdue", REJECTED: "badge-overdue",
+};
+
 export function Status({ value }: Readonly<{ value: string }>) {
-  return <span className={`badge ${["PAID", "APPROVED", "RESOLVED"].includes(value) ? "badge-paid" : ""}`}>{formatStatus(value)}</span>;
+  return <span className={`badge ${statusTone[value] ?? ""}`}>{formatStatus(value)}</span>;
 }

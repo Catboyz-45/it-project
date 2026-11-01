@@ -472,6 +472,7 @@ function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts,
     disabled={Boolean(row.readingId)}
     min={0}
     onChange={(event) => setPreviousDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
+    inputMode="decimal"
     placeholder="เลขเริ่ม"
     type="number"
     value={previousDrafts[row.room.id] ?? ""}
@@ -499,16 +500,19 @@ function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterIn
       <strong>{row.room.number}</strong>
       <small className="block">{row.room.building.code} · ชั้น {row.room.floor.number}</small>
     </td>
-    <td>{row.tenantName ?? "-"}</td>
-    <td>
+    {/* data-label ใช้ตอนจอเล็ก แถวกลายเป็นการ์ดทีละห้อง หัวตารางถูกซ่อน จึงต้องมีชื่อช่องติดไปกับค่า */}
+    <td data-label="ผู้เช่า">{row.tenantName ?? "-"}</td>
+    <td data-label="เลขครั้งก่อน">
       <PreviousReadingCell previousDrafts={previousDrafts} readOnly={readOnly} row={row} setPreviousDrafts={setPreviousDrafts} value={previous} />
     </td>
-    <td>
+    <td data-label="เลขล่าสุด">
       {readOnly
         ? <>{row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")}</>
         : <input
           aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
           disabled={Boolean(row.readingId)}
+          // มือถือเด้งแป้นตัวเลขขึ้นมาเลย เจ้าของหอมักเดินจดมิเตอร์หน้าห้องด้วยมือถือ
+          inputMode="decimal"
           min={previousText || 0}
           onChange={(event) => setCurrentDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
           onKeyDown={focusNextRow}
@@ -518,12 +522,12 @@ function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterIn
           value={latestText}
         />}
     </td>
-    <td>
+    <td data-label="หน่วยที่ใช้">
       <span className={abnormal ? "font-black text-amber-600" : ""}>{units.toLocaleString("th-TH")}</span>
       {abnormal ? <small className="mt-1 flex items-center gap-1 text-amber-600"><AlertTriangle size={13} /> สูงกว่ารอบก่อนผิดปกติ ({row.previousUsage?.toLocaleString("th-TH")} หน่วย)</small> : null}
     </td>
-    <td>฿{unitRate.toLocaleString("th-TH")}</td>
-    <td><strong>฿{amount.toLocaleString("th-TH")}</strong></td>
-    <td><MeterRowStatus abnormal={abnormal} saved={Boolean(row.readingId)} /></td>
+    <td data-label="ราคา/หน่วย">฿{unitRate.toLocaleString("th-TH")}</td>
+    <td data-label="จำนวนเงิน"><strong>฿{amount.toLocaleString("th-TH")}</strong></td>
+    <td data-label="สถานะ"><MeterRowStatus abnormal={abnormal} saved={Boolean(row.readingId)} /></td>
   </tr>;
 }

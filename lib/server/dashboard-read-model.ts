@@ -106,6 +106,7 @@ export async function getDashboardReadModel(propertyId: string): Promise<OwnerWo
     floorId: room.floor.id,
     floor: room.floor.number,
     rent: Number(room.monthlyRent),
+    deposit: Number(room.depositAmount),
     roomType: room.roomType,
     furniture: room.furnitureItems.map((item) => item.furnitureOption.name),
     status: roomStatusLabels[room.status] ?? "available",

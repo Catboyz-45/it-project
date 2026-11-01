@@ -325,6 +325,7 @@
   .badge-solid { @apply border-transparent bg-[#be123c] font-semibold text-[#fff]; }
   .badge-paid { @apply border-emerald-200 bg-emerald-50 text-[#065f46]; }
   .badge-pending { @apply border-amber-200 bg-amber-50 text-[#92400e]; }
+  .badge-overdue { @apply border-red-200 bg-red-50 text-[#b91c1c]; }
   .panel {
     @apply rounded-xl border border-[#e4e4e7] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
@@ -390,6 +391,17 @@
   .tenant-home { @apply isolate; }
   /* minmax(0,1fr) ให้คอลัมน์หดตามจอได้ ค่าเริ่มต้นของ grid ยืดตามความกว้างขั้นต่ำของการ์ดข้างใน จนล้นจอมือถือ */
   .tenant-home-surface { @apply grid grid-cols-[minmax(0,1fr)] gap-5; }
+  /* แถบชำระเงินบนหน้าแรกผู้เช่า สีม่วงตามแบรนด์ตอนยังไม่ถึงกำหนด เปลี่ยนเป็นแดงเมื่อเลยกำหนด */
+  .tenant-pay-banner { @apply flex flex-wrap items-center gap-4 rounded-2xl border border-[#d9dbfb] bg-[#f4f5ff] p-4 sm:flex-nowrap sm:p-5; }
+  .tenant-pay-banner.is-late { @apply border-[#fecaca] bg-[#fef2f2]; }
+  .tenant-pay-banner-icon { @apply grid size-11 shrink-0 place-items-center rounded-xl bg-white text-brand; }
+  .tenant-pay-banner.is-late .tenant-pay-banner-icon { @apply text-[#dc2626]; }
+  .tenant-pay-banner > div { @apply flex-1; }
+  .tenant-pay-banner p { @apply text-sm text-[#4b4d55]; }
+  .tenant-pay-banner strong { @apply block text-2xl font-bold text-[#292a30]; }
+  .tenant-pay-banner-due { @apply text-sm font-semibold text-brand; }
+  .tenant-pay-banner.is-late .tenant-pay-banner-due { @apply text-[#dc2626]; }
+  .tenant-pay-banner .primary-button { @apply w-full justify-center sm:w-auto; }
   .super-admin-content > header:first-child { @apply pt-0; }
   .sidebar-group { @apply grid gap-1; }
   /* กางเมนูย่อยด้วย grid-rows 0fr→1fr เบราว์เซอร์คำนวณความสูงจริงให้เอง
@@ -518,9 +530,9 @@
   .page-header-slot:empty { @apply hidden; }
   /* ข้อความอธิบายปุ่มที่กดไม่ได้ ต้องไม่ดันความสูงของแถบหัวเรื่อง */
   .page-header-slot .disabled-action { @apply items-end; }
-  .page-header-slot .disabled-reason { @apply mt-1 max-w-64 text-[11px] leading-4; }
+  .page-header-slot .disabled-reason { @apply mt-1 max-w-64 text-xs leading-4; }
   .topbar h1 { @apply m-0 font-display text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
-  .page-subtitle { @apply mt-1.5 text-sm leading-6 text-[#62646c]; }
+  .page-subtitle { @apply mt-1.5 text-sm leading-6 text-[#55575f]; }
   .dashboard-actions, .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
     @apply flex flex-wrap items-center gap-2;
   }
@@ -551,7 +563,7 @@
   }
   .app-section-head > div:first-child > span > svg { @apply size-4; }
   .app-section-head h2 { @apply m-0 text-base leading-none font-semibold text-[#292a30]; }
-  .app-section-head p { @apply mt-1 text-sm text-[#62646c]; }
+  .app-section-head p { @apply mt-1 text-sm text-[#55575f]; }
   .app-section-head > small { @apply shrink-0 text-sm text-[#62646c]; }
 
   .stats, .figma-summary-grid, .parcel-summary-grid {
@@ -584,7 +596,8 @@
   .metric.tone-orange, .figma-summary-card.tone-orange { --summary-accent: #d97706; --summary-tint: #fff7e0; }
   .metric.tone-red, .figma-summary-card.tone-red { --summary-accent: #dc2626; --summary-tint: #fef2f2; }
   .animated-number { font-variant-numeric: tabular-nums; }
-  .metric small, .figma-summary-card small { @apply text-xs text-[#555761]; }
+  /* ตัวหนังสือในการ์ดตัวเลขขยายจาก 12px และเข้มขึ้น ผู้ใช้ที่อายุเยอะอ่านคำบรรยายใต้ตัวเลขได้สบายตา */
+  .metric small, .figma-summary-card small { @apply text-[13px] leading-5 text-[#4b4d55]; }
 
   .workspace > .grid { @apply grid grid-cols-12 gap-4 px-6; }
   .workspace > .grid > .panel { @apply col-span-6; }
@@ -729,7 +742,7 @@
     min-width: 1120px;
   }
   .invoice-table .figma-table-head, .invoice-table .figma-table-row {
-    grid-template-columns: minmax(174px, 1.25fr) minmax(72px, .55fr) minmax(130px, 1fr) repeat(4, minmax(90px, .72fr)) minmax(92px, .72fr) 52px;
+    grid-template-columns: minmax(174px, 1.25fr) minmax(72px, .55fr) minmax(130px, 1fr) minmax(90px, .72fr) minmax(92px, .72fr) repeat(3, minmax(90px, .72fr)) 52px;
     min-width: 1080px;
   }
   .invoice-table .figma-table-head > :last-child,
@@ -785,10 +798,11 @@
      tints for records that need attention. Informational tables stay plain. */
   .invoice-table .figma-table-row:nth-child(odd),
   .contract-table .figma-table-row:nth-child(odd) { @apply bg-[#fff]; }
-  .invoice-table .figma-table-row[data-status="overdue"] { @apply bg-[#fff1f0] hover:bg-[#ffe8e6]; }
-  .contract-table .figma-table-row[data-status="EXPIRING"] { @apply bg-[#fff9e8] hover:bg-[#fff4d1]; }
-  .contract-table .figma-table-row[data-status="EXPIRED"],
-  .contract-table .figma-table-row[data-status="CANCELLED"] { @apply bg-[#f3f4f6] text-[#62646c]; }
+  /* ใส่ tbody > ให้ชนะกฎสีแถวคี่ของตาราง ไม่งั้นแถวค้างชำระจะเป็นสีชมพูแค่บางแถว */
+  .invoice-table tbody > .figma-table-row[data-status="overdue"] { @apply bg-[#fff1f0] shadow-[inset_3px_0_0_#ef4444] hover:bg-[#ffe8e6]; }
+  .contract-table tbody > .figma-table-row[data-status="EXPIRING"] { @apply bg-[#fff9e8] hover:bg-[#fff4d1]; }
+  .contract-table tbody > .figma-table-row[data-status="EXPIRED"],
+  .contract-table tbody > .figma-table-row[data-status="CANCELLED"] { @apply bg-[#f3f4f6] text-[#62646c]; }
   .status-scan-table tbody tr:nth-child(even) > td { @apply bg-[#fff]; }
   .status-scan-table tbody tr[data-status="unread"] > td { @apply bg-[#fff1f0]; }
   .status-scan-table tbody tr[data-status="waiting"] > td { @apply bg-[#fffdf5]; }
@@ -1462,7 +1476,7 @@
   .chat-message.from-tenant { @apply mr-auto rounded-bl-md bg-[#f4f4f5]; }
   .chat-message strong { @apply block text-xs opacity-70; }
   .chat-message p { @apply my-1 break-words text-sm; }
-  .chat-message time { @apply block text-right text-[10px] opacity-60; }
+  .chat-message time { @apply block text-right text-[11px] opacity-75; }
   .tenant-chat-message-list, .tenant-quick-chat-messages { @apply flex flex-col gap-2; }
   .tenant-quick-chat-messages { @apply min-h-0 flex-1 overflow-y-auto bg-[#f6f7fb] p-3; }
   .tenant-chat-widget .chat-message.from-tenant,
@@ -2222,3 +2236,37 @@ select:disabled {
 .unit-input > input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 .unit-input > input[type="number"]::-webkit-inner-spin-button,
 .unit-input > input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* จอมือถือ ตารางมิเตอร์กว้างเกินจอ เปลี่ยนเป็นการ์ดทีละห้อง ช่องกรอกเลขใหญ่พอให้จิ้มด้วยนิ้ว
+   วางนอก @layer เพื่อให้ชนะกฎตารางทั่วไป และจำกัดไว้เฉพาะตารางมิเตอร์ */
+@media (max-width: 767px) {
+  /* การ์ดเรียงลงมาตามหน้า ไม่ต้องมีกล่องเลื่อนซ้อนในหน้าที่เลื่อนอยู่แล้ว */
+  .meter-table-card .figma-table-wrap { max-height: none; overflow: visible; }
+  .meter-table-card table.meter-figma-table { min-width: 0; }
+  .meter-figma-table thead { display: none; }
+  .meter-figma-table tbody,
+  .meter-figma-table tr { display: block; }
+  .meter-figma-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #e4e4e7;
+  }
+  .meter-figma-table tbody td {
+    position: static;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+  }
+  .meter-figma-table tbody td:first-child { grid-column: 1 / -1; }
+  .meter-figma-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
+    color: #4b4d55;
+  }
+  .meter-figma-table tbody td input { width: 100%; min-height: 2.75rem; font-size: 1rem; }
+}

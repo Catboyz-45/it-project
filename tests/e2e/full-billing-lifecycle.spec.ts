@@ -355,7 +355,9 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await loginThroughUi(page, tenantEmail, tenantPassword);
   await expect(page).toHaveURL(/\/tenant/);
   await page.getByRole("link", { name: /^บิลและชำระเงิน(?:\s|$)/ }).click();
-  await page.getByRole("button", { name: new RegExp(invoice.data.invoiceNumber) }).click();
+  // บิลที่ยังไม่จ่ายใบแรกเปิดรายละเอียดไว้ให้เอง กดเฉพาะตอนที่ยังปิดอยู่ ไม่งั้นจะกลายเป็นกดปิด
+  const tenantInvoiceButton = page.getByRole("button", { name: new RegExp(invoice.data.invoiceNumber) });
+  if ((await tenantInvoiceButton.getAttribute("aria-expanded")) !== "true") await tenantInvoiceButton.click();
   // รายละเอียดบิลกางออกในหน้าเลย ไม่ใช่กล่องซ้อน
   const tenantInvoiceDialog = page.getByLabel(`รายละเอียดบิล ${invoice.data.invoiceNumber}`, { exact: true });
   await expect(tenantInvoiceDialog.getByAltText(`PromptPay QR ${invoice.data.invoiceNumber}`)).toBeVisible();

@@ -141,6 +141,11 @@ function renewalDates(endDate: string) {
   return { startDate: dateInput(start.toISOString()), endDate: dateInput(end.toISOString()) };
 }
 
+// เงินประกันที่ตั้งไว้กับห้อง เป็น 0 หรือไม่มีก็ปล่อยว่างให้ผู้ใช้กรอก ไม่เติม 0 ที่ดูเหมือนตั้งใจไม่เก็บ
+function roomDepositText(room: Room | undefined) {
+  return room?.deposit ? String(room.deposit) : "";
+}
+
 // วันสิ้นสุดตั้งต้นของสัญญาใหม่ ยาวหนึ่งปีลบหนึ่งวันแบบเดียวกับการต่อสัญญา ผู้ใช้ยังเปลี่ยนเองได้
 function defaultLeaseEndDate(startDate: string) {
   const end = new Date(`${startDate}T00:00:00.000Z`);
@@ -246,7 +251,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
       startDate,
       endDate: dateInput(endDate.toISOString()),
       monthlyRent: searchParams.get("monthlyRent") || String(room.rent),
-      depositAmount: searchParams.get("depositAmount") || "",
+      depositAmount: searchParams.get("depositAmount") || roomDepositText(room),
     });
     setError("");
     setIsCreateOpen(true);
@@ -263,7 +268,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
       ...emptyForm,
       roomId: room?.databaseId ?? "",
       monthlyRent: room ? String(room.rent) : "",
-      depositAmount: "",
+      depositAmount: roomDepositText(room),
     });
     setError("");
     setIsCreateOpen(true);
@@ -654,14 +659,14 @@ function leaseFormTitle(editingLease: Lease | null, renewingLease: Lease | null)
 
 function leaseFormDescription(editingLease: Lease | null, renewingLease: Lease | null) {
   if (renewingLease) return `สร้างสัญญารอบใหม่ต่อจาก ${renewingLease.leaseNumber} โดยเก็บฉบับเดิมไว้`;
-  if (editingLease) return `การบันทึกจะสร้าง version ${editingLease.currentVersion + 1}`;
+  if (editingLease) return `การบันทึกจะสร้างฉบับแก้ไขที่ ${editingLease.currentVersion + 1}`;
   return "เลือกห้องที่มีผู้เช่าหลักและกำหนดรายละเอียดสัญญา";
 }
 
 function leaseSubmitLabel(editingLease: Lease | null, isSaving: boolean, renewingLease: Lease | null) {
   if (isSaving) return "กำลังบันทึก...";
   if (renewingLease) return "สร้างสัญญาต่ออายุ";
-  return editingLease ? "บันทึก version ใหม่" : "สร้างสัญญา";
+  return editingLease ? "บันทึกเป็นฉบับแก้ไขใหม่" : "สร้างสัญญา";
 }
 
 // กล่องกรอกสัญญา ใช้ร่วมกันทั้งสร้างใหม่ แก้ไข และต่ออายุ
@@ -679,10 +684,15 @@ function LeaseFormDialog({ earliestLeaseDate, editingLease, form, isOpen, isSavi
 }>) {
   if (!isOpen) return null;
 
-  // เลือกห้องแล้วเติมค่าเช่าของห้องนั้นให้อัตโนมัติ ผู้ใช้ยังแก้ทับได้
+  // เลือกห้องแล้วเติมค่าเช่าและเงินประกันของห้องนั้นให้อัตโนมัติ ผู้ใช้ยังแก้ทับได้
   const changeRoom = (value: string) => {
     const room = occupiedRooms.find((item) => item.databaseId === value);
-    setForm((current) => ({ ...current, roomId: value, monthlyRent: room ? String(room.rent) : current.monthlyRent }));
+    setForm((current) => ({
+      ...current,
+      roomId: value,
+      monthlyRent: room ? String(room.rent) : current.monthlyRent,
+      depositAmount: room?.deposit ? String(room.deposit) : current.depositAmount,
+    }));
   };
 
   // ห้องที่ยังไม่มี databaseId คือข้อมูลที่ยังไม่ถูกบันทึกลงฐาน เลือกไปก็สร้างสัญญาไม่ได้
