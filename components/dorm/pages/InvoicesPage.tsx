@@ -469,14 +469,15 @@ function InvoiceTable({ invoices, ...actions }: InvoiceTableActions & Readonly<{
     <table className="figma-grid-table invoice-table">
       <thead>
         {/* ช่องสุดท้ายเป็นเมนูจัดการ ไม่มีหัวข้อให้อ่าน จึงใส่ชื่อไว้ให้โปรแกรมอ่านหน้าจอเท่านั้น */}
-        <tr className="figma-table-head"><th scope="col">เลขที่บิล</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ค่าน้ำ</th><th scope="col">ค่าไฟ</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col"><span className="sr-only">จัดการ</span></th></tr>
+        <tr className="figma-table-head"><th scope="col">เลขที่บิล</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">ค่าเช่า</th><th scope="col">ค่าน้ำ</th><th scope="col">ค่าไฟ</th><th scope="col"><span className="sr-only">จัดการ</span></th></tr>
       </thead>
       <tbody>
         {invoices.map((invoice) => <tr className="figma-table-row" data-status={invoice.status} key={invoice.id}>
           <td>{invoice.id}</td><td>{invoice.roomId}</td><td>{invoice.tenantName}</td>
-          <td>{currency.format(invoice.rent)}</td><td>{currency.format(invoice.water)}</td><td>{currency.format(invoice.electricity)}</td>
+          {/* ยอดรวมกับสถานะอยู่ต่อจากชื่อ จอเล็กจะได้เห็นโดยไม่ต้องเลื่อนตาราง รายการย่อยไว้ทีหลัง */}
           <td><strong>{currency.format(totalInvoice(invoice))}</strong></td>
           <td><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></td>
+          <td>{currency.format(invoice.rent)}</td><td>{currency.format(invoice.water)}</td><td>{currency.format(invoice.electricity)}</td>
           <td><ActionMenu items={invoiceMenuItems({ ...actions, invoice })} label={`จัดการบิล ${invoice.id}`} /></td>
         </tr>)}
       </tbody>

@@ -40,6 +40,6 @@ test("super admin can open the aggregated SaaS dashboard", async ({ page }) => {
       .getByRole("link", { name: new RegExp(`^${label}(?:\\s|$)`) }).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     // ชื่อเมนูกับหัวข้อในหน้าไม่ตรงกันอยู่อันเดียว จึงต้องดักไว้เป็นกรณีพิเศษ
-    await expect(page.getByRole("heading", { name: label === "แพ็กเกจ" ? "แพ็กเกจ SaaS" : label, exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: label === "แพ็กเกจ" ? "แพ็กเกจสมาชิก" : label, exact: true }).first()).toBeVisible();
   }
 });
