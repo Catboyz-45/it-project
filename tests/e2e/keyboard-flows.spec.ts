@@ -73,6 +73,11 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     await activate(startDateTrigger);
     const calendar = page.getByRole("dialog", { name: "เลือกวันเกิด (ไม่บังคับ)" });
     await expect(calendar).toBeVisible();
+    // ช่องวันเกิดเปิดที่หน้าเลือกปีก่อน กด Enter เลือกปีปัจจุบัน แล้ว Enter อีกครั้งเลือกเดือน ถึงจะลงมาที่มุมมองวัน
+    await expect.poll(() => page.locator(":focus").getAttribute("data-calendar-current")).toBe("true");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => page.locator(":focus").getAttribute("data-calendar-current")).toBe("true");
+    await page.keyboard.press("Enter");
     // ปฏิทินมีแค่วันเดียวที่ Tab เข้าถึงได้ ที่เหลือใช้ลูกศรเลื่อน จึงอ่านวันที่จากช่องที่โฟกัสอยู่
     await expect.poll(() => page.locator(":focus").getAttribute("data-date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const initialDate = await page.locator(":focus").getAttribute("data-date");

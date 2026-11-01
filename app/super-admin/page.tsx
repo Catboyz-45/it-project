@@ -44,7 +44,7 @@ export default async function SuperAdminPage() {
         <Stat icon={<Building2 />} label="หอที่เปิดใช้งาน" tone="indigo" value={aggregation.properties.active} />
         <Stat icon={<UsersRound />} label="แอดมินประจำหอ" tone="indigo" value={aggregation.users.PROPERTY_ADMIN ?? 0} />
         {/* toLocaleString("th-TH") ใส่จุลภาคให้เอง อ่านเลขหลักล้านง่ายขึ้น */}
-        <Stat icon={<Activity />} label="MRR" tone="green" value={`฿${aggregation.revenue.mrr.toLocaleString("th-TH")}`} />
+        <Stat icon={<Activity />} label="รายได้ต่อเดือน (MRR)" tone="green" value={`฿${aggregation.revenue.mrr.toLocaleString("th-TH")}`} />
       </div>
     </AppSection>
 
@@ -70,8 +70,8 @@ export default async function SuperAdminPage() {
 
     <AppSection description="สถานะแพ็กเกจของหอทั้งหมด" icon={<CreditCard />} title="สมาชิก">
       <div className="figma-summary-grid three">
-        <Stat icon={<CreditCard />} label="สมาชิก Active" tone="green" value={aggregation.subscriptions.active} />
-        <Stat icon={<DoorOpen />} label="Trial" tone="blue" value={aggregation.subscriptions.trial} />
+        <Stat icon={<CreditCard />} label="สมาชิกที่ใช้งาน" tone="green" value={aggregation.subscriptions.active} />
+        <Stat icon={<DoorOpen />} label="ทดลองใช้" tone="blue" value={aggregation.subscriptions.trial} />
         <Stat icon={<Activity />} label="หมดอายุใน 30 วัน" tone="orange" value={aggregation.subscriptions.expiringWithin30Days} />
       </div>
     </AppSection>

@@ -1425,10 +1425,12 @@
                     },
                     "activeOccupancies": 44,
                     "finance": {
+                      "cycleMonth": "2026-07",
                       "billed": 180000,
                       "collected": 150000,
                       "outstanding": 30000,
                       "overdueInvoices": 3,
+                      "overdueAmount": 12000,
                       "pendingPayments": 2
                     },
                     "operations": {
@@ -10717,6 +10719,7 @@
                     "depositAmount": "7000.00",
                     "currentVersion": 2,
                     "activatedAt": "2026-08-01T00:00:00.000Z",
+                    "hasSignedDocument": true,
                     "room": {
                       "number": "A101"
                     }
@@ -13738,13 +13741,26 @@
           "finance": {
             "type": "object",
             "required": [
+              "cycleMonth",
               "billed",
               "collected",
               "outstanding",
               "overdueInvoices",
+              "overdueAmount",
               "pendingPayments"
             ],
             "properties": {
+              "cycleMonth": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "billed": {
                 "type": "number"
               },
@@ -13756,6 +13772,9 @@
               },
               "overdueInvoices": {
                 "type": "integer"
+              },
+              "overdueAmount": {
+                "type": "number"
               },
               "pendingPayments": {
                 "type": "integer"
@@ -15000,6 +15019,7 @@
           "depositAmount",
           "currentVersion",
           "activatedAt",
+          "hasSignedDocument",
           "room"
         ],
         "properties": {
@@ -15042,6 +15062,9 @@
                 "type": "null"
               }
             ]
+          },
+          "hasSignedDocument": {
+            "type": "boolean"
           },
           "room": {
             "type": "object",

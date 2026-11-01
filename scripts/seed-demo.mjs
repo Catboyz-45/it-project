@@ -82,19 +82,25 @@ try {
   );
 
   await run(
-    `INSERT INTO "PropertySettings" ("propertyId","address","contactPhone","contactEmail","houseRules","updatedAt")
+    // ค่าน้ำค่าไฟต้องตรงกับที่ใช้คิดบิลตัวอย่างด้านล่าง ไม่งั้นหน้ามิเตอร์ขึ้นราคาต่อหน่วย ฿0
+    // ถ้าเจ้าของหอตั้งราคาเองไว้แล้วก็ไม่ทับ เติมให้เฉพาะหอที่ยังเป็น 0
+    `INSERT INTO "PropertySettings" ("propertyId","address","contactPhone","contactEmail","houseRules","waterUnitRate","electricityUnitRate","updatedAt")
      VALUES ($1,'99/1 ถนนงามวงศ์วาน แขวงลาดยาว เขตจตุจักร กรุงเทพฯ 10900','021234567','contact@nestly.demo',
-             'ปิดประตูหอเวลา 23.00 น. · ห้ามเลี้ยงสัตว์ · แยกขยะก่อนทิ้ง',CURRENT_TIMESTAMP)
-     ON CONFLICT ("propertyId") DO UPDATE SET "updatedAt" = CURRENT_TIMESTAMP`,
+             'ปิดประตูหอเวลา 23.00 น. · ห้ามเลี้ยงสัตว์ · แยกขยะก่อนทิ้ง',18,7,CURRENT_TIMESTAMP)
+     ON CONFLICT ("propertyId") DO UPDATE SET
+       "waterUnitRate" = CASE WHEN "PropertySettings"."waterUnitRate" = 0 THEN EXCLUDED."waterUnitRate" ELSE "PropertySettings"."waterUnitRate" END,
+       "electricityUnitRate" = CASE WHEN "PropertySettings"."electricityUnitRate" = 0 THEN EXCLUDED."electricityUnitRate" ELSE "PropertySettings"."electricityUnitRate" END,
+       "updatedAt" = CURRENT_TIMESTAMP`,
     [propertyId],
   );
 
   // ตัวเลือกที่เจ้าของหอตั้งไว้ใช้ซ้ำ ทำให้หน้าตั้งค่ามีข้อมูลให้ดู
+  // เช็กซ้ำด้วยชื่อ ไม่ใช่ id เพราะกดบันทึกหน้าตั้งค่าแล้วระบบสร้างแถวใหม่ด้วย id ใหม่ รัน seed ซ้ำจะชนชื่อเดิม
   for (const [index, [name, rent]] of [["ห้องแอร์", 4500], ["ห้องพัดลม", 3200]].entries()) {
     await run(
       `INSERT INTO "RoomTypeConfig" ("id","propertyId","name","monthlyRent","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-       ON CONFLICT ("id") DO UPDATE SET "monthlyRent" = EXCLUDED."monthlyRent", "updatedAt" = CURRENT_TIMESTAMP`,
+       ON CONFLICT ("propertyId","name") DO UPDATE SET "monthlyRent" = EXCLUDED."monthlyRent", "updatedAt" = CURRENT_TIMESTAMP`,
       [demoId(`demo-roomtype-${index}`), propertyId, name, rent],
     );
   }
@@ -102,7 +108,7 @@ try {
     await run(
       `INSERT INTO "FurnitureOption" ("id","propertyId","name","createdAt","updatedAt")
        VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-       ON CONFLICT ("id") DO UPDATE SET "name" = EXCLUDED."name", "updatedAt" = CURRENT_TIMESTAMP`,
+       ON CONFLICT ("propertyId","name") DO UPDATE SET "updatedAt" = CURRENT_TIMESTAMP`,
       [demoId(`demo-furniture-${index}`), propertyId, name],
     );
   }
@@ -249,15 +255,20 @@ try {
       const invoiceKey = `demo-invoice-${tenant.room}-${monthOffset}`;
       const invoiceId = demoId(invoiceKey);
       const total = rent + water + electricity + 200;
+      const dueDate = new Date(billingMonth.getTime() + 4 * 24 * 60 * 60 * 1000);
+      // บิลที่จ่ายแล้วต้องมีวันที่จ่าย ไม่งั้นหน้าประวัติบิลของผู้เช่าขึ้นวันที่ดำเนินการเป็นขีด
+      const paidAt = status === "PAID" ? new Date(dueDate.getTime() - 2 * 24 * 60 * 60 * 1000) : null;
       await run(
         // ต้องใส่ subtotal ด้วย งานคิดค่าปรับตอนเลยกำหนดคำนวณยอดใหม่จาก subtotal + ค่าปรับ
         // ถ้าปล่อยเป็น 0 บิลที่เลยกำหนดจะกลายเป็นยอด 0 แล้วผู้เช่าส่งสลิปไม่ได้
-        `INSERT INTO "Invoice" ("id","propertyId","roomId","invoiceNumber","billingMonth","dueDate","status","subtotal","total","version","createdAt","updatedAt")
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-         ON CONFLICT ("id") DO UPDATE SET "status" = EXCLUDED."status", "subtotal" = EXCLUDED."subtotal", "lateFee" = 0, "total" = EXCLUDED."total", "updatedAt" = CURRENT_TIMESTAMP`,
+        `INSERT INTO "Invoice" ("id","propertyId","roomId","invoiceNumber","billingMonth","dueDate","status","subtotal","total","paidAt","version","createdAt","updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+         ON CONFLICT ("id") DO UPDATE SET "status" = EXCLUDED."status", "subtotal" = EXCLUDED."subtotal", "lateFee" = 0, "total" = EXCLUDED."total", "updatedAt" = CURRENT_TIMESTAMP,
+           -- รัน seed ซ้ำคนละเดือน วันครบกำหนดของแถวเดิมไม่เปลี่ยน วันที่จ่ายจึงต้องคิดจากแถวเดิม ไม่งั้นจ่ายหลังครบกำหนดเป็นเดือน
+           "paidAt" = CASE WHEN EXCLUDED."status" = 'PAID' THEN "Invoice"."dueDate" - INTERVAL '2 days' ELSE NULL END`,
         [
           invoiceId, propertyId, roomId, `INV-DEMO-${tenant.room}-${3 + monthOffset}`,
-          billingMonth, new Date(billingMonth.getTime() + 4 * 24 * 60 * 60 * 1000), status, total,
+          billingMonth, dueDate, status, total, paidAt,
         ],
       );
       const items = [

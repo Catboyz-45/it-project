@@ -10,7 +10,7 @@ export default async function SuperAdminAuditLogsPage() {
   return <>
     <SuperAdminPageHeader
       description="ติดตามเหตุการณ์สำคัญ ผู้ดำเนินการ หอพักที่เกี่ยวข้อง และผลลัพธ์ของคำขอ"
-      title="Audit Log"
+      title="บันทึกการใช้งาน"
     />
     <SuperAdminResourceTables initialTables={{ "audit-logs": initialTable }} resources={["audit-logs"]} />
   </>;

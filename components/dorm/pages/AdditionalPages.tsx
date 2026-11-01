@@ -465,7 +465,8 @@ function AnnouncementFormDialog({ editingId, form, formError, isOpen, isSaving, 
       </fieldset>
 
       {form.publishMode === "scheduled" ? <DatePickerField
-        label="วันที่เผยแพร่"
+        // ระบบปล่อยประกาศตอน 09:00 น. ของวันที่เลือก บอกไว้ในป้ายเลย ผู้ใช้จะได้ไม่สงสัยว่าทำไมยังไม่ขึ้นตอนเช้ามืด
+        label="วันที่เผยแพร่ (เวลา 09:00 น.)"
         onChange={(value) => setForm((current) => ({ ...current, publishDate: value }))}
         value={form.publishDate}
       /> : null}

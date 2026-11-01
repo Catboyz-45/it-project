@@ -3,7 +3,7 @@
 
 import { AlertTriangle, ArrowRight, Building2, ChevronRight, CreditCard, FileClock, Gauge, Landmark, ListChecks, MessageSquare, PackageCheck, QrCode, ReceiptText, UserCheck, Wrench } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { currency, totalInvoice } from "@/lib/dorm-utils";
+import { currency } from "@/lib/dorm-utils";
 import type { Invoice, Room, Tenant } from "@/types/dorm";
 import type { DashboardSummary, PageKey } from "@/types/navigation";
 import type { OwnerDashboardAggregation } from "@/types/dashboard";
@@ -17,6 +17,11 @@ function calendarDaysUntil(value: string | Date) {
   const now = new Date();
   const target = new Date(value);
   return Math.ceil((target.getTime() - now.getTime()) / 86_400_000);
+}
+
+// แปลง "2026-10" เป็น "ตุลาคม 2569" ให้อ่านเหมือนรอบบิลในหน้าอื่น
+function formatCycleMonth(month: string) {
+  return new Date(`${month}-01T00:00:00.000Z`).toLocaleDateString("th-TH", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 // คิดเป็นเปอร์เซ็นต์ กันหารด้วยศูนย์ตอนยังไม่มีห้อง และไม่ให้เกิน 100
@@ -210,7 +215,7 @@ function OwnerWorkCard({ item, onOpenChat, onOpenPage }: Readonly<{
 // สรุปรายรับของรอบล่าสุด แยกตามประเภทค่าใช้จ่าย
 function RevenueSummary({ bar, total }: Readonly<{ bar: RevenueBar | undefined; total: number }>) {
   if (!bar) return <div className="dashboard-empty-state">ยังไม่มีข้อมูลบิลสำหรับสรุปรายรับ</div>;
-  return <section aria-label={`สรุปรายรับรอบ ${bar.label}`} className="revenue-summary">
+  return <section aria-label={`สรุปรายรับรอบ ${formatCycleMonth(bar.label)}`} className="revenue-summary">
     <div className="revenue-summary-total">
       <span>ยอดรวมรอบนี้</span>
       <strong>{currency.format(total)}</strong>
@@ -278,11 +283,14 @@ export function OverviewPage({
   summary: DashboardSummary;
   tenants: Tenant[];
 }>) {
+  const { finance } = aggregation;
   // บิลเรียงตามเดือนมาแล้ว ตัวสุดท้ายจึงเป็นรอบล่าสุด
   const latestMonth = invoices.at(-1)?.month;
   const currentInvoices = latestMonth ? invoices.filter((invoice) => invoice.month === latestMonth) : [];
-  const overdueInvoices = currentInvoices.filter((invoice) => invoice.status === "overdue");
-  const pendingInvoices = currentInvoices.filter((invoice) => invoice.status === "pending");
+  // บิลที่ยังไม่จ่ายทุกเดือน เลยกำหนดขึ้นก่อน บิลเดือนก่อนที่ค้างอยู่ต้องไม่หายไปจากหน้าแรก
+  const unpaidInvoices = invoices
+    .filter((invoice) => invoice.status === "overdue" || invoice.status === "pending")
+    .sort((left, right) => Number(right.status === "overdue") - Number(left.status === "overdue") || left.month.localeCompare(right.month));
   const nearContracts = tenants.filter(isLeaseExpiringSoon);
   const availableRooms = rooms.filter((room) => room.status === "available").length;
   const maintenanceRooms = rooms.filter((room) => room.status === "maintenance").length;
@@ -302,7 +310,7 @@ export function OverviewPage({
   const urgentItems = [
     {
       action: readOnly ? "ดูรายการ" : "ตรวจบิล",
-      detail: `${overdueInvoices.length} ห้องค้างชำระ รวม ${currency.format(overdueInvoices.reduce((sum, invoice) => sum + totalInvoice(invoice), 0))}`,
+      detail: `${finance.overdueInvoices} บิลเลยกำหนด รวม ${currency.format(finance.overdueAmount)}`,
       onClick: () => setActivePage("invoices"),
       title: "บิลค้างชำระ",
     },
@@ -321,9 +329,9 @@ export function OverviewPage({
     <>
       <AppSection description="ยอดบิล รายได้ และห้องที่มีผู้เช่าของรอบล่าสุด" icon={<Gauge />} title="ภาพรวมธุรกิจ">
       <section className="stats dashboard-metric-stagger" aria-label="ภาพรวมธุรกิจ">
-        <Metric icon={<Landmark />} label="ยอดบิลรอบล่าสุด" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดบิลรอบล่าสุด" value={summary.revenue + summary.pending} />} detail={latestMonth ?? "ยังไม่มีรอบบิล"} tone="indigo" />
-        <Metric icon={<QrCode />} label="รายได้ที่รับแล้ว" value={<AnimatedNumber format={(value) => currency.format(value)} label="รายได้ที่รับแล้ว" value={summary.revenue} />} detail="ยอดที่ชำระเรียบร้อย" tone="green" />
-        <Metric icon={<AlertTriangle />} label="ยอดค้างชำระ" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดค้างชำระ" value={summary.pending} />} detail={`${summary.overdue} ห้องค้างชำระ`} tone="red" />
+        <Metric icon={<Landmark />} label="ยอดบิลรอบล่าสุด" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดบิลรอบล่าสุด" value={finance.billed} />} detail={finance.cycleMonth ? formatCycleMonth(finance.cycleMonth) : "ยังไม่มีรอบบิล"} tone="indigo" />
+        <Metric icon={<QrCode />} label="รายได้ที่รับแล้ว" value={<AnimatedNumber format={(value) => currency.format(value)} label="รายได้ที่รับแล้ว" value={summary.revenue} />} detail="ชำระแล้วในรอบนี้" tone="green" />
+        <Metric icon={<AlertTriangle />} label="ยอดค้างชำระ" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดค้างชำระ" value={summary.pending} />} detail={summary.overdue ? `เลยกำหนด ${summary.overdue} บิล` : "ไม่มีบิลเลยกำหนด"} tone="red" />
         <Metric icon={<Building2 />} label="ห้องที่มีผู้เช่า" value={<AnimatedNumber format={(value) => `${value.toLocaleString("th-TH")} ห้อง`} label="ห้องที่มีผู้เช่า" value={summary.occupied} />} detail={`${percent(summary.occupied, rooms.length)}% ของห้องทั้งหมด`} tone="blue" />
       </section>
       </AppSection>
@@ -339,7 +347,7 @@ export function OverviewPage({
 
       <section className="grid dashboard-panel-stagger">
         <AppSection
-          aside={latestRevenue?.label ?? "ยังไม่มีรอบบิล"}
+          aside={latestRevenue ? formatCycleMonth(latestRevenue.label) : "ยังไม่มีรอบบิล"}
           className="wide revenue-summary-panel"
           description="แยกตามค่าเช่า ค่าน้ำ และค่าไฟของรอบล่าสุด"
           icon={<Landmark />}
@@ -396,21 +404,21 @@ export function OverviewPage({
             <button onClick={() => setActivePage("invoices")} type="button"><QrCode aria-hidden="true" size={20} /><strong>{readOnly ? "ดูบิล" : "ตรวจบิล"}</strong><small>เปิดหน้าบิล <ChevronRight aria-hidden="true" size={14} /></small></button>
           </div>
           <div className="mini-row">
-            <strong>รอชำระ {pendingInvoices.length} ห้อง</strong>
+            <strong>รอชำระ {unpaidInvoices.length} บิล</strong>
             <span>{readOnly ? "ดูยอดและประวัติเดิมได้ในหน้าบิล" : "ตรวจหลักฐานการโอนก่อนอนุมัติการชำระในหน้าบิล"}</span>
           </div>
         </AppSection>
 
         <AppSection
-          aside={`${overdueInvoices.length} รายการค้างชำระ`}
+          aside={`${unpaidInvoices.length} รายการค้างชำระ`}
           className="full"
           description="บิลค้างชำระก่อน ถ้าไม่มีก็แสดงบิลรอบล่าสุด"
           icon={<FileClock />}
           title="บิลที่ต้องตาม"
         >
           {/* โชว์บิลค้างก่อนถ้ามี ไม่มีค้างก็โชว์บิลรอบล่าสุดแทน เอาแค่ 3 รายการพอ */}
-          {currentInvoices.length > 0 ? (
-            <InvoiceList invoices={overdueInvoices.length > 0 ? overdueInvoices.slice(0, 3) : currentInvoices.slice(0, 3)} />
+          {currentInvoices.length > 0 || unpaidInvoices.length > 0 ? (
+            <InvoiceList invoices={unpaidInvoices.length > 0 ? unpaidInvoices.slice(0, 3) : currentInvoices.slice(0, 3)} />
           ) : <div className="dashboard-empty-state">ยังไม่มีบิลที่ต้องติดตาม</div>}
         </AppSection>
 

@@ -1314,7 +1314,7 @@ function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
   </dl>;
 }
 
-type Lease = { id: string; leaseNumber: string; status: string; startDate: string; endDate: string; monthlyRent: string; depositAmount: string; currentVersion: number; activatedAt: string | null; room: { number: string } };
+type Lease = { id: string; leaseNumber: string; status: string; startDate: string; endDate: string; monthlyRent: string; depositAmount: string; currentVersion: number; activatedAt: string | null; hasSignedDocument: boolean; room: { number: string } };
 function LeasePanel() {
   const resource = useApiResource<{ current: Lease | null; upcoming: Lease | null }>("/api/v1/tenant/lease");
   if (resource.isLoading) return <Loading />;
@@ -1330,8 +1330,10 @@ function TenantLeaseCard({ lease, title }: Readonly<{ lease: Lease; title: strin
   return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
     <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
     <Panel title={lease.leaseNumber}>
-    <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="Version" value={`v${lease.currentVersion}`} /><Info label="วันเริ่มต้น" value={new Date(lease.startDate).toLocaleDateString("th-TH")} /><Info label="วันสิ้นสุด" value={new Date(lease.endDate).toLocaleDateString("th-TH")} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
-    <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
+    <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} /><Info label="วันเริ่มต้น" value={new Date(lease.startDate).toLocaleDateString("th-TH")} /><Info label="วันสิ้นสุด" value={new Date(lease.endDate).toLocaleDateString("th-TH")} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
+    {lease.hasSignedDocument
+      ? <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
+      : <p className="mt-5 text-sm text-[#62646c]">เจ้าของหอยังไม่ได้อัปโหลดไฟล์สัญญาที่ลงนามแล้ว ขอสำเนาได้ที่สำนักงานหอพัก</p>}
     </Panel>
   </section>;
 }

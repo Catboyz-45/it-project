@@ -52,7 +52,7 @@ export function SubscriptionOverrideButton() {
       <header className="modal-header">
         <div>
           <h2 id="subscription-override-title">เปลี่ยนแพ็กเกจด้วยตนเอง</h2>
-          <p id="subscription-override-description">ข้ามการชำระเงิน ใช้เฉพาะตอนช่วยเหลือลูกค้าหรือแก้สถานะ การซื้อปกติให้เจ้าของหอสั่งซื้อเอง ทุกการเปลี่ยนแปลงบันทึกลง Audit Log</p>
+          <p id="subscription-override-description">ข้ามการชำระเงิน ใช้เฉพาะตอนช่วยเหลือลูกค้าหรือแก้สถานะ การซื้อปกติให้เจ้าของหอสั่งซื้อเอง ทุกการเปลี่ยนแปลงถูกเก็บไว้ในบันทึกการใช้งาน</p>
         </div>
         <IconButton label="ปิด" onClick={() => setIsOpen(false)}><X aria-hidden="true" size={20} /></IconButton>
       </header>

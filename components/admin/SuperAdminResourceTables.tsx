@@ -106,7 +106,7 @@ function TableFilterField({ endpoint, onChange, value }: Readonly<{ endpoint: st
   if (endpoint.endsWith("/audit-logs")) {
     return <div className="admin-table-filter">
       <DropdownField
-        ariaLabel="กรองผลลัพธ์ Audit Log"
+        ariaLabel="กรองบันทึกการใช้งาน"
         onChange={onChange}
         options={[
           { value: "", label: "ทุกผลลัพธ์" },

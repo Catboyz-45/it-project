@@ -472,7 +472,7 @@ function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts,
     disabled={Boolean(row.readingId)}
     min={0}
     onChange={(event) => setPreviousDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
-    placeholder="กรอกครั้งแรก"
+    placeholder="เลขเริ่ม"
     type="number"
     value={previousDrafts[row.room.id] ?? ""}
   />;
@@ -512,7 +512,7 @@ function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterIn
           min={previousText || 0}
           onChange={(event) => setCurrentDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
           onKeyDown={focusNextRow}
-          placeholder={previousText || "เลขล่าสุด"}
+          placeholder={previousText || "เลขใหม่"}
           ref={(element) => onRegisterInput(row.room.id, element)}
           type="number"
           value={latestText}

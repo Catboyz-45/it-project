@@ -18,9 +18,13 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
   // ย้อนหลัง 6 เดือนรวมเดือนปัจจุบัน ใช้ทำกราฟแนวโน้มรายได้
   // ใส่เลขติดลบให้ Date ได้เลย มันจะข้ามปีให้เอง เช่นเดือน 0 ลบ 5 กลายเป็นสิงหาคมปีก่อน
   const trendStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const unpaid = { propertyId, status: { in: ["PENDING", "OVERDUE"] as Array<"PENDING" | "OVERDUE"> } };
+  // บิลที่เลยวันครบกำหนดแล้วนับเป็นค้างชำระทันที ไม่ต้องรองานเปลี่ยนสถานะเป็น OVERDUE รอบกลางคืนก่อน
+  const pastDue = { propertyId, OR: [{ status: "OVERDUE" as const }, { status: "PENDING" as const, dueDate: { lt: today } }] };
   const [
     property, roomGroups, activeOccupancies, pendingOccupancies, expiringLeases,
-    invoices, pendingPayments, openTickets, waitingParcels, unreadTenantMessages,
+    invoices, unpaidTotal, pastDueTotal, pendingPayments, openTickets, waitingParcels, unreadTenantMessages,
   // ยิงทุกคำสั่งพร้อมกัน เพราะไม่มีตัวไหนต้องรอผลของอีกตัว
   // ทำทีละอันจะช้ากว่านี้มาก เพราะเป็นการรอฐานข้อมูลสิบรอบต่อกัน
   ] = await Promise.all([
@@ -61,6 +65,9 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
       where: { propertyId, billingMonth: { gte: trendStart }, status: { not: "CANCELLED" } },
       select: { billingMonth: true, status: true, total: true },
     }),
+    // ยอดค้างนับทุกเดือน บิลเดือนก่อนที่ยังไม่จ่ายก็ยังเป็นเงินที่ต้องตามเก็บ
+    getDatabase().invoice.aggregate({ where: unpaid, _sum: { total: true } }),
+    getDatabase().invoice.aggregate({ where: pastDue, _sum: { total: true }, _count: true }),
     getDatabase().paymentSubmission.count({ where: { propertyId, status: "PENDING_REVIEW" } }),
     getDatabase().serviceTicket.count({ where: { propertyId, status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] } } }),
     getDatabase().parcel.count({ where: { propertyId, status: "WAITING" } }),
@@ -71,7 +78,13 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
   // แปลงผล groupBy เป็น object ที่หยิบด้วยชื่อสถานะได้เลย
   const roomsByStatus = Object.fromEntries(roomGroups.map((item) => [item.status, item._count]));
   const totalRooms = roomGroups.reduce((sum, item) => sum + item._count, 0);
-  const currentInvoices = invoices.filter((item) => monthKey(item.billingMonth) === monthKey(currentMonth));
+  // รอบล่าสุดคือเดือนล่าสุดที่ออกบิลแล้ว ต้นเดือนที่ยังไม่ได้ออกบิลจะยังโชว์รอบก่อน ไม่ขึ้นศูนย์ทั้งแถบ
+  const cycleMonth = invoices
+    .map((item) => monthKey(item.billingMonth))
+    .filter((month) => month <= monthKey(currentMonth))
+    .sort()
+    .at(-1) ?? null;
+  const currentInvoices = invoices.filter((item) => monthKey(item.billingMonth) === cycleMonth);
   const sum = (rows: typeof invoices) => rows.reduce((total, row) => total + Number(row.total), 0);
   const trends = Array.from({ length: 6 }, (_, index) => {
     const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
@@ -101,10 +114,12 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
     activeOccupancies,
     pendingOccupancies,
     finance: {
+      cycleMonth,
       billed: sum(currentInvoices),
       collected: sum(currentInvoices.filter((item) => item.status === "PAID")),
-      outstanding: sum(currentInvoices.filter((item) => item.status === "PENDING" || item.status === "OVERDUE")),
-      overdueInvoices: currentInvoices.filter((item) => item.status === "OVERDUE").length,
+      outstanding: Number(unpaidTotal._sum.total ?? 0),
+      overdueInvoices: pastDueTotal._count,
+      overdueAmount: Number(pastDueTotal._sum.total ?? 0),
       pendingPayments,
     },
     operations: { openTickets, waitingParcels, unreadTenantMessages, expiringLeases },

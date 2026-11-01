@@ -28,7 +28,7 @@ function LeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) 
     <Panel title={lease.leaseNumber}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Info label="สถานะ" value={formatStatus(lease.status)} />
-        <Info label="Version" value={`v${lease.currentVersion}`} />
+        <Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} />
         <Info label="วันเริ่มต้น" value={lease.startDate.toLocaleDateString("th-TH")} />
         <Info label="วันสิ้นสุด" value={lease.endDate.toLocaleDateString("th-TH")} />
         <Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} />

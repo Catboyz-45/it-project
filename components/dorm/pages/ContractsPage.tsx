@@ -141,6 +141,14 @@ function renewalDates(endDate: string) {
   return { startDate: dateInput(start.toISOString()), endDate: dateInput(end.toISOString()) };
 }
 
+// วันสิ้นสุดตั้งต้นของสัญญาใหม่ ยาวหนึ่งปีลบหนึ่งวันแบบเดียวกับการต่อสัญญา ผู้ใช้ยังเปลี่ยนเองได้
+function defaultLeaseEndDate(startDate: string) {
+  const end = new Date(`${startDate}T00:00:00.000Z`);
+  end.setUTCFullYear(end.getUTCFullYear() + 1);
+  end.setUTCDate(end.getUTCDate() - 1);
+  return end.toISOString().slice(0, 10);
+}
+
 // ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function responseData<T>(response: Response): Promise<T> {
   return readApiData<T>(response, "ดำเนินการไม่สำเร็จ");
@@ -424,7 +432,7 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
     <section className="figma-list-page contracts-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
       <div className="figma-summary-grid three">
-        <ContractSummary icon={<FileText />} label="สัญญาที่โหลดแล้ว" value={`${leases.length} ฉบับ`} tone="indigo" />
+        <ContractSummary icon={<FileText />} label="สัญญาในหน้านี้" value={`${leases.length} ฉบับ`} tone="indigo" />
         <ContractSummary icon={<CheckCircle2 />} label="ใช้งานอยู่" value={`${counts.active} ฉบับ`} tone="green" />
         <ContractSummary icon={<AlertCircle />} label={`รอดำเนินการ / ใกล้หมดใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`} value={`${counts.pending + counts.expiring} ฉบับ`} tone="orange" />
       </div>
@@ -517,7 +525,7 @@ function LeaseTable({ isLoading, leases, query, ...actions }: LeaseRowActions & 
   return <div className="figma-table-wrap">
     <table className="figma-grid-table contract-table">
       <thead>
-        <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">Version</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
+        <tr className="figma-table-head"><th scope="col">สัญญา</th><th scope="col">ห้อง</th><th scope="col">ผู้เช่า</th><th scope="col">ค่าเช่า</th><th scope="col">ระยะเวลา</th><th scope="col">ฉบับแก้ไข</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr>
       </thead>
       <tbody>
         {leases.map((lease) => <LeaseRow key={lease.id} lease={lease} {...actions} />)}
@@ -698,7 +706,12 @@ function LeaseFormDialog({ earliestLeaseDate, editingLease, form, isOpen, isSavi
         <DatePickerField
           label="วันเริ่มสัญญา"
           minDate={renewingLease ? parseFormDate(renewalDates(renewingLease.endDate).startDate) : earliestLeaseDate}
-          onChange={(value) => setForm((current) => ({ ...current, startDate: value }))}
+          // ยังไม่มีวันสิ้นสุด หรือวันสิ้นสุดเดิมมาก่อนวันเริ่มใหม่ ก็เติมให้หนึ่งปี ไม่ต้องกดเลื่อนปฏิทินไปสิบสองเดือน
+          onChange={(value) => setForm((current) => ({
+            ...current,
+            startDate: value,
+            endDate: !current.endDate || current.endDate < value ? defaultLeaseEndDate(value) : current.endDate,
+          }))}
           value={form.startDate}
         />
         <DatePickerField

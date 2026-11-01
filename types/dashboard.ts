@@ -113,10 +113,13 @@ export type OwnerDashboardAggregation = {
   activeOccupancies: number;
   pendingOccupancies: number;
   finance: {
+    // เดือนของรอบบิลล่าสุดแบบ "YYYY-MM" เป็น null ถ้ายังไม่เคยออกบิล
+    cycleMonth: string | null;
     billed: number;
     collected: number;
     outstanding: number;
     overdueInvoices: number;
+    overdueAmount: number;
     pendingPayments: number;
   };
   operations: {

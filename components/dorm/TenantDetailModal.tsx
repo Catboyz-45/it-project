@@ -143,7 +143,7 @@ export function TenantDetailModal({
                   <TextField label="ชื่อเล่น" value={draft.nickname ?? ""} onChange={(value) => update("nickname", value)} />
                   <TextField label="สัญชาติ" placeholder="เช่น ไทย" value={draft.nationality ?? ""} onChange={(value) => update("nationality", value)} />
                   <TextField label="เลขบัตรประชาชน/หนังสือเดินทาง" maxLength={24} value={draft.nationalId ?? ""} onChange={(value) => update("nationalId", value)} />
-                  <DatePickerField label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
+                  <DatePickerField initialView="year" label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
                   <TextField label="เบอร์โทร" inputMode="tel" required value={draft.phone} onChange={(value) => update("phone", value)} />
                   {/* อีเมลคือชื่อที่ผู้เช่าใช้เข้าสู่ระบบ เจ้าของหอเปลี่ยนแทนไม่ได้ จึงแสดงอย่างเดียว */}
                   <div className="tenant-config-summary"><span>อีเมลที่ใช้เข้าสู่ระบบ</span><strong>{draft.email || "-"}</strong></div>

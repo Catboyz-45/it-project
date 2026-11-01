@@ -140,10 +140,11 @@ export const responseSchemas = {
     id, leaseId: id, version: { type: "integer" }, status: text, terms: text,
     createdAt: dateTime, approvedAt: { anyOf: [dateTime, { type: "null" }] },
   }),
-  TenantLease: entity(["id", "leaseNumber", "status", "startDate", "endDate", "monthlyRent", "depositAmount", "currentVersion", "activatedAt", "room"], {
+  TenantLease: entity(["id", "leaseNumber", "status", "startDate", "endDate", "monthlyRent", "depositAmount", "currentVersion", "activatedAt", "hasSignedDocument", "room"], {
     id, leaseNumber: text, status: text, startDate: dateTime, endDate: dateTime,
     monthlyRent: money, depositAmount: money, currentVersion: { type: "integer" },
     activatedAt: { anyOf: [dateTime, { type: "null" }] },
+    hasSignedDocument: { type: "boolean" },
     room: entity(["number"], { number: text }),
   }),
   MeterReading: entity(["id", "type", "billingMonth", "previousReading", "currentReading", "unitRate"], {
@@ -346,9 +347,10 @@ export const responseSchemas = {
       maintenance: { type: "integer" }, occupancyRate: { type: "number" },
     }),
     activeOccupancies: { type: "integer" },
-    finance: entity(["billed", "collected", "outstanding", "overdueInvoices", "pendingPayments"], {
+    finance: entity(["cycleMonth", "billed", "collected", "outstanding", "overdueInvoices", "overdueAmount", "pendingPayments"], {
+      cycleMonth: { anyOf: [{ type: "string", pattern: "^\\d{4}-\\d{2}$" }, { type: "null" }] },
       billed: { type: "number" }, collected: { type: "number" }, outstanding: { type: "number" },
-      overdueInvoices: { type: "integer" }, pendingPayments: { type: "integer" },
+      overdueInvoices: { type: "integer" }, overdueAmount: { type: "number" }, pendingPayments: { type: "integer" },
     }),
     operations: entity(["openTickets", "waitingParcels", "unreadTenantMessages"], {
       openTickets: { type: "integer" }, waitingParcels: { type: "integer" },
@@ -537,7 +539,7 @@ const samples = {
   OccupancyTransition: { id: "transition_01", type: "MOVE_ROOM", effectiveDate: "2026-08-01T00:00:00.000Z", reason: "ต้องการห้องใหญ่ขึ้น", tenantName: "สุดา สุขใจ", depositAmount: 7000, deductions: [], outstandingAmount: 0, refundAmount: 0, amountDue: 0, transferredAmount: 7000, sourceRoom: { number: "A101" }, destinationRoom: { number: "A102" }, completedBy: { displayName: "สมชาย ใจดี" }, createdAt: "2026-08-01T00:00:00.000Z" },
   LeaseVersion: { id: "lease_version_02", leaseId: "lease_01", version: 2, status: "PUBLISHED", terms: "ชำระค่าเช่าภายในวันที่ 5 ของทุกเดือน", createdAt: "2026-07-28T10:00:00.000Z", approvedAt: "2026-07-28T11:00:00.000Z" },
   Lease: { id: "lease_01", propertyId: "prop_baan_sabai", roomId: "room_a101", status: "ACTIVE", startDate: "2026-08-01T00:00:00.000Z", endDate: "2027-07-31T23:59:59.000Z", monthlyRent: "3500.00", depositAmount: "7000.00", versions: [], tenants: [] },
-  TenantLease: { id: "lease_01", leaseNumber: "LEASE-001", status: "ACTIVE", startDate: "2026-08-01T00:00:00.000Z", endDate: "2027-07-31T23:59:59.000Z", monthlyRent: "3500.00", depositAmount: "7000.00", currentVersion: 2, activatedAt: "2026-08-01T00:00:00.000Z", room: { number: "A101" } },
+  TenantLease: { id: "lease_01", leaseNumber: "LEASE-001", status: "ACTIVE", startDate: "2026-08-01T00:00:00.000Z", endDate: "2027-07-31T23:59:59.000Z", monthlyRent: "3500.00", depositAmount: "7000.00", currentVersion: 2, activatedAt: "2026-08-01T00:00:00.000Z", hasSignedDocument: true, room: { number: "A101" } },
   MeterReading: { id: "meter_01", propertyId: "prop_baan_sabai", roomId: "room_a101", type: "ELECTRICITY", billingMonth: "2026-07-01T00:00:00.000Z", previousReading: "1250.00", currentReading: "1320.00", unitRate: "7.50", recordedAt: "2026-07-28T10:00:00.000Z" },
   MeterWorksheetRow: { room: { id: "room_a101", number: "A101", building: { id: "bld_a", name: "อาคาร A", code: "A" }, floor: { id: "floor_a_1", number: 1, label: "ชั้น 1" } }, tenantName: "สุดา สุขใจ", readingId: "meter_01", previousReading: "1250.00", currentReading: "1320.00", unitRate: "7.50", recordedAt: "2026-07-28T10:00:00.000Z" },
   InvoiceItem: { id: "item_rent_01", type: "RENT", description: "ค่าเช่าห้องเดือนกรกฎาคม 2569", quantity: "1.00", unitPrice: "3500.00", amount: "3500.00" },
@@ -594,7 +596,7 @@ function sample(name) {
     property: { id: "prop_baan_sabai", name: "บ้านอยู่สบาย" },
     rooms: { total: 50, occupied: 42, available: 7, maintenance: 1, occupancyRate: 84 },
     activeOccupancies: 44,
-    finance: { billed: 180000, collected: 150000, outstanding: 30000, overdueInvoices: 3, pendingPayments: 2 },
+    finance: { cycleMonth: "2026-07", billed: 180000, collected: 150000, outstanding: 30000, overdueInvoices: 3, overdueAmount: 12000, pendingPayments: 2 },
     operations: { openTickets: 3, waitingParcels: 5, unreadTenantMessages: 4 },
     subscription: null,
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],

@@ -211,7 +211,7 @@ export function SubscriptionPaymentReview({
         <aside aria-label="รายละเอียดสลิป" className="subscription-review-detail">
           {selected
             ? <PaymentDetail isReviewing={isReviewing} onApprove={() => void review(selected, "APPROVED")} onReject={() => openRejectionDialog(selected)} payment={selected} />
-            : <div className="subscription-review-placeholder"><Inbox aria-hidden="true" size={28} /><p>{payments.length ? "เลือกรายการในตารางเพื่อดูสลิป" : "ไม่มีรายการให้แสดง"}</p></div>}
+            : <div className="subscription-review-placeholder"><Inbox aria-hidden="true" size={28} /><p>{payments.length ? "เลือกรายการในตารางเพื่อดูสลิป" : "สลิปของรายการที่เลือกจะแสดงตรงนี้"}</p></div>}
         </aside>
       </div>
     </section>
