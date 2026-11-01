@@ -76,6 +76,17 @@ function TenantTable({ hasQuery, isLoading, loadError, onOpenDetail, tenants }: 
   </>;
 }
 
+// วันที่ในข้อมูลเป็น "YYYY-MM-DD" แปลงเป็นแบบไทยให้ตรงกับหน้าสัญญา อ่านเป็น UTC กันวันเลื่อนตามเขตเวลา
+function formatLeaseDay(value: string | undefined) {
+  return value ? new Date(`${value}T00:00:00.000Z`).toLocaleDateString("th-TH", { timeZone: "UTC" }) : "-";
+}
+
+// ผู้พักร่วมไม่ได้เซ็นสัญญาเอง ใช้สัญญาของผู้เช่าหลักในห้องเดียวกัน
+function leasePeriodText(tenant: Tenant) {
+  if (tenant.leaseNumber) return `${formatLeaseDay(tenant.startDate)} – ${formatLeaseDay(tenant.contractEnd)}`;
+  return tenant.role === "CO_OCCUPANT" ? "ผู้พักร่วม ใช้สัญญาของห้อง" : "ยังไม่มีสัญญา";
+}
+
 function TenantRow({ onOpenDetail, tenant }: Readonly<{ onOpenDetail: (tenant: Tenant) => void; tenant: Tenant }>) {
   // สัญญาที่ยังใช้งานอยู่แต่ใกล้หมดอายุ ต้องแสดงเป็น "ใกล้หมดอายุ" ไม่ใช่ "ใช้งาน"
   // ฐานข้อมูลยังเก็บเป็น ACTIVE อยู่ จึงต้องคำนวณตอนแสดงผลเอง
@@ -91,7 +102,7 @@ function TenantRow({ onOpenDetail, tenant }: Readonly<{ onOpenDetail: (tenant: T
     <td>{tenant.roomId}</td>
     <td className="muted-cell">{tenant.phone}</td>
     <td>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</td>
-    <td className="muted-cell">{tenant.leaseNumber ? `${tenant.startDate} – ${tenant.contractEnd}` : "ยังไม่มีสัญญา"}</td>
+    <td className="muted-cell">{leasePeriodText(tenant)}</td>
     <td><em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{displayStatus ? leaseStatusText[displayStatus] : "ไม่มีสัญญา"}</em></td>
     <td><button aria-label={`ดูข้อมูล ${tenant.name} ${tenant.roomId}`} className="figma-row-action" onClick={openDetail} type="button">ดูข้อมูล</button></td>
   </tr>;
@@ -194,7 +205,7 @@ export function TenantsPage({
   return (
     <section className="figma-list-page tenants-page-content">
       <div className="figma-summary-grid four">
-        <Summary icon={<UsersRound />} label="ผู้เช่าที่โหลดแล้ว" value={`${tenants.length} คน`} tone="indigo" />
+        <Summary icon={<UsersRound />} label="ผู้เช่าในหน้านี้" value={`${tenants.length} คน`} tone="indigo" />
         <Summary icon={<Building2 />} label="ห้องในรายการ" value={`${new Set(tenants.map((tenant) => tenant.roomId)).size} ห้อง`} tone="blue" />
         <Summary icon={<FileText />} label="มีสัญญาในระบบ" value={`${withLease} คน`} tone="green" />
         <Summary icon={<CalendarClock />} label="สัญญาใกล้หมดอายุ" value={`${expiring} คน`} tone="orange" />

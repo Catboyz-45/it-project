@@ -36,7 +36,13 @@ beforeAll(async () => {
 
 // เก็บกวาดข้อมูลที่สร้างไว้ ฐานทดสอบจะได้ไม่บวมและรอบหน้าเริ่มจากที่สะอาด
 afterAll(async () => {
-  if (propertyId) await getDatabase().property.deleteMany({ where: { id: propertyId } });
+  if (propertyId) {
+    await getDatabase().invoice.deleteMany({ where: { propertyId } });
+    await getDatabase().room.deleteMany({ where: { propertyId } });
+    await getDatabase().floor.deleteMany({ where: { propertyId } });
+    await getDatabase().building.deleteMany({ where: { propertyId } });
+    await getDatabase().property.deleteMany({ where: { id: propertyId } });
+  }
   if (planId) await getDatabase().saasPlan.deleteMany({ where: { id: planId } });
   // ปิดการเชื่อมต่อ ไม่งั้นโปรเซสของ vitest จะค้างไม่ยอมจบ
   await getDatabase().$disconnect();
@@ -55,6 +61,34 @@ describe("SaaS subscription and dashboard integration", () => {
     const dashboard = await getOwnerDashboardAggregation(propertyId);
     expect(dashboard?.subscription?.usedRooms).toBe(0);
     expect(dashboard?.subscription?.roomUsagePercent).toBe(0);
+  });
+
+  // ต้นเดือนที่ยังไม่ได้ออกบิลใหม่ แถบตัวเลขต้องยังโชว์รอบก่อน และบิลที่เลยกำหนดแต่ยังเป็น PENDING ต้องนับเป็นค้าง
+  it("keeps last cycle figures and counts past-due pending bills", async () => {
+    const now = new Date();
+    const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const building = await getDatabase().building.create({
+      data: { propertyId, name: "A", code: `D-${suffix}`, floors: { create: { propertyId, number: 1, label: "Floor 1" } } },
+      select: { id: true, floors: { select: { id: true } } },
+    });
+    const room = await getDatabase().room.create({
+      data: { propertyId, buildingId: building.id, floorId: building.floors[0].id, number: `D-${suffix}`, roomType: "Standard", monthlyRent: 3000, depositAmount: 6000, capacity: 1 },
+      select: { id: true },
+    });
+    await getDatabase().invoice.createMany({
+      data: [
+        { propertyId, roomId: room.id, invoiceNumber: `D-${suffix}-1`, billingMonth: lastMonth, dueDate: new Date(lastMonth.getTime() + 4 * 86_400_000), status: "PENDING", subtotal: 3500, total: 3500 },
+      ],
+    });
+
+    const dashboard = await getOwnerDashboardAggregation(propertyId);
+    expect(dashboard?.finance).toMatchObject({
+      cycleMonth: lastMonth.toISOString().slice(0, 7),
+      billed: 3500,
+      outstanding: 3500,
+      overdueInvoices: 1,
+      overdueAmount: 3500,
+    });
   });
 
   // ใช้ toBeGreaterThanOrEqual เพราะฐานทดสอบอาจมีข้อมูลจากไฟล์อื่นปนอยู่ ตัวเลขเป๊ะ ๆ จึงเช็คไม่ได้

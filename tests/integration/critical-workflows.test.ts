@@ -219,6 +219,9 @@ describe("critical property workflow integration", () => {
     expect(tenantLeases.upcoming?.id).toBe(renewedLease.id);
     // ต่อสัญญาแล้วผู้เช่าต้องเห็นสองใบ ใบที่ใช้อยู่กับใบใหม่ที่รอเซ็น
     expect(tenantLeases.upcoming?.status).toBe("PENDING_SIGNATURE");
+    // หน้าผู้เช่ารู้แค่ว่ามีไฟล์ลงนามหรือยัง ที่เก็บไฟล์จริงต้องไม่หลุดออกไป
+    expect(tenantLeases.current?.hasSignedDocument).toBe(true);
+    expect(tenantLeases.current).not.toHaveProperty("signedStorageKey");
 
     await recordMeterReading(fixture.property.id, fixture.owner.id, {
       roomId: fixture.room.id, type: "WATER", billingMonth: "2026-07",

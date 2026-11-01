@@ -23,7 +23,7 @@ const items = [
   { href: "/super-admin/properties", label: "หอพัก", icon: Building2, exact: false },
   { href: "/super-admin/plans", label: "แพ็กเกจ", icon: Crown, exact: false },
   { href: "/super-admin/subscriptions", label: "การชำระสมาชิก", icon: CreditCard, exact: false, countKey: "pendingSubscriptionPayments" },
-  { href: "/super-admin/audit-logs", label: "Audit Log", icon: Activity, exact: false },
+  { href: "/super-admin/audit-logs", label: "บันทึกการใช้งาน", icon: Activity, exact: false },
   { href: "/super-admin/settings", label: "ตั้งค่าระบบ", icon: Settings, exact: false },
 ] satisfies ReadonlyArray<{
   countKey?: keyof SuperAdminNotificationCounts;

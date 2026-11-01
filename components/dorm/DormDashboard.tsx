@@ -50,7 +50,7 @@ import { NavShell, NavToggle } from "@/components/ui/NavShell";
 
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
   overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
-  rooms: { title: "ผังห้องพัก", subtitle: "ผังห้องแบบ Visual Floor Plan พร้อมสถานะและข้อมูลผู้เช่า" },
+  rooms: { title: "ผังห้องพัก", subtitle: "ผังห้องแยกตามชั้น พร้อมสถานะและข้อมูลผู้เช่า" },
   tenants: { title: "ผู้เช่า", subtitle: "จัดการข้อมูลผู้เช่าทั้งหมดในหอพัก" },
   contracts: { title: "สัญญาเช่า", subtitle: "จัดการสัญญา ตรวจเอกสาร และต่อสัญญารายห้อง" },
   waterMeter: { title: "ค่าน้ำและค่าไฟ", subtitle: "บันทึกมิเตอร์รายเดือนของแต่ละห้อง" },

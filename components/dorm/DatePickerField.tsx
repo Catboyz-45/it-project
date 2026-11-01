@@ -56,6 +56,8 @@ const monthShortLabels = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", 
 // ปฏิทินที่เขียนเอง แทน input type="date" ของเบราว์เซอร์ที่แต่งสไตล์ไม่ได้และแสดงปีเป็น ค.ศ.
 // มีสามมุมมอง เลือกวัน เลือกเดือน เลือกปี กดที่หัวเรื่องเพื่อถอยออกไปทีละชั้น
 export function DatePickerField({
+  // ช่องที่มักเลือกย้อนไปหลายปี เช่นวันเกิด ให้เปิดที่หน้าเลือกปีก่อน ไม่ต้องกดย้อนทีละเดือน
+  initialView = "day",
   label,
   // ค่าเริ่มต้นคือวันนี้ เพราะที่ใช้ส่วนใหญ่เป็นวันในอนาคต เช่นวันเริ่มหรือวันสิ้นสุดสัญญา
   // บางช่องห้ามเลือกวันในอนาคต เช่นวันที่มีผลของการย้ายออก ไม่ส่งมาก็เลือกได้ไม่จำกัด
@@ -65,6 +67,7 @@ export function DatePickerField({
   placeholder = "เลือกวันที่",
   value,
 }: Readonly<{
+  initialView?: "day" | "year";
   label: string;
   maxDate?: Date;
   minDate?: Date;
@@ -116,6 +119,15 @@ export function DatePickerField({
       document.removeEventListener("pointerdown", closeOnOutsideClick);
     };
   }, [pickerId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // ปฏิทินที่เปิดในกล่องโต้ตอบมักล้นขอบล่าง เลื่อนให้เห็นครบทั้งเดือนทันที ไม่ต้องให้ผู้ใช้เลื่อนหาเอง
+    // เรียกแบบ ?.() เพราะ jsdom ในเทสต์ไม่มี scrollIntoView
+    // สลับมุมมองวัน เดือน ปีแล้วความสูงเปลี่ยน จึงต้องเลื่อนใหม่ทุกครั้งด้วย
+    const frameId = window.requestAnimationFrame(() => calendarRef.current?.scrollIntoView?.({ block: "nearest" }));
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isOpen, viewMode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -200,8 +212,8 @@ export function DatePickerField({
     if (!isOpen) {
       // ประกาศให้ปฏิทินอันอื่นในหน้ารู้ว่าให้ปิดตัวเอง
       window.dispatchEvent(new CustomEvent("dorm-date-picker-open", { detail: { id: pickerId } }));
-      // เปิดมาที่มุมมองวันเสมอ ไม่ค้างมุมมองเดือนหรือปีจากครั้งก่อน
-      setViewMode("day");
+      // เปิดมาที่มุมมองตั้งต้นเสมอ ไม่ค้างมุมมองเดือนหรือปีจากครั้งก่อน เลือกวันไว้แล้วก็เปิดที่วันนั้นเลย
+      setViewMode(selectedDate ? "day" : initialView);
       setFocusedDate(openingDate);
       setVisibleMonth(new Date(openingDate.getFullYear(), openingDate.getMonth(), 1));
     }

@@ -84,7 +84,6 @@ export function SettingsPage({
   // จอแคบวางสองคอลัมน์ไม่ไหว จึงสลับทีละอย่างแทนการวางเมนูกองทับเนื้อหา
   // เข้ามาแบบลิงก์ตรง เช่น /subscription ให้ไปที่เนื้อหาเลย ไม่ต้องผ่านรายการ
   const [mobileView, setMobileView] = useState<"list" | "section">(initialSection === "general" ? "list" : "section");
-  const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, setActiveSection);
   // เก็บทุกค่าเป็นสตริง เพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนส่งขึ้นเซิร์ฟเวอร์
   const [settings, setSettings] = useState<SettingsForm>({
     bankAccountName: initialSettings.bankAccountName ?? "",
@@ -106,6 +105,12 @@ export function SettingsPage({
   });
   const [saveState, setSaveState] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  // ข้อความบันทึกแล้วเป็นของแท็บที่กดบันทึก เปลี่ยนแท็บแล้วต้องหาย ไม่งั้นดูเหมือนแท็บใหม่ถูกบันทึกไปด้วย
+  const changeSection = (section: SettingsSection) => {
+    setActiveSection(section);
+    setSaveState(null);
+  };
+  const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, changeSection);
   const notify = useToast();
   const { confirm, confirmationDialog } = useConfirmation();
   // โครงสร้างหอทั้งหมด ชั้น ห้อง ประเภทห้อง และเฟอร์นิเจอร์ อยู่ในฮุกของตัวเอง
@@ -150,6 +155,7 @@ export function SettingsPage({
   // ตามการเปลี่ยน URL ด้วย เพราะหน้าตั้งค่าแต่ละหมวดมีที่อยู่ของตัวเอง
   useEffect(() => {
     setActiveSection(initialSection);
+    setSaveState(null);
     setMobileView(initialSection === "general" ? "list" : "section");
   }, [initialSection]);
 
@@ -164,7 +170,7 @@ export function SettingsPage({
         <div aria-label="เมนูตั้งค่า" aria-orientation="vertical" className="settings-nav-group" onKeyDown={handleSettingsKeyDown} role="tablist" tabIndex={-1}>
           <p>ระบบหอพัก</p>
           {systemSettingSections.map(({ key, label, icon: Icon }) => (
-            <button aria-controls="settings-active-panel" aria-selected={activeSection === key} className={activeSection === key ? "active" : ""} id={`settings-tab-${key}`} key={key} onClick={() => { setActiveSection(key); setMobileView("section"); }} role="tab" tabIndex={activeSection === key ? 0 : -1} type="button">
+            <button aria-controls="settings-active-panel" aria-selected={activeSection === key} className={activeSection === key ? "active" : ""} id={`settings-tab-${key}`} key={key} onClick={() => { changeSection(key); setMobileView("section"); }} role="tab" tabIndex={activeSection === key ? 0 : -1} type="button">
               <Icon aria-hidden={true} size={18} />
               {label}
             </button>

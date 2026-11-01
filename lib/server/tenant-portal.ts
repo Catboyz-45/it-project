@@ -201,7 +201,7 @@ export async function getTenantLease(tenantProfileId: string, roomId: string, ro
   const select = {
     id: true, leaseNumber: true, status: true, startDate: true, endDate: true,
     monthlyRent: true, depositAmount: true, currentVersion: true, activatedAt: true,
-    room: { select: { number: true } },
+    signedStorageKey: true, room: { select: { number: true } },
   } as const;
   const [currentLease, upcomingLease] = await getDatabase().$transaction([
     getDatabase().lease.findFirst({
@@ -226,10 +226,12 @@ export async function getTenantLease(tenantProfileId: string, roomId: string, ro
       select,
     }),
   ]);
-  const serializeLease = (lease: NonNullable<typeof currentLease>) => ({
+  // บอกแค่ว่ามีไฟล์ลงนามหรือยัง ไม่ส่งที่เก็บไฟล์จริงออกไป หน้าเว็บจะได้ไม่โชว์ปุ่มที่กดแล้วไม่เจอไฟล์
+  const serializeLease = ({ signedStorageKey, ...lease }: NonNullable<typeof currentLease>) => ({
     ...lease,
     monthlyRent: decimal(lease.monthlyRent),
     depositAmount: decimal(lease.depositAmount),
+    hasSignedDocument: signedStorageKey !== null,
   });
   return {
     current: currentLease ? serializeLease(currentLease) : null,

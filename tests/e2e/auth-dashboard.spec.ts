@@ -32,7 +32,7 @@ test("super admin can open the aggregated SaaS dashboard", async ({ page }) => {
     ["หอพัก", "/super-admin/properties"],
     ["แพ็กเกจ", "/super-admin/plans"],
     ["การชำระสมาชิก", "/super-admin/subscriptions"],
-    ["Audit Log", "/super-admin/audit-logs"],
+    ["บันทึกการใช้งาน", "/super-admin/audit-logs"],
   ] as const;
   for (const [label, route] of routes) {
     // เมนูที่มีงานค้างจะมีจำนวนต่อท้ายชื่อ จึงจับเฉพาะชื่อเมนูที่ขึ้นต้น
