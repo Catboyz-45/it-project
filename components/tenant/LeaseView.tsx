@@ -4,6 +4,7 @@ import { FileText } from "lucide-react";
 import { Empty, Info, Panel } from "@/components/tenant/primitives";
 import { currency } from "@/lib/dorm-utils";
 import { formatStatus } from "@/lib/ui-labels";
+import { formatThaiDate } from "@/lib/thai-format";
 
 type Lease = {
   id: string; leaseNumber: string; status: string; startDate: Date; endDate: Date;
@@ -29,8 +30,8 @@ function LeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) 
       <div className="grid gap-4 sm:grid-cols-2">
         <Info label="สถานะ" value={formatStatus(lease.status)} />
         <Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} />
-        <Info label="วันเริ่มต้น" value={lease.startDate.toLocaleDateString("th-TH")} />
-        <Info label="วันสิ้นสุด" value={lease.endDate.toLocaleDateString("th-TH")} />
+        <Info label="วันเริ่มต้น" value={formatThaiDate(lease.startDate)} />
+        <Info label="วันสิ้นสุด" value={formatThaiDate(lease.endDate)} />
         <Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} />
         <Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} />
       </div>

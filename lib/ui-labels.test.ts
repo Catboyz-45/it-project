@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { formatAuditAction, formatAuditResult, formatStatus, formatVehicleType, roomTypeLabel } from "@/lib/ui-labels";
 
@@ -45,5 +47,18 @@ describe("UI labels", () => {
     expect(roomTypeLabel("air")).toBe("ห้องแอร์");
     expect(roomTypeLabel("fan")).toBe("ห้องพัดลม");
     expect(roomTypeLabel("studio")).toBe("studio");
+  });
+
+  // ทุกเหตุการณ์ที่โค้ดบันทึกลง audit log ต้องมีคำแปล ไม่งั้นหน้าบันทึกการใช้งานจะขึ้นแค่ "เหตุการณ์ระบบ"
+  // ไล่อ่าน action: "..." ที่มีขีดล่างจากโค้ดจริง คำเดี่ยวอย่าง ACCEPTED เป็นสถานะของอย่างอื่น ไม่ใช่เหตุการณ์
+  // ไล่อ่านจากโค้ดจริง เพิ่มเหตุการณ์ใหม่แล้วลืมใส่คำแปล เทสต์นี้จะเตือน
+  it("has a Thai label for every audit action the code records", () => {
+    const root = path.resolve(__dirname, "..");
+    const files = ["app", "lib"].flatMap((folder) => readdirSync(path.join(root, folder), { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.tsx?$/.test(file) && !file.includes(".test."))
+      .map((file) => path.join(root, folder, file)));
+    const actions = new Set(files.flatMap((file) => [...readFileSync(file, "utf8").matchAll(/action: "([A-Z]+_[A-Z0-9_]+)"/g)].map((match) => match[1])));
+    const unlabeled = [...actions].filter((action) => formatAuditAction(action) === "เหตุการณ์ระบบ");
+    expect(unlabeled).toEqual([]);
   });
 });
