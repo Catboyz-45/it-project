@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { platformProfile } from "@/lib/platform-profile";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
+import { appLink, isEmailConfigured, logEmailFailure, sendEmail } from "@/lib/server/email";
 import { hashPassword } from "@/lib/server/password";
 
 // ลิงก์อยู่ได้ 30 นาที สั้นเพราะลิงก์ที่ค้างในกล่องอีเมลเป็นความเสี่ยงถ้าอีเมลหลุด
@@ -70,39 +71,21 @@ async function createResetToken(userId: string) {
 }
 
 function logResetEmailFailure(userId: string, error: unknown) {
-  console.error(JSON.stringify({
-    level: "error", event: "password_reset_email_failed", userId,
-    message: error instanceof Error ? error.message : "Unknown error",
-  }));
+  logEmailFailure("password_reset_email_failed", userId, error);
 }
 
 async function sendResetEmail(email: string, displayName: string, token: string, sentByAdmin = false) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.PASSWORD_RESET_EMAIL_FROM;
-  const appUrl = process.env.APP_URL;
-  // ตอน production ต้องตั้งค่าครบ ไม่งั้นถือว่าระบบไม่พร้อม
-  // ตอน dev ปล่อยผ่านเงียบ ๆ เพื่อให้ทดสอบขั้นตอนอื่นได้โดยไม่ต้องตั้งบริการส่งอีเมล
-  if (!apiKey || !from || !appUrl) {
-    if (process.env.NODE_ENV === "production") throw new ApiError(503, "ระบบส่งอีเมลยังไม่พร้อมใช้งาน");
-    return;
-  }
-  const resetUrl = new URL("/reset-password", appUrl);
+  // ตอน dev ที่ยังไม่ตั้งค่าบริการส่งอีเมล ตัวส่งกลางจะข้ามไปเอง ไม่ต้องสร้างลิงก์ก่อนให้เสียเปล่า
+  if (!isEmailConfigured() && process.env.NODE_ENV !== "production") return;
+  const resetUrl = new URL(appLink("/reset-password"));
   resetUrl.searchParams.set("token", token);
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [email],
-      subject: `ตั้งรหัสผ่าน ${platformProfile.name} ใหม่`,
-      text: sentByAdmin
-        ? `สวัสดี ${displayName}\n\nผู้ดูแลระบบ ${platformProfile.name} ส่งลิงก์ตั้งรหัสผ่านให้คุณตามที่ขอความช่วยเหลือ เปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้ติดต่อขอความช่วยเหลือ สามารถละเว้นอีเมลนี้ได้ รหัสผ่านเดิมยังใช้ได้ตามปกติ`
-        : `สวัสดี ${displayName}\n\nเปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`,
-    }),
-    // ตั้ง timeout กับคำขอที่ออกไปข้างนอกเสมอ ไม่งั้นบริการปลายทางค้างแล้วคำขอของเราค้างตาม
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new ApiError(503, "ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้");
+  await sendEmail({
+    to: email,
+    subject: `ตั้งรหัสผ่าน ${platformProfile.name} ใหม่`,
+    text: sentByAdmin
+      ? `สวัสดี ${displayName}\n\nผู้ดูแลระบบ ${platformProfile.name} ส่งลิงก์ตั้งรหัสผ่านให้คุณตามที่ขอความช่วยเหลือ เปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้ติดต่อขอความช่วยเหลือ สามารถละเว้นอีเมลนี้ได้ รหัสผ่านเดิมยังใช้ได้ตามปกติ`
+      : `สวัสดี ${displayName}\n\nเปิดลิงก์นี้ภายใน 30 นาทีเพื่อตั้งรหัสผ่านใหม่:\n${resetUrl.toString()}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`,
+  }, "ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้");
 }
 
 // ตั้งรหัสผ่านใหม่จากลิงก์ในอีเมล

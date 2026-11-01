@@ -79,8 +79,8 @@ json("put", "/api/v1/admin/properties/{propertyId}/catalogs",
   }), { roomTypes: [{ name: "ห้องมาตรฐาน", rent: 3500, deposit: 7000, capacity: 2 }], serviceCharges: [], furnitureOptions: [] });
 
 json("post", "/api/v1/admin/properties/{propertyId}/invitations",
-  object(["roomId"], { roomId: id, intendedRole: { type: "string", enum: ["PRIMARY", "CO_OCCUPANT"] }, expiresInDays: integer(1, 30) }),
-  { roomId: "room_a101", intendedRole: "PRIMARY", expiresInDays: 7 });
+  object(["roomId"], { roomId: id, intendedRole: { type: "string", enum: ["PRIMARY", "CO_OCCUPANT"] }, expiresInDays: integer(1, 30), email: { type: "string", format: "email", maxLength: 254 } }),
+  { roomId: "room_a101", intendedRole: "PRIMARY", expiresInDays: 7, email: "tenant@example.com" });
 noBody("delete", "/api/v1/admin/properties/{propertyId}/invitations/{invitationId}");
 json("patch", "/api/v1/admin/properties/{propertyId}/occupancies/{occupancyId}",
   object(["status"], { status: { type: "string", enum: ["ACTIVE", "REJECTED"] } }), { status: "ACTIVE" });

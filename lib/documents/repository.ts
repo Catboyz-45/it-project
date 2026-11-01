@@ -2,7 +2,7 @@ import type { DocumentKind } from "@/lib/documents/types";
 import { getDatabase } from "@/lib/server/db";
 
 // ฐานข้อมูลใช้ตัวพิมพ์ใหญ่ ส่วนโค้ดฝั่งแอปใช้ตัวพิมพ์เล็ก แปลงกันที่นี่ที่เดียว
-const databaseKinds = { contract: "CONTRACT", invoice: "INVOICE" } as const;
+const databaseKinds = { contract: "CONTRACT", invoice: "INVOICE", receipt: "RECEIPT" } as const;
 
 export function toDatabaseKind(kind: DocumentKind) {
   return databaseKinds[kind];

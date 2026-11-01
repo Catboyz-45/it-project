@@ -16,6 +16,7 @@ datasource db {
 enum DocumentKind {
   CONTRACT
   INVOICE
+  RECEIPT
 }
 
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
@@ -379,21 +380,23 @@ model Property {
 /// คำอธิบายก้อนโค้ดสำหรับผู้เริ่มต้น
 /// ตาราง PropertySubscription: เก็บข้อมูลและความสัมพันธ์ของ “Property Subscription”; แต่ละบรรทัดด้านในคือฟิลด์หรือกฎเชื่อมกับตารางอื่น
 model PropertySubscription {
-  propertyId      String             @id
-  property        Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  planId          String?
-  plan            SaasPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
-  planName        String             @db.VarChar(80)
-  billingInterval BillingInterval    @default(MONTHLY)
-  priceAmount     Decimal            @default(0) @db.Decimal(12, 2)
-  status          SubscriptionStatus @default(TRIAL)
-  maxProperties   Int                @default(1)
-  maxRooms        Int
-  startsAt        DateTime           @db.Timestamptz(3)
-  expiresAt       DateTime           @db.Timestamptz(3)
-  suspendedAt     DateTime?          @db.Timestamptz(3)
-  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime           @updatedAt @db.Timestamptz(3)
+  propertyId            String             @id
+  property              Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  planId                String?
+  plan                  SaasPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planName              String             @db.VarChar(80)
+  billingInterval       BillingInterval    @default(MONTHLY)
+  priceAmount           Decimal            @default(0) @db.Decimal(12, 2)
+  status                SubscriptionStatus @default(TRIAL)
+  maxProperties         Int                @default(1)
+  maxRooms              Int
+  startsAt              DateTime           @db.Timestamptz(3)
+  expiresAt             DateTime           @db.Timestamptz(3)
+  suspendedAt           DateTime?          @db.Timestamptz(3)
+  // วันหมดอายุที่ส่งอีเมลเตือนไปแล้ว ต่ออายุแล้ววันหมดอายุเปลี่ยน ค่านี้ไม่ตรงอีก รอบหน้าจึงเตือนใหม่ได้
+  expiryReminderSentFor DateTime?          @db.Timestamptz(3)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3)
 
   @@index([status, expiresAt])
   @@index([planId, status])

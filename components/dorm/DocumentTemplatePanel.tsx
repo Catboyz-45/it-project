@@ -15,6 +15,13 @@ import { RetryButton } from "@/components/ui/DataNavigation";
 import { IconButton } from "@/components/ui/IconButton";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
+// ชื่อของแต่ละชนิดเอกสาร ทั้งบนการ์ดในหน้าตั้งค่าและหัวหน้าจอแก้ไข
+const templateTitles: Record<DocumentKind, { panel: string; editor: string }> = {
+  contract: { panel: "โครงสัญญาหลัก", editor: "แก้ไขโครงสัญญา" },
+  invoice: { panel: "โครงบิลหลัก", editor: "แก้ไขโครงบิล" },
+  receipt: { panel: "โครงใบเสร็จรับเงิน", editor: "แก้ไขโครงใบเสร็จ" },
+};
+
 // การ์ดสรุปในหน้าตั้งค่า บอกว่ามี Template แล้วหรือยัง พร้อมปุ่มไปหน้าแก้ไข
 // สถานะของโครงเอกสาร ใช้เลือกว่าจะแสดงอะไรในกรอบ
 type TemplateStatus = "loading" | "missing" | "ready" | "failed";
@@ -130,7 +137,7 @@ export function DocumentTemplatePanel({
     }
   };
 
-  const title = kind === "contract" ? "โครงสัญญาหลัก" : "โครงบิลหลัก";
+  const title = templateTitles[kind].panel;
   const status = templateStatusOf({ error, isLoading, template });
 
   return <section className="panel template-panel settings-section">
@@ -858,7 +865,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       <style>{getDocumentContentCss(".document-editor-paper")}</style>
       <header className="document-editor-header">
         <button className="secondary-button document-editor-back" onClick={requestClose} type="button"><ArrowLeft aria-hidden="true" size={17} /> กลับหน้าตั้งค่า</button>
-        <div><small>HTML Template + Placeholder</small><h1>{kind === "contract" ? "แก้ไขโครงสัญญา" : "แก้ไขโครงบิล"}</h1></div>
+        <div><small>HTML Template + Placeholder</small><h1>{templateTitles[kind].editor}</h1></div>
         <div className="document-editor-header-actions">
           <button className="secondary-button" disabled={isPreviewing || isSaving} onClick={() => void preview()} type="button"><Eye size={17} /> {isPreviewing ? "กำลังสร้าง..." : "ดู PDF"}</button>
           <button aria-describedby={!isSaving && !name.trim() ? "document-name-disabled-reason" : undefined} className="primary-button" disabled={isSaving || !name.trim()} onClick={() => void save()} type="button"><Save size={17} /> {isSaving ? "กำลังบันทึก..." : "บันทึก"}</button>

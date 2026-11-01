@@ -1,5 +1,11 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// ใช้พาธแบบ / ทั้งบน Linux และ Windows ผลที่ได้จึงตรงกันทุกเครื่อง
+// URL.pathname ใช้ไม่ได้บน Windows เพราะได้ "/D:/..." และชื่อโฟลเดอร์ภาษาไทยถูก encode
+const toPosixPath = (file) => file.split(path.sep).join("/");
+const directoryFromUrl = (url) => toPosixPath(fileURLToPath(url));
 
 // ด่านตรวจใน CI ว่า docs/openapi.json ยังตรงกับ route จริงในโค้ด
 // ผิดเมื่อไหร่โยน error ทันที จะได้ไม่ปล่อยเอกสารที่ไม่ตรงกับของจริงออกไป
@@ -208,21 +214,21 @@ for (const name of forbiddenResponseSchemas) {
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
-    const target = path.join(directory, entry.name);
+    const target = toPosixPath(path.join(directory, entry.name));
     return entry.isDirectory() ? walk(target) : [target];
   }))).flat();
 }
 
 const methodNames = ["get", "post", "put", "patch", "delete"];
-const appRoot = new URL("../app/", import.meta.url).pathname;
-const routeRoot = new URL("../app/api/v1/", import.meta.url).pathname;
+const appRoot = directoryFromUrl(new URL("../app/", import.meta.url));
+const routeRoot = directoryFromUrl(new URL("../app/api/v1/", import.meta.url));
 const routeFiles = (await walk(routeRoot)).filter((file) => file.endsWith("/route.ts"));
 // เก็บสิ่งที่โค้ดจริงมีอยู่ ไว้เทียบสองทางกับเอกสารในสองลูปข้างล่าง
 const routeOperations = new Set();
 for (const file of routeFiles) {
   const source = await readFile(file, "utf8");
   // [propertyId] เป็น {propertyId} เทียบทีละ segment แทน regex ที่สแกนทั้งพาธ
-  const apiPath = `/${path.relative(appRoot, file).replace(/\/route\.ts$/, "").split("/")
+  const apiPath = `/${path.posix.relative(appRoot, file).replace(/\/route\.ts$/, "").split("/")
     .map((segment) => (segment.length > 2 && segment.startsWith("[") && segment.endsWith("]") ? `{${segment.slice(1, -1)}}` : segment))
     .join("/")}`;
   for (const method of methodNames) {

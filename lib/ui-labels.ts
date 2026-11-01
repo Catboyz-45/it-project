@@ -44,6 +44,7 @@ const auditActionLabels: Record<string, string> = {
   CHAT_MESSAGE_SEND: "ส่งข้อความแชต",
   DOCUMENT_GENERATE: "สร้างเอกสาร",
   DOCUMENT_PREVIEW: "ดูตัวอย่างเอกสาร",
+  RECEIPT_DOWNLOAD: "ดาวน์โหลดใบเสร็จ",
   DOCUMENT_TEMPLATE_UPDATE: "แก้ไขแม่แบบเอกสาร",
   FLOOR_CREATE: "เพิ่มชั้น",
   FLOOR_UPDATE: "แก้ไขชั้น",

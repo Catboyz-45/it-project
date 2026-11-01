@@ -2,7 +2,7 @@
 // เก็บตัวกรอง โหลดข้อมูลทีละหน้า และเปิดกล่องโต้ตอบจากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, Eye, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
+import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, Eye, FileCheck2, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
@@ -183,6 +183,7 @@ function InvoiceListView({ actionFeedback, invoices, isLoading, loadError, onCan
       onIssue={onIssue}
       onRequestPdf={onRequestPdf}
       onReviewPayments={onReviewPayments}
+      propertyId={propertyId}
       readOnly={readOnly}
     />
     {/* ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีบิลเลย ต้องบอกคนละแบบ */}
@@ -431,17 +432,24 @@ type InvoiceTableActions = Readonly<{
   onIssue: (invoice: Invoice) => Promise<void>;
   onRequestPdf: (invoice: Invoice, action: "preview" | "generate") => Promise<void>;
   onReviewPayments: () => void;
+  propertyId: string;
   readOnly: boolean;
 }>;
 
 // รายการในเมนูขึ้นกับสถานะบิล ร่างยังออกบิลได้ ที่ออกไปแล้วเหลือแค่ตรวจการชำระ
-function invoiceMenuItems({ actionFeedback, invoice, onCancel, onIssue, onRequestPdf, onReviewPayments, readOnly }: InvoiceTableActions & { invoice: Invoice }) {
+function invoiceMenuItems({ actionFeedback, invoice, onCancel, onIssue, onRequestPdf, onReviewPayments, propertyId, readOnly }: InvoiceTableActions & { invoice: Invoice }) {
   const items: ActionMenuItem[] = [
     { disabled: actionFeedback.isPending, icon: <Eye aria-hidden="true" size={16} />, id: "preview-pdf", label: "ดูตัวอย่างบิล (PDF)", onSelect: () => void onRequestPdf(invoice, "preview") },
   ];
   // ร่างยังไม่มีเลขบิลจริง จึงให้ดูตัวอย่างได้อย่างเดียว ยังดาวน์โหลดไม่ได้
   if (invoice.status !== "draft") {
     items.push({ disabled: actionFeedback.isPending, icon: <Download aria-hidden="true" size={16} />, id: "generate-pdf", label: "ดาวน์โหลด PDF บิล", onSelect: () => void onRequestPdf(invoice, "generate") });
+  }
+  // ใบเสร็จออกได้เฉพาะบิลที่ชำระแล้ว เซิร์ฟเวอร์สร้างจากบิลจริงทุกครั้ง เปิดในแท็บใหม่เพื่อดูหรือพิมพ์
+  // ออกได้แม้อยู่โหมดอ่านอย่างเดียว เพราะเป็นเอกสารของรายการที่จ่ายไปแล้ว ไม่ได้เปลี่ยนข้อมูลอะไร
+  if (invoice.status === "paid" && invoice.databaseId) {
+    const receiptUrl = `/api/v1/admin/properties/${propertyId}/invoices/${invoice.databaseId}/receipt`;
+    items.push({ icon: <FileCheck2 aria-hidden="true" size={16} />, id: "receipt", label: "ใบเสร็จรับเงิน (PDF)", onSelect: () => { window.open(receiptUrl, "_blank", "noopener,noreferrer"); } });
   }
   // บิลที่ชำระแล้วหรือยกเลิกแล้วเป็นอันจบ ไม่มีอะไรให้ทำต่อ
   const settled = invoice.status === "paid" || invoice.status === "cancelled";

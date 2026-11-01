@@ -1,7 +1,13 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { jsonSuccessResponse, responseSchemas } from "./openapi-response-contracts.mjs";
 import { requestContract } from "./openapi-request-contracts.mjs";
+
+// ใช้พาธแบบ / ทั้งบน Linux และ Windows ผลที่ได้จึงตรงกันทุกเครื่อง
+// URL.pathname ใช้ไม่ได้บน Windows เพราะได้ "/D:/..." และชื่อโฟลเดอร์ภาษาไทยถูก encode
+const toPosixPath = (file) => file.split(path.sep).join("/");
+const directoryFromUrl = (url) => toPosixPath(fileURLToPath(url));
 
 // สร้าง docs/openapi.json ใหม่จาก route จริงใต้ app/api/v1
 // เขียนด้วยมือทั้งไฟล์คงตามไม่ไหว มี 120 กว่าเส้นทาง ให้เครื่องสร้างตามโค้ดแทน
@@ -12,7 +18,7 @@ const methods = ["get", "post", "put", "patch", "delete"];
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   return (await Promise.all(entries.map((entry) => {
-    const target = path.join(directory, entry.name);
+    const target = toPosixPath(path.join(directory, entry.name));
     return entry.isDirectory() ? walk(target) : [target];
   }))).flat();
 }
@@ -30,7 +36,7 @@ function pathParameterNames(apiPath) {
 
 // แปลงพาธไฟล์เป็น URL ของ OpenAPI โฟลเดอร์ [propertyId] กลายเป็น {propertyId}
 function openApiPath(file) {
-  return `/${path.relative(new URL("app/", root).pathname, file)
+  return `/${path.posix.relative(directoryFromUrl(new URL("app/", root)), file)
     .replace(/\/route\.ts$/, "")
     .split("/")
     .map((segment) => {
@@ -184,7 +190,9 @@ function isBinaryGet(method, apiPath) {
     apiPath.endsWith("/image") ||
     apiPath.endsWith("/slip") ||
     apiPath.endsWith("/signed-document") ||
-    apiPath.endsWith("/attachment")
+    apiPath.endsWith("/attachment") ||
+    // ใบเสร็จรับเงินตอบเป็นไฟล์ PDF ไม่ใช่ JSON
+    apiPath.endsWith("/receipt")
   );
 }
 
@@ -367,7 +375,7 @@ document.components.responses = {
   TooManyRequests: errorResponse("The request rate limit was exceeded. Retry after the current window.", "ส่งคำขอบ่อยเกินไป กรุณาลองใหม่ภายหลัง"),
   InternalServerError: errorResponse("An unexpected server error occurred. No internal details are exposed.", "ไม่สามารถดำเนินการได้"),
 };
-const routeRoot = new URL("../app/api/v1/", import.meta.url).pathname;
+const routeRoot = directoryFromUrl(new URL("../app/api/v1/", import.meta.url));
 const routeFiles = (await walk(routeRoot)).filter((file) => file.endsWith("/route.ts")).sort();
 
 for (const file of routeFiles) {
@@ -384,7 +392,7 @@ for (const file of routeFiles) {
     document.paths[apiPath][method] = {
       operationId: operationId(method, apiPath),
       summary: `${method.toUpperCase()} ${apiPath}`,
-      description: `Implementation: ${path.relative(root.pathname, file)}`,
+      description: `Implementation: ${path.posix.relative(directoryFromUrl(root), file)}`,
       tags: [tagFor(apiPath)],
       // หน้าสมัครเป็นเส้นเดียวที่เปิดให้ยิงได้โดยไม่ต้องล็อกอิน security ว่างคือไม่ต้องยืนยันตัวตน
       ...(apiPath === "/api/v1/tenant/register" ? { security: [] } : {}),

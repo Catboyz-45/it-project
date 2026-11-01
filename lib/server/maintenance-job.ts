@@ -1,6 +1,7 @@
 import { getDatabase } from "@/lib/server/db";
 import { enforceFileRetention, type FileRetentionResult } from "@/lib/server/file-retention";
 import { recalculateOverdueInvoicesWithDatabase } from "@/lib/server/invoices";
+import { sendSubscriptionExpiryReminders } from "@/lib/server/subscription-reminders";
 
 // เลขล็อกที่ตั้งขึ้นเอง ใช้กับ advisory lock ของ Postgres
 // ต้องเป็นค่าคงที่ ทุกเครื่องจะได้ชนกันที่ล็อกเดียวกันและมีแค่เครื่องเดียวที่ได้ทำงาน
@@ -13,6 +14,7 @@ export type MaintenanceJobResult = {
   publishedAnnouncements: number;
   expiredSubscriptions: number;
   expiredSubscriptionOrders: number;
+  expiryRemindersSent: number;
 } & FileRetentionResult;
 
 const emptyRetentionResult = (): FileRetentionResult => ({
@@ -41,6 +43,7 @@ export async function runMaintenanceJob(runAt = new Date()): Promise<Maintenance
         publishedAnnouncements: 0,
         expiredSubscriptions: 0,
         expiredSubscriptionOrders: 0,
+        expiryRemindersSent: 0,
         ...emptyRetentionResult(),
       };
     }
@@ -83,11 +86,14 @@ export async function runMaintenanceJob(runAt = new Date()): Promise<Maintenance
       publishedAnnouncements: announcements.count,
       expiredSubscriptions: subscriptions.count,
       expiredSubscriptionOrders: subscriptionOrders.count,
+      expiryRemindersSent: 0,
       ...emptyRetentionResult(),
     };
   }, { isolationLevel: "Serializable", timeout: 60_000 });
   if (databaseResult.status === "already_running") return databaseResult;
 
+  // ส่งอีเมลหลัง transaction จบ การรอบริการอีเมลจะได้ไม่ถือล็อกของงานหลักไว้
+  const reminders = await sendSubscriptionExpiryReminders(runAt);
   const retention = await enforceFileRetention(runAt);
-  return { ...databaseResult, ...retention };
+  return { ...databaseResult, ...reminders, ...retention };
 }

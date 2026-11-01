@@ -49,7 +49,17 @@ type PageInfo = {
 type CreatedInvitation = {
   invitation: Invitation;
   invitationCode: string;
+  // not_requested = ไม่ได้ใส่อีเมล skipped = เครื่องนี้ยังไม่ได้ตั้งค่าบริการส่งอีเมล
+  emailStatus: "not_requested" | "sent" | "skipped" | "failed";
 };
+
+// ข้อความหลังสร้างคำเชิญ บอกตรง ๆ ว่าอีเมลไปถึงไหม ส่งไม่ได้ก็ยังมีรหัสให้คัดลอกเสมอ
+function invitationCreatedMessage(status: CreatedInvitation["emailStatus"], email: string) {
+  if (status === "sent") return `ส่งลิงก์สมัครไปที่ ${email} แล้ว รหัสด้านล่างใช้สำรองได้หากผู้เช่าไม่ได้รับอีเมล`;
+  if (status === "failed") return "สร้างคำเชิญแล้ว แต่ส่งอีเมลไม่สำเร็จ กรุณาคัดลอกรหัสด้านล่างส่งให้ผู้เช่าเอง";
+  if (status === "skipped") return "สร้างคำเชิญแล้ว ระบบนี้ยังไม่ได้ตั้งค่าการส่งอีเมล กรุณาคัดลอกรหัสส่งให้ผู้เช่า";
+  return "สร้างคำเชิญแล้ว กรุณาคัดลอกรหัสและส่งให้ผู้เช่า";
+}
 
 // ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function readData<T>(response: Response): Promise<T> {
@@ -71,6 +81,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
   const [roomId, setRoomId] = useState("");
   const [intendedRole, setIntendedRole] = useState<"PRIMARY" | "CO_OCCUPANT">("PRIMARY");
   const [expiresInDays, setExpiresInDays] = useState(7);
+  const [inviteeEmail, setInviteeEmail] = useState("");
   const [createdCode, setCreatedCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -122,11 +133,13 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomId, intendedRole, expiresInDays }),
+          // ช่องอีเมลว่างไม่ส่งไปเลย เซิร์ฟเวอร์จะได้ไม่ต้องตีความสตริงว่าง
+          body: JSON.stringify({ roomId, intendedRole, expiresInDays, ...(inviteeEmail.trim() ? { email: inviteeEmail.trim() } : {}) }),
         },
       ));
       setCreatedCode(result.invitationCode);
-      setMessage("สร้างคำเชิญแล้ว กรุณาคัดลอกรหัสและส่งให้ผู้เช่า");
+      setMessage(invitationCreatedMessage(result.emailStatus, inviteeEmail.trim()));
+      setInviteeEmail("");
       await load();
     } catch (cause) {
       setError(formatClientError(cause, "สร้างคำเชิญไม่สำเร็จ"));
@@ -156,7 +169,8 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
     try {
       const response = await fetch(
         `/api/v1/admin/properties/${propertyId}/invitations/${invitationId}`,
-        { method: "DELETE", credentials: "same-origin" },
+        // เซิร์ฟเวอร์บังคับ Content-Type แบบ JSON กับทุกคำขอที่เปลี่ยนข้อมูลเพื่อกัน CSRF แม้ไม่มี body ก็ต้องส่ง
+        { method: "DELETE", credentials: "same-origin", headers: { "Content-Type": "application/json" } },
       );
       if (!response.ok) {
         const payload = await response.json() as { error?: string };
@@ -181,6 +195,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
         createdCode={createdCode}
         expiresInDays={expiresInDays}
         intendedRole={intendedRole}
+        inviteeEmail={inviteeEmail}
         loading={loading}
         onCopy={copyCode}
         onSubmit={createInvitation}
@@ -188,6 +203,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
         rooms={rooms}
         setExpiresInDays={setExpiresInDays}
         setIntendedRole={setIntendedRole}
+        setInviteeEmail={setInviteeEmail}
         setRoomId={setRoomId}
         submitting={submitting}
       />}
@@ -284,11 +300,12 @@ async function requestInvitationPage(propertyId: string, page: number) {
 }
 
 // ฟอร์มสร้างคำเชิญ พร้อมกล่องแสดงรหัสที่เพิ่งสร้าง
-function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedRole, loading, onCopy, onSubmit, roomId, rooms, setExpiresInDays, setIntendedRole, setRoomId, submitting }: Readonly<{
+function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedRole, inviteeEmail, loading, onCopy, onSubmit, roomId, rooms, setExpiresInDays, setIntendedRole, setInviteeEmail, setRoomId, submitting }: Readonly<{
   copied: boolean;
   createdCode: string;
   expiresInDays: number;
   intendedRole: "PRIMARY" | "CO_OCCUPANT";
+  inviteeEmail: string;
   loading: boolean;
   onCopy: () => Promise<void>;
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => Promise<void>;
@@ -296,6 +313,7 @@ function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedR
   rooms: RoomOption[];
   setExpiresInDays: (days: number) => void;
   setIntendedRole: (role: "PRIMARY" | "CO_OCCUPANT") => void;
+  setInviteeEmail: (email: string) => void;
   setRoomId: (roomId: string) => void;
   submitting: boolean;
 }>) {
@@ -304,14 +322,15 @@ function CreateInvitationSection({ copied, createdCode, expiresInDays, intendedR
     <div className="settings-section-head">
       <div>
         <h2>สร้างคำเชิญผู้เช่า</h2>
-        <p>เลือกรูปแบบผู้พักและกำหนดอายุรหัสก่อนส่งให้ผู้เช่า</p>
+        <p>เลือกรูปแบบผู้พักและกำหนดอายุรหัส ใส่อีเมลผู้เช่าเพื่อส่งลิงก์สมัครให้ทันที หรือเว้นว่างแล้วคัดลอกรหัสไปส่งเอง</p>
       </div>
     </div>
 
-    <form className="grid gap-4 lg:grid-cols-[1fr_220px_160px_auto]" onSubmit={onSubmit}>
+    <form className="grid gap-4 lg:grid-cols-[1fr_220px_160px]" onSubmit={onSubmit}>
       <DropdownField disabled={submitting || !hasRooms} label="ห้อง" onChange={setRoomId} options={rooms.map((room) => ({ label: `ห้อง ${room.number} · ${room.building.name} ชั้น ${room.floor.number}`, value: room.id }))} value={roomId} />
       <DropdownField disabled={submitting} label="สิทธิ์ผู้พัก" onChange={(value) => setIntendedRole(value as "PRIMARY" | "CO_OCCUPANT")} options={[{ label: "ผู้เช่าหลัก", value: "PRIMARY" }, { label: "ผู้พักร่วม", value: "CO_OCCUPANT" }]} value={intendedRole} />
       <DropdownField disabled={submitting} label="อายุรหัส" onChange={(value) => setExpiresInDays(Number(value))} options={[1, 3, 7, 14, 30].map((days) => ({ label: `${days} วัน`, value: String(days) }))} value={String(expiresInDays)} />
+      <label className="lg:col-span-2"><span>อีเมลผู้เช่า (ไม่บังคับ)</span><input autoComplete="off" disabled={submitting} inputMode="email" maxLength={254} onChange={(event) => setInviteeEmail(event.target.value)} placeholder="tenant@example.com" type="email" value={inviteeEmail} /></label>
       <button
         aria-describedby={!submitting && !roomId ? "invitation-create-disabled-reason" : undefined}
         className="primary-button self-end"

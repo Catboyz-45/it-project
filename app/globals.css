@@ -152,7 +152,7 @@
      วงโฟกัสด้านบนยื่นออกนอกตัวเองราว 6px จึงโดนตัดจนดูเหมือนชนขอบ
      ย้ายวงเข้ามาอยู่ด้านในขอบแทน ยังหนา 3px สีเดิมและเห็นชัดเหมือนเดิม */
   :is(input, select, textarea, .dropdown-trigger, .schedule-date-trigger):focus-visible,
-  .sidebar :is(nav a, nav button, .sidebar-footer > button):focus-visible,
+  .sidebar :is(nav a, nav button, .sidebar-footer > button, .sidebar-footer-links > a):focus-visible,
   :is(.modal-form, .modal-body, .chat-widget, .notification-list, .account-menu, .property-menu) :is(button, a):focus-visible {
     outline-offset: -3px !important;
     box-shadow: inset 0 0 0 5px rgba(70, 81, 199, 0.18) !important;
@@ -345,17 +345,17 @@
   .brand small { @apply block truncate text-xs text-[#73757d]; }
   .brand-switch-icon { @apply shrink-0 text-[#73757d]; }
   .sidebar nav { @apply grid gap-1 overflow-y-auto; }
-  .sidebar nav button, .sidebar nav a, .sidebar-footer > button {
+  .sidebar nav button, .sidebar nav a, .sidebar-footer > button, .sidebar-footer-links > a {
     @apply relative flex min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-[#62636b] transition-colors duration-150 hover:bg-[#ededee] hover:text-[#292a30] lg:min-h-9;
   }
-  .sidebar nav button.active, .sidebar nav a.active, .sidebar-footer > button.active {
+  .sidebar nav button.active, .sidebar nav a.active, .sidebar-footer > button.active, .sidebar-footer-links > a.active {
     @apply bg-brand/[.10] font-semibold text-[#4651c7];
   }
   /* แท่ง indicator ด้านในซ้ายของแต่ละเมนู: ซ่อนอยู่ (height 0) ตอนไม่ active
      แล้วยืดขึ้นตอนเปลี่ยนหน้า เพราะ Link แต่ละอันคงอยู่ใน DOM เดิม (key ต่อ
      item) React แค่สลับ className "active" ไปมา CSS transition เลยเห็นการ
      ยืด-หดจริงตอนสลับเมนูโดยไม่ต้องพึ่ง JS หรือ view-transition */
-  .sidebar nav button::before, .sidebar nav a::before, .sidebar-footer > button::before {
+  .sidebar nav button::before, .sidebar nav a::before, .sidebar-footer > button::before, .sidebar-footer-links > a::before {
     content: "";
     position: absolute;
     left: 2px;
@@ -368,13 +368,13 @@
     transform: translateY(-50%);
     transition: height 200ms cubic-bezier(.2,.8,.2,1), opacity 200ms ease-out;
   }
-  .sidebar nav button.active::before, .sidebar nav a.active::before, .sidebar-footer > button.active::before {
+  .sidebar nav button.active::before, .sidebar nav a.active::before, .sidebar-footer > button.active::before, .sidebar-footer-links > a.active::before {
     height: 60%;
     opacity: 1;
   }
   /* ไอคอนไม่ตั้งสีของตัวเอง ปล่อยให้รับสีจากข้อความของเมนู เทาตอนปกติ
      และเป็นสี brand ตอน active เหมือนกันทั้งเจ้าของหอ ผู้เช่า และซูเปอร์แอดมิน */
-  .sidebar nav a.active svg, .sidebar nav button.active svg { color: #4651c7; }
+  .sidebar nav a.active svg, .sidebar nav button.active svg, .sidebar-footer-links > a.active svg { color: #4651c7; }
   .notification-badge {
     @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white;
   }
@@ -384,6 +384,7 @@
   .tenant-sidebar-footer > button,
   .super-admin-sidebar .sidebar-footer > button { @apply w-full justify-center; }
   .tenant-content .tenant-page-title { @apply hidden; }
+  .tenant-receipt-link { @apply mt-4 inline-flex items-center gap-2 no-underline; }
   .tenant-workspace > .subscription-access-banner { @apply mx-6; }
   /* หน้าแรกของผู้เช่าเคยมีการ์ดขาวใบใหญ่ครอบทุกอย่างอีกชั้น ซึ่งอีกสองโรลไม่มี
      ตอนนี้แต่ละส่วนเป็นการ์ดของตัวเองแล้ว ชั้นครอบจึงเหลือแค่การจัดระยะ */
@@ -411,6 +412,21 @@
   .sidebar-chevron { @apply ml-auto transition-transform; }
   .sidebar-chevron.open { @apply rotate-180; }
   .sidebar-footer { @apply relative mt-auto pt-3; }
+  /* เมนูตั้งค่าหอของเจ้าของหอ อยู่เหนือปุ่มบัญชี ดันลงล่างแทนตัวปุ่มบัญชี */
+  .sidebar-footer-links { @apply mt-auto grid gap-1 border-t border-[#ececee] pt-3; }
+  .sidebar-footer-links + .sidebar-footer { @apply mt-0 pt-1; }
+  /* ปุ่มบัญชีแบบ Slack/Discord วงกลมตัวย่อชื่อ ชื่อ และป้ายบทบาท สีของป้ายแยกตามบทบาท */
+  .sidebar-footer > .account-chip-trigger { @apply min-h-12 gap-2.5 px-2 py-2 lg:min-h-12; }
+  .account-avatar { @apply grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold; }
+  .account-chip-text { @apply grid min-w-0 flex-1 gap-0.5 text-left; }
+  .account-chip-text strong { @apply truncate text-sm font-semibold text-[#292a30]; }
+  .account-chip-text small { @apply flex min-w-0 items-center gap-1.5 text-xs font-normal text-[#62646c]; }
+  .account-chip-context { @apply truncate; }
+  .account-role-tag { @apply shrink-0 rounded-full px-1.5 text-[10px] leading-4 font-semibold; }
+  .account-chip-chevron { @apply shrink-0 text-[#9a9ba3]; }
+  .account-tone-owner { @apply bg-brand/[.12] text-[#3f48b0]; }
+  .account-tone-tenant { @apply bg-emerald-100 text-emerald-800; }
+  .account-tone-admin { @apply bg-amber-100 text-amber-800; }
   .account-menu {
     @apply absolute bottom-16 left-0 z-40 w-full rounded-2xl border border-[#e4e4e7] bg-[#fff] p-2 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
   }
@@ -447,17 +463,22 @@
     .shell[data-nav-collapsed] > .sidebar .sidebar-head > .nav-toggle { @apply mt-0; }
     /* ป้ายลอยตอนชี้เมาส์จะโดนตัดถ้ารายการเลื่อนได้ ไอคอนล้วนสั้นพอจนไม่ต้องเลื่อนอยู่แล้ว */
     .shell[data-nav-collapsed] > .sidebar nav { @apply overflow-visible; }
-    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button) { @apply justify-center gap-0 px-0; }
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button, .sidebar-footer-links > a) { @apply justify-center gap-0 px-0; }
     /* ซ่อนชื่อเมนูแบบที่โปรแกรมอ่านหน้าจอยังอ่านได้ แล้วโผล่เป็นป้ายข้างไอคอนตอนชี้หรือโฟกัส */
-    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button) > span:not(.notification-badge) {
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button, .sidebar-footer-links > a) > span:not(.notification-badge):not(.account-avatar) {
       @apply pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 -translate-y-1/2 rounded-md bg-[#292a30] px-2 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0;
       flex: none;
       width: auto;
       overflow: visible;
     }
-    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button):is(:hover, :focus-visible) > span:not(.notification-badge) { @apply opacity-100 transition-opacity duration-150; }
+    .shell[data-nav-collapsed] > .sidebar :is(nav a, nav button, .sidebar-footer > button, .sidebar-footer-links > a):is(:hover, :focus-visible) > span:not(.notification-badge):not(.account-avatar) { @apply opacity-100 transition-opacity duration-150; }
     .shell[data-nav-collapsed] > .sidebar .notification-badge { @apply absolute top-0.5 right-1 min-w-4.5 px-1 py-0 text-[9px] leading-[18px]; }
     .shell[data-nav-collapsed] > .sidebar .sidebar-chevron { @apply hidden; }
+    /* ย่อแถบแล้วปุ่มบัญชีเหลือแค่วงกลมตัวย่อชื่อ ป้ายลอยตอนชี้บอกแค่ชื่อ ลูกศรไม่จำเป็น */
+    .shell[data-nav-collapsed] > .sidebar :is(.account-chip-chevron, .account-chip-text small) { @apply hidden; }
+    .shell[data-nav-collapsed] > .sidebar .account-chip-text { @apply block; }
+    .shell[data-nav-collapsed] > .sidebar .account-chip-text strong { @apply overflow-visible text-xs font-medium whitespace-nowrap text-white; }
+    .shell[data-nav-collapsed] > .sidebar .sidebar-footer-links { @apply border-t-0; }
     .shell[data-nav-collapsed] > .sidebar .sidebar-subnav > div { @apply ml-0 border-l-0 pl-0; }
     /* เมนูย่อยที่กางอยู่ปล่อยให้ป้ายชื่อลอยออกนอกได้ ตอนพับยังต้องซ่อนส่วนเกินไว้เพื่อให้หดได้ */
     .shell[data-nav-collapsed] > .sidebar .sidebar-subnav.open > div { @apply overflow-visible; }

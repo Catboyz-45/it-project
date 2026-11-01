@@ -9,6 +9,9 @@ export const createInvitationSchema = z.object({
   intendedRole: occupancyRoleSchema.default("CO_OCCUPANT"),
   // อายุไม่เกิน 30 วัน รหัสที่ค้างนานเกินไปเป็นความเสี่ยงถ้าหลุดออกไป
   expiresInDays: z.number().int().min(1).max(30).default(7),
+  // ไม่บังคับ ใส่มาระบบจะส่งลิงก์สมัครพร้อมรหัสไปให้ทางอีเมล ไม่ใส่ก็คัดลอกรหัสไปส่งเองได้เหมือนเดิม
+  // ไม่เก็บอีเมลนี้ลงฐานข้อมูล ใช้ส่งครั้งเดียวแล้วทิ้ง
+  email: z.email("อีเมลไม่ถูกต้อง").trim().toLowerCase().max(254).optional(),
 }).strict();
 
 // สมัครเป็นผู้เช่า ต้องมีรหัสเชิญเสมอ ไม่เปิดให้สมัครเองลอย ๆ
