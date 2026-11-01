@@ -759,6 +759,8 @@
   .meter-table-card table :is(thead, tbody) > tr > :first-child,
   .repair-board table :is(thead, tbody) > tr > :first-child,
   .panel.overflow-hidden table :is(thead, tbody) > tr > :first-child,
+  /* ตารางของแอดมินใหญ่ย้ายจาก .panel.overflow-hidden มาใช้ .admin-resource ต้องปักคอลัมน์แรกเหมือนเดิม */
+  .admin-resource table :is(thead, tbody) > tr > :first-child,
   .subscription-review table :is(thead, tbody) > tr > :first-child {
     @apply sticky left-0 z-[1];
   }

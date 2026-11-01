@@ -36,7 +36,7 @@ const tenantTables = [
 
 const superAdminTables = [
   { columns: 6, path: "/super-admin/accounts", title: "บัญชีผู้ดูแล" },
-  { columns: 4, path: "/super-admin/properties", title: "หอพัก" },
+  { columns: 5, path: "/super-admin/properties", title: "หอพัก" },
   { columns: 7, path: "/super-admin/plans", title: "แพ็กเกจ" },
   { columns: 5, path: "/super-admin/audit-logs", title: "บันทึกระบบ" },
   { columns: 6, path: "/super-admin/subscriptions", title: "ตรวจค่าสมาชิก" },
