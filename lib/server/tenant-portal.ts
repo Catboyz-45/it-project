@@ -129,6 +129,8 @@ export async function getTenantNotificationSummary(
         roomId,
         status: "WAITING",
         room: { occupancies: { some: { tenantProfileId, status: "ACTIVE" } } },
+        // นับแบบเดียวกับรายการในหน้าพัสดุ ของที่ส่งถึงผู้พักคนอื่นในห้องไม่นับ ไม่งั้นป้ายบอกมีพัสดุแต่เปิดไปไม่เจอ
+        OR: [{ recipientTenantId: tenantProfileId }, { recipientTenantId: null }],
       },
     }),
     getDatabase().serviceTicket.count({

@@ -342,7 +342,8 @@
   .brand-platform-mark { @apply grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl; }
   .brand-copy { @apply min-w-0 flex-1; }
   .brand strong { @apply block truncate text-[15px] font-semibold tracking-[-.01em]; }
-  .brand small { @apply block truncate text-xs text-[#73757d]; }
+  /* คำโปรยตัดขึ้นบรรทัดใหม่แทนการตัดเป็น "…" ข้อความสั้นอยู่แล้ว ตัดกลางคำภาษาไทยแล้วอ่านไม่รู้เรื่อง */
+  .brand small { @apply block text-xs leading-snug text-[#55575f]; }
   .brand-switch-icon { @apply shrink-0 text-[#73757d]; }
   .sidebar nav { @apply grid gap-1 overflow-y-auto; }
   .sidebar nav button, .sidebar nav a, .sidebar-footer > button, .sidebar-footer-links > a {
@@ -549,6 +550,8 @@
     @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
   .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
+  /* สถานะว่างกินเต็มแถว จัดกลางแนวตั้ง ไม่ถูกกฎ flex ของการ์ดงานบีบจนข้อความตกบรรทัดเป็นท่อน ๆ */
+  .work-item-grid > .empty-state { @apply col-span-full grid min-h-36 place-items-center gap-1 border-dashed text-center; }
   .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff] text-[#62646c]; }
   .work-item-icon > svg { @apply size-4; }
   .work-item-copy { @apply min-w-0 flex-1; }

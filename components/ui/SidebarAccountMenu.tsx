@@ -42,14 +42,17 @@ export function SidebarAccountMenu({
   displayName,
   email,
   role,
+  roleLabel,
 }: Readonly<{
   contextLabel?: string;
   displayName: string;
   email: string;
   role: SidebarAccountRole;
+  // แทนป้ายบทบาทเริ่มต้นได้ เช่นผู้พักร่วมที่เป็นบัญชีผู้เช่าเหมือนกันแต่สิทธิ์ไม่เท่าผู้เช่าหลัก
+  roleLabel?: string;
 }>) {
   const pathname = usePathname();
-  const config = roleConfig[role];
+  const config = roleLabel ? { ...roleConfig[role], roleLabel } : roleConfig[role];
   const [isOpen, setIsOpen] = useState(false);
   const { isLoggingOut, logout } = useLogout();
   const containerRef = useRef<HTMLDivElement>(null);

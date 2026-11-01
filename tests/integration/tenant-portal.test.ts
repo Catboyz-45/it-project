@@ -131,6 +131,24 @@ describe("tenant portal read model", () => {
     expect(summary.unpaidInvoices).toBe(0);
   });
 
+  // ป้ายพัสดุบนหน้าแรกต้องนับตรงกับรายการในหน้าพัสดุ ของที่ส่งถึงผู้เช่าหลักไม่นับให้ผู้พักร่วม
+  it("counts only parcels the co-occupant can see", async () => {
+    const parcel = await getDatabase().parcel.create({
+      data: {
+        propertyId: fixture!.property.id, roomId: fixture!.room.id, registeredById: fixture!.owner.id,
+        recipientTenantId: tenantProfileId, note: "ถึงผู้เช่าหลัก",
+      },
+      select: { id: true },
+    });
+    try {
+      const primary = await getTenantNotificationSummary(tenantProfileId, tenantUserId, fixture!.room.id, "PRIMARY");
+      const co = await getTenantNotificationSummary(coTenantProfileId, coTenantUserId, fixture!.room.id, "CO_OCCUPANT");
+      expect(primary.waitingParcels).toBe(co.waitingParcels + 1);
+    } finally {
+      await getDatabase().parcel.delete({ where: { id: parcel.id } });
+    }
+  });
+
   it("lists invoices for the primary tenant", async () => {
     const page = await listTenantInvoices(tenantProfileId, fixture!.room.id, "PRIMARY", pagination);
     expect(Array.isArray(page.data)).toBe(true);

@@ -148,6 +148,8 @@ const tabDescriptions: Record<TenantTab, string> = {
 const mobilePrimaryTabs = tabs.filter(({ id }) => ["home", "invoices", "parcels", "tickets"].includes(id));
 // แชทกับบัญชีไม่อยู่ในเมนูหลักของจอกว้าง เพราะมีปุ่มของตัวเองอยู่แล้ว
 const navigationTabs = tabs.filter(({ id }) => !["chat", "account"].includes(id));
+// หน้าที่ผู้พักร่วมเปิดไม่ได้ เพราะบิลและสัญญาเป็นเรื่องของผู้เช่าหลัก
+const primaryOnlyTabs = new Set<TenantTab>(["invoices", "lease"]);
 const mobileMoreTabs = tabs.filter(({ id }) => ["lease", "announcements", "account"].includes(id));
 
 // ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
@@ -468,7 +470,8 @@ export function TenantPortal({
       </div>
       <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
       <nav aria-label="เมนูผู้เช่า">
-        {navigationTabs.map(({ id, icon: Icon, label }) => (
+        {/* ผู้พักร่วมไม่เห็นบิลและสัญญา ซ่อนเมนูไปเลย ดีกว่าให้กดเข้าไปเจอแค่ข้อความว่าไม่มีสิทธิ์ */}
+        {navigationTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
           <TenantNavLink count={notificationCount(id)} icon={<Icon size={19} />} isActive={activeTab === id} key={id} label={label} tab={id} />
         ))}
       </nav>
@@ -479,6 +482,7 @@ export function TenantPortal({
         displayName={account.user.displayName}
         email={account.user.email}
         role="TENANT"
+        roleLabel={primary ? "ผู้เช่า" : "ผู้พักร่วม"}
       />
     </aside>
     <section className="workspace tenant-workspace">
@@ -510,7 +514,7 @@ export function TenantPortal({
     </div>
     </section>
     <nav aria-label="เมนูผู้เช่าบนมือถือ" className="tenant-mobile-navigation">
-      {mobilePrimaryTabs.map(({ id, icon: Icon, label }) => (
+      {mobilePrimaryTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
         <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
           <span className="tenant-mobile-nav-icon">
             <Icon aria-hidden="true" size={21} />
@@ -528,7 +532,7 @@ export function TenantPortal({
         </summary>
         <div className="tenant-mobile-more-menu">
           <strong>เมนูเพิ่มเติม</strong>
-          {mobileMoreTabs.map(({ id, icon: Icon, label }) => (
+          {mobileMoreTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
             <Link aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "active" : ""} href={tenantPagePath(id)} key={id}>
               <Icon aria-hidden="true" size={20} />
               <span>{label}</span>
@@ -739,9 +743,9 @@ function AccountPanel({
         <h2>ข้อมูลบัญชี</h2>
         <div className="account-detail-row"><strong>ชื่อ-นามสกุล</strong><span>{account.user.displayName}</span><button onClick={() => { setProfileError(""); setProfileMessage(""); setIsEditingProfile(true); }} type="button">แก้ไข</button></div>
         <div className="account-detail-row"><strong>อีเมล</strong><span>{account.user.email}</span><small>จัดการโดยผู้ดูแลหอพัก</small></div>
-        <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{account.phone || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
+        <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{formatThaiPhone(account.phone) || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
         <div className="account-detail-row"><strong>ที่อยู่</strong><span>{account.address || "ยังไม่ระบุ"}</span><small>ข้อมูลส่วนตัว</small></div>
-        <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{account.emergencyPhone || "ยังไม่ระบุเบอร์"}</small></div>
+        <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"}</small></div>
         {profileMessage ? <output className="account-settings-message success block">{profileMessage}</output> : null}
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
       </section>
