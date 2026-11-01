@@ -1,10 +1,11 @@
 "use client";
 // ฟอร์มบัญชีรับค่าแพ็กเกจของแพลตฟอร์ม ต้องเก็บค่าที่พิมพ์และสถานะการบันทึกไว้ในเบราว์เซอร์
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Building2, QrCode } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiPayload } from "@/lib/client/api-error";
+import { createPromptPayPayload } from "@/lib/domain/payments";
 import {
   bankOptions,
   formatAccountNumber,
@@ -174,10 +175,7 @@ function PaymentPreview({ bankReady, draft, promptPayReady }: Readonly<{ bankRea
     return <p className="form-alert warning">ยังไม่มีช่องทางรับเงิน เจ้าของหอจะเห็นข้อความให้ติดต่อผู้ดูแลระบบก่อนโอน</p>;
   }
   return <div className="payment-settings-preview-card">
-    {promptPayReady ? <figure>
-      <span className="payment-settings-qr"><QrCode aria-hidden="true" size={56} /></span>
-      <figcaption>สแกนจ่ายตรงยอด</figcaption>
-    </figure> : null}
+    {promptPayReady ? <PromptPayTestQr promptPayId={draft.promptPayId} /> : null}
     {bankReady ? <dl>
       <dt>โอนเข้าบัญชี</dt>
       <dd className="font-bold">{draft.bankName}</dd>
@@ -186,4 +184,42 @@ function PaymentPreview({ bankReady, draft, promptPayReady }: Readonly<{ bankRea
     </dl> : null}
     {promptPayReady && !bankReady ? <dl><dt>พร้อมเพย์</dt><dd className="font-mono">{formatPromptPayId(draft.promptPayId)}</dd></dl> : null}
   </div>;
+}
+
+// ยอดทดสอบ 1 บาท สแกนด้วยแอปธนาคารแล้วดูชื่อบัญชีปลายทางได้ก่อนกดยืนยัน ไม่ต้องโอนจริง
+const testAmount = 1;
+
+// QR พร้อมเพย์ของจริงจากเลขที่กรอก ใช้ตัวสร้างเดียวกับหน้าชำระจริง ต่างกันแค่ยอด
+// สร้างในเบราว์เซอร์ทันทีที่พิมพ์ ไม่ต้องบันทึกก่อน
+function PromptPayTestQr({ promptPayId }: Readonly<{ promptPayId: string }>) {
+  const [image, setImage] = useState<{ id: string; src: string } | null>(null);
+  const [failedId, setFailedId] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    let payload: string;
+    try {
+      payload = createPromptPayPayload(promptPayId, testAmount);
+    } catch {
+      // ผ่านการตรวจความยาวแล้ว แต่ไม่ใช่เบอร์มือถือหรือเลข 13 หลัก เช่นเลข e-Wallet 15 หลัก สร้าง QR ไม่ได้
+      queueMicrotask(() => { if (!cancelled) setFailedId(promptPayId); });
+      return () => { cancelled = true; };
+    }
+    // โหลดตัวสร้างรูปเมื่อต้องใช้จริง หน้าที่ยังไม่ได้ตั้งพร้อมเพย์จะได้ไม่ต้องโหลด
+    void import("qrcode").then((QRCode) => QRCode.toDataURL(payload, { width: 240, margin: 1, errorCorrectionLevel: "M" }))
+      .then((src) => { if (!cancelled) setImage({ id: promptPayId, src }); })
+      .catch(() => { if (!cancelled) setFailedId(promptPayId); });
+    return () => { cancelled = true; };
+  }, [promptPayId]);
+
+  if (failedId === promptPayId) {
+    return <p className="form-alert warning">เลขนี้สร้าง QR ไม่ได้ ใช้เบอร์มือถือ 10 หลัก หรือเลขประจำตัว 13 หลัก</p>;
+  }
+  return <figure>
+    {image?.id === promptPayId
+      // eslint-disable-next-line @next/next/no-img-element -- รูปสร้างในเบราว์เซอร์เป็น data URL ไม่มีอะไรให้ next/image ปรับ
+      ? <img alt={`QR พร้อมเพย์ทดสอบ ${formatPromptPayId(promptPayId)} ยอด ${testAmount} บาท`} className="payment-settings-qr-image" height={120} src={image.src} width={120} />
+      : <span className="payment-settings-qr"><QrCode aria-hidden="true" size={56} /></span>}
+    <figcaption>QR ทดสอบ ยอด {testAmount} บาท<br />สแกนดูชื่อปลายทางได้ ไม่ต้องโอน</figcaption>
+  </figure>;
 }
