@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { parsePagination } from "@/lib/server/pagination";
-import { listSuperAdminProperties } from "@/lib/server/super-admin-lists";
+import { listSuperAdminProperties, parseSuperAdminPropertyStatus } from "@/lib/server/super-admin-lists";
 
 // รายการหอพักทั้งระบบ
 export async function GET(request: NextRequest) {
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
       {
         activeOnly: request.nextUrl.searchParams.get("activeOnly") === "true",
         query: request.nextUrl.searchParams.get("query")?.trim().slice(0, 160),
+        // ค่าที่ไม่รู้จักถือว่าไม่ได้กรอง
+        status: parseSuperAdminPropertyStatus(request.nextUrl.searchParams.get("status")),
       },
     ));
   // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ

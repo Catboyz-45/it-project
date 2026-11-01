@@ -20,7 +20,8 @@ export async function PUT(request: NextRequest, context: Context) {
     const data = await assignPropertySubscription(parsed.data, assignSubscriptionSchema.parse(await request.json()));
     return apiSuccessResponse(request, { data }, undefined, {
       userId: auth.userId, propertyId: parsed.data, action: "PROPERTY_SUBSCRIPTION_ASSIGN",
-      targetType: "PropertySubscription", targetId: parsed.data,
+      // เก็บว่าเปลี่ยนเป็นแพ็กเกจไหน หน้ารายละเอียดหอจะเอาไปแสดงในประวัติแพ็กเกจ
+      targetType: "SaasPlan", targetId: data.planId ?? undefined,
     });
   // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
   } catch (error) { return apiErrorResponse(error, request); }

@@ -8,15 +8,20 @@ describe("account initials", () => {
     expect(accountInitials("  เอกชัย   ไพบูลย์ ศรีสุข ")).toBe("อพ");
   });
 
-  it("keeps two characters for a single word so the circle is not one lonely letter", () => {
-    expect(accountInitials("แอดมินใหญ่")).toBe("แอ");
+  it("keeps two letters for a single English word", () => {
     expect(accountInitials("nestly")).toBe("NE");
+  });
+
+  // สองพยางค์แรกของคำไทยมักอ่านเป็นคำอื่น "ผู้ดูแลระบบ" จะกลายเป็น "ผู้ดู"
+  it("uses only the first letter of a single Thai word", () => {
+    expect(accountInitials("ผู้ดูแลระบบ")).toBe("ผู้");
+    expect(accountInitials("แอดมินใหญ่")).toBe("อ");
   });
 
   // ไม่ตัดกลางสระบนหรือวรรณยุกต์ ตัวอักษรที่มองเห็นต้องครบ
   it("never splits a consonant from its vowel or tone mark", () => {
-    // "ปิ่นทอง" ตัวแรกที่มองเห็นคือ "ปิ่" (พยัญชนะ สระบน วรรณยุกต์) ตามด้วย "น"
-    expect(accountInitials("ปิ่นทอง")).toBe("ปิ่น");
+    // "ปิ่นทอง" ตัวแรกที่มองเห็นคือ "ปิ่" (พยัญชนะ สระบน วรรณยุกต์)
+    expect(accountInitials("ปิ่นทอง")).toBe("ปิ่");
   });
 
   it("falls back to a question mark for an empty name", () => {

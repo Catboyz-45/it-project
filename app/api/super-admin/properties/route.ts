@@ -3,10 +3,11 @@ import { z } from "zod";
 import { apiErrorResponse, apiSuccessResponse, assertSameOrigin } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
+import { propertyNameSchema, propertyShortNameSchema } from "@/lib/domain/property-management";
 
 const schema = z.object({
-  name: z.string().trim().min(2).max(160),
-  shortName: z.string().trim().min(1).max(80),
+  name: propertyNameSchema,
+  shortName: propertyShortNameSchema,
 }).strict();
 
 // ผู้ดูแลระบบสร้างหอพักใหม่

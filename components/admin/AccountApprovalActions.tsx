@@ -7,6 +7,8 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
+import { readApiPayload } from "@/lib/client/api-error";
+import { reloadWithToast } from "@/lib/client/reload-with-toast";
 
 // ปุ่มจัดการบัญชีเจ้าของหอ อนุมัติ ปฏิเสธ ออกรหัสชั่วคราว และแก้สิทธิ์เข้าถึงหอ
 type PropertyOption = { id: string; name: string; isActive: boolean };
@@ -17,8 +19,7 @@ async function reviewAccountRequest(userId: string, status: "APPROVED" | "REJECT
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, ...(status === "REJECTED" ? { rejectionReason: reason } : {}) }),
   });
-  const result = await response.json() as { error?: string };
-  if (!response.ok) throw new Error(result.error || "ตรวจสอบบัญชีไม่สำเร็จ");
+  await readApiPayload(response, "ตรวจสอบบัญชีไม่สำเร็จ");
 }
 
 async function issueTemporaryPasswordRequest(userId: string) {
@@ -42,8 +43,7 @@ async function saveMembershipsRequest(userId: string, propertyIds: string[]) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ propertyIds }),
   });
-  const payload = await response.json() as { error?: string };
-  if (!response.ok) throw new Error(payload.error || "บันทึกหอพักที่รับผิดชอบไม่สำเร็จ");
+  await readApiPayload(response, "บันทึกหอพักที่รับผิดชอบไม่สำเร็จ");
 }
 
 // วนขอทีละ 100 หอจนหมด เพราะต้องแสดงให้เลือกครบทุกหอในกล่องเดียว
@@ -173,7 +173,7 @@ export function AccountApprovalActions({
     try {
       await reviewAccountRequest(userId, nextStatus, reason);
       // โหลดหน้าใหม่ทั้งหมด เพราะสถานะบัญชีถูกวาดมาจากฝั่งเซิร์ฟเวอร์
-      window.location.reload();
+      reloadWithToast(nextStatus === "APPROVED" ? "อนุมัติบัญชีแล้ว" : "ปฏิเสธบัญชีแล้ว");
     } catch (reviewError) {
       setError(reviewError instanceof Error ? reviewError.message : "ตรวจสอบบัญชีไม่สำเร็จ");
       setPending(false);
@@ -233,7 +233,7 @@ export function AccountApprovalActions({
     setError("");
     try {
       await saveMembershipsRequest(userId, selectedPropertyIds);
-      window.location.reload();
+      reloadWithToast("บันทึกหอพักที่รับผิดชอบแล้ว");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "บันทึกหอพักที่รับผิดชอบไม่สำเร็จ");
       setPending(false);

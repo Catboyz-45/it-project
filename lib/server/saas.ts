@@ -9,7 +9,9 @@ const planSelect = {
   monthlyPrice: true, yearlyPrice: true, maxProperties: true, maxRooms: true,
   allowPromptPay: true, allowFileUploads: true, allowPrioritySupport: true,
   isActive: true, sortOrder: true, createdAt: true, updatedAt: true,
-  _count: { select: { subscriptions: true } },
+  // นับเฉพาะหอที่เปิดอยู่ ให้ตรงกับตัวเลขสมาชิกบนแดชบอร์ด
+  // ไม่งั้นหอชั่วคราวที่ migration สร้างไว้เก็บข้อมูลเก่าจะถูกนับเป็นสมาชิกของ Starter ไปด้วย
+  _count: { select: { subscriptions: { where: { property: { isActive: true } } } } },
 } as const;
 
 const serializePlan = <T extends {

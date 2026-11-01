@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { postJson } from "@/components/admin/super-admin-options";
+import { reloadWithToast } from "@/lib/client/reload-with-toast";
 
 export function PropertyCreateForm() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +29,7 @@ export function PropertyCreateForm() {
     try {
       await postJson("/api/super-admin/properties", { name: form.get("name"), shortName: form.get("shortName") });
       // โหลดหน้าใหม่ทั้งหมด เพราะตารางถูกวาดมาจากฝั่งเซิร์ฟเวอร์
-      window.location.reload();
+      reloadWithToast("เพิ่มหอพักแล้ว");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
       setPending(false);

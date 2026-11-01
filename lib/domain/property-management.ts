@@ -39,7 +39,18 @@ export const updatePropertySettingsSchema = z.object({
 }).strict().superRefine(refineBankAccount);
 
 // ผู้ดูแลระบบแก้ได้แค่สองอย่าง เปิดปิดหอ กับตั้งว่าใครดูแล ไม่ยุ่งกับการตั้งค่าภายในของหอ
+// ชื่อหอที่ผู้ดูแลระบบตั้ง เขียนข้อความภาษาไทยไว้ในกฎ ฟอร์มจะได้บอกได้ว่าช่องไหนผิด
+// trim ก่อนตรวจ ชื่อที่มีแต่ช่องว่างจึงถือว่าว่าง
+export const propertyNameSchema = z.string().trim()
+  .min(2, "ชื่อเต็มของหอต้องมีอย่างน้อย 2 ตัวอักษร")
+  .max(160, "ชื่อเต็มของหอยาวได้ไม่เกิน 160 ตัวอักษร");
+export const propertyShortNameSchema = z.string().trim()
+  .min(1, "กรุณากรอกชื่อย่อของหอ")
+  .max(80, "ชื่อย่อของหอยาวได้ไม่เกิน 80 ตัวอักษร");
+
 export const superAdminPropertyUpdateSchema = z.object({
+  name: propertyNameSchema.optional(),
+  shortName: propertyShortNameSchema.optional(),
   isActive: z.boolean().optional(),
   memberUserIds: z.array(userIdSchema).max(50).optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, "ไม่มีข้อมูลให้แก้ไข");

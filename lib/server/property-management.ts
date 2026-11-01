@@ -69,7 +69,7 @@ export async function superAdminUpdateProperty(
     }
     await database.property.update({
       where: { id: propertyId },
-      data: { isActive: input.isActive },
+      data: { isActive: input.isActive, name: input.name, shortName: input.shortName },
     });
     if (memberUserIds) {
       await database.propertyMembership.deleteMany({

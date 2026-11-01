@@ -127,6 +127,27 @@ export function formatAuditAction(action: string) {
   return "เหตุการณ์ระบบ";
 }
 
+// สาเหตุของคำขอที่ไม่สำเร็จ แปลจากรหัสสถานะที่บันทึกไว้
+const auditFailureReasons: Record<string, string> = {
+  "400": "ข้อมูลไม่ถูกต้อง",
+  "401": "ยังไม่ได้เข้าสู่ระบบ",
+  "403": "ไม่มีสิทธิ์",
+  "404": "ไม่พบข้อมูล",
+  "409": "ข้อมูลซ้ำหรือขัดกับข้อมูลเดิม",
+  "413": "ไฟล์หรือข้อมูลใหญ่เกินกำหนด",
+  "429": "ส่งคำขอถี่เกินไป",
+};
+
+// รายละเอียดใต้ชื่อเหตุการณ์ที่ไม่สำเร็จ บอกสาเหตุและหน้าที่เกิดเรื่อง
+// บันทึกเก่าก่อนเก็บรหัสสถานะจะเหลือแค่ path ก็ยังพอรู้ว่าเกิดที่ไหน
+export function formatAuditFailureDetail(log: { action: string; targetId: string | null; targetType: string | null }) {
+  if (!/^API_[A-Z]+_FAILURE$/.test(log.action)) return null;
+  const reason = log.targetId && /^\d{3}$/.test(log.targetId)
+    ? auditFailureReasons[log.targetId] ?? (log.targetId.startsWith("5") ? "ระบบขัดข้อง" : `รหัส ${log.targetId}`)
+    : null;
+  return [reason, log.targetType].filter(Boolean).join(" · ") || null;
+}
+
 const auditResultLabels: Record<string, string> = {
   SUCCESS: "สำเร็จ",
   FAILURE: "ไม่สำเร็จ",

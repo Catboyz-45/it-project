@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { postJson, type PropertyOption, usePagedOptions } from "@/components/admin/super-admin-options";
+import { reloadWithToast } from "@/lib/client/reload-with-toast";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 
 // รายการหอให้ติ๊กเลือก พร้อมปุ่มโหลดเพิ่มเมื่อยังมีหน้าถัดไป
@@ -68,7 +69,7 @@ export function AdminAccountForm() {
         password: form.get("password"),
         propertyIds: selectedPropertyIds,
       });
-      window.location.reload();
+      reloadWithToast("สร้างบัญชีเจ้าของหอแล้ว");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
       setPending(false);

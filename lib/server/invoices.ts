@@ -358,8 +358,10 @@ export async function recalculateOverdueInvoicesWithDatabase(
     if (!settings && requireSettings) throw new ApiError(409, "กรุณาตั้งค่าหอก่อน");
     const invoices = await database.invoice.findMany({
       where: { propertyId, status: { in: ["PENDING", "OVERDUE"] }, dueDate: { lt: asOf } },
-      select: { id: true, dueDate: true, subtotal: true, items: { where: { type: "LATE_FEE" }, take: 1, select: { id: true } } },
+      select: { id: true, dueDate: true, status: true, lateFee: true, subtotal: true, items: { where: { type: "LATE_FEE" }, take: 1, select: { id: true } } },
     });
+    // นับเฉพาะบิลที่ค่าปรับหรือสถานะเปลี่ยนจริง งานตามเวลาจะได้ไม่ถูกนับว่าแก้ข้อมูลทุกห้านาที
+    let updated = 0;
     for (const invoice of invoices) {
       const late = calculateLateFee(
         invoice.dueDate, asOf, Number(settings?.lateFeePerDay ?? 0),
@@ -367,6 +369,9 @@ export async function recalculateOverdueInvoicesWithDatabase(
       );
       // ยังไม่เลยกำหนดก็ข้ามไป
       if (late.daysLate === 0) continue;
+      // วันนี้คิดค่าปรับไปแล้ว ไม่ต้องเขียนซ้ำ
+      if (invoice.status === "OVERDUE" && Number(invoice.lateFee) === late.fee) continue;
+      updated += 1;
       const item = {
         description: `ค่าปรับล่าช้า ${late.daysLate} วัน`,
         quantity: late.daysLate, unitPrice: Number(settings?.lateFeePerDay ?? 0),
@@ -387,7 +392,7 @@ export async function recalculateOverdueInvoicesWithDatabase(
         data: { status: "OVERDUE", lateFee: late.fee, total: Number(invoice.subtotal) + late.fee },
       });
     }
-    return { updated: invoices.length, asOf };
+    return { updated, asOf };
 }
 
 export async function recalculateOverdueInvoices(propertyId: string, asOf = new Date()) {

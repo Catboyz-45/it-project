@@ -1,15 +1,29 @@
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 
+// ตัวกรองตารางหอพัก ใกล้หมดอายุคือแพ็กเกจที่ใช้งานอยู่และหมดภายใน 30 วัน
+export const superAdminPropertyStatusFilters = ["expiring", "inactive"] as const;
+export type SuperAdminPropertyStatusFilter = typeof superAdminPropertyStatusFilters[number];
+export function parseSuperAdminPropertyStatus(value: string | null | undefined): SuperAdminPropertyStatusFilter | undefined {
+  return superAdminPropertyStatusFilters.find((item) => item === value);
+}
+
 // รายการหอพักในหน้าผู้ดูแลระบบ
 export async function listSuperAdminProperties(
   pagination: PaginationInput,
-  filters: { activeOnly?: boolean; query?: string } = {},
+  filters: { activeOnly?: boolean; query?: string; status?: SuperAdminPropertyStatusFilter } = {},
 ) {
+  const now = new Date();
   const where = {
       // ตัดหอที่ระบบสร้างไว้ตอนย้ายข้อมูลออก ไม่ใช่หอจริงที่มีคนใช้งาน
       id: { not: "migration-property" },
-      ...(filters.activeOnly ? { isActive: true } : {}),
+      ...(filters.activeOnly || filters.status === "expiring" ? { isActive: true } : {}),
+      ...(filters.status === "inactive" ? { isActive: false } : {}),
+      // เงื่อนไขเดียวกับตัวเลข "แพ็กเกจใกล้หมดอายุ" บนแดชบอร์ด กดจากการ์ดแล้วจะเห็นหอชุดเดียวกัน
+      ...(filters.status === "expiring" ? { subscription: {
+        status: "ACTIVE" as const,
+        expiresAt: { gt: now, lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) },
+      } } : {}),
       ...(filters.query ? {
         OR: [
           { name: { contains: filters.query, mode: "insensitive" as const } },
@@ -24,7 +38,11 @@ export async function listSuperAdminProperties(
     // เรียงใหม่สุดก่อน และใช้ id เป็นตัวตัดสินเมื่อเวลาเท่ากัน ลำดับจะได้คงที่ทุกหน้า
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     ...paginationQuery(pagination),
-    select: { id: true, name: true, shortName: true, isActive: true },
+    select: {
+      id: true, name: true, shortName: true, isActive: true,
+      // ฟอร์มเปลี่ยนแพ็กเกจใช้ตั้งค่าเริ่มต้นให้ตรงกับที่หอใช้อยู่ ตารางใช้โชว์วันหมดอายุ
+      subscription: { select: { planId: true, planName: true, billingInterval: true, status: true, expiresAt: true } },
+    },
     }),
     getDatabase().property.count({ where }),
   ]);
@@ -67,7 +85,7 @@ export async function listSuperAdminAuditLogs(pagination: PaginationInput, filte
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     ...paginationQuery(pagination),
     select: {
-      id: true, action: true, result: true, createdAt: true,
+      id: true, action: true, result: true, createdAt: true, targetType: true, targetId: true,
       user: { select: { email: true } },
       property: { select: { name: true } },
     },

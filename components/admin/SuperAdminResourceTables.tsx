@@ -18,9 +18,11 @@ import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { formatAuditAction, formatAuditResult } from "@/lib/ui-labels";
+import { formatAuditAction, formatAuditFailureDetail, formatAuditResult } from "@/lib/ui-labels";
+import { readApiPayload } from "@/lib/client/api-error";
+import { reloadWithToast } from "@/lib/client/reload-with-toast";
 import { UnitInput } from "@/components/ui/UnitInput";
-import { formatThaiDateTime } from "@/lib/thai-format";
+import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-format";
 
 type PageInfo = {
   page: number;
@@ -34,6 +36,7 @@ type Property = {
   name: string;
   shortName: string;
   isActive: boolean;
+  subscription: { planName: string; status: string; expiresAt: string } | null;
 };
 type Admin = {
   id: string;
@@ -60,16 +63,45 @@ type AuditLog = {
   action: string;
   result: string;
   createdAt: string;
+  targetType: string | null;
+  targetId: string | null;
   user: { email: string } | null;
   property: { name: string } | null;
 };
 
 // ตารางที่โหลดทีละหน้า ค้นหาได้ และกรองได้ ใช้ร่วมกันทั้งสี่ตารางในหน้าผู้ดูแลระบบ
 // generic เพราะแต่ละตารางมีรูปแบบข้อมูลต่างกัน แต่วิธีโหลดกับแบ่งหน้าเหมือนกันหมด
-// ชื่อพารามิเตอร์ของตัวกรองต่างกันตาม endpoint บัญชีกรองด้วยสถานะอนุมัติ ส่วน audit log กรองด้วยผลลัพธ์
-function filterParamOf(endpoint: string) {
-  return endpoint.endsWith("/users") ? "approvalStatus" : "result";
-}
+// ตัวเลือกของแต่ละตารางที่กรองได้ ชื่อพารามิเตอร์ต่างกันตาม endpoint
+const tableFilters: Record<string, { ariaLabel: string; param: string; options: Array<{ value: string; label: string }> }> = {
+  "/api/v1/super-admin/users": {
+    ariaLabel: "กรองสถานะอนุมัติ",
+    param: "approvalStatus",
+    options: [
+      { value: "", label: "ทุกสถานะ" },
+      { value: "PENDING", label: "รออนุมัติ" },
+      { value: "APPROVED", label: "อนุมัติแล้ว" },
+      { value: "REJECTED", label: "ไม่อนุมัติ" },
+    ],
+  },
+  "/api/v1/super-admin/properties": {
+    ariaLabel: "กรองหอพัก",
+    param: "status",
+    options: [
+      { value: "", label: "ทุกหอ" },
+      { value: "expiring", label: "แพ็กเกจใกล้หมดอายุ" },
+      { value: "inactive", label: "ปิดใช้งาน" },
+    ],
+  },
+  "/api/v1/super-admin/audit-logs": {
+    ariaLabel: "กรองบันทึกการใช้งาน",
+    param: "result",
+    options: [
+      { value: "", label: "ทุกผลลัพธ์" },
+      { value: "SUCCESS", label: "สำเร็จ" },
+      { value: "FAILURE", label: "ไม่สำเร็จ" },
+    ],
+  },
+};
 
 async function requestTablePage<T>({ debouncedQuery, endpoint, filter, page, signal }: {
   debouncedQuery: string;
@@ -80,45 +112,20 @@ async function requestTablePage<T>({ debouncedQuery, endpoint, filter, page, sig
 }) {
   const search = new URLSearchParams({ page: String(page), pageSize: "20" });
   if (debouncedQuery) search.set("query", debouncedQuery);
-  if (filter) search.set(filterParamOf(endpoint), filter);
+  const filterParam = tableFilters[endpoint]?.param;
+  if (filter && filterParam) search.set(filterParam, filter);
   const response = await fetch(`${endpoint}?${search}`, { cache: "no-store", signal });
   const payload = await response.json() as { data?: T[]; pageInfo?: PageInfo; error?: string };
   if (!response.ok || !payload.data || !payload.pageInfo) throw new Error(payload.error || "โหลดข้อมูลไม่สำเร็จ");
   return { data: payload.data, pageInfo: payload.pageInfo };
 }
 
-// สองตารางนี้เท่านั้นที่มีช่องกรอง ดูจาก endpoint แทนการส่ง prop เพิ่ม
 function TableFilterField({ endpoint, onChange, value }: Readonly<{ endpoint: string; onChange: (value: string) => void; value: string }>) {
-  if (endpoint.endsWith("/users")) {
-    return <div className="admin-table-filter">
-      <DropdownField
-        ariaLabel="กรองสถานะอนุมัติ"
-        onChange={onChange}
-        options={[
-          { value: "", label: "ทุกสถานะ" },
-          { value: "PENDING", label: "รออนุมัติ" },
-          { value: "APPROVED", label: "อนุมัติแล้ว" },
-          { value: "REJECTED", label: "ไม่อนุมัติ" },
-        ]}
-        value={value}
-      />
-    </div>;
-  }
-  if (endpoint.endsWith("/audit-logs")) {
-    return <div className="admin-table-filter">
-      <DropdownField
-        ariaLabel="กรองบันทึกการใช้งาน"
-        onChange={onChange}
-        options={[
-          { value: "", label: "ทุกผลลัพธ์" },
-          { value: "SUCCESS", label: "สำเร็จ" },
-          { value: "FAILURE", label: "ไม่สำเร็จ" },
-        ]}
-        value={value}
-      />
-    </div>;
-  }
-  return null;
+  const config = tableFilters[endpoint];
+  if (!config) return null;
+  return <div className="admin-table-filter">
+    <DropdownField ariaLabel={config.ariaLabel} onChange={onChange} options={config.options} value={value} />
+  </div>;
 }
 
 // มีรายการก็ให้ผู้เรียกวาดเอง ไม่มีก็แยกว่าค้นไม่เจอหรือยังไม่มีข้อมูลเลย
@@ -145,6 +152,7 @@ function PaginatedTable<T>({
   empty,
   emptyDescription,
   endpoint,
+  initialFilter = "",
   initialPageInfo = null,
   initialRows = null,
 }: Readonly<{
@@ -156,6 +164,8 @@ function PaginatedTable<T>({
   empty: string;
   emptyDescription?: string;
   endpoint: string;
+  // ตัวกรองที่เปิดมาจากลิงก์ เช่นการ์ดบนแดชบอร์ด ต้องตรงกับที่ใช้ดึง initialRows
+  initialFilter?: string;
   // ส่งมาจาก Server Component ของหน้านั้น มีแล้วก็ไม่ต้องยิงซ้ำตอนเปิดหน้า
   // ค้นหา กรอง และเปลี่ยนหน้ายังโหลดเองเหมือนเดิม
   initialPageInfo?: PageInfo | null;
@@ -169,9 +179,8 @@ function PaginatedTable<T>({
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [filter, setFilter] = useState("");
-  // สองตารางนี้เท่านั้นที่มีช่องกรอง ดูจาก endpoint แทนการส่ง prop เพิ่ม
-  const hasFilter = endpoint.endsWith("/users") || endpoint.endsWith("/audit-logs");
+  const [filter, setFilter] = useState(initialFilter);
+  const hasFilter = Boolean(tableFilters[endpoint]);
 
   const load = useCallback(
     async (page: number, append: boolean, signal?: AbortSignal) => {
@@ -317,11 +326,14 @@ export type SuperAdminInitialTable = { pageInfo: PageInfo; rows: unknown[] };
 
 export function SuperAdminResourceTables({
   accountAction,
+  initialFilters,
   initialTables,
   propertyAction,
   resources = ["plans", "properties", "accounts", "audit-logs"],
 }: Readonly<{
   accountAction?: React.ReactNode;
+  // ตัวกรองตั้งต้นของแต่ละตาราง ต้องตรงกับที่ใช้ดึง initialTables
+  initialFilters?: Partial<Record<SuperAdminResource, string>>;
   initialTables?: Partial<Record<SuperAdminResource, SuperAdminInitialTable>> | null;
   propertyAction?: React.ReactNode;
   resources?: SuperAdminResource[];
@@ -405,7 +417,8 @@ export function SuperAdminResourceTables({
       {resources.includes("properties") ? (
         <ResourceSection>
           <PaginatedTable<Property>
-            columns={4}
+            columns={5}
+            initialFilter={initialFilters?.["properties"]}
             initialPageInfo={initialTables?.["properties"]?.pageInfo ?? null}
             initialRows={(initialTables?.["properties"]?.rows as Property[] | undefined) ?? null}
             action={propertyAction}
@@ -419,6 +432,7 @@ export function SuperAdminResourceTables({
                     <tr>
                       <th scope="col">ชื่อ</th>
                       <th scope="col">ชื่อย่อ</th>
+                      <th scope="col">แพ็กเกจ</th>
                       <th scope="col">สถานะ</th>
                       <th scope="col">รายละเอียด</th>
                     </tr>
@@ -428,6 +442,12 @@ export function SuperAdminResourceTables({
                       <tr key={item.id}>
                         <td className="font-bold">{item.name}</td>
                         <td>{item.shortName}</td>
+                        <td>
+                          {item.subscription ? <>
+                            {item.subscription.planName}
+                            <small className="block text-[#62646c]">หมดอายุ {formatThaiDate(item.subscription.expiresAt)}</small>
+                          </> : "-"}
+                        </td>
                         <td>
                           <span
                             className={`badge ${item.isActive ? "badge-paid" : ""}`}
@@ -552,6 +572,7 @@ export function SuperAdminResourceTables({
                         <td>{log.property?.name ?? "-"}</td>
                         <td title={log.action}>
                           {formatAuditAction(log.action)}
+                          {formatAuditFailureDetail(log) ? <small className="block text-[#62646c]">{formatAuditFailureDetail(log)}</small> : null}
                         </td>
                         <td>
                           <span
@@ -624,9 +645,9 @@ function PlanEditor({
           body: JSON.stringify(body),
         },
       );
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || "บันทึกไม่สำเร็จ");
-      window.location.reload();
+      // อ่านข้อความผิดพลาดรายช่องจากเซิร์ฟเวอร์ ไม่ใช่แค่ "ข้อมูลไม่ถูกต้อง" รวม ๆ
+      await readApiPayload(response, "บันทึกไม่สำเร็จ");
+      reloadWithToast(plan === "new" ? "สร้างแพ็กเกจแล้ว" : "บันทึกแพ็กเกจแล้ว");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "บันทึกไม่สำเร็จ");
       setPending(false);
@@ -727,9 +748,10 @@ function PlanEditor({
 }
 
 // กรอบของแต่ละตาราง แยกออกมาเพื่อให้ระยะห่างเท่ากันทุกตาราง
+// admin-resource ตัดมุมตารางให้โค้งตามการ์ด แต่ปล่อยให้ดรอปดาวน์ที่เปิดอยู่ยื่นออกนอกการ์ดได้ ดู globals.css
 function ResourceSection({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <section className="panel overflow-hidden p-0">{children}</section>
+    <section className="panel admin-resource p-0">{children}</section>
   );
 }
 

@@ -1,9 +1,10 @@
 "use client";
 // เก็บ state ของการแจ้งเตือนและใช้ timer ของเบราว์เซอร์
 
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { takePendingToast } from "@/lib/client/reload-with-toast";
 
 type ToastTone = "success" | "error";
 // สิ่งที่ผู้เรียกส่งมา ยังไม่มี id
@@ -27,6 +28,12 @@ export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
       setToasts((current) => current.filter((toast) => toast.id !== id));
     }, 5000);
   }, []);
+
+  // ข้อความที่ฟอร์มฝากไว้ก่อนโหลดหน้าใหม่ ดู lib/client/reload-with-toast.ts
+  useEffect(() => {
+    const message = takePendingToast();
+    if (message) notify({ message });
+  }, [notify]);
 
   // notify ถูก useCallback ไว้แล้ว ห่อ useMemo อีกชั้นกันไม่ให้ context เปลี่ยนทุกครั้งที่ toast เปลี่ยน
   const value = useMemo(() => notify, [notify]);

@@ -99,6 +99,12 @@ export function SuperAdminChatWidget() {
     requireConversationId: true,
     streaming: isOpen,
   });
+  // กลับมาหน้ารายชื่อแล้วโหลดใหม่ เวลาข้อความล่าสุดของห้องที่เพิ่งคุยจะได้อัปเดต
+  const backToList = () => {
+    setSelected(null);
+    void loadConversations();
+  };
+
   // รายการสนทนากับห้องสนทนาโหลดคนละที่ แสดงอันที่เกิดขึ้นก่อน
   const error = listError || threadError;
 
@@ -106,14 +112,15 @@ export function SuperAdminChatWidget() {
   const unreadCount = conversations.reduce((sum, item) => sum + item.unreadCount, 0);
 
   // ปิดอยู่ก็เหลือแค่ปุ่มลอยมุมจอ พร้อมป้ายจำนวนข้อความที่ยังไม่ได้อ่าน
-  if (!isOpen) return <ChatLauncher label="เปิดข้อความจากหอพัก" onClick={() => setIsOpen(true)} unreadCount={unreadCount} />;
+  if (!isOpen) return <ChatLauncher label="เปิดข้อความจากหอพัก" onClick={() => { setIsOpen(true); void loadConversations(); }} unreadCount={unreadCount} />;
 
   return <>
     <aside aria-label="ข้อความจากหอพัก" className={`chat-widget${selected ? " chat-mode" : ""}${isExpanded ? " expanded" : ""}`}>
       <header className="chat-widget-header">
-        <IconButton label={selected ? "กลับไปยังรายชื่อหอพัก" : "ย่อหน้าต่างแชท"} onClick={() => selected ? setSelected(null) : setIsOpen(false)}>
+        {/* หน้ารายชื่อไม่มีหน้าก่อนหน้าให้ย้อน ปุ่มย้อนกลับจึงมีเฉพาะตอนเปิดห้องสนทนา ส่วนปิดใช้ปุ่ม X */}
+        {selected ? <IconButton label="กลับไปยังรายชื่อหอพัก" onClick={backToList}>
           <ChevronLeft aria-hidden="true" size={22} />
-        </IconButton>
+        </IconButton> : null}
         <div className="chat-conversation-brand">
           {selected ? <span className="chat-person-avatar support"><Building2 aria-hidden="true" size={19} /></span> : null}
           <strong>{selected?.propertyName ?? "ข้อความจากหอพัก"}</strong>

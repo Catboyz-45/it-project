@@ -9,6 +9,7 @@ import {
   listSuperAdminAuditLogs,
   listSuperAdminProperties,
   listSuperAdminUsers,
+  type SuperAdminPropertyStatusFilter,
 } from "@/lib/server/super-admin-lists";
 
 const pagination = { page: 1, pageSize: 20 };
@@ -19,8 +20,8 @@ export async function initialAccountsTable() {
   return { pageInfo: result.pageInfo, rows: serialize(result.data) };
 }
 
-export async function initialPropertiesTable() {
-  const result = await listSuperAdminProperties(pagination, { activeOnly: false });
+export async function initialPropertiesTable(status?: SuperAdminPropertyStatusFilter) {
+  const result = await listSuperAdminProperties(pagination, { activeOnly: false, status });
   return { pageInfo: result.pageInfo, rows: serialize(result.data) };
 }
 

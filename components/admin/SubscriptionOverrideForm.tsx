@@ -1,11 +1,13 @@
 "use client";
 // แก้แพ็กเกจของหอด้วยสิทธิ์ผู้ดูแลระบบ ใช้เฉพาะตอนช่วยเหลือลูกค้าหรือแก้สถานะ
 
-import { SyntheticEvent, useState } from "react";
+import { SyntheticEvent, useMemo, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { readApiPayload } from "@/lib/client/api-error";
+import { reloadWithToast } from "@/lib/client/reload-with-toast";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import {
@@ -45,12 +47,12 @@ async function saveSubscriptionRequest(propertyId: string, body: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const result = await response.json() as { error?: string };
-  if (!response.ok) throw new Error(result.error || "กำหนดแพ็กเกจไม่สำเร็จ");
+  await readApiPayload(response, "กำหนดแพ็กเกจไม่สำเร็จ");
 }
 
 // ปุ่มบนหัวหน้าที่เปิดป็อปอัพแก้แพ็กเกจ เครื่องมือนี้ข้ามการชำระเงิน จึงไม่วางฟอร์มกางค้างไว้ข้างคิวตรวจสลิป
-export function SubscriptionOverrideButton() {
+// property ส่งมาจากหน้ารายละเอียดหอ เปิดมาแล้วเลือกหอนั้นไว้ให้เลย
+export function SubscriptionOverrideButton({ property }: Readonly<{ property?: { id: string; name: string } }> = {}) {
   const [isOpen, setIsOpen] = useState(false);
   return <>
     <button className="secondary-button" onClick={() => setIsOpen(true)} type="button">
@@ -65,12 +67,12 @@ export function SubscriptionOverrideButton() {
         </div>
         <IconButton label="ปิด" onClick={() => setIsOpen(false)}><X aria-hidden="true" size={20} /></IconButton>
       </header>
-      <SubscriptionOverrideForm onCancel={() => setIsOpen(false)} />
+      <SubscriptionOverrideForm initialProperty={property} onCancel={() => setIsOpen(false)} />
     </Dialog> : null}
   </>;
 }
 
-function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void }>) {
+function SubscriptionOverrideForm({ initialProperty, onCancel }: Readonly<{ initialProperty?: { id: string; name: string }; onCancel: () => void }>) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [billingInterval, setBillingInterval] = useState("MONTHLY");
@@ -91,6 +93,7 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
   const properties = usePagedOptions<PropertyOption>({
     endpoint: "/api/v1/super-admin/properties",
     errorMessage: "โหลดหอพักไม่สำเร็จ",
+    initialQuery: initialProperty?.name,
     onError: setMessage,
   });
   const plans = usePagedOptions<PlanOption>({
@@ -98,8 +101,22 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
     errorMessage: "โหลดแพ็กเกจไม่สำเร็จ",
     onError: setMessage,
   });
-  const [propertyId, setPropertyId] = useSelectionWithinOptions(properties.items);
+  // หอพักไม่เลือกให้เอง ผู้ดูแลต้องเลือกเอง กันกดบันทึกแล้วไปเปลี่ยนแพ็กเกจผิดหอ
+  const [propertyId, setPropertyId] = useSelectionWithinOptions(properties.items, { fallbackToFirst: false, initialId: initialProperty?.id });
   const [planId, setPlanId] = useSelectionWithinOptions(plans.items);
+  const selectedProperty = properties.items.find((property) => property.id === propertyId);
+  // เลือกหอแล้วตั้งแพ็กเกจกับรอบบิลให้ตรงกับที่หอใช้อยู่ ผู้ดูแลจะได้แก้เฉพาะส่วนที่ต้องการเปลี่ยน
+  const [prefilledFor, setPrefilledFor] = useState("");
+  if (selectedProperty && prefilledFor !== selectedProperty.id && plans.items.length > 0) {
+    setPrefilledFor(selectedProperty.id);
+    const current = selectedProperty.subscription;
+    if (current?.planId && plans.items.some((plan) => plan.id === current.planId)) setPlanId(current.planId);
+    if (current?.billingInterval) changeBillingInterval(current.billingInterval);
+  }
+  const propertyOptions = useMemo(() => [
+    { disabled: true, label: "เลือกหอพัก", value: "" },
+    ...properties.items.map((property) => ({ label: property.name, value: property.id })),
+  ], [properties.items]);
 
   const blocked = properties.items.length === 0 || plans.items.length === 0;
   const blockedReason = properties.items.length === 0 ? "ต้องมีหอพักก่อนกำหนดแพ็กเกจ" : "ต้องมีแพ็กเกจอย่างน้อย 1 รายการก่อนบันทึก";
@@ -122,7 +139,7 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
         startsAt: new Date(`${startsAt}T00:00:00`),
         expiresAt: new Date(`${expiresAt}T00:00:00`),
       });
-      window.location.reload();
+      reloadWithToast("เปลี่ยนแพ็กเกจแล้ว");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "กำหนดแพ็กเกจไม่สำเร็จ");
       setPending(false);
@@ -134,7 +151,8 @@ function SubscriptionOverrideForm({ onCancel }: Readonly<{ onCancel: () => void 
     <div className="modal-grid">
       <label>ค้นหาหอพัก<input onChange={(event) => properties.setQuery(event.target.value)} placeholder="ชื่อหรือชื่อย่อ" value={properties.query} /></label>
       <div>
-        <DropdownField label="หอพัก" onChange={setPropertyId} options={properties.items.map((property) => ({ label: property.name, value: property.id }))} value={propertyId} />
+        <DropdownField label="หอพัก" onChange={setPropertyId} options={propertyOptions} value={propertyId} />
+        {selectedProperty?.subscription ? null : propertyId ? <small className="text-[#62646c]">หอนี้ยังไม่มีแพ็กเกจ</small> : null}
         {properties.hasMore ? <button onClick={properties.loadMore} type="button">โหลดเพิ่ม</button> : null}
       </div>
       <label>ค้นหาแพ็กเกจ<input onChange={(event) => plans.setQuery(event.target.value)} placeholder="ชื่อหรือรหัส" value={plans.query} /></label>

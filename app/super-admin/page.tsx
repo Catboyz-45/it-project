@@ -21,17 +21,12 @@ export default async function SuperAdminPage() {
     {
       count: aggregation.subscriptions.expiringWithin30Days,
       detail: "แพ็กเกจที่หมดอายุภายใน 30 วัน",
-      href: "/super-admin/properties",
+      // เปิดตารางหอพักที่กรองเฉพาะหอชุดเดียวกับตัวเลขนี้
+      href: "/super-admin/properties?status=expiring",
       icon: <Activity size={20} />,
       title: "แพ็กเกจใกล้หมดอายุ",
     },
-    {
-      count: aggregation.operations.openTickets,
-      detail: "เรื่องแจ้งที่ยังไม่ปิดในทุกหอ",
-      href: "/super-admin/properties",
-      icon: <Wrench size={20} />,
-      title: "เรื่องที่ยังไม่ปิด",
-    },
+    // เรื่องแจ้งซ่อมเป็นงานของเจ้าของหอแต่ละหอ ผู้ดูแลระบบปิดเองไม่ได้ จึงแสดงเป็นตัวเลขในส่วนการใช้งานจริงแทน
   ].filter((item) => item.count > 0);
 
   return <>

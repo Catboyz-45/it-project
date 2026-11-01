@@ -2,7 +2,7 @@
 // ตัวเลขแจ้งเตือนของแอดมินใหญ่ ใช้ร่วมกันระหว่างกระดิ่ง ป้ายบนเมนู และหน้าต่างแชท
 // layout ส่งค่าตั้งต้นมาจากเซิร์ฟเวอร์ แล้วฝั่งเบราว์เซอร์โหลดใหม่เองเมื่อเปลี่ยนหน้าหรือกลับมาที่แท็บ
 
-import { CreditCard, MessageSquare, UsersRound } from "lucide-react";
+import { CalendarClock, CreditCard, MessageSquare, UsersRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -76,6 +76,7 @@ export function SuperAdminNotificationBell() {
   const items: NotificationCenterItem[] = [
     { id: "pending-accounts", count: counts.pendingAccounts, title: "บัญชีเจ้าของหอรออนุมัติ", description: "ตรวจสอบข้อมูลผู้สมัครแล้วอนุมัติหรือปฏิเสธบัญชี", href: "/super-admin/accounts", icon: <UsersRound size={19} /> },
     { id: "pending-subscription-payments", count: counts.pendingSubscriptionPayments, title: "หลักฐานค่าสมาชิกรอตรวจสอบ", description: "ตรวจสลิปแล้วอนุมัติหรือปฏิเสธการชำระค่าสมาชิก", href: "/super-admin/subscriptions", icon: <CreditCard size={19} /> },
+    { id: "expiring-subscriptions", count: counts.expiringSubscriptions, title: "แพ็กเกจใกล้หมดอายุ", description: "หอที่แพ็กเกจจะหมดภายใน 30 วัน ติดต่อให้ต่ออายุก่อนระบบถูกจำกัด", href: "/super-admin/properties?status=expiring", icon: <CalendarClock size={19} /> },
     { id: "support-messages", count: counts.unreadSupportMessages, title: "ข้อความใหม่จากเจ้าของหอ", description: "เปิดกล่องข้อความเพื่อตอบคำถามการใช้งานระบบ", onSelect: openChat, icon: <MessageSquare size={19} /> },
   ];
   return <NotificationCenter isLoading={isRefreshing} items={items} onRefresh={refresh} storageKey="super-admin-notifications" />;

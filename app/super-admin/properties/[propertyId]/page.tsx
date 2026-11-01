@@ -1,13 +1,15 @@
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PropertyEditForm } from "@/components/admin/PropertyEditForm";
+import { SubscriptionOverrideButton } from "@/components/admin/SubscriptionOverrideForm";
 import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 import { formatStatus } from "@/lib/ui-labels";
 import { formatThaiDate, formatThaiDateTime } from "@/lib/thai-format";
 
-// หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน อ่านอย่างเดียว ไม่มีปุ่มแก้ไข
+// หน้าดูรายละเอียดหอหนึ่งหอในมุมของซูเปอร์แอดมิน แก้ชื่อ เปิดปิดหอ และเปลี่ยนแพ็กเกจได้จากหน้านี้
 export default async function PropertyDetailPage({
   params,
 }: Readonly<{
@@ -22,6 +24,7 @@ export default async function PropertyDetailPage({
   const property = await getDatabase().property.findUnique({
     where: { id: propertyId },
     select: {
+      id: true,
       name: true,
       shortName: true,
       isActive: true,
@@ -70,9 +73,46 @@ export default async function PropertyDetailPage({
   });
   // ไม่เจอก็ตอบ 404 ไม่ต้องแยกว่าไม่มีจริงหรือถูกลบไปแล้ว
   if (!property) notFound();
+  // การเปลี่ยนแพ็กเกจโดยผู้ดูแลระบบไม่มีคำสั่งซื้อ จึงดึงจากบันทึกการใช้งานมารวมในประวัติ
+  const overrides = await getDatabase().auditLog.findMany({
+    where: { propertyId, action: "PROPERTY_SUBSCRIPTION_ASSIGN", result: "SUCCESS" },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, createdAt: true, targetType: true, targetId: true, user: { select: { displayName: true } } },
+  });
+  // บันทึกรุ่นเก่าเก็บ id หอไว้แทน id แพ็กเกจ แบบนั้นไม่รู้ชื่อแพ็กเกจ
+  const overridePlanIds = overrides.flatMap((item) => item.targetType === "SaasPlan" && item.targetId ? [item.targetId] : []);
+  const overridePlans = overridePlanIds.length
+    ? await getDatabase().saasPlan.findMany({ where: { id: { in: overridePlanIds } }, select: { id: true, name: true } })
+    : [];
+  const planNames = new Map(overridePlans.map((plan) => [plan.id, plan.name]));
+  const history = [
+    ...property.subscriptionOrders.map((order) => ({
+      id: order.id,
+      createdAt: order.createdAt,
+      reference: order.orderNumber,
+      planName: order.planName,
+      type: order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่",
+      amount: `฿${Number(order.amount).toLocaleString("th-TH")}`,
+      status: formatStatus(order.status),
+    })),
+    ...overrides.map((item) => ({
+      id: item.id,
+      createdAt: item.createdAt,
+      reference: item.user?.displayName ?? "ผู้ดูแลระบบ",
+      planName: (item.targetType === "SaasPlan" && item.targetId && planNames.get(item.targetId)) || "-",
+      type: "ผู้ดูแลระบบเปลี่ยนแพ็กเกจ",
+      amount: "-",
+      status: "มีผลทันที",
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return (
     <>
       <SuperAdminPageHeader
+        actions={<>
+          <PropertyEditForm property={{ id: property.id, name: property.name, shortName: property.shortName, isActive: property.isActive }} />
+          <SubscriptionOverrideButton property={{ id: property.id, name: property.name }} />
+        </>}
         description={`${property.shortName} · สร้างเมื่อ ${formatThaiDate(property.createdAt)}`}
         title={property.name}
       />
@@ -127,13 +167,13 @@ export default async function PropertyDetailPage({
       <section className="panel overflow-hidden p-0">
         <div className="p-5">
           <h2 className="text-base font-semibold">ประวัติแพ็กเกจและคำสั่งซื้อ</h2>
-          <p className="text-sm text-[#62646c]">คำสั่งซื้อและการต่ออายุล่าสุด</p>
+          <p className="text-sm text-[#62646c]">คำสั่งซื้อของเจ้าของหอ และการเปลี่ยนแพ็กเกจโดยผู้ดูแลระบบ</p>
         </div>
         <div className="figma-table-wrap">
           <table>
             <thead>
               <tr>
-                <th scope="col">คำสั่งซื้อ</th>
+                <th scope="col">คำสั่งซื้อ / ผู้เปลี่ยน</th>
                 <th scope="col">แพ็กเกจ</th>
                 <th scope="col">ประเภท</th>
                 <th scope="col">ยอด</th>
@@ -142,20 +182,20 @@ export default async function PropertyDetailPage({
               </tr>
             </thead>
             <tbody>
-              {property.subscriptionOrders.map((order) => (
-                <tr key={order.id}>
-                  <td>{order.orderNumber}</td>
-                  <td>{order.planName}</td>
-                  <td>{order.type === "RENEWAL" ? "ต่ออายุ" : "สมัครใหม่"}</td>
-                  <td>฿{Number(order.amount).toLocaleString("th-TH")}</td>
-                  <td>{formatStatus(order.status)}</td>
-                  <td>{formatThaiDateTime(order.createdAt)}</td>
+              {history.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.reference}</td>
+                  <td>{item.planName}</td>
+                  <td>{item.type}</td>
+                  <td>{item.amount}</td>
+                  <td>{item.status}</td>
+                  <td>{formatThaiDateTime(item.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {/* ตารางว่างก็ยังแสดงหัวตารางไว้ แล้วเติมข้อความบอกไว้ใต้ตารางแทน */}
-          {property.subscriptionOrders.length === 0 ? (
+          {history.length === 0 ? (
             <p className="p-8 text-center text-[#62646c]">ยังไม่มีประวัติ</p>
           ) : null}
         </div>

@@ -13,7 +13,8 @@ export function SuperAdminPageHeader({
   description: string;
   title: string;
 }>) {
-  return <header className="flex flex-wrap items-start justify-between gap-4">
+  // จัดวางด้วย CSS ใน globals.css มือถือให้กระดิ่งอยู่แถวเดียวกับชื่อหน้า
+  return <header className="super-admin-page-header">
     <div className="topbar-heading">
       <NavToggle placement="topbar" />
       <div>
@@ -21,9 +22,9 @@ export function SuperAdminPageHeader({
         <p className="mt-1 text-sm text-[#62646c]">{description}</p>
       </div>
     </div>
-    <div className="flex items-center gap-3">
+    <div className="super-admin-page-header-actions">
       {actions}
-      <SuperAdminNotificationBell />
+      <div className="super-admin-page-bell"><SuperAdminNotificationBell /></div>
     </div>
   </header>;
 }

@@ -153,6 +153,8 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
         propertyId,
         action: `API_${request.method}_FAILURE`,
         targetType: request.nextUrl.pathname.slice(0, 120),
+        // เก็บรหัสสถานะไว้ หน้าบันทึกการใช้งานจะได้บอกได้ว่าพลาดเพราะอะไร เช่นข้อมูลซ้ำหรือไม่มีสิทธิ์
+        targetId: String(status),
         result: "FAILURE",
       });
     };
