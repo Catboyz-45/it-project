@@ -2602,3 +2602,11 @@ select:disabled {
   .usage-facts dt { @apply text-[13px] text-[#5c5e66]; }
   .usage-facts dd { @apply m-0 mt-0.5 text-xl font-bold text-[#1e1f22] tabular-nums; }
 }
+
+/* ภาษาไทยไม่เว้นวรรคระหว่างคำ เบราว์เซอร์บางตัว (เช่น Chromium บน Linux) ตัดบรรทัดได้แค่ตรงช่องว่าง
+   ข้อความยาวที่ไม่มีช่องว่างจึงดันการ์ดให้กว้างเกินจอมือถือ ให้ตัดตรงไหนก็ได้เมื่อจำเป็น
+   และล็อกคอลัมน์ของกริดหน้าใหม่ไว้ที่ minmax(0, 1fr) เนื้อหาข้างในจะได้ดันหน้าให้กว้างขึ้นไม่ได้ */
+@layer components {
+  :is(.overview, .tenant-overview, .rooms-layout, .room-detail, .money-strip, .meter-progress, .pay-steps) { overflow-wrap: anywhere; }
+  .overview, .tenant-overview, .pay-steps { grid-template-columns: minmax(0, 1fr); }
+}
