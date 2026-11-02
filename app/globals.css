@@ -2668,3 +2668,39 @@ select:disabled {
   .meter-progress-facts dd[data-tone="pending"] { @apply text-amber-800; }
   .meter-status { @apply gap-1; }
 }
+
+/* ===== หน้าแรกผู้เช่าแบบใหม่ ===== การ์ดบิลใหญ่กับปุ่มจ่าย แล้วตามด้วยทางลัดบริการของหอ */
+@layer components {
+  .tenant-overview { @apply grid gap-3; }
+  .tenant-overview-title { @apply m-0 text-base font-semibold text-[#1e1f22]; }
+  .tenant-bill-hero { @apply grid gap-2 rounded-[20px] border border-[#e3e3e8] bg-[#fff] p-5; }
+  .tenant-bill-hero-head { @apply flex flex-wrap items-center justify-between gap-2; }
+  .tenant-bill-hero-label { @apply m-0 text-sm font-semibold text-[#5c5e66]; }
+  .tenant-bill-hero-amount { @apply text-[40px] leading-tight font-bold tracking-[-.02em] text-[#1e1f22] tabular-nums; }
+  .tenant-bill-hero-note { @apply m-0 inline-flex items-center gap-1.5 text-sm text-[#5c5e66]; }
+  .tenant-bill-hero[data-state="clear"] .tenant-bill-hero-note { @apply text-[#1a7f45]; }
+  .tenant-bill-hero-action { @apply mt-2 min-h-12 justify-center rounded-[14px] text-base; }
+  .tenant-bill-hero-hint { @apply m-0 text-center text-xs text-[#5c5e66]; }
+  .tenant-service-grid { @apply grid gap-2.5; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .tenant-service-tile { @apply flex min-h-16 items-center gap-3 rounded-2xl border border-[#e3e3e8] bg-[#fff] p-3.5 text-[#1e1f22] no-underline transition-colors hover:border-brand/40 hover:no-underline; }
+  .tenant-service-icon { @apply grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef0fe] text-[#4752c4]; }
+  .tenant-service-copy { @apply min-w-0 flex-1; }
+  .tenant-service-copy strong { @apply block text-sm font-semibold; }
+  .tenant-service-copy small { @apply block truncate text-xs text-[#5c5e66]; }
+  @media (max-width: 767px) {
+    .tenant-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tenant-service-tile { @apply flex-col items-start gap-2; }
+    .tenant-service-tile .notification-badge { @apply absolute top-3 right-3; }
+    .tenant-service-tile { @apply relative; }
+    .tenant-bill-hero-amount { @apply text-[34px]; }
+  }
+}
+
+/* ขั้นตอนจ่ายบิลของผู้เช่า เลขขั้นในวงกลมสีหลัก แต่ละขั้นเป็นการ์ดของตัวเอง */
+@layer components {
+  .pay-steps { @apply mt-5 grid gap-3; }
+  .pay-step { @apply grid gap-4 rounded-[18px] border border-[#e3e3e8] bg-[#fff] p-4; }
+  .pay-step > h3 { @apply m-0 flex items-center gap-2.5 text-[15px] font-bold text-[#1e1f22]; }
+  .pay-step > h3 > span { @apply grid size-6 place-items-center rounded-full bg-brand text-[13px] font-bold text-white; }
+  .pay-step > .primary-button { @apply min-h-12 justify-center text-base; }
+}

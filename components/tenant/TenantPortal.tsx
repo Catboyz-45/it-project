@@ -19,9 +19,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  Gauge,
   Home,
-  ListChecks,
   LoaderCircle,
   MessageSquare,
   FileCheck2,
@@ -918,48 +916,28 @@ function HomePanel({
       </div>
     ) : null}
 
-    {isPrimary && unpaidInvoice ? <PayNowBanner invoice={unpaidInvoice} /> : null}
-
-    <AppSection description="บิล พัสดุ และเรื่องที่กำลังติดตาม" icon={<Gauge />} title="ภาพรวมที่ต้องรู้">
-      <div className="figma-summary-grid three">
-        <HomePriorityCard
-          tone={isPrimary && unpaidInvoice && describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "red" : "orange"}
-          detail={unpaidInvoiceDetail(isPrimary, unpaidInvoice)}
-          href={tenantPagePath("invoices")}
-          icon={<ReceiptText />}
-          label="ยอดที่ต้องชำระ"
-          value={unpaidInvoiceValue(isPrimary, unpaidInvoice)}
-        />
-        <HomePriorityCard
-          tone="blue"
-          detail={waitingParcel
-            ? `${waitingParcel.note || "พัสดุใหม่"} · ${formatThaiDate(waitingParcel.registeredAt)}`
-            : "ไม่มีพัสดุรอรับ"}
+    <section aria-labelledby="tenant-overview-title" className="tenant-overview">
+      <h2 className="tenant-overview-title" id="tenant-overview-title">ภาพรวมที่ต้องรู้</h2>
+      <TenantBillHero invoice={unpaidInvoice} isLoading={invoices.isLoading} isPrimary={isPrimary} />
+      <nav aria-label="บริการของหอ" className="tenant-service-grid">
+        <TenantServiceTile
+          count={summary?.waitingParcels ?? 0}
+          detail={waitingParcel ? `${waitingParcel.note || "พัสดุใหม่"} · ${formatThaiDate(waitingParcel.registeredAt)}` : "ไม่มีพัสดุรอรับ"}
           href={tenantPagePath("parcels")}
-          icon={<Package />}
+          icon={<Package size={20} />}
           label="พัสดุรอรับ"
-          value={`${summary?.waitingParcels ?? 0} รายการ`}
         />
-        <HomePriorityCard
-          tone="indigo"
-          detail={openTicket ? openTicket.title : "ไม่มีเรื่องที่กำลังดำเนินการ"}
+        <TenantServiceTile
+          count={summary?.openTickets ?? 0}
+          detail={openTicket ? openTicket.title : "แจ้งซ่อมหรือร้องเรียนได้ตลอด"}
           href={tenantPagePath("tickets")}
-          icon={<Wrench />}
+          icon={<Wrench size={20} />}
           label="เรื่องที่กำลังติดตาม"
-          value={`${summary?.openTickets ?? 0} รายการ`}
         />
-      </div>
-    </AppSection>
-
-    <AppSection description="รายการที่ต้องเข้าไปจัดการในตอนนี้" icon={<ListChecks />} title="งานที่ต้องทำ">
-      <HomeTaskList
-        isLoading={notificationResource.isLoading}
-        isPrimary={isPrimary}
-        openTicket={openTicket}
-        summary={summary}
-        unpaidInvoice={unpaidInvoice}
-      />
-    </AppSection>
+        {isPrimary ? <TenantServiceTile count={0} detail="ดูสัญญาและวันสิ้นสุด" href={tenantPagePath("lease")} icon={<FileText size={20} />} label="สัญญาเช่า" /> : <TenantServiceTile count={0} detail="ข่าวและประกาศจากหอ" href={tenantPagePath("announcements")} icon={<Bell size={20} />} label="ประกาศ" />}
+        <TenantServiceTile count={summary?.unreadMessages ?? 0} detail="คุยกับเจ้าของหอโดยตรง" href={tenantPagePath("chat")} icon={<MessageSquare size={20} />} label="ติดต่อหอ" />
+      </nav>
+    </section>
 
     <AppSection description="รายละเอียดห้องที่กำลังเข้าพัก" icon={<Home />} title="ข้อมูลห้อง">
     <div className="grid gap-4 sm:grid-cols-3">
@@ -985,97 +963,56 @@ function HomePanel({
   </div>;
 }
 
-// ผู้พักร่วมไม่มีบิลของตัวเอง ส่วนผู้เช่าหลักดูว่ามีบิลค้างอยู่ไหม
-function unpaidInvoiceDetail(isPrimary: boolean, invoice: Invoice | undefined) {
-  if (!isPrimary) return "ผู้พักร่วมไม่ต้องดำเนินการ";
-  if (!invoice) return "ไม่มีบิลที่ต้องชำระ";
-  return describeInvoiceDue(invoice.dueDate).text;
-}
-
-// แถบชำระเงินบนสุดของหน้าแรก บิลค้างคือเรื่องที่ผู้เช่าต้องทำก่อนอย่างอื่น จึงต้องเห็นปุ่มจ่ายทันทีโดยไม่ต้องหา
-function PayNowBanner({ invoice }: Readonly<{ invoice: Invoice }>) {
+// การ์ดบิลใหญ่บนสุดของหน้าแรก บิลค้างคือเรื่องที่ผู้เช่าต้องทำก่อนอย่างอื่น จึงเห็นยอดกับปุ่มจ่ายทันที
+// ส่งสลิปไปแล้วเปลี่ยนเป็นบอกว่ารอเจ้าของหอตรวจ ผู้พักร่วมไม่มีบิลของตัวเองจึงบอกว่าเป็นของผู้เช่าหลัก
+function TenantBillHero({ invoice, isLoading, isPrimary }: Readonly<{ invoice: Invoice | undefined; isLoading: boolean; isPrimary: boolean }>) {
+  if (!isPrimary) {
+    return <article className="tenant-bill-hero" data-state="clear">
+      <p className="tenant-bill-hero-label">ยอดที่ต้องชำระ</p>
+      <strong className="tenant-bill-hero-amount">-</strong>
+      <p className="tenant-bill-hero-note">บิลและการชำระเงินเป็นของผู้เช่าหลักของห้อง</p>
+    </article>;
+  }
+  if (isLoading && !invoice) return <article className="tenant-bill-hero"><Loading /></article>;
+  if (!invoice) {
+    return <article className="tenant-bill-hero" data-state="clear">
+      <p className="tenant-bill-hero-label">ยอดที่ต้องชำระ</p>
+      <strong className="tenant-bill-hero-amount">฿0</strong>
+      <p className="tenant-bill-hero-note"><CheckCircle2 aria-hidden="true" size={16} /> ไม่มีบิลค้าง จ่ายครบทุกบิลแล้ว</p>
+    </article>;
+  }
   const due = describeInvoiceDue(invoice.dueDate);
-  return <section aria-label="บิลที่ต้องชำระ" className={`tenant-pay-banner ${due.isLate ? "is-late" : ""}`}>
-    <span className="tenant-pay-banner-icon"><ReceiptText aria-hidden="true" size={22} /></span>
-    <div className="min-w-0">
-      <p>บิล {invoice.invoiceNumber}</p>
-      <strong>{currency.format(Number(invoice.total))}</strong>
-      <span className="tenant-pay-banner-due">{due.text}</span>
+  const late = invoice.status === "OVERDUE" || due.isLate;
+  const waitingReview = Boolean(invoice.hasPendingSubmission);
+  return <article aria-label="บิลที่ต้องชำระ" className="tenant-bill-hero">
+    <div className="tenant-bill-hero-head">
+      <p className="tenant-bill-hero-label">ยอดที่ต้องชำระ</p>
+      <span className="today-label" data-tone={waitingReview ? "neutral" : late ? "urgent" : "pending"}>{waitingReview ? "ส่งสลิปแล้ว รอตรวจ" : due.text}</span>
     </div>
-    <Link className="primary-button" href={tenantPagePath("invoices")}>ชำระเงิน <ArrowRight aria-hidden="true" size={17} /></Link>
-  </section>;
+    <strong className="tenant-bill-hero-amount">{currency.format(Number(invoice.total))}</strong>
+    <p className="tenant-bill-hero-note">บิลเดือน{formatThaiMonth(invoice.billingMonth.slice(0, 7))} · {invoice.invoiceNumber}</p>
+    <Link className="primary-button tenant-bill-hero-action" href={tenantPagePath("invoices")}>
+      {waitingReview ? "ดูสถานะบิล" : "จ่ายบิลนี้"} <ArrowRight aria-hidden="true" size={18} />
+    </Link>
+    {waitingReview ? null : <p className="tenant-bill-hero-hint">สแกนพร้อมเพย์หรือโอนเข้าบัญชี แล้วแนบสลิปในหน้าเดียว</p>}
+  </article>;
 }
 
-function unpaidInvoiceValue(isPrimary: boolean, invoice: Invoice | undefined) {
-  if (!isPrimary) return "-";
-  return invoice ? currency.format(Number(invoice.total)) : "ไม่มี";
-}
-
-// รายการงานที่ต้องเข้าไปจัดการ ไม่มีอะไรค้างเลยก็แสดงสถานะว่างแทน
-function HomeTaskList({ isLoading, isPrimary, openTicket, summary, unpaidInvoice }: Readonly<{
-  isLoading: boolean;
-  isPrimary: boolean;
-  openTicket: Ticket | undefined;
-  summary: TenantNotificationSummary | null;
-  unpaidInvoice: Invoice | undefined;
-}>) {
-  const waitingParcels = summary?.waitingParcels ?? 0;
-  const openTickets = summary?.openTickets ?? 0;
-  const unreadMessages = summary?.unreadMessages ?? 0;
-  const showInvoiceTask = isPrimary && Boolean(unpaidInvoice);
-  const nothingToDo = !showInvoiceTask && waitingParcels === 0 && openTickets === 0 && unreadMessages === 0 && !isLoading;
-
-  return <div className="work-item-grid">
-    {showInvoiceTask && unpaidInvoice ? <HomeTask
-      detail={`บิล ${unpaidInvoice.invoiceNumber} · ${describeInvoiceDue(unpaidInvoice.dueDate).text}`}
-      href={tenantPagePath("invoices")}
-      icon={<ReceiptText size={20} />}
-      label={unpaidInvoice.status === "OVERDUE" || describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "บิลค้างชำระ" : "ชำระบิลรอบล่าสุด"}
-    /> : null}
-    {waitingParcels > 0 ? <HomeTask detail={`มีพัสดุรอรับ ${waitingParcels} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" /> : null}
-    {openTickets > 0 ? <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${openTickets} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" /> : null}
-    {unreadMessages > 0 ? <HomeTask detail={`มีข้อความที่ยังไม่ได้อ่าน ${unreadMessages} ข้อความ`} href={tenantPagePath("chat")} icon={<MessageSquare size={20} />} label="อ่านข้อความจากหอพัก" /> : null}
-    {nothingToDo ? <div className="empty-state min-h-36">
-      <Clock3 size={32} />
-      <strong>ไม่มีรายการที่ต้องดำเนินการ</strong>
-      <p>เมื่อมีบิล พัสดุ หรือการอัปเดต ระบบจะแสดงที่นี่</p>
-    </div> : null}
-    {isLoading ? <Loading /> : null}
-  </div>;
-}
-
-// ใช้การ์ดตัวเลขใบเดียวกับฝั่งเจ้าของหอและผู้ดูแลระบบ ต่างกันแค่กดแล้วไปหน้าอื่นได้
-// เดิมเป็นการ์ดพื้นสีพาสเทลเต็มใบ ซึ่งเป็นคนละภาษากับอีกสองโรล
-function HomePriorityCard({ detail, href, icon, label, tone, value }: Readonly<{
-  detail: string;
-  href: string;
-  icon: ReactNode;
-  label: string;
-  tone: string;
-  value: string;
-}>) {
-  // span ต้องเป็นลูกโดยตรงของการ์ด ถึงจะได้กรอบไอคอนแบบเดียวกับอีกสองโรล
-  return <Link className={`figma-summary-card tone-${tone} pr-12 hover:border-[#c8c9d0]`} href={href}>
-    <div className="min-w-0"><small>{label}</small><strong>{value}</strong><small className="mt-1.5 block">{detail}</small></div>
-    <span>{icon}</span>
-    <ArrowRight aria-hidden="true" className="absolute right-4 bottom-4 text-[#62646c]" size={18} />
-  </Link>;
-}
-
-// รายการงานหนึ่งบรรทัด ใช้โครงและคลาสเดียวกับหน้าแรกของเจ้าของหอและผู้ดูแลระบบ
-function HomeTask({ detail, href, icon, label }: Readonly<{
+// ทางลัดไปบริการของหอ ตัวเลขเหลืองบอกว่ามีเรื่องรออยู่
+function TenantServiceTile({ count, detail, href, icon, label }: Readonly<{
+  count: number;
   detail: string;
   href: string;
   icon: ReactNode;
   label: string;
 }>) {
-  return <Link href={href}>
-    <span className="work-item-icon">{icon}</span>
-    <span className="work-item-copy">
-      <strong className="block">{label}</strong>
-      <small className="block truncate text-[#62646c]">{detail}</small>
+  return <Link className="tenant-service-tile" href={href}>
+    <span className="tenant-service-icon">{icon}</span>
+    <span className="tenant-service-copy">
+      <strong>{label}</strong>
+      <small>{detail}</small>
     </span>
-    <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
+    {count > 0 ? <span aria-label={`${count} รายการ`} className="notification-badge">{count > 99 ? "99+" : count}</span> : null}
   </Link>;
 }
 
@@ -1338,9 +1275,15 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
     setPreviewUrl(nextFile?.type.startsWith("image/") ? URL.createObjectURL(nextFile) : null);
   };
 
-  return <div className="mt-5 grid gap-4 rounded-xl border border-brand/20 p-4">
-    <PromptPayQr invoice={invoice} />
-    <BankTransferAccount invoice={invoice} />
+  // แบ่งเป็นสองขั้นตามลำดับที่ผู้เช่าทำจริง โอนก่อนแล้วค่อยแนบสลิป
+  return <div className="pay-steps">
+    <section aria-labelledby={`pay-step-transfer-${invoice.id}`} className="pay-step">
+      <h3 id={`pay-step-transfer-${invoice.id}`}><span aria-hidden="true">1</span>โอนเงิน</h3>
+      <PromptPayQr invoice={invoice} />
+      <BankTransferAccount invoice={invoice} />
+    </section>
+    <section aria-labelledby={`pay-step-slip-${invoice.id}`} className="pay-step">
+    <h3 id={`pay-step-slip-${invoice.id}`}><span aria-hidden="true">2</span>แนบสลิป</h3>
     <label className="slip-picker">
       <input accept="image/png,image/jpeg,application/pdf,.pdf" className="sr-only" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} type="file" />
       {previewUrl
@@ -1355,6 +1298,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
     <button className="primary-button" disabled={!file || isSending} onClick={() => void submit()} type="button">
       <Upload size={17} />{isSending ? "กำลังส่ง..." : "ส่งหลักฐาน"}
     </button>
+    </section>
   </div>;
 }
 
