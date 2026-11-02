@@ -2,7 +2,7 @@
 // เก็บตัวกรอง โหลดข้อมูลทีละหน้า และเปิดกล่องโต้ตอบจากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Banknote, Ban, CheckCircle2, Clock3, Download, Eye, FileCheck2, FilePlus2, Files, FileText, ReceiptText, Search, X } from "lucide-react";
+import { Ban, CheckCircle2, Download, Eye, FileCheck2, FilePlus2, Files, ReceiptText, Search, X } from "lucide-react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
@@ -18,6 +18,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
@@ -58,14 +59,29 @@ function InvoiceToolbar({ onGenerateSingle, onQueryChange, onStatusChange, prope
   </div>;
 }
 
-// การ์ดตัวเลขสรุปด้านบนของหน้าบิล
-function InvoiceSummaryGrid({ summary }: Readonly<{ summary: { draft: number; paid: number; pending: number; overdue: number; total: string } }>) {
-  return <div className="figma-summary-grid five">
-    <InvoiceSummary icon={<FileText />} label="ฉบับร่าง" tone="indigo" value={`${summary.draft}`} />
-    <InvoiceSummary icon={<CheckCircle2 />} label="ชำระแล้ว" tone="green" value={`${summary.paid}`} />
-    <InvoiceSummary icon={<Clock3 />} label="รอชำระ" tone="orange" value={`${summary.pending}`} />
-    <InvoiceSummary icon={<AlertCircle />} label="ค้างชำระ" tone="red" value={`${summary.overdue}`} />
-    <InvoiceSummary icon={<Banknote />} label="ยอดรวม" tone="blue" value={currency.format(Number(summary.total))} />
+type InvoiceSummaryCounts = { draft: number; paid: number; pending: number; overdue: number; total: string };
+
+// แถบตัวเลขสรุปด้านบน กดแต่ละช่องเพื่อกรองบิลตามสถานะนั้นได้ทันที ใช้ค่าเดียวกับกล่องกรองสถานะ
+// ช่องค้างชำระเป็นตัวแดงเมื่อมีบิลค้าง ที่เหลือใช้สีข้อความปกติแบบ Cal
+function InvoiceSummaryStrip({ onFilter, statusFilter, summary }: Readonly<{ onFilter: (status: string) => void; statusFilter: string; summary: InvoiceSummaryCounts }>) {
+  const cells = [
+    { status: "all", label: "ยอดรวมทุกบิล", value: currency.format(Number(summary.total)) },
+    { status: "pending", label: "รอชำระ", value: `${summary.pending} บิล` },
+    { status: "overdue", label: "ค้างชำระ", value: `${summary.overdue} บิล`, urgent: summary.overdue > 0 },
+    { status: "paid", label: "ชำระแล้ว", value: `${summary.paid} บิล` },
+    { status: "draft", label: "ฉบับร่าง", value: `${summary.draft} บิล` },
+  ];
+  return <div aria-label="สรุปบิลและกรองตามสถานะ" className="money-strip" role="group">
+    {cells.map((cell) => <button
+      aria-pressed={statusFilter === cell.status}
+      data-tone={cell.urgent ? "urgent" : undefined}
+      key={cell.status}
+      onClick={() => onFilter(cell.status)}
+      type="button"
+    >
+      <span>{cell.label}</span>
+      <strong>{cell.value}</strong>
+    </button>)}
   </div>;
 }
 
@@ -316,7 +332,7 @@ export function InvoicesPage({
   return (
     <section className="figma-list-page invoices-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
-      <InvoiceSummaryGrid summary={summary} />
+      <InvoiceSummaryStrip onFilter={(status) => { setStatusFilter(status); changeView("invoices"); }} statusFilter={statusFilter} summary={summary} />
       <div className="figma-inline-tabs invoice-tabs">
         <button className={view === "invoices" ? "active" : ""} onClick={() => changeView("invoices")} type="button">บิลห้องพัก</button>
         <button className={view === "payments" ? "active" : ""} onClick={() => changeView("payments")} type="button">ตรวจสอบการชำระ</button>
@@ -473,7 +489,7 @@ function InvoiceTable({ invoices, ...actions }: InvoiceTableActions & Readonly<{
       </thead>
       <tbody>
         {invoices.map((invoice) => <tr className="figma-table-row" data-status={invoice.status} key={invoice.id}>
-          <td>{invoice.id}</td><td>{invoice.roomId}</td><td>{invoice.tenantName}</td>
+          <td>{invoice.id}</td><td>{invoice.roomId}</td><td><span className="invoice-tenant"><InitialAvatar name={invoice.tenantName} size="sm" />{invoice.tenantName}</span></td>
           {/* ยอดรวมกับสถานะอยู่ต่อจากชื่อ จอเล็กจะได้เห็นโดยไม่ต้องเลื่อนตาราง รายการย่อยไว้ทีหลัง */}
           <td><strong>{currency.format(totalInvoice(invoice))}</strong></td>
           <td><em className={`figma-status ${getStatusClass(invoice.status)}`}>{statusText[invoice.status]}</em></td>
@@ -517,9 +533,4 @@ function CancelInvoiceDialog({ invoice, isCancelling, onClose, onSubmit, reason,
       {reasonTooShort ? <p className="disabled-reason justify-self-end" id="invoice-cancel-disabled-reason">ระบุเหตุผลอย่างน้อย 3 ตัวอักษรก่อนยืนยัน</p> : null}
     </form>
   </Dialog>;
-}
-
-// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function InvoiceSummary({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: string }>) {
-  return <article className={`figma-summary-card compact tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
 }

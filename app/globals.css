@@ -2638,3 +2638,19 @@ select:disabled {
   .room-detail-actions { @apply flex flex-wrap gap-2 px-5 py-4; }
   .room-detail-actions > button { @apply flex-1 justify-center; }
 }
+
+/* ===== หน้าบิลแบบใหม่ ===== แถบตัวเลขที่กดกรองได้ ชื่อผู้เช่ามีวงกลมตัวอักษร ป้ายค้างชำระเป็นแดงทึบ */
+@layer components {
+  .money-strip { @apply grid overflow-hidden rounded-2xl border border-[#e3e3e8] bg-[#fff]; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .money-strip > button { @apply grid min-h-20 content-center gap-1 border-0 border-r border-[#ececf0] bg-transparent px-5 py-3.5 text-left transition-colors last:border-r-0 hover:bg-[#fafafb]; }
+  .money-strip > button > span { @apply text-[13px] text-[#5c5e66]; }
+  .money-strip > button > strong { @apply text-xl font-bold text-[#1e1f22] tabular-nums; }
+  .money-strip > button[data-tone="urgent"] > strong { @apply text-[#b42318]; }
+  .money-strip > button[aria-pressed="true"] { @apply bg-[#eef0fe]; box-shadow: inset 0 -2px 0 var(--color-brand); }
+  .invoice-tenant { @apply inline-flex items-center gap-2; }
+  .invoice-table .figma-status.badge-overdue { @apply border-red-500 bg-red-500 text-white; }
+  @media (max-width: 767px) {
+    .money-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .money-strip > button { @apply border-b; }
+  }
+}
