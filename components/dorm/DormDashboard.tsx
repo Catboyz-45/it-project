@@ -33,6 +33,7 @@ import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState } from "@
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { useOwnerWorkspaceData } from "@/components/dorm/useOwnerWorkspaceData";
 import { buildNotificationCounts, buildOwnerNotifications, type OwnerUnreadCounts } from "@/components/dorm/owner-notifications";
+import { ownerUrgentPages } from "@/lib/domain/alert-urgency";
 import { useRefreshOnFocus } from "@/lib/client/use-refresh-on-focus";
 import { SubscriptionAccessBanner, WorkspaceDataError } from "@/components/dorm/OwnerShellParts";
 import { type DashboardProperty, isSettingsArea, OwnerSidebar } from "@/components/dorm/OwnerSidebar";
@@ -221,6 +222,9 @@ export function DormDashboard({
     pending: aggregation.finance.outstanding,
   } : null;
   const notificationCounts = buildNotificationCounts(aggregation, unreadCounts);
+  const urgentPages = aggregation
+    ? ownerUrgentPages({ overdueInvoices: aggregation.finance.overdueInvoices, subscriptionExpiresAt: aggregation.subscription?.expiresAt })
+    : {};
 
 
   const ownerNotifications = buildOwnerNotifications({
@@ -324,6 +328,7 @@ export function DormDashboard({
         isReadOnly={isReadOnly}
         navigateTo={navigateTo}
         notificationCounts={notificationCounts}
+        urgentPages={urgentPages}
         propertyId={propertyId}
       />
 

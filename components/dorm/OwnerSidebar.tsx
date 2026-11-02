@@ -67,6 +67,7 @@ export function OwnerSidebar({
   navigateTo,
   notificationCounts,
   propertyId,
+  urgentPages,
 }: Readonly<{
   accountEmail: string;
   accountName: string;
@@ -77,6 +78,7 @@ export function OwnerSidebar({
   navigateTo: (page: PageKey) => void;
   notificationCounts: Partial<Record<PageKey, number>>;
   propertyId: string;
+  urgentPages: Partial<Record<PageKey, boolean>>;
 }>) {
   return <aside aria-label="เมนูหลัก" className="sidebar" id={appSidebarId}>
     <div className="sidebar-head">
@@ -84,9 +86,9 @@ export function OwnerSidebar({
       <NavToggle />
     </div>
     <nav>
-      {menuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
+      {menuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} urgentPages={urgentPages} key={item.key} />)}
       <MetersMenu activePage={activePage} propertyId={propertyId} />
-      {secondaryMenuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} key={item.key} />)}
+      {secondaryMenuItems.map((item) => <MenuLink activePage={activePage} isReadOnly={isReadOnly} item={item} notificationCounts={notificationCounts} propertyId={propertyId} urgentPages={urgentPages} key={item.key} />)}
       <Link className={activePage === "announcements" ? "active" : ""} href={ownerPagePath(propertyId, "announcements")}>
         <Megaphone size={18} />
         <span>ประกาศ/ข่าวสาร</span>
@@ -109,18 +111,19 @@ export function OwnerSidebar({
   </aside>;
 }
 
-function MenuLink({ activePage, isReadOnly, item, notificationCounts, propertyId }: Readonly<{
+function MenuLink({ activePage, isReadOnly, item, notificationCounts, propertyId, urgentPages }: Readonly<{
   activePage: PageKey;
   isReadOnly: boolean;
   item: MenuItem;
   notificationCounts: Partial<Record<PageKey, number>>;
   propertyId: string;
+  urgentPages: Partial<Record<PageKey, boolean>>;
 }>) {
   const Icon = item.icon;
   return <Link className={isActiveMenu(activePage, item.key) ? "active" : ""} href={ownerPagePath(propertyId, item.key)}>
     <Icon size={18} />
     <span>{item.label}</span>
-    <MenuBadge count={notificationCounts[item.key] ?? 0} isReadOnly={isReadOnly} />
+    <MenuBadge count={notificationCounts[item.key] ?? 0} isReadOnly={isReadOnly} isUrgent={urgentPages[item.key]} />
   </Link>;
 }
 

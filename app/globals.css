@@ -457,9 +457,12 @@
   /* ไอคอนไม่ตั้งสีของตัวเอง ปล่อยให้รับสีจากข้อความของเมนู เทาตอนปกติ
      และเป็นสี brand ตอน active เหมือนกันทั้งเจ้าของหอ ผู้เช่า และซูเปอร์แอดมิน */
   .sidebar nav a.active svg, .sidebar nav button.active svg, .sidebar-footer-links > a.active svg { color: #4651c7; }
+  /* ป้ายตัวเลขบอกความด่วนด้วยสี เหลืองอ่อนคืองานรอทำ แดงทึบคือเลยกำหนดแล้ว
+     สีหลักของแบรนด์เก็บไว้ให้ปุ่มกับเมนูที่เลือกอยู่ ป้ายจะได้ไม่แย่งความหมายกัน */
   .notification-badge {
-    @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white;
+    @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-[#fff7e0] px-1.5 py-0.5 text-[11px] font-bold leading-4 text-amber-800;
   }
+  .notification-badge[data-tone="urgent"] { @apply bg-red-500 text-white; }
   .tenant-mobile-navigation { @apply hidden; }
   .tenant-brand { @apply mb-2 cursor-default hover:bg-brand/[.07]; }
   .tenant-sidebar-property { @apply mb-4 truncate px-3 text-xs font-semibold text-[#73757d]; }
@@ -643,7 +646,7 @@
   .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
   /* สถานะว่างกินเต็มแถว จัดกลางแนวตั้ง ไม่ถูกกฎ flex ของการ์ดงานบีบจนข้อความตกบรรทัดเป็นท่อน ๆ */
   .work-item-grid > .empty-state { @apply col-span-full grid min-h-36 place-items-center gap-1 border-dashed text-center; }
-  .work-item-icon { @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff] text-[#62646c]; }
+  .work-item-icon { @apply grid size-9 shrink-0 place-items-center text-[#8b8d96]; }
   .work-item-icon > svg { @apply size-4; }
   .work-item-copy { @apply min-w-0 flex-1; }
   /* การ์ดงานของผู้เช่าและแอดมินใหญ่เป็นลิงก์ ส่วนของเจ้าของหอเป็นปุ่ม ต้องบังคับสีเดียวกัน
@@ -651,7 +654,8 @@
   .work-item-grid > a { @apply text-[#292a30] no-underline hover:no-underline; }
   .work-item-copy strong { @apply block font-semibold text-[#292a30]; }
   .work-item-copy small { @apply mt-1 block text-xs text-[#62646c]; }
-  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-red-500 px-2 py-1 text-sm font-bold text-white; }
+  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-[#fff7e0] px-2 py-1 text-sm font-bold text-amber-800; }
+  .work-item-count[data-tone="urgent"] { @apply bg-red-500 text-white; }
   .work-item-arrow { @apply shrink-0 text-[#8a8c95] transition-transform; }
   .work-item-grid > button:hover .work-item-arrow { @apply translate-x-0.5 text-brand; }
 
@@ -691,10 +695,14 @@
     color: var(--summary-accent);
   }
   .metric > span > svg, .figma-summary-card > span > svg { @apply size-4; }
+  /* แบบ Cal ตัวเลขเป็นพระเอก ไอคอนตกแต่งข้างตัวเลขทำให้แถวการ์ดดูเป็นสีรุ้ง จึงซ่อนไว้
+     ยอดค้างชำระที่เลยกำหนดเป็นตัวแดงแทน บอกความด่วนได้โดยไม่ต้องพึ่งไอคอน */
+  .metric > span, .figma-summary-card > span { @apply hidden; }
   /* ตัวเลขใช้สีข้อความปกติเหมือนของ Cal ที่เน้นด้วยน้ำหนักตัวอักษร ไม่ใช่ด้วยสี */
   .metric strong, .figma-summary-card strong {
     @apply mt-1.5 block text-xl font-semibold text-[#292a30];
   }
+  .metric.tone-red strong { @apply text-[#b91c1c]; }
   /* โทนสีของไอคอนมีความหมายเดียวกับป้ายสถานะ ม่วง = ข้อมูลทั่วไป เขียว = เสร็จแล้ว เหลือง = รอทำ แดง = มีปัญหา
      ฟ้าเดิมไม่มีความหมายต่างจากม่วงแต่ทำให้หน้ามีสีมากเกินไป จึงรวมเป็นม่วงสีหลัก */
   .metric.tone-blue, .figma-summary-card.tone-blue { --summary-accent: #4655e8; --summary-tint: #f4f4f5; }
@@ -912,14 +920,10 @@
   .meter-table-card table tbody tr:last-child td,
   .panel.overflow-hidden table tbody tr:last-child td { @apply border-b-0; }
   .parcel-muted { @apply text-[#62646c]; }
-  .invoice-table .figma-table-row:has(.badge-overdue) { @apply bg-red-50/70 hover:bg-red-50; }
-  /* Operational tables use quiet zebra rows for scanning and reserve stronger
-     tints for records that need attention. Informational tables stay plain. */
+  /* แถวเป็นพื้นขาวทั้งหมดแบบ Cal บิลค้างหรือสัญญาใกล้หมดบอกด้วยป้ายสถานะในแถวแทนการระบายทั้งแถว
+     เหลือแค่สัญญาที่จบแล้วที่ทำให้จางลง เพราะเป็นข้อมูลเก่าที่ไม่ต้องทำอะไรต่อ */
   .invoice-table .figma-table-row:nth-child(odd),
   .contract-table .figma-table-row:nth-child(odd) { @apply bg-[#fff]; }
-  /* ใส่ tbody > ให้ชนะกฎสีแถวคี่ของตาราง ไม่งั้นแถวค้างชำระจะเป็นสีชมพูแค่บางแถว */
-  .invoice-table tbody > .figma-table-row[data-status="overdue"] { @apply bg-[#fff1f0] shadow-[inset_3px_0_0_#ef4444] hover:bg-[#ffe8e6]; }
-  .contract-table tbody > .figma-table-row[data-status="EXPIRING"] { @apply bg-[#fff9e8] hover:bg-[#fff4d1]; }
   .contract-table tbody > .figma-table-row[data-status="EXPIRED"],
   .contract-table tbody > .figma-table-row[data-status="CANCELLED"] { @apply bg-[#f3f4f6] text-[#62646c]; }
   .status-scan-table tbody tr:nth-child(even) > td { @apply bg-[#fff]; }
@@ -1131,24 +1135,29 @@
   .revenue-breakdown .water::before { background: var(--chart-water); }
   .revenue-breakdown .electric::before { background: var(--chart-electric); }
   .revenue-breakdown .other::before { background: var(--chart-other); }
-  .room-status-donut { @apply mx-auto my-4 size-28 rounded-full ring-4 ring-[#f4f4f5]; }
+  .room-status-bar { @apply my-4 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
+  .room-status-bar > span { @apply min-w-1 basis-0; }
+  .room-status-bar > .occupied { background: var(--chart-occupied); }
+  .room-status-bar > .available { background: var(--chart-available); }
+  .room-status-bar > .maintenance { background: var(--chart-maintenance); }
   .room-status-overview { @apply grid gap-2; }
   .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border border-[#e4e4e7] bg-[#fff] p-3; }
   .room-status-overview small { @apply text-[#62646c]; }
   .room-status-overview > div > .badge { @apply justify-self-start; }
   .dashboard-empty-state { @apply grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#8b8d96] p-6 text-center text-sm text-[#62646c]; }
   .priority-list { @apply grid gap-2; }
-  .priority-list button { @apply flex items-center justify-between gap-4 rounded-2xl border border-transparent bg-brand/[.06] p-4 text-left hover:bg-brand/10; }
+  .priority-list button { @apply flex items-center justify-between gap-4 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-4 text-left hover:bg-[#fafafa]; }
   .priority-list button strong, .priority-list button span { @apply block; }
   .priority-list button span { @apply mt-1 text-sm text-[#62646c]; }
+  .priority-list button[data-tone="urgent"]:not(.is-clear) span { @apply font-medium text-[#b91c1c]; }
   .priority-list button small { @apply inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 font-bold text-[#fff]; }
   .priority-list button.is-clear { @apply border-[#e4e4e7] bg-[#fff] hover:bg-[#fafafa]; }
   .priority-list button.is-clear small { @apply bg-transparent px-0 font-semibold text-brand; }
   .quick-actions { @apply grid! grid-cols-3; }
-  .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/[.06] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:bg-brand hover:text-[#fff]; }
+  .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:text-brand; }
   .dashboard-actions { @apply grid-cols-2!; }
   .dashboard-actions button > small { @apply inline-flex items-center gap-0.5 text-xs font-medium opacity-65; }
-  .mini-row { @apply mt-4 rounded-2xl bg-brand/15 p-4; }
+  .mini-row { @apply mt-4 rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-4; }
   .mini-row strong, .mini-row span { @apply block; }
   .mini-row span { @apply mt-1 text-sm text-[#62646c]; }
   .invoice-list { @apply grid gap-2; }
