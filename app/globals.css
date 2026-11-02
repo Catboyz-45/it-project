@@ -2504,3 +2504,108 @@ select:disabled {
   .read-only-control-note,
   .subscription-access-banner.is-checking { animation-duration: 1ms; }
 }
+
+/* ===== หน้าแดชบอร์ดเจ้าของหอแบบใหม่ =====
+   โครงแบบ Cal การ์ดขาวขอบบางชั้นเดียว ตัวเลขเป็นพระเอก สีม่วงใช้กับปุ่มและห้องที่มีผู้เช่า
+   ป้ายบอกความด่วนใช้ชุดเดียวกับเมนู เหลืองอ่อนคือรอทำ แดงทึบคือเลยกำหนด เขียวคือเสร็จแล้ว */
+@layer components {
+  .overview { @apply mx-6 mb-8 grid gap-4; }
+  .overview-kpis { @apply grid gap-3; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .overview-kpi { @apply grid content-start gap-1 rounded-2xl border border-[#e4e4e7] bg-[#fff] px-5 py-4; }
+  .overview-kpi > p { @apply m-0 text-sm text-[#5c5e66]; }
+  .overview-kpi > strong { @apply text-2xl font-bold text-[#1e1f22] tabular-nums; }
+  .overview-kpi > strong > span { @apply text-base font-medium text-[#5c5e66]; }
+  .overview-kpi > small { @apply text-xs text-[#5c5e66]; }
+  .overview-kpi[data-tone="urgent"] > strong { @apply text-[#b42318]; }
+  .overview-kpi[data-tone="urgent"] > small { @apply font-semibold text-[#b42318]; }
+  .overview-progress { @apply my-1 block h-1.5 overflow-hidden rounded-full bg-[#ececf0]; }
+  .overview-progress > span { @apply block h-full rounded-full bg-brand; }
+  .overview-progress[data-tone="done"] > span { background: #23a55a; }
+  .overview-share { @apply my-1 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-[#ececf0]; }
+  .overview-share > span { @apply min-w-1 basis-0; }
+  .overview-share > [data-status="occupied"] { background: var(--chart-occupied); }
+  .overview-share > [data-status="available"] { background: var(--chart-available); }
+  .overview-share > [data-status="maintenance"] { background: var(--chart-maintenance); }
+
+  /* จุดสถานะแบบ Discord ม่วงคือมีผู้เช่า วงกลมโปร่งคือว่าง เหลืองคือปิดซ่อม */
+  .status-dot { @apply inline-block size-2.5 shrink-0 rounded-full; }
+  .status-dot[data-status="occupied"] { background: var(--chart-occupied); }
+  .status-dot[data-status="available"] { box-shadow: inset 0 0 0 2px #b5b7bf; }
+  .status-dot[data-status="maintenance"] { background: var(--chart-maintenance); }
+
+  .overview-row { @apply flex flex-wrap items-start gap-4; }
+  .overview-card { @apply min-w-0 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-5; flex: 1 1 320px; }
+  .overview-row > .today-card, .overview-row > .room-map { flex: 2 1 520px; }
+  .overview-card h2 { @apply m-0 text-base font-semibold text-[#1e1f22]; }
+  .overview-card-text { @apply mt-2 mb-4 text-sm text-[#5c5e66]; }
+  .overview-card-head { @apply flex items-center justify-between gap-3 border-b border-[#ececf0] px-5 py-4; }
+  .overview-card-head p { @apply mt-0.5 mb-0 text-sm text-[#5c5e66]; }
+  .overview-card-head > small { @apply shrink-0 text-sm text-[#5c5e66]; }
+
+  .today-card { @apply overflow-hidden p-0; }
+  .today-list { @apply m-0 list-none p-0; }
+  .today-row { @apply flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-[#ececf0] px-5 py-3.5 last:border-b-0; }
+  .today-label { @apply inline-flex shrink-0 items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold whitespace-nowrap; }
+  .today-row > .today-label { @apply w-20; }
+  .today-label[data-tone="pending"] { @apply bg-[#fff7e0] text-amber-800; }
+  .today-label[data-tone="urgent"] { @apply bg-red-500 text-white; }
+  .today-label[data-tone="done"] { @apply bg-[#e6f6ec] text-[#1a7f45]; }
+  .today-label[data-tone="neutral"] { @apply bg-[#f1f1f4] text-[#3f4147]; }
+  .today-copy { @apply min-w-0; flex: 1 1 220px; }
+  .today-copy strong { @apply block text-sm font-semibold text-[#1e1f22]; }
+  .today-copy span { @apply mt-0.5 block text-[13px] text-[#5c5e66]; }
+  .today-empty { @apply m-0 px-5 py-10 text-center text-sm text-[#5c5e66]; }
+
+  .cycle-card-head { @apply flex items-center justify-between gap-2; }
+  .cycle-steps { @apply mt-4 mb-0 list-none p-0; }
+  .cycle-steps > li { @apply relative flex gap-3 pb-4 last:pb-0; }
+  .cycle-steps > li:not(:last-child)::after { content: ""; position: absolute; left: 11px; top: 28px; bottom: 4px; width: 2px; border-radius: 1px; background: #dfe0e6; }
+  .cycle-steps > li[data-state="done"]:not(:last-child)::after { background: #23a55a; }
+  .cycle-steps > li > div { @apply min-w-0 flex-1; }
+  .cycle-steps strong { @apply block text-sm font-semibold text-[#1e1f22]; }
+  .cycle-steps span:not(.cycle-dot):not(.overview-progress):not(.overview-progress > span) { @apply mt-0.5 block text-xs text-[#5c5e66]; }
+  .cycle-steps > li[data-state="todo"] strong { @apply text-[#5c5e66]; }
+  .cycle-dot { @apply grid size-6 shrink-0 place-items-center rounded-full border-2 border-[#d9dae0] bg-[#fff] text-white; }
+  .cycle-steps > li[data-state="done"] > .cycle-dot { @apply border-[#23a55a] bg-[#23a55a]; }
+  .cycle-steps > li[data-state="active"] > .cycle-dot { @apply border-brand bg-brand; box-shadow: inset 0 0 0 4px #fff; }
+  .cycle-steps .overview-progress { @apply mt-2; }
+  .cycle-card-link { @apply mt-4 flex w-full items-center justify-center gap-1.5; }
+
+  .room-map-head { @apply flex flex-wrap items-center justify-between gap-2.5; }
+  .room-map-legend { @apply m-0 flex list-none gap-3.5 p-0 text-xs text-[#5c5e66]; }
+  .room-map-legend li { @apply inline-flex items-center gap-1.5; }
+  .room-map-floor { @apply mt-4; }
+  .room-map-floor > p { @apply mt-0 mb-2 text-xs font-semibold text-[#6d6f78]; }
+  .room-map-grid { @apply grid gap-2; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .room-map-tile { @apply grid min-w-0 gap-1 rounded-xl border border-[#e3e3e8] bg-[#fff] px-3 py-2.5 text-left text-[#1e1f22] transition-colors hover:border-brand/50; }
+  .room-map-tile > span { @apply flex items-center justify-between gap-2; }
+  .room-map-tile strong { @apply text-[15px] font-bold; }
+  .room-map-tile small { @apply truncate text-xs text-[#5c5e66]; }
+  .room-map-tile[data-status="occupied"] { @apply border-[#c9cdfb] bg-[#f5f6ff]; }
+  .room-map-tile[data-status="maintenance"] { @apply border-dashed border-[#e8c477] bg-[#fffbf0]; }
+
+  .follow-list { @apply mt-3 mb-0 grid list-none gap-1 p-0; }
+  .follow-list button { @apply flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-[#1e1f22] hover:bg-[#fafafa]; }
+  .follow-copy { @apply min-w-0 flex-1; }
+  .follow-copy strong { @apply block truncate text-sm font-semibold; }
+  .follow-copy span { @apply block text-xs text-[#5c5e66]; }
+  .follow-amount { @apply grid shrink-0 justify-items-end gap-1; }
+  .follow-amount strong { @apply text-sm font-semibold tabular-nums; }
+
+  /* วงกลมตัวอักษรแรกของชื่อ สีคงที่ตามชื่อ เข้มพอให้ตัวอักษรขาวอ่านได้ */
+  .initial-avatar { @apply inline-grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white; }
+  .initial-avatar[data-size="sm"] { @apply size-6 text-[11px]; }
+  .initial-avatar[data-size="lg"] { @apply size-10 text-base; }
+  .initial-avatar[data-tone="0"] { background: #5865f2; }
+  .initial-avatar[data-tone="1"] { background: #c03b84; }
+  .initial-avatar[data-tone="2"] { background: #1a7f45; }
+  .initial-avatar[data-tone="3"] { background: #b45309; }
+  .initial-avatar[data-tone="4"] { background: #4b5563; }
+
+  @media (max-width: 767px) {
+    .overview { @apply mx-4; }
+    .overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .overview-kpi { @apply px-4 py-3; }
+    .overview-kpi > strong { @apply text-xl; }
+  }
+}
