@@ -9,7 +9,7 @@ export async function withContractDetails(propertyId: string, data: ContractDocu
   const [settings, lease] = await Promise.all([
     database.propertySettings.findUnique({
       where: { propertyId },
-      select: { address: true, dueDay: true, electricityUnitRate: true, legalName: true, lessorName: true, waterUnitRate: true },
+      select: { address: true, contactPhone: true, dueDay: true, electricityUnitRate: true, legalName: true, lessorName: true, waterUnitRate: true },
     }),
     database.lease.findFirst({
       where: { propertyId, leaseNumber: data.reference_id },
@@ -46,6 +46,7 @@ export async function withContractDetails(propertyId: string, data: ContractDocu
     tenant_address: data.tenant_address || tenant?.address || "",
     lessor_name: settings?.lessorName || settings?.legalName || data.property_name,
     property_address: settings?.address ?? "",
+    property_phone: settings?.contactPhone ?? "",
     contract_date: contractDate,
     rent_amount_text: thaiBahtText(data.rent_amount),
     deposit_amount_text: thaiBahtText(data.deposit_amount),

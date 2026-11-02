@@ -1,7 +1,7 @@
 "use client";
 // เป็นตัวแก้ไขเอกสาร ต้องแตะ DOM การเลือกข้อความ และวัดขนาดจริงตลอดเวลา
 
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Check, ChevronDown, Eye, FilePlus2, FileText, Heading2, ImagePlus, Italic, List, Minus, PenLine, Plus, RotateCcw, Save, ScrollText, Table2, Trash2, TriangleAlert, Underline, X, ZoomIn, ZoomOut } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Check, ChevronDown, Eye, FilePlus2, FileText, Heading2, ImagePlus, Italic, List, Minus, PenLine, Plus, Redo2, RotateCcw, Save, ScrollText, Table2, Trash2, TriangleAlert, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -27,6 +27,7 @@ export const templateTitles: Record<DocumentKind, { panel: string; editor: strin
 };
 
 const fontSizes = [10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36];
+const zoomSteps = [50, 75, 100, 125, 150];
 const editorFontCss = documentFontFaceCss((file) => `/fonts/sarabun/${file}`);
 
 type Alignment = "text-left" | "text-center" | "text-right";
@@ -37,6 +38,18 @@ type Autocomplete = { index: number; left: number; node: Text; offset: number; q
 function blockAlignment(block: Element | null): Alignment {
   if (block?.classList.contains("text-center")) return "text-center";
   return block?.classList.contains("text-right") ? "text-right" : "text-left";
+}
+
+// โหนดที่ช่วงเลือกเริ่มต้นจริง ๆ ถ้าจุดเริ่มเป็นตำแหน่งระหว่างลูกของ element ให้ใช้ลูกตัวที่อยู่ตรงนั้น
+// เลือกคลุมแท็บตัวหนาทั้งก้อนแล้วจุดเริ่มจะอยู่ที่ย่อหน้าแม่ ถ้าไม่ไล่ลงไปจะไม่รู้ว่าข้อความที่เลือกเป็นตัวหนาอยู่
+function rangeStartElement(range: Range) {
+  const { startContainer, startOffset } = range;
+  if (startContainer instanceof Element) {
+    const child = startContainer.childNodes[startOffset];
+    if (child instanceof Element) return child;
+    return child?.parentElement ?? startContainer;
+  }
+  return startContainer.parentElement;
 }
 
 // ตำแหน่งของเคอร์เซอร์บนจอ ใช้วางกล่องเลือกข้อมูลตอนพิมพ์ @
@@ -86,7 +99,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const [isClauseDialogOpen, setIsClauseDialogOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState(3);
   const [tableRows, setTableRows] = useState(3);
-  const [zoom, setZoom] = useState(100);
+  // "fit" คือย่อกระดาษให้พอดีความกว้างของกรอบ เป็นค่าเริ่มต้น จอเล็กจะได้ไม่ต้องเลื่อนซ้ายขวา
+  const [zoomMode, setZoomMode] = useState<"fit" | number>("fit");
+  const [fitPercent, setFitPercent] = useState(100);
+  const canvasRef = useRef<HTMLElement>(null);
   const [isContentDirty, setIsContentDirty] = useState(false);
   const [usedKeys, setUsedKeys] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewValues>({ status: "idle", label: "", values: null, error: "" });
@@ -244,8 +260,70 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
+  const zoomPercent = zoomMode === "fit" ? fitPercent : zoomMode;
+  const zoomOutTarget = zoomSteps.findLast((step) => step < zoomPercent - 1);
+  const zoomInTarget = zoomSteps.find((step) => step > zoomPercent + 1);
+
+  // วัดกรอบทุกครั้งที่ขนาดเปลี่ยน แล้วคำนวณว่าต้องย่อเท่าไรกระดาษ A4 ถึงจะพอดี ไม่ขยายเกิน 100%
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const paper = editorRef.current;
+    if (!canvas || !paper) return;
+    const measure = () => {
+      const style = getComputedStyle(canvas);
+      const available = canvas.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+      // offsetWidth ไม่เปลี่ยนตามการซูม จึงได้ความกว้างจริงของ A4 เสมอ
+      setFitPercent(Math.max(30, Math.min(100, Math.floor((available / paper.offsetWidth) * 100))));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
+  // ---- ย้อนกลับและทำซ้ำ ----
+  // ตัวแก้ไขแก้ DOM เองแทบทุกคำสั่ง ประวัติ undo ของเบราว์เซอร์จึงไม่รู้เรื่อง ต้องเก็บภาพก่อนแก้ไว้เอง
+  // เก็บเป็น HTML ที่แปลงป้ายกลับเป็น {{key}} แล้ว ตอนย้อนก็โหลดใหม่ผ่าน loadIntoEditor เหมือนตอนเปิดหน้า
+  const historyRef = useRef<{ redo: string[]; typingAt: number; undo: string[] }>({ redo: [], typingAt: 0, undo: [] });
+  const [historySize, setHistorySize] = useState({ redo: 0, undo: 0 });
+  const syncHistorySize = () => setHistorySize({ redo: historyRef.current.redo.length, undo: historyRef.current.undo.length });
+
+  // เรียกก่อนทุกคำสั่งที่แก้เอกสาร เก็บสภาพปัจจุบันไว้ให้ย้อนกลับมาได้
+  const pushHistory = () => {
+    const history = historyRef.current;
+    const snapshot = editorHtml();
+    if (history.undo.at(-1) === snapshot) return;
+    // เก็บย้อนหลัง 100 ขั้น พอสำหรับการแก้แบบฟอร์มหนึ่งรอบโดยไม่กินหน่วยความจำมากเกินไป
+    history.undo = [...history.undo.slice(-99), snapshot];
+    history.redo = [];
+    syncHistorySize();
+  };
+
+  // พิมพ์ต่อเนื่องนับเป็นขั้นเดียว เว้นช่วงเกินหนึ่งวินาทีค่อยนับเป็นขั้นใหม่ เหมือนโปรแกรมพิมพ์เอกสารทั่วไป
+  const pushTypingHistory = () => {
+    const now = Date.now();
+    if (now - historyRef.current.typingAt > 1_000) pushHistory();
+    historyRef.current.typingAt = now;
+  };
+
+  const stepHistory = (direction: "undo" | "redo") => {
+    const history = historyRef.current;
+    const target = history[direction].at(-1);
+    if (target === undefined) return;
+    const opposite = direction === "undo" ? "redo" : "undo";
+    history[direction] = history[direction].slice(0, -1);
+    history[opposite] = [...history[opposite], editorHtml()];
+    history.typingAt = 0;
+    lastRangeRef.current = null;
+    loadIntoEditor(target);
+    syncHistorySize();
+  };
+
   useEffect(() => {
     loadIntoEditor(template.html);
+    // เปิดแบบฟอร์มใหม่หรือเพิ่งบันทึก เริ่มประวัติใหม่ ไม่ให้ย้อนกลับไปเนื้อหาของรอบก่อน
+    historyRef.current = { redo: [], typingAt: 0, undo: [] };
+    setHistorySize({ redo: 0, undo: 0 });
     // เทียบกับ HTML หลังแปลงไปกลับหนึ่งรอบ ช่องที่เขียนว่า {{ key }} มีเว้นวรรคจะได้ไม่ถูกนับว่าแก้แล้ว
     savedHtmlRef.current = editorHtml();
     setIsContentDirty(false);
@@ -328,8 +406,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const range = selection?.rangeCount && editor?.contains(selection.getRangeAt(0).commonAncestorContainer)
       ? selection.getRangeAt(0)
       : lastRangeRef.current;
-    const container = range?.startContainer;
-    const element = container?.nodeType === Node.ELEMENT_NODE ? container as Element : container?.parentElement;
+    const element = range ? rangeStartElement(range) : null;
     if (!editor || !element || !editor.contains(element)) return;
     const block = element.closest("p,h1,h2,h3,h4,h5,h6,div,li,td,th");
     const style = getComputedStyle(element);
@@ -373,25 +450,94 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     controls[nextIndex]?.focus();
   };
 
-  // ครอบข้อความที่เลือกด้วยแท็บที่ต้องการ ใช้แทน document.execCommand ที่เลิกใช้แล้ว
-  const wrapSelection = (tagName: "strong" | "em" | "u" | "span", className?: string, style?: Partial<CSSStyleDeclaration>) => {
+  // เลือกข้อความเดิมกลับมาหลังจัดรูปแบบ กดปุ่มอื่นต่อได้เลยโดยไม่ต้องลากคลุมใหม่
+  // insideElement คือเลือกเนื้อในของแท็บที่เพิ่งครอบ ปุ่มจะได้เห็นว่าข้อความนั้นเป็นตัวหนาแล้วและกดซ้ำเพื่อเอาออกได้
+  const selectNodes = (first: Node, last: Node, insideElement = false) => {
+    const range = document.createRange();
+    if (insideElement) range.selectNodeContents(first);
+    else {
+      range.setStartBefore(first);
+      range.setEndAfter(last);
+    }
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    lastRangeRef.current = range.cloneRange();
+    updateActiveFormats();
+  };
+
+  const formattedRange = () => {
     const range = selectedRange();
     if (!range || range.collapsed) {
       setError("เลือกข้อความที่ต้องการจัดรูปแบบก่อน");
-      return;
+      return null;
     }
     setError("");
+    return range;
+  };
+
+  // ครอบข้อความที่เลือกด้วยแท็บที่ต้องการ ใช้แทน document.execCommand ที่เลิกใช้แล้ว
+  const wrapSelection = (tagName: "strong" | "em" | "u" | "span", className?: string, style?: Partial<CSSStyleDeclaration>) => {
+    const range = formattedRange();
+    if (!range) return;
+    pushHistory();
     const element = document.createElement(tagName);
     if (className) element.className = className;
     if (style) Object.assign(element.style, style);
     element.append(range.extractContents());
     range.insertNode(element);
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    lastRangeRef.current = null;
-    if (tagName === "strong") setActiveFormats((current) => ({ ...current, bold: true }));
-    if (tagName === "em") setActiveFormats((current) => ({ ...current, italic: true }));
-    if (tagName === "u") setActiveFormats((current) => ({ ...current, underline: true }));
+    selectNodes(element, element, true);
+  };
+
+  // ปุ่มตัวหนา ตัวเอียง ขีดเส้นใต้ กดซ้ำต้องเอารูปแบบออก ไม่ใช่ครอบซ้อนอีกชั้น
+  const toggleInlineFormat = (tagName: "strong" | "em" | "u") => {
+    const selector = { strong: "strong,b", em: "em,i", u: "u" }[tagName];
+    const range = formattedRange();
+    const editor = editorRef.current;
+    if (!range || !editor) return;
+    const startElement = rangeStartElement(range);
+    if (!startElement?.closest(selector) || !editor.contains(startElement)) {
+      wrapSelection(tagName);
+      return;
+    }
+    pushHistory();
+    const commonElement = range.commonAncestorContainer instanceof Element ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+    const enclosing = commonElement?.closest(selector);
+    if (enclosing && editor.contains(enclosing)) {
+      // ข้อความที่เลือกอยู่ในแท็บเดียวกันทั้งหมด แยกแท็บออกเป็นสามท่อน ก่อนหน้า ตรงที่เลือก และหลัง
+      // แล้วถอดแท็บออกเฉพาะท่อนกลาง ข้อความรอบ ๆ จึงยังเป็นตัวหนาเหมือนเดิม
+      const before = document.createRange();
+      before.setStart(enclosing, 0);
+      before.setEnd(range.startContainer, range.startOffset);
+      const after = document.createRange();
+      after.setStart(range.endContainer, range.endOffset);
+      after.setEnd(enclosing, enclosing.childNodes.length);
+      const beforeContent = before.extractContents();
+      const afterContent = after.extractContents();
+      const middle = Array.from(enclosing.childNodes);
+      const pieces: Node[] = [];
+      if (beforeContent.textContent) {
+        const head = enclosing.cloneNode(false);
+        head.appendChild(beforeContent);
+        pieces.push(head);
+      }
+      pieces.push(...middle);
+      if (afterContent.textContent) {
+        const tail = enclosing.cloneNode(false);
+        tail.appendChild(afterContent);
+        pieces.push(tail);
+      }
+      enclosing.replaceWith(...pieces);
+      middle.forEach((node) => { if (node instanceof Element) node.querySelectorAll(selector).forEach((inner) => inner.replaceWith(...Array.from(inner.childNodes))); });
+      if (middle.length) selectNodes(middle[0], middle[middle.length - 1]);
+      return;
+    }
+    // เลือกคร่อมหลายแท็บ ดึงส่วนที่เลือกออกมา ถอดแท็บทุกอันข้างในแล้ววางกลับที่เดิม
+    const content = range.extractContents();
+    content.querySelectorAll(selector).forEach((inner) => inner.replaceWith(...Array.from(inner.childNodes)));
+    const nodes = Array.from(content.childNodes);
+    range.insertNode(content);
+    if (nodes.length) selectNodes(nodes[0], nodes[nodes.length - 1]);
   };
 
   // วางเคอร์เซอร์ต่อท้ายสิ่งที่เพิ่งแทรก ต้องจำช่วงไว้ก่อนโฟกัสตัวแก้ไข
@@ -409,6 +555,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const insertNodeAtSelection = (node: Node) => {
     const editor = editorRef.current;
     if (!editor) return;
+    pushHistory();
     const range = selectedRange()?.cloneRange() ?? null;
     editor.focus({ preventScroll: true });
     if (range) {
@@ -425,6 +572,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const insertBlock = (fragment: DocumentFragment) => {
     const editor = editorRef.current;
     if (!editor) return;
+    pushHistory();
     const documentRoot = editor.querySelector<HTMLElement>(".document") ?? editor;
     const range = selectedRange();
     const container = range?.startContainer;
@@ -452,6 +600,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const element = container.nodeType === Node.ELEMENT_NODE ? container as Element : container.parentElement;
     const block = element?.closest("p,h1,h2,h3,div,li");
     if (!block || !editor.contains(block)) return;
+    pushHistory();
     block.classList.remove("text-left", "text-center", "text-right");
     block.classList.add(className);
     setActiveFormats((current) => ({ ...current, alignment: className }));
@@ -461,6 +610,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const range = selectedRange();
     const heading = document.createElement("h2");
     if (range && !range.collapsed) {
+      pushHistory();
       heading.append(range.extractContents());
       range.insertNode(heading);
       window.getSelection()?.removeAllRanges();
@@ -520,6 +670,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       return;
     }
     setError("");
+    pushHistory();
     previousPageBreak.remove();
     lastRangeRef.current = null;
     window.requestAnimationFrame(paginateEditor);
@@ -551,6 +702,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       return;
     }
     pendingPageDeleteRef.current = () => {
+      pushHistory();
       pageNodes.forEach((node) => node.remove());
       if (nextPageBreak) nextPageBreak.remove();
       else previousPageBreak?.remove();
@@ -578,6 +730,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       return;
     }
     setError("");
+    pushHistory();
     if (action === "add-row") {
       const newRow = table.insertRow(row.rowIndex + 1);
       // แถวใหม่ต้องมีจำนวนช่องเท่าแถวที่กดเพิ่ม ไม่งั้นตารางเบี้ยว
@@ -640,6 +793,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const insertPlaceholder = (key: string, replace?: Range) => {
     const editor = editorRef.current;
     if (!editor) return;
+    pushHistory();
     const chip = createPlaceholderChip(key, labels[key] ?? key);
     renderPlaceholderChip(chip, labels, displayValuesRef.current);
     const range = replace ?? selectedRange()?.cloneRange() ?? null;
@@ -702,6 +856,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   };
 
   const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const key = event.key.toLowerCase();
+    if ((event.metaKey || event.ctrlKey) && (key === "z" || key === "y")) {
+      event.preventDefault();
+      stepHistory(key === "y" || event.shiftKey ? "redo" : "undo");
+      return;
+    }
     if (!autocomplete || autocompleteOptions.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -806,6 +966,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       variant: "danger",
     })) return;
     setError("");
+    pushHistory();
     loadIntoEditor(defaultTemplates[kind].html);
   };
 
@@ -828,9 +989,9 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     <div className="template-editor-toolbar" aria-label="เครื่องมือจัดรูปแบบ" onKeyDown={handleToolbarKeyDown} ref={toolbarRef} role="toolbar">
       <div className="template-toolbar-group">
         <IconButton label="หัวข้อ" onClick={insertHeading} onMouseDown={keepEditorSelection}><Heading2 size={16} /></IconButton>
-        <IconButton aria-pressed={activeFormats.bold} className={activeFormats.bold ? "active" : ""} label="ตัวหนา" onClick={() => wrapSelection("strong")} onMouseDown={keepEditorSelection}><Bold size={16} /></IconButton>
-        <IconButton aria-pressed={activeFormats.italic} className={activeFormats.italic ? "active" : ""} label="ตัวเอียง" onClick={() => wrapSelection("em")} onMouseDown={keepEditorSelection}><Italic size={16} /></IconButton>
-        <IconButton aria-pressed={activeFormats.underline} className={activeFormats.underline ? "active" : ""} label="ขีดเส้นใต้" onClick={() => wrapSelection("u")} onMouseDown={keepEditorSelection}><Underline size={16} /></IconButton>
+        <IconButton aria-pressed={activeFormats.bold} className={activeFormats.bold ? "active" : ""} label="ตัวหนา" onClick={() => toggleInlineFormat("strong")} onMouseDown={keepEditorSelection}><Bold size={16} /></IconButton>
+        <IconButton aria-pressed={activeFormats.italic} className={activeFormats.italic ? "active" : ""} label="ตัวเอียง" onClick={() => toggleInlineFormat("em")} onMouseDown={keepEditorSelection}><Italic size={16} /></IconButton>
+        <IconButton aria-pressed={activeFormats.underline} className={activeFormats.underline ? "active" : ""} label="ขีดเส้นใต้" onClick={() => toggleInlineFormat("u")} onMouseDown={keepEditorSelection}><Underline size={16} /></IconButton>
       </div>
       <div className="template-toolbar-group template-font-controls">
         <DropdownField
@@ -858,10 +1019,9 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
         <ActionMenu align="start" items={insertItems} label="แทรก" trigger={<><Plus aria-hidden="true" size={16} /> แทรก <ChevronDown aria-hidden="true" size={14} /></>} />
         <ActionMenu align="start" items={pageItems} label="จัดการหน้า" trigger={<><FileText aria-hidden="true" size={16} /> หน้า <ChevronDown aria-hidden="true" size={14} /></>} />
       </div>
-      <div className="template-toolbar-group template-zoom-controls">
-        <IconButton disabled={zoom === 75} label="ย่อมุมมอง" onClick={() => setZoom((current) => Math.max(75, current - 25))}><ZoomOut size={16} /></IconButton>
-        <strong aria-live="polite">{zoom}%</strong>
-        <IconButton disabled={zoom === 125} label="ขยายมุมมอง" onClick={() => setZoom((current) => Math.min(125, current + 25))}><ZoomIn size={16} /></IconButton>
+      <div className="template-toolbar-group template-history-controls">
+        <IconButton disabled={historySize.undo === 0} label="เลิกทำ (Ctrl+Z)" onClick={() => stepHistory("undo")} onMouseDown={keepEditorSelection}><Undo2 size={16} /></IconButton>
+        <IconButton disabled={historySize.redo === 0} label="ทำซ้ำ (Ctrl+Shift+Z)" onClick={() => stepHistory("redo")} onMouseDown={keepEditorSelection}><Redo2 size={16} /></IconButton>
       </div>
     </div>
   );
@@ -904,13 +1064,31 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       />
       {!isSaving && !name.trim() ? <p className="disabled-reason document-editor-disabled-reason" id="document-name-disabled-reason">กรอกชื่อแบบฟอร์มก่อนบันทึก</p> : null}
       <div className="document-editor-workspace">
-        <section className="document-editor-canvas" aria-label="พื้นที่กระดาษ A4">
-          <div className="document-editor-paper-scale" data-zoom={zoom}>
+        {/* ปุ่มซูมลอยอยู่มุมล่างของพื้นที่กระดาษ แบบโปรแกรมเอกสารทั่วไป แถบเครื่องมือจะได้เหลือที่ให้คำสั่งแก้เอกสาร */}
+        <div className="document-editor-stage">
+          <div aria-label="มุมมอง" className="template-zoom-controls" role="group">
+            <IconButton disabled={zoomOutTarget === undefined} label="ย่อมุมมอง" onClick={() => { if (zoomOutTarget !== undefined) setZoomMode(zoomOutTarget); }}><ZoomOut size={16} /></IconButton>
+            <button aria-label={`มุมมอง ${zoomPercent}% กดเพื่อปรับให้พอดีความกว้าง`} aria-pressed={zoomMode === "fit"} className="template-zoom-fit" onClick={() => setZoomMode("fit")} type="button">
+              {zoomMode === "fit" ? "พอดีจอ" : `${zoomPercent}%`}
+            </button>
+            <IconButton disabled={zoomInTarget === undefined} label="ขยายมุมมอง" onClick={() => { if (zoomInTarget !== undefined) setZoomMode(zoomInTarget); }}><ZoomIn size={16} /></IconButton>
+          </div>
+        <section className="document-editor-canvas" aria-label="พื้นที่กระดาษ A4" ref={canvasRef}>
+          {/* ใช้ CSS zoom ไม่ใช่ transform เพราะ zoom ย่อพื้นที่ที่กระดาษกินด้วย กรอบจะไม่มีที่ว่างหรือแถบเลื่อนเกิน */}
+          <div className="document-editor-paper-scale" style={{ zoom: zoomPercent / 100 }}>
             <div
               aria-label="เนื้อหาแบบฟอร์ม"
               className="template-rich-editor document-editor-paper"
               contentEditable
-              onBeforeInput={() => {
+              onBeforeInput={(event) => {
+                // คำสั่งเลิกทำจากเมนูของเบราว์เซอร์ใช้ประวัติของเราแทน ไม่งั้นสองประวัติจะตีกัน
+                const inputType = (event.nativeEvent as InputEvent).inputType;
+                if (inputType === "historyUndo" || inputType === "historyRedo") {
+                  event.preventDefault();
+                  stepHistory(inputType === "historyUndo" ? "undo" : "redo");
+                  return;
+                }
+                pushTypingHistory();
                 rememberPaginationPosition();
                 rememberSelection();
               }}
@@ -937,6 +1115,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
             />
           </div>
         </section>
+        </div>
         <aside className="document-editor-sidebar" aria-label="ตั้งค่าแบบฟอร์ม">
           <label className="form-field"><span>ชื่อแบบฟอร์ม</span><input maxLength={120} onChange={(event) => setName(event.target.value)} value={name} /></label>
 

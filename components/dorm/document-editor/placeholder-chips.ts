@@ -32,11 +32,15 @@ export function chipifyPlaceholders(root: Node, labels: Record<string, string>) 
     for (const match of text.matchAll(placeholderPattern)) {
       const key = match[1];
       if (!(key in labels)) continue;
-      fragment.append(text.slice(cursor, match.index), createPlaceholderChip(key, labels[key]));
+      // ข้อความว่างก่อนป้ายไม่ต้องสร้างเป็นโหนด ป้ายที่อยู่ต้นย่อหน้าจะได้ไม่มีโหนดเปล่านำหน้า
+      const before = text.slice(cursor, match.index);
+      if (before) fragment.append(before);
+      fragment.append(createPlaceholderChip(key, labels[key]));
       cursor = match.index + match[0].length;
     }
     if (cursor === 0) continue;
-    fragment.append(text.slice(cursor));
+    const rest = text.slice(cursor);
+    if (rest) fragment.append(rest);
     textNode.replaceWith(fragment);
   }
 }

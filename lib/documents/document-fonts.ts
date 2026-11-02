@@ -7,7 +7,7 @@ export const documentFontFamily = "Sarabun";
 // ฟอนต์ที่เลือกได้ในตัวแก้ไข ต้องตรงกับรายการที่ sanitizeTemplate ยอมให้เก็บ
 // ใส่เฉพาะฟอนต์ที่มีตัวไทย Arial กับ Georgia ไม่มีตัวไทย เลือกแล้วตัวไทยจะกลายเป็นฟอนต์สำรองที่ไม่ตรงกับ PDF
 export const documentFontOptions = [
-  { label: "Sarabun (แนะนำ)", value: "Sarabun" },
+  { label: "Sarabun", value: "Sarabun" },
   { label: "Noto Sans Thai", value: "Noto Sans Thai" },
   { label: "Tahoma", value: "Tahoma" },
 ] as const;

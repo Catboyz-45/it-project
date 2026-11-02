@@ -55,6 +55,7 @@ export const receiptDataSchema = z.object({
 export type ContractDerivedData = {
   lessor_name: string;
   property_address: string;
+  property_phone: string;
   contract_date: string;
   rent_amount_text: string;
   deposit_amount_text: string;
@@ -75,7 +76,7 @@ export const placeholderLabels: Record<DocumentKind, Record<string, string>> = {
     property_name: "ชื่อหอพัก", room_number: "เลขห้อง", tenant_name: "ชื่อผู้เช่า",
     tenant_phone: "เบอร์โทร", tenant_address: "ที่อยู่", start_date: "วันเริ่มสัญญา",
     end_date: "วันสิ้นสุดสัญญา", rent_amount: "ค่าเช่า", deposit_amount: "เงินประกัน",
-    reference_id: "เลขที่สัญญา", lessor_name: "ชื่อผู้ให้เช่า", property_address: "ที่อยู่หอพัก",
+    reference_id: "เลขที่สัญญา", lessor_name: "ชื่อผู้ให้เช่า", property_address: "ที่อยู่หอพัก", property_phone: "เบอร์ติดต่อหอพัก",
     contract_date: "วันที่ทำสัญญา", rent_amount_text: "ค่าเช่า (ตัวอักษร)", deposit_amount_text: "เงินประกัน (ตัวอักษร)",
     water_rate: "ค่าน้ำต่อหน่วย", electricity_rate: "ค่าไฟต่อหน่วย", payment_due_day: "วันครบกำหนดชำระ",
     furniture_list: "รายการเฟอร์นิเจอร์",

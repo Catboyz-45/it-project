@@ -1613,10 +1613,12 @@
   .template-editor-toolbar .icon-button.active,
   .template-editor-toolbar .icon-button[aria-pressed="true"] { @apply bg-brand/[.12] text-[#4651c7] hover:bg-brand/[.16]; }
   .template-font-controls { @apply gap-1.5; }
-  .template-font-controls .dropdown-field { @apply w-auto; }
-  .template-font-controls .dropdown-field:first-child { @apply min-w-40; }
-  .template-font-controls .dropdown-field:nth-child(2) { @apply min-w-20; }
-  .template-font-controls .dropdown-trigger { @apply h-9 min-h-9 py-1 text-sm; }
+  .template-font-controls .dropdown-field { @apply min-w-0; }
+  .template-font-controls .dropdown-field:first-child { @apply w-40; }
+  .template-font-controls .dropdown-field:nth-child(2) { @apply w-20; }
+  /* กฎกลางของช่องเลือกเผื่อที่ขวา 2.5rem ไว้ให้ลูกศรแบบ !important ช่องขนาดตัวอักษรที่แคบจึงไม่เหลือที่ให้ตัวเลข
+     ลูกศรของ DropdownField เป็นไอคอนในปุ่มอยู่แล้ว ไม่ต้องเผื่อที่ซ้ำ */
+  .template-font-controls .dropdown-trigger { @apply h-9 min-h-9 gap-1.5 py-1 text-sm; padding-inline: .625rem !important; }
   .template-color-control { @apply relative flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-[#3f4048] hover:bg-[#f4f4f5]; }
   .template-color-control input[type="color"] { @apply size-5 min-h-0 min-w-0 cursor-pointer appearance-none overflow-hidden rounded-md border border-[#d4d4d8] bg-transparent p-0 shadow-none; }
   .template-color-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
@@ -1624,8 +1626,11 @@
   .template-color-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 5px; }
   .template-color-control.highlight span { @apply text-xs font-medium; }
   .action-menu-text-trigger { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5] aria-expanded:bg-[#f4f4f5]; }
-  .template-zoom-controls { @apply ml-auto gap-1; }
-  .template-zoom-controls strong { @apply w-11 text-center text-xs font-semibold text-[#62646c] tabular-nums; }
+  .document-editor-stage { @apply relative min-w-0; }
+  .template-zoom-controls { @apply absolute right-4 bottom-4 z-10 flex items-center gap-0.5 rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-[0_4px_14px_rgba(0,0,0,.08)]; }
+  .template-zoom-controls .icon-button { @apply size-9 border-0 bg-transparent text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
+  .template-zoom-controls .template-zoom-fit { @apply h-9 min-w-16 rounded-lg border-0 bg-transparent px-2 text-xs font-semibold text-[#62646c] shadow-none tabular-nums hover:bg-[#f4f4f5] aria-pressed:text-[#4651c7]; }
+  .template-history-controls { @apply ml-auto; }
   .template-image-input { @apply hidden; }
 
   /* แถบตารางโผล่เฉพาะตอนเคอร์เซอร์อยู่ในตาราง ไม่ต้องกินที่ตลอดเวลา */
@@ -1642,8 +1647,6 @@
   /* กระดาษเลื่อนในกรอบของตัวเอง แถบด้านขวาจะได้อยู่กับที่ขณะเลื่อนเอกสารยาว ๆ */
   .document-editor-canvas { @apply min-w-0 overflow-auto rounded-xl border border-[#e4e4e7] bg-[#e9eaf0] px-6 py-8; max-height: calc(100dvh - 9.5rem); }
   .document-editor-paper-scale { @apply mx-auto w-fit; }
-  .document-editor-paper-scale[data-zoom="75"] { zoom: .75; }
-  .document-editor-paper-scale[data-zoom="125"] { zoom: 1.25; }
   /* ขนาดเป็นมิลลิเมตรตรงกับ A4 และขอบ 18 มม. ของ PDF การแบ่งหน้าในตัวแก้ไขจะได้ตรงกับไฟล์จริง */
   .document-editor-paper {
     @apply relative bg-[#fff] text-[#171717] shadow-[0_1px_3px_rgba(0,0,0,.08),0_8px_24px_rgba(0,0,0,.06)] outline-none;
@@ -1796,10 +1799,7 @@
     .document-editor-top { @apply static; }
     .template-editor-toolbar { @apply flex-nowrap overflow-x-auto; }
     .template-toolbar-group { @apply shrink-0; }
-    .template-zoom-controls { @apply ml-0; }
-    .template-font-controls .dropdown-field:first-child { @apply min-w-36; }
-    .template-font-controls .dropdown-field:nth-child(2) { @apply min-w-20; }
-    .template-font-controls .dropdown-trigger { @apply gap-2 px-2.5; }
+    .template-history-controls { @apply ml-0; }
     .document-editor-header { @apply flex-wrap; }
     .document-editor-header-actions { @apply w-full justify-end; }
     .document-editor-canvas { @apply px-3 py-4; }

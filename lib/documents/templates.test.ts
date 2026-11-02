@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultTemplates } from "@/lib/documents/default-templates";
 import { getDocumentContentCss } from "@/lib/documents/document-styles";
 import { renderTemplate, sanitizeTemplate, validateTemplatePlaceholders, wrapPrintableHtml } from "@/lib/documents/templates";
 
@@ -103,6 +104,16 @@ describe("document templates", () => {
 
   it("accepts the server-filled contract variables", () => {
     expect(validateTemplatePlaceholders("contract", "<p>{{lessor_name}} {{rent_amount_text}} {{furniture_list}}</p>")).toEqual([]);
+  });
+
+  // แบบฟอร์มมาตรฐานถูกแจกให้ทุกหอ ห้ามมีชื่อหรือที่อยู่ของผู้ให้เช่ารายใดฝังอยู่ ต้องดึงจากตั้งค่าหอเสมอ
+  it("keeps the standard contract free of a fixed lessor and uses only known variables", () => {
+    for (const kind of ["contract", "invoice", "receipt"] as const) {
+      expect(validateTemplatePlaceholders(kind, defaultTemplates[kind].html)).toEqual([]);
+    }
+    expect(defaultTemplates.contract.html).toContain("{{lessor_name}}");
+    expect(defaultTemplates.contract.html).toContain("{{property_address}}");
+    expect(defaultTemplates.contract.html).not.toMatch(/ห้างหุ้นส่วน|บริษัท|จ\.นครปฐม/);
   });
 
   it("rejects placeholders outside the kind allowlist", () => {

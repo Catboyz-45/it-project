@@ -227,7 +227,8 @@ test.describe("Owner accessibility controls", () => {
     await expect(bold).toBeFocused();
     await expect(page.getByRole("tooltip", { name: "ตัวหนา" })).toBeVisible();
     await page.keyboard.press("End");
-    await expect(toolbar.locator("button, input").last()).toBeFocused();
+    // ปุ่มเลิกทำ/ทำซ้ำท้ายแถบปิดอยู่จนกว่าจะแก้เอกสาร ลูกศรกับ End จึงข้ามไปหยุดที่ปุ่มสุดท้ายที่กดได้
+    await expect(toolbar.locator("button:not(:disabled), input:not(:disabled)").last()).toBeFocused();
     await page.keyboard.press("Home");
     await expect(heading).toBeFocused();
 
