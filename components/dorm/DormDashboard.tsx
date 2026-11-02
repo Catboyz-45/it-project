@@ -490,6 +490,7 @@ const sectionRenderers: Partial<Record<PageKey, (context: SectionContext) => Rea
     rooms={workspace.rooms}
     selectedRoom={workspace.selectedRoom}
     setSelectedRoomId={workspace.setSelectedRoomId}
+    tenants={workspace.tenants}
   />,
   tenants: ({ initialPendingRequests, initialTenants, workspace }) => <TenantsPage
     filteredTenants={initialTenants?.data ?? workspace.tenants}
