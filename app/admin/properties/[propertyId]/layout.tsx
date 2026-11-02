@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import { DormDashboard } from "@/components/dorm/DormDashboard";
+import { RememberLastProperty } from "@/components/dorm/RememberLastProperty";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 import { getDashboardReadModel } from "@/lib/server/dashboard-read-model";
@@ -53,6 +54,7 @@ export default async function PropertyWorkspaceLayout({
       initialData={initialData}
       propertyId={propertyId}
     >
+      <RememberLastProperty propertyId={propertyId} />
       {children}
     </DormDashboard>
   );

@@ -562,7 +562,8 @@
   /* bg-color แยกจาก bg-image เพราะ background-image ไม่รับสีธรรมดาเป็น layer
      ท้าย (ต้องเป็น <image> ทุก layer) ผสมสองค่านี้ไว้ใน bg-[...] เดียวจะถูก
      browser ทิ้งทั้งเส้นเงียบ ๆ (คำนวณค่าออกมาเป็น none) */
-  .workspace { @apply min-w-0 bg-surface pb-10; }
+  /* เว้นด้านล่างให้พ้นปุ่มแชทลอยมุมขวาล่าง ไม่งั้นปุ่มบังปุ่มส่งหรือยอดเงินแถวสุดท้ายของหน้า */
+  .workspace { @apply min-w-0 bg-surface pb-24; }
   .settings-workspace { @apply flex h-screen min-h-0 flex-col overflow-hidden pb-0; }
   .settings-workspace > .view-transition { @apply min-h-0 flex-1 overflow-hidden; }
   .subscription-access-banner {
@@ -643,8 +644,9 @@
   }
   .figma-summary-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .figma-summary-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .figma-summary-grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .figma-summary-grid.six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  /* ห้าหรือหกการ์ดบนจอโน้ตบุ๊กแคบเกินจนชื่อการ์ดถูกตัดหลายบรรทัดและยอดเงินล้นการ์ด
+     ให้การ์ดกว้างอย่างน้อย 150px แล้วขึ้นแถวใหม่เองเมื่อพื้นที่ไม่พอ */
+  .figma-summary-grid.five, .figma-summary-grid.six { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .metric, .figma-summary-card {
     --summary-accent: #4655e8;
     --summary-tint: #f4f4f5;
@@ -764,6 +766,22 @@
   .subscription-review table :is(thead, tbody) > tr > :first-child {
     @apply sticky left-0 z-[1];
   }
+  /* คอลัมน์ปุ่มจัดการท้ายตารางของเจ้าของหอ ปักไว้ขวาสุดเหมือนตารางแอดมินใหญ่
+     จอแคบกว่าความกว้างตาราง ปุ่มจะได้ไม่ตกไปอยู่นอกจอจนต้องเลื่อนหา ช่องมีพื้นสีของตัวเองอยู่แล้วจึงไม่โปร่งใส */
+  :is(.figma-table-card, .repair-board, .meter-table-card) table:not(.figma-grid-table):has(> tbody > tr > td:last-child button) :is(thead, tbody) > tr > :last-child {
+    @apply sticky right-0 z-[1];
+    box-shadow: inset 1px 0 0 #e4e4e7;
+  }
+  :is(.figma-table-card, .repair-board, .meter-table-card) table:not(.figma-grid-table):has(> tbody > tr > td:last-child button) thead > tr > th:last-child {
+    box-shadow: inset 1px 0 0 #e4e4e7, inset 0 -1px 0 #e4e4e7;
+  }
+  /* ปุ่มแก้เลขของแถวมิเตอร์ที่บันทึกแล้ว วางใต้ป้ายสถานะ เล็กพอไม่แย่งความสนใจจากช่องกรอก */
+  .meter-edit-actions { @apply mt-1.5 flex flex-wrap gap-1.5; }
+  .meter-edit-button {
+    @apply mt-1.5 inline-flex min-h-8 items-center gap-1 rounded-md border border-[#e4e4e7] bg-[#fff] px-2.5 text-xs font-semibold whitespace-nowrap text-[#292a30] hover:bg-[#fafafa] disabled:opacity-60;
+  }
+  .meter-edit-actions .meter-edit-button { @apply mt-0; }
+  .meter-edit-button.primary { @apply border-transparent bg-[#4f46e5] text-[#fff] hover:bg-[#4338ca]; }
   .figma-grid-table > tbody > .figma-table-row:nth-child(odd) { @apply bg-[#fff] hover:bg-[#fafafa]; }
   .figma-grid-table > tbody > .figma-table-row:last-child { @apply border-b-0; }
 
@@ -1499,9 +1517,12 @@
   .settings-card-head { @apply bg-[#fafafa]; }
   .settings-card-body { @apply p-5; }
   .settings-input-wrap { @apply flex items-center gap-2; }
-  .settings-room-actions { @apply grid grid-cols-[minmax(300px,1fr)_minmax(0,2fr)] gap-4 py-5; }
+  /* วางกล่องเพิ่มชั้นกับกล่องเพิ่มห้องซ้อนกัน ถ้าวางคู่กันกล่องเพิ่มห้องจะแคบจนดรอปดาวน์ชั้นว่างเปล่า
+     ตัวเลือกถูกตัดเป็น "ชั้..." และปุ่มเพิ่มห้องล้นขอบขวา */
+  .settings-room-actions { @apply grid grid-cols-1 gap-4 py-5; }
   .settings-room-actions > div { @apply flex items-end gap-3 rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-4; }
-  .settings-room-actions > div:last-child { @apply grid grid-cols-[minmax(90px,120px)_minmax(140px,180px)_minmax(100px,130px)_max-content] justify-start; }
+  .settings-room-actions > div:first-child { @apply max-w-md; }
+  .settings-room-actions > div:last-child { @apply grid grid-cols-[minmax(110px,1fr)_minmax(150px,1.5fr)_minmax(110px,1fr)_max-content]; }
   .settings-room-actions label, .settings-room-actions .dropdown-field { @apply min-w-0 flex-1; }
   .settings-room-actions > div:last-child > label input { @apply min-w-0 w-full max-w-full; }
   .settings-room-actions button { @apply shrink-0 whitespace-nowrap; }
@@ -1735,7 +1756,8 @@
     .settings-room-actions > div:last-child { @apply grid-cols-2; }
   }
   @media (max-width: 767px) {
-    .tenant-portal { padding-bottom: calc(5.25rem + env(safe-area-inset-bottom)); }
+    /* แถบเมนูล่างสูงราว 5 rem และปุ่มแชทลอยอยู่เหนือแถบนั้นอีกชั้น เว้นให้พ้นทั้งสองอย่าง */
+    .tenant-portal { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
     .tenant-chat-composer {
       @apply sticky z-20 rounded-2xl bg-white pt-2;
       bottom: calc(5.5rem + env(safe-area-inset-bottom));
@@ -2419,3 +2441,21 @@ select:disabled {
 
 /* ช่องที่กรอกผิดในหน้าบัญชีรับเงิน ต้องชนะสไตล์ช่องกรอกส่วนกลางที่อยู่นอก layer */
 .payment-settings-field input[aria-invalid="true"] { border-color: #b91c1c !important; }
+
+/* ป้ายโหมดอ่านอย่างเดียวและป้ายกำลังตรวจสิทธิ์โผล่ช้ากว่าเนื้อหาเล็กน้อย
+   การตรวจแพ็กเกจส่วนใหญ่เสร็จภายในครึ่งวินาที ถ้าโผล่ทันทีผู้ใช้จะเห็นป้ายล็อกกะพริบแวบหนึ่งทุกครั้งที่เปิดหน้า
+   ปุ่มยังถูกปิดไว้ตลอดช่วงตรวจเหมือนเดิม เปลี่ยนแค่จังหวะที่ป้ายปรากฏ */
+@keyframes notice-delayed-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.read-only-notice,
+.read-only-control-note,
+.subscription-access-banner.is-checking {
+  animation: notice-delayed-enter 200ms ease-out 700ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .read-only-notice,
+  .read-only-control-note,
+  .subscription-access-banner.is-checking { animation-duration: 1ms; }
+}

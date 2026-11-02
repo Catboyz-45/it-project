@@ -180,3 +180,25 @@ export function apiErrorResponse(error: unknown, request?: NextRequest) {
   // ข้อผิดพลาดที่ไม่คาดคิดตอบข้อความกลาง ๆ ไม่ส่ง stack trace หรือข้อความจากฐานข้อมูลออกไป
   return NextResponse.json({ error: "ไม่สามารถดำเนินการได้", requestId }, { status, headers });
 }
+
+// ไฟล์หายจากที่เก็บ เช่นลบเครื่องเก็บไฟล์ทิ้งหรือย้ายเซิร์ฟเวอร์แล้วไม่ได้ย้ายไฟล์ตามไป
+// เป็นเรื่องที่ผู้ใช้ควรรู้ว่าไม่พบไฟล์ ไม่ใช่ error 500 ที่บอกอะไรไม่ได้
+function isMissingFileError(error: unknown) {
+  if (typeof error !== "object" || error === null) return false;
+  const code = "code" in error ? error.code : "name" in error ? error.name : undefined;
+  return code === "ENOENT" || code === "NoSuchKey";
+}
+
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
+
+// ตอบกลับตอนเปิดไฟล์ไม่สำเร็จ ลิงก์ไฟล์มักถูกเปิดในแท็บใหม่หรือในกรอบแสดงสลิป
+// ถ้าตอบเป็น JSON ผู้ใช้จะเห็นข้อความดิบ จึงตอบเป็นหน้า HTML ภาษาไทยเมื่อเบราว์เซอร์ขอหน้าเว็บ
+export async function fileErrorResponse(error: unknown, request: NextRequest) {
+  const response = apiErrorResponse(isMissingFileError(error) ? new ApiError(404, "ไม่พบไฟล์นี้ในระบบแล้ว กรุณาติดต่อผู้ดูแลหอพัก") : error, request);
+  if (!request.headers.get("accept")?.includes("text/html")) return response;
+  const { error: message = "ไม่สามารถเปิดไฟล์ได้" } = await response.clone().json() as { error?: string };
+  const html = `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>เปิดไฟล์ไม่ได้</title>`
+    + `<style>body{margin:0;display:grid;min-height:100vh;place-items:center;background:#f6f7f8;color:#292a30;font-family:system-ui,sans-serif}main{max-width:28rem;padding:2rem;text-align:center}h1{font-size:1.25rem}p{color:#62646c;line-height:1.6}</style></head>`
+    + `<body><main><h1>เปิดไฟล์ไม่ได้</h1><p>${escapeHtml(message)}</p></main></body></html>`;
+  return new NextResponse(html, { status: response.status, headers: { "Content-Type": "text/html; charset=utf-8", "x-request-id": response.headers.get("x-request-id") ?? "" } });
+}

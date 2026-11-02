@@ -342,15 +342,17 @@ try {
   await run(
     `INSERT INTO "Parcel" ("id","propertyId","roomId","recipientTenantId","note","status","registeredById","registeredAt","createdAt","updatedAt")
      VALUES ($1,$2,$3,$4,'พัสดุไปรษณีย์ไทย เลขติดตาม TH12345678','WAITING',$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("id") DO UPDATE SET "status" = 'WAITING', "updatedAt" = CURRENT_TIMESTAMP`,
+     ON CONFLICT ("id") DO UPDATE SET "status" = 'WAITING', "receivedAt" = NULL, "receivedByTenantId" = NULL, "updatedAt" = CURRENT_TIMESTAMP`,
     [demoId("demo-parcel-1"), propertyId, demoId("demo-room-101"), tenantIds.somchai, ownerId],
   );
   await run(
     `INSERT INTO "ServiceTicket" ("id","propertyId","roomId","tenantProfileId","type","status","priority","title","detail","createdByUserId","createdAt","updatedAt")
      VALUES ($1,$2,$3,$4,'REPAIR','OPEN','NORMAL','ไฟห้องน้ำกะพริบ','หลอดไฟในห้องน้ำกะพริบตลอดเวลา รบกวนช่วยเข้ามาดูให้หน่อยครับ',$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("id") DO UPDATE SET "status" = 'OPEN', "updatedAt" = CURRENT_TIMESTAMP`,
+     ON CONFLICT ("id") DO UPDATE SET "status" = 'OPEN', "resolvedAt" = NULL, "cancelledAt" = NULL, "updatedAt" = CURRENT_TIMESTAMP`,
     [demoId("demo-ticket-1"), propertyId, demoId("demo-room-101"), tenantIds.somchai, demoId(`demo-user-somchai`)],
   );
+  // รีเซ็ตกลับเป็นเรื่องใหม่ ต้องล้างประวัติเปลี่ยนสถานะเดิมด้วย ไม่งั้นป้ายบอก "รับเรื่องแล้ว" แต่ประวัติบอก "เสร็จแล้ว"
+  await run(`DELETE FROM "TicketEvent" WHERE "ticketId" = $1 AND "type" = 'STATUS_CHANGED'`, [demoId("demo-ticket-1")]);
   await run(
     `INSERT INTO "Announcement" ("id","propertyId","title","content","audience","status","publishedAt","createdById","createdAt","updatedAt")
      VALUES ($1,$2,'แจ้งปิดน้ำชั่วคราว','วันเสาร์ที่จะถึงนี้ ปิดน้ำเวลา 09.00-12.00 น. เพื่อล้างถังเก็บน้ำ ขออภัยในความไม่สะดวก',

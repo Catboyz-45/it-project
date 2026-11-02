@@ -3,7 +3,7 @@
 // สองหน้าต่างนั้นหน้าตาเหมือนกันเกือบทั้งหมด ต่างแค่ชื่อคู่สนทนาและฝั่งของข้อความ
 
 import Image from "next/image";
-import { SyntheticEvent } from "react";
+import { SyntheticEvent, useEffect, useRef } from "react";
 import { Expand, FileText, MessageSquare, MoreHorizontal, Paperclip, Send, Shrink, X } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
@@ -125,6 +125,13 @@ export function ChatComposer({
   setError: (message: string) => void;
   setMessage: (value: string) => void;
 }>) {
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  // เปิดห้องสนทนาแล้วพิมพ์ได้ทันทีไม่ต้องคลิกช่องก่อน เฉพาะเครื่องที่ใช้เมาส์
+  // บนมือถือไม่โฟกัสให้ เพราะแป้นพิมพ์จะเด้งขึ้นมาบังข้อความเก่าทั้งที่ผู้ใช้แค่อยากอ่าน
+  useEffect(() => {
+    if (window.matchMedia("(pointer: fine)").matches) messageInputRef.current?.focus();
+  }, []);
+
   const clearAttachment = () => {
     setAttachment(null);
     // ล้างค่า input ด้วย ไม่งั้นเลือกไฟล์ชื่อเดิมซ้ำจะไม่เกิด onChange
@@ -153,7 +160,7 @@ export function ChatComposer({
     <div>
       <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
       {canAttach ? <IconButton className="chat-attach-button" disabled={isSending || !isReady} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}><Paperclip aria-hidden="true" size={18} /></IconButton> : null}
-      <input disabled={isSending} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="พิมพ์ข้อความ..." value={message} />
+      <input aria-label="ข้อความ" disabled={isSending} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="พิมพ์ข้อความ..." ref={messageInputRef} value={message} />
       <IconButton disabled={(!message.trim() && !attachment) || isSending || !isReady} label="ส่งข้อความ" type="submit" variant="primary"><Send aria-hidden="true" size={17} /></IconButton>
     </div>
   </form>;

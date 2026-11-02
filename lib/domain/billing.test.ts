@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateDueDate, calculateInvoice, calculateLateFee, generateInvoiceSchema, meterReadingInputSchema } from "@/lib/domain/billing";
+import { calculateDueDate, calculateInvoice, calculateLateFee, generateInvoiceSchema, isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE, meterReadingInputSchema } from "@/lib/domain/billing";
 
 describe("billing rules", () => {
   it("calculates rent and metered utilities with two-decimal rounding", () => {
@@ -35,5 +35,17 @@ describe("billing rules", () => {
     const input = { roomId: "cm12345678901234567890123", billingMonth: "2026-07" };
     expect(generateInvoiceSchema.parse(input).issueImmediately).toBe(false);
     expect(generateInvoiceSchema.safeParse({ ...input, issueImmediately: true }).success).toBe(false);
+  });
+});
+
+describe("meter usage limit", () => {
+  it("allows normal monthly usage up to the cap", () => {
+    expect(isMeterUsageWithinLimit(153, 163)).toBe(true);
+    expect(isMeterUsageWithinLimit(0, MAX_MONTHLY_METER_USAGE)).toBe(true);
+  });
+
+  it("rejects a reading that was typed after the previous number", () => {
+    // พิมพ์ 163 ต่อท้าย 153 ที่ค้างอยู่ในช่อง กลายเป็น 153163 ซึ่งต้องไม่ผ่าน
+    expect(isMeterUsageWithinLimit(153, 153_163)).toBe(false);
   });
 });

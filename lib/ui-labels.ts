@@ -58,6 +58,7 @@ const auditActionLabels: Record<string, string> = {
   MAINTENANCE_JOB_RUN: "ประมวลผลงานตามกำหนดเวลา",
   METER_READING_BULK_CREATE: "บันทึกมิเตอร์หลายห้อง",
   METER_READING_CREATE: "บันทึกมิเตอร์",
+  METER_READING_UPDATE: "แก้เลขมิเตอร์",
   OCCUPANCY_END: "สิ้นสุดการเข้าพัก",
   OCCUPANCY_REVIEW: "ตรวจสอบคำขอเข้าพัก",
   PARCEL_CREATE: "ลงทะเบียนพัสดุ",

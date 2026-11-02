@@ -175,7 +175,8 @@ export function ParcelsPage({
   return (
     <section className="repair-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
-      {requestError ? <p className="form-alert error" role="alert">{requestError}</p> : null}
+      {/* ตอนกล่องลงทะเบียนเปิดอยู่ ข้อความจะไปแสดงในกล่องแทน ถ้าแสดงตรงนี้จะถูกฉากหลังของกล่องบังจนมองไม่เห็น */}
+      {requestError && !isRegisterOpen ? <p className="form-alert error" role="alert">{requestError}</p> : null}
       {readOnly ? <ReadOnlyNotice>ดูรูป รายการรอรับ ประวัติ และโหลดรายการเพิ่มเติมได้ แต่ไม่สามารถลงทะเบียนหรือบันทึกการรับพัสดุ</ReadOnlyNotice> : null}
       {isLoading ? <LoadingSkeleton count={4} label="กำลังโหลดพัสดุ" variant="cards" /> : null}
       <div className="figma-summary-grid four parcel-summary-grid">
@@ -214,12 +215,13 @@ export function ParcelsPage({
       </article>
 
       <ParcelRegisterDialog
+        error={requestError}
         floorRooms={floorRooms}
         floors={floors}
         form={form}
         isOpen={isRegisterOpen && !readOnly}
         isSaving={isSaving}
-        onClose={() => setIsRegisterOpen(false)}
+        onClose={() => { setIsRegisterOpen(false); setRequestError(""); }}
         onFloorChange={handleFloorChange}
         onImageUpload={handleImageUpload}
         onNoteChange={(note) => setForm((current) => ({ ...current, note }))}
@@ -327,7 +329,8 @@ function ParcelRow({ actionFeedback, onCancel, onEdit, onMarkReceived, parcel, r
 type ParcelForm = { imageUrl: string; note: string; roomId: string };
 
 // กล่องลงทะเบียนพัสดุใหม่ เลือกชั้นก่อนแล้วค่อยเลือกห้อง
-function ParcelRegisterDialog({ floorRooms, floors, form, isOpen, isSaving, onClose, onFloorChange, onImageUpload, onNoteChange, onRoomChange, onSubmit, selectedFloor }: Readonly<{
+function ParcelRegisterDialog({ error, floorRooms, floors, form, isOpen, isSaving, onClose, onFloorChange, onImageUpload, onNoteChange, onRoomChange, onSubmit, selectedFloor }: Readonly<{
+  error: string;
   floorRooms: Room[];
   floors: number[];
   form: ParcelForm;
@@ -377,6 +380,7 @@ function ParcelRegisterDialog({ floorRooms, floors, form, isOpen, isSaving, onCl
         </label>
       </div>
     </div>
+    {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     <div className="modal-actions">
       <Button onClick={onClose} variant="secondary">ยกเลิก</Button>
       <Button aria-describedby={form.roomId ? undefined : "parcel-save-disabled-reason"} disabled={!form.roomId} isLoading={isSaving} loadingLabel="กำลังบันทึก..." onClick={() => void onSubmit()}>บันทึกพัสดุ</Button>

@@ -23,6 +23,20 @@ export const meterReadingInputSchema = z.object({
   { message: "เลขมิเตอร์ล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน", path: ["currentReading"] },
 );
 
+// เพดานหน่วยที่ใช้ต่อเดือนของหนึ่งห้อง ห้องพักจริงใช้น้ำหลักสิบ ไฟหลักร้อยถึงพันหน่วย
+// เกินนี้แทบแน่นอนว่าพิมพ์ผิด เช่นพิมพ์เลขต่อท้ายเลขเดิม ถ้าปล่อยผ่านบิลจะออกเป็นหลักล้าน
+export const MAX_MONTHLY_METER_USAGE = 100_000;
+
+// ใช้ทั้งหน้าจอและเซิร์ฟเวอร์ ตัดสินด้วยเกณฑ์เดียวกันทั้งตอนจดใหม่และตอนแก้
+export function isMeterUsageWithinLimit(previousReading: number, currentReading: number) {
+  return currentReading - previousReading <= MAX_MONTHLY_METER_USAGE;
+}
+
+// แก้เลขล่าสุดของรายการที่บันทึกไปแล้ว แก้ได้แค่เลขล่าสุด เลขครั้งก่อนมาจากรอบก่อนเสมอ
+export const updateMeterReadingSchema = z.object({
+  currentReading: z.coerce.number().min(0).max(1_000_000_000),
+}).strict();
+
 export const bulkMeterReadingSchema = z.object({
   // รับทีเดียวได้ถึงหมื่นรายการ เพราะจดมิเตอร์ทั้งหอส่งมาครั้งเดียว
   readings: z.array(meterReadingInputSchema).min(1).max(10_000),
@@ -67,6 +81,7 @@ export const recalculateOverdueSchema = z.object({
 }).strict();
 
 export type MeterReadingInput = z.infer<typeof meterReadingInputSchema>;
+export type UpdateMeterReadingInput = z.infer<typeof updateMeterReadingSchema>;
 export type GenerateInvoiceInput = z.infer<typeof generateInvoiceSchema>;
 
 export type BillingLine = {

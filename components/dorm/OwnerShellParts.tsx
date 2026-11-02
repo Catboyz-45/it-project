@@ -36,7 +36,7 @@ export function SubscriptionAccessBanner({
   propertyId: string;
 }>) {
   if (accessState === "loading") {
-    return <output className="subscription-access-banner grace">
+    return <output className="subscription-access-banner grace is-checking">
       <span><CreditCard aria-hidden="true" /></span>
       <div>
         <strong>กำลังตรวจสอบสิทธิ์การใช้งาน</strong>

@@ -9,8 +9,9 @@ async list(propertyId: string, pagination: PaginationInput, query?: string) {
     const rows = await getDatabase().roomOccupancy.findMany({
       where: {
         propertyId,
-        // รวมที่ยังรออนุมัติด้วย เพราะหน้าผู้เช่าต้องแสดงคำขอที่รอตรวจให้เจ้าของหอเห็น
-        status: { in: ["PENDING", "ACTIVE"] },
+        // เฉพาะคนที่อนุมัติแล้ว คำขอที่ยังรอตรวจมีแท็บ "คำขอเข้าพัก" ของตัวเอง
+        // ถ้าปนมาด้วยจะดูเหมือนเข้าพักแล้วทั้งที่เจ้าของหอยังไม่ได้อนุมัติ
+        status: "ACTIVE",
         ...(normalizedQuery ? {
           OR: [
             { room: { number: { contains: normalizedQuery, mode: "insensitive" } } },

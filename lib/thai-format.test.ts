@@ -13,8 +13,10 @@ describe("thai formatting", () => {
   it("groups mobile, Bangkok and provincial phone numbers", () => {
     expect(formatThaiPhone("0891234567")).toBe("089-123-4567");
     expect(formatThaiPhone("021234567")).toBe("02-123-4567");
+    expect(formatThaiPhone("+66992844585")).toBe("099-284-4585");
     expect(formatThaiPhone("053123456")).toBe("053-123-456");
-    expect(formatThaiPhone("+66 89 123 4567")).toBe("+66 89 123 4567");
+    expect(formatThaiPhone("+66 89 123 4567")).toBe("089-123-4567");
+    expect(formatThaiPhone("+1 415 555 0100")).toBe("+1 415 555 0100");
   });
 
   it("writes Thai short dates, times without seconds and month names", () => {

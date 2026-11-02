@@ -1,4 +1,7 @@
-import { billingMonthToDate, type MeterReadingInput } from "@/lib/domain/billing";
+import {
+  billingMonthToDate, isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE,
+  type MeterReadingInput, type UpdateMeterReadingInput,
+} from "@/lib/domain/billing";
 import type { Prisma } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
@@ -122,6 +125,12 @@ export async function getMeterWorksheet(
   return toPaginatedResult(rows, pagination);
 }
 
+// หน่วยที่ใช้เกินเพดาน บอกตัวเลขเพดานด้วย ผู้ใช้จะได้รู้ว่าน่าจะพิมพ์เกินมา
+const usageLimitError = () => new ApiError(
+  400,
+  `หน่วยที่ใช้เกิน ${MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วยต่อเดือน กรุณาตรวจเลขมิเตอร์อีกครั้ง`,
+);
+
 // บันทึกมิเตอร์หนึ่งรายการ แยกออกมาเพราะทั้งแบบเดี่ยวและแบบทั้งชุดใช้ตัวเดียวกัน
 async function recordWithDatabase(
   database: Prisma.TransactionClient,
@@ -165,6 +174,7 @@ async function recordWithDatabase(
   if (input.currentReading < previousReading) {
     throw new ApiError(400, "เลขมิเตอร์ล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน");
   }
+  if (!isMeterUsageWithinLimit(previousReading, input.currentReading)) throw usageLimitError();
   const settings = await database.propertySettings.findUnique({
     where: { propertyId },
     select: { waterUnitRate: true, electricityUnitRate: true },
@@ -198,4 +208,36 @@ export async function recordMeterReadings(propertyId: string, userId: string, in
     return created;
   }, { isolationLevel: "Serializable" });
   return rows.map(serialize);
+}
+
+// แก้เลขล่าสุดของรายการที่จดผิด ทำได้เฉพาะเลขที่ยังไม่ถูกดึงไปออกบิล และยังไม่มีเดือนถัดไปต่อจากเลขนี้
+// ออกบิลไปแล้วต้องยกเลิกบิลก่อน ไม่งั้นยอดในบิลกับเลขมิเตอร์จะไม่ตรงกัน
+export async function updateMeterReading(
+  propertyId: string,
+  userId: string,
+  readingId: string,
+  input: UpdateMeterReadingInput,
+) {
+  const row = await getDatabase().$transaction(async (database) => {
+    const reading = await database.meterReading.findFirst({
+      where: { id: readingId, propertyId },
+      select: { id: true, roomId: true, type: true, billingMonth: true, previousReading: true, _count: { select: { invoiceItems: true } } },
+    });
+    if (!reading) throw new ApiError(404, "ไม่พบรายการมิเตอร์");
+    if (reading._count.invoiceItems > 0) throw new ApiError(409, "เลขมิเตอร์นี้ถูกใช้ออกบิลแล้ว ต้องยกเลิกบิลก่อนจึงแก้ได้");
+    const later = await database.meterReading.findFirst({
+      where: { roomId: reading.roomId, type: reading.type, billingMonth: { gt: reading.billingMonth } },
+      select: { id: true },
+    });
+    if (later) throw new ApiError(409, "แก้ไม่ได้ เพราะมีเลขมิเตอร์ของเดือนถัดไปที่คำนวณต่อจากเลขนี้แล้ว");
+    const previousReading = Number(reading.previousReading);
+    if (input.currentReading < previousReading) throw new ApiError(400, "เลขมิเตอร์ล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน");
+    if (!isMeterUsageWithinLimit(previousReading, input.currentReading)) throw usageLimitError();
+    return database.meterReading.update({
+      where: { id: reading.id },
+      data: { currentReading: input.currentReading, recordedById: userId, recordedAt: new Date() },
+      select,
+    });
+  }, { isolationLevel: "Serializable" });
+  return serialize(row);
 }

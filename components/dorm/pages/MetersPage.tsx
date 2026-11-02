@@ -2,7 +2,7 @@
 // เก็บร่างที่ยังไม่บันทึกไว้ใน localStorage และจัดการโฟกัสของช่องกรอกเอง
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, LoaderCircle, Save, Search } from "lucide-react";
+import { AlertTriangle, Check, LoaderCircle, Pencil, Save, Search, X } from "lucide-react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { TablePagination, useTablePagination } from "@/components/dorm/TablePagination";
@@ -12,7 +12,8 @@ import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
-import { currentThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+import { currentThaiMonth, formatThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+import { isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE } from "@/lib/domain/billing";
 
 // หนึ่งแถวของใบจดมิเตอร์ ห้องหนึ่งห้องในรอบเดือนหนึ่ง
 type MeterWorksheetRow = {
@@ -89,6 +90,13 @@ async function requestWorksheet({ billingMonth, mode, propertyId, signal }: {
   return collected;
 }
 
+// คืนสำเนาที่ไม่มี key นั้น ใช้ล้างเลขที่กำลังแก้ของห้องที่บันทึกหรือยกเลิกแล้ว
+function withoutKey(record: Record<string, string>, key: string) {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
 function meterTypeOf(mode: "water" | "electric") {
   return mode === "water" ? "WATER" : "ELECTRICITY";
 }
@@ -98,7 +106,7 @@ function meterTypeOf(mode: "water" | "electric") {
 function isValidPair(current: number, currentText: string, previous: number | undefined) {
   if (currentText === "" || !Number.isFinite(current) || current < 0) return false;
   if (previous === undefined) return true;
-  return Number.isFinite(previous) && previous >= 0 && current >= previous;
+  return Number.isFinite(previous) && previous >= 0 && current >= previous && isMeterUsageWithinLimit(previous, current);
 }
 
 function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row }: {
@@ -113,7 +121,7 @@ function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row
   const previous = previousText === "" ? undefined : Number(previousText);
   const current = Number(currentText);
   if (!isValidPair(current, currentText, previous)) {
-    throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน`);
+    throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน และใช้ไม่เกิน ${MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วย`);
   }
   return {
     roomId: row.room.id,
@@ -211,6 +219,9 @@ export function MetersPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // เลขที่กำลังแก้ของแถวที่บันทึกไปแล้ว แยกจากร่างปกติเพราะส่งทีละห้องและไม่เก็บลงเครื่อง
+  const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({});
+  const [savingEditRoomId, setSavingEditRoomId] = useState<string | null>(null);
   // แยก key ตามหอ ชนิดมิเตอร์ และเดือน ร่างของแต่ละรอบจะได้ไม่ปนกัน
   const draftKey = `meter-draft:${propertyId}:${mode}:${billingMonth}`;
   const hasUnsavedDrafts = Object.keys(currentDrafts).length > 0 || Object.keys(previousDrafts).length > 0;
@@ -329,6 +340,40 @@ export function MetersPage({
     }
   }
 
+  // ส่งเลขที่แก้ของห้องเดียวขึ้นไป เซิร์ฟเวอร์ยอมเฉพาะเลขที่ยังไม่ถูกออกบิล
+  async function submitEdit(row: MeterWorksheetRow) {
+    const text = editingDrafts[row.room.id] ?? "";
+    const current = Number(text);
+    const previous = row.previousReading === null ? undefined : Number(row.previousReading);
+    if (!row.readingId || !isValidPair(current, text, previous)) {
+      setLoadError(`ห้อง ${row.room.number}: เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน และใช้ไม่เกิน ${MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วย`);
+      return;
+    }
+    setSavingEditRoomId(row.room.id);
+    setLoadError("");
+    try {
+      const response = await fetch(`/api/v1/admin/properties/${propertyId}/meter-readings/${row.readingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentReading: current }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "แก้เลขมิเตอร์ไม่สำเร็จ");
+      setEditingDrafts((current) => withoutKey(current, row.room.id));
+      await loadWorksheet(undefined, false);
+      notify({ message: `แก้เลขมิเตอร์ห้อง ${row.room.number} แล้ว` });
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "แก้เลขมิเตอร์ไม่สำเร็จ");
+    } finally {
+      setSavingEditRoomId(null);
+    }
+  }
+
+  // คำเตือนในกล่องยืนยัน ห้องที่ใช้สูงผิดปกติต้องโผล่ให้เห็นก่อนกดยืนยัน ไม่ใช่แค่ในตาราง
+  const abnormalRooms = touchedRows
+    .filter((row) => meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts).abnormal)
+    .map((row) => row.room.number);
+
   return (
     <section className="meter-figma-page">
       <MeterFilterBar
@@ -362,6 +407,12 @@ export function MetersPage({
         {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
         <MeterWorksheetTable
           currentDrafts={currentDrafts}
+          editingDrafts={editingDrafts}
+          onCancelEdit={(roomId) => setEditingDrafts((current) => withoutKey(current, roomId))}
+          onEditChange={(roomId, value) => setEditingDrafts((current) => ({ ...current, [roomId]: value }))}
+          onStartEdit={(row) => setEditingDrafts((current) => ({ ...current, [row.room.id]: row.currentReading ?? "" }))}
+          onSubmitEdit={(row) => void submitEdit(row)}
+          savingEditRoomId={savingEditRoomId}
           hasFilter={Boolean(query.trim()) || building !== "all" || floor !== "all"}
           isLoading={isLoading}
           pageItems={pageItems}
@@ -381,7 +432,7 @@ export function MetersPage({
       {isConfirming ? <ConfirmationDialog
         confirmDisabled={isSaving}
         confirmLabel={isSaving ? "กำลังบันทึก..." : `ยืนยันบันทึก ${touchedRows.length} ห้อง`}
-        description={`ระบบจะบันทึกมิเตอร์${mode === "water" ? "น้ำ" : "ไฟ"}รอบ ${billingMonth} จำนวน ${touchedRows.length} ห้องในรายการเดียว หากห้องใดบันทึกไม่ได้ ระบบจะไม่บันทึกทุกห้อง`}
+        description={`ระบบจะบันทึกมิเตอร์${mode === "water" ? "น้ำ" : "ไฟ"}รอบ ${formatThaiMonth(billingMonth)} จำนวน ${touchedRows.length} ห้องในรายการเดียว หากห้องใดบันทึกไม่ได้ ระบบจะไม่บันทึกทุกห้อง${abnormalRooms.length ? ` · ห้อง ${abnormalRooms.join(", ")} ใช้สูงกว่ารอบก่อนผิดปกติ กรุณาตรวจเลขอีกครั้ง` : ""}`}
         onCancel={() => { if (!isSaving) setIsConfirming(false); }}
         onConfirm={() => void saveAll()}
         title="ยืนยันบันทึกมิเตอร์ทั้งชุด"
@@ -391,9 +442,11 @@ export function MetersPage({
 }
 
 // ตัวเลขที่ใช้แสดงในแถวหนึ่ง คำนวณจากเลขครั้งก่อนกับเลขล่าสุดที่กรอกไว้
-function meterRowFigures(row: MeterWorksheetRow, currentDrafts: Record<string, string>, previousDrafts: Record<string, string>) {
+function meterRowFigures(row: MeterWorksheetRow, currentDrafts: Record<string, string>, previousDrafts: Record<string, string>, editingDrafts: Record<string, string>) {
   const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
-  const latestText = currentDrafts[row.room.id] ?? row.currentReading ?? previousText;
+  // ห้ามใช้เลขครั้งก่อนเป็นค่าตั้งต้นของช่อง ไม่งั้นผู้ใช้พิมพ์ต่อท้ายเลขเดิม เช่น 153 กลายเป็น 153160
+  // เลขครั้งก่อนจึงแสดงเป็น placeholder อย่างเดียว ช่องว่างก็นับเป็น 0 หน่วยอยู่แล้ว
+  const latestText = editingDrafts[row.room.id] ?? currentDrafts[row.room.id] ?? row.currentReading ?? "";
   const previous = Number(previousText);
   const latest = Number(latestText);
   const validReadings = previousText !== "" && latestText !== "" && Number.isFinite(previous) && Number.isFinite(latest) && latest >= previous;
@@ -403,11 +456,13 @@ function meterRowFigures(row: MeterWorksheetRow, currentDrafts: Record<string, s
   // เงื่อนไข +10 กันเตือนพร่ำเพรื่อกับห้องที่ใช้น้อยมาก เช่นจาก 1 เป็น 3 หน่วย
   const abnormal = validReadings && row.previousUsage !== null && row.previousUsage > 0
     && units > Math.max(row.previousUsage * 2, row.previousUsage + 10);
-  return { abnormal, amount: units * unitRate, latestText, previous, previousText, unitRate, units };
+  const overLimit = validReadings && !isMeterUsageWithinLimit(previous, latest);
+  return { abnormal, amount: units * unitRate, latestText, overLimit, previous, previousText, unitRate, units };
 }
 
 // ป้ายสถานะท้ายแถว บันทึกแล้ว ต้องตรวจสอบ หรือรอบันทึก
-function MeterRowStatus({ abnormal, saved }: Readonly<{ abnormal: boolean; saved: boolean }>) {
+function MeterRowStatus({ abnormal, overLimit, saved }: Readonly<{ abnormal: boolean; overLimit: boolean; saved: boolean }>) {
+  if (overLimit) return <span className="badge badge-overdue"><AlertTriangle size={13} /> เกินเพดาน</span>;
   if (saved) return <span className="badge badge-paid"><Check size={13} /> บันทึกแล้ว</span>;
   if (abnormal) return <span className="badge bg-amber-100 text-amber-800"><AlertTriangle size={13} /> โปรดตรวจสอบ</span>;
   return <span className="badge badge-pending"><Check size={13} /> รอบันทึก</span>;
@@ -415,6 +470,12 @@ function MeterRowStatus({ abnormal, saved }: Readonly<{ abnormal: boolean; saved
 
 type MeterTableProps = Readonly<{
   currentDrafts: Record<string, string>;
+  editingDrafts: Record<string, string>;
+  onCancelEdit: (roomId: string) => void;
+  onEditChange: (roomId: string, value: string) => void;
+  onStartEdit: (row: MeterWorksheetRow) => void;
+  onSubmitEdit: (row: MeterWorksheetRow) => void;
+  savingEditRoomId: string | null;
   hasFilter: boolean;
   isLoading: boolean;
   pageItems: MeterWorksheetRow[];
@@ -483,13 +544,14 @@ function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts,
   />;
 }
 
-function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterInput, pageItems, previousDrafts, readOnly, row, setCurrentDrafts, setPreviousDrafts }: Omit<MeterTableProps, "hasFilter" | "isLoading" | "visibleCount"> & Readonly<{
+function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, onCancelEdit, onEditChange, onFocusRoom, onRegisterInput, onStartEdit, onSubmitEdit, pageItems, previousDrafts, readOnly, row, savingEditRoomId, setCurrentDrafts, setPreviousDrafts }: Omit<MeterTableProps, "hasFilter" | "isLoading" | "visibleCount"> & Readonly<{
   index: number;
   onFocusRoom: (roomId: string) => void;
   onRegisterInput: (roomId: string, element: HTMLInputElement | null) => void;
   row: MeterWorksheetRow;
 }>) {
-  const { abnormal, amount, latestText, previous, previousText, unitRate, units } = meterRowFigures(row, currentDrafts, previousDrafts);
+  const { abnormal, amount, latestText, overLimit, previous, previousText, unitRate, units } = meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts);
+  const isEditing = Object.hasOwn(editingDrafts, row.room.id);
 
   // Enter กระโดดไปห้องถัดไป
   const focusNextRow = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -514,11 +576,13 @@ function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterIn
         ? <>{row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")}</>
         : <input
           aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
-          disabled={Boolean(row.readingId)}
+          disabled={Boolean(row.readingId) && !isEditing}
           // มือถือเด้งแป้นตัวเลขขึ้นมาเลย เจ้าของหอมักเดินจดมิเตอร์หน้าห้องด้วยมือถือ
           inputMode="decimal"
           min={previousText || 0}
-          onChange={(event) => setCurrentDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
+          onChange={(event) => isEditing
+            ? onEditChange(row.room.id, event.target.value)
+            : setCurrentDrafts((current) => ({ ...current, [row.room.id]: event.target.value }))}
           onKeyDown={focusNextRow}
           placeholder={previousText || "เลขใหม่"}
           ref={(element) => onRegisterInput(row.room.id, element)}
@@ -528,10 +592,39 @@ function MeterWorksheetRowView({ currentDrafts, index, onFocusRoom, onRegisterIn
     </td>
     <td data-label="หน่วยที่ใช้">
       <span className={abnormal ? "font-black text-amber-600" : ""}>{units.toLocaleString("th-TH")}</span>
-      {abnormal ? <small className="mt-1 flex items-center gap-1 text-amber-600"><AlertTriangle size={13} /> สูงกว่ารอบก่อนผิดปกติ ({row.previousUsage?.toLocaleString("th-TH")} หน่วย)</small> : null}
+      {overLimit ? <small className="mt-1 flex items-center gap-1 text-[#b91c1c]"><AlertTriangle size={13} /> เกิน {MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วย น่าจะพิมพ์ผิด</small> : null}
+      {abnormal && !overLimit ? <small className="mt-1 flex items-center gap-1 text-amber-600"><AlertTriangle size={13} /> สูงกว่ารอบก่อนผิดปกติ (รอบก่อน {row.previousUsage?.toLocaleString("th-TH")} หน่วย)</small> : null}
     </td>
     <td data-label="ราคา/หน่วย">฿{unitRate.toLocaleString("th-TH")}</td>
     <td data-label="จำนวนเงิน"><strong>฿{amount.toLocaleString("th-TH")}</strong></td>
-    <td data-label="สถานะ"><MeterRowStatus abnormal={abnormal} saved={Boolean(row.readingId)} /></td>
+    <td data-label="สถานะ">
+      <MeterRowStatus abnormal={abnormal} overLimit={overLimit} saved={Boolean(row.readingId) && !isEditing} />
+      {row.readingId && !readOnly ? <MeterEditActions
+        isEditing={isEditing}
+        isSaving={savingEditRoomId === row.room.id}
+        onCancel={() => onCancelEdit(row.room.id)}
+        onStart={() => onStartEdit(row)}
+        onSubmit={() => onSubmitEdit(row)}
+        roomNumber={row.room.number}
+      /> : null}
+    </td>
   </tr>;
+}
+
+// ปุ่มแก้เลขของแถวที่บันทึกแล้ว เผื่อจดผิด เซิร์ฟเวอร์จะปฏิเสธเองถ้าเลขนี้ถูกออกบิลไปแล้ว
+function MeterEditActions({ isEditing, isSaving, onCancel, onStart, onSubmit, roomNumber }: Readonly<{
+  isEditing: boolean;
+  isSaving: boolean;
+  onCancel: () => void;
+  onStart: () => void;
+  onSubmit: () => void;
+  roomNumber: string;
+}>) {
+  if (!isEditing) return <button aria-label={`แก้เลขมิเตอร์ห้อง ${roomNumber}`} className="meter-edit-button" onClick={onStart} type="button"><Pencil size={13} /> แก้ไข</button>;
+  return <span className="meter-edit-actions">
+    <button aria-label={`บันทึกเลขที่แก้ของห้อง ${roomNumber}`} className="meter-edit-button primary" disabled={isSaving} onClick={onSubmit} type="button">
+      {isSaving ? <LoaderCircle className="animate-spin" size={13} /> : <Check size={13} />} บันทึก
+    </button>
+    <button aria-label={`ยกเลิกการแก้ห้อง ${roomNumber}`} className="meter-edit-button" disabled={isSaving} onClick={onCancel} type="button"><X size={13} /> ยกเลิก</button>
+  </span>;
 }

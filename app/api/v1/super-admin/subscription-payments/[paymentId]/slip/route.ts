@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse } from "@/lib/server/api";
+import { ApiError, fileErrorResponse } from "@/lib/server/api";
 import { requireRequestAuth, requireRole } from "@/lib/server/auth";
 import { getSubscriptionPaymentSlip } from "@/lib/server/subscription-orders";
 import { recordIdSchema } from "@/lib/domain/record-id";
@@ -33,6 +33,6 @@ export async function GET(request: NextRequest, context: Context) {
     });
   } catch (error) {
     // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
-    return apiErrorResponse(error, request);
+    return fileErrorResponse(error, request);
   }
 }

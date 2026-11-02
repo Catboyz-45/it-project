@@ -343,7 +343,7 @@ function PaymentQueueItem({ isActive, onSelect, payment }: Readonly<{
   >
     <span className="payment-review-item-head"><strong>{payment.invoice.invoiceNumber}</strong><em className={`figma-status ${paymentStatusTone(payment.status)}`}>{statusLabels[payment.status]}</em></span>
     <span className="payment-review-item-person">ห้อง {payment.invoice.room.number} · {payment.tenantProfile.user.displayName}</span>
-    <span className="payment-review-item-meta"><strong>{currency.format(Number(payment.amount))}</strong><time>{new Date(payment.submittedAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</time></span>
+    <span className="payment-review-item-meta"><strong>{currency.format(Number(payment.amount))}</strong><time>{formatThaiDateTime(payment.submittedAt)}</time></span>
   </button>;
 }
 

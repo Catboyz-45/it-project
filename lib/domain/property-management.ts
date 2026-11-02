@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber, phoneNumberSchema } from "@/lib/domain/phone";
 import { isValidIdentityDocumentNumber, normalizeIdentityDocumentNumber } from "@/lib/domain/identity-document";
 import { bankAccountFields, promptPayIdSchema, refineBankAccount } from "@/lib/domain/payment-account";
 import { userIdSchema } from "@/lib/domain/record-id";
@@ -57,10 +58,10 @@ export const superAdminPropertyUpdateSchema = z.object({
 
 export const updateTenantProfileSchema = z.object({
   displayName: z.string().trim().min(2).max(120).optional(),
-  phone: z.string().trim().min(8).max(30).optional(),
+  phone: phoneNumberSchema.optional(),
   address: z.string().trim().max(1000).nullable().optional(),
   emergencyName: z.string().trim().max(160).nullable().optional(),
-  emergencyPhone: z.string().trim().max(30).nullable().optional(),
+  emergencyPhone: z.string().trim().max(30).refine((value) => value === "" || isValidPhoneNumber(value), "กรุณากรอกเบอร์ผู้ติดต่อฉุกเฉินให้ถูกต้อง").nullable().optional(),
   namePrefix: optionalProfileText(20),
   nickname: optionalProfileText(60),
   nationality: optionalProfileText(60),

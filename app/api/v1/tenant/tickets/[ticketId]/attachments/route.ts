@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
 import { NextRequest } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { requireActiveTenant, parseTenantRecordId } from "@/lib/server/tenant-auth";
 import { attachTicketFile, requireTenantTicket } from "@/lib/server/property-operations";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
@@ -12,8 +12,9 @@ type Context = { params: Promise<{ ticketId: string }> };
 export async function POST(request: NextRequest, context: Context) {
   let key: string | undefined;
   try {
-    // เช็ค origin เองเพราะคำขอนี้เป็น multipart จึงใช้ assertSameOrigin ที่บังคับ JSON ไม่ได้
-    if (request.headers.get("origin") !== request.nextUrl.origin) throw new ApiError(403, "Request origin is not allowed");
+    // multipart จึงส่ง null ไม่บังคับ JSON ส่วน origin ใช้ตัวตรวจกลางที่ดู x-forwarded-host ด้วย
+    // เทียบกับ nextUrl.origin ตรง ๆ ไม่ได้ เพราะหลัง proxy ค่านั้นเป็นที่อยู่ภายใน ไม่ใช่โดเมนจริง
+    assertSameOrigin(request, null);
     const { auth, occupancy } = await requireActiveTenant(request);
     await assertUploadRateLimit(request, "ticket");
     await requireSubscriptionFeature(occupancy.propertyId, "allowFileUploads");

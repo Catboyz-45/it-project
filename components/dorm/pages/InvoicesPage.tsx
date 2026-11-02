@@ -321,7 +321,7 @@ export function InvoicesPage({
         <button className={view === "invoices" ? "active" : ""} onClick={() => changeView("invoices")} type="button">บิลห้องพัก</button>
         <button className={view === "payments" ? "active" : ""} onClick={() => changeView("payments")} type="button">ตรวจสอบการชำระ</button>
       </div>
-      {view === "payments" ? <PaymentReviewPanel initialPayments={paymentSeed} onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : <InvoiceListView
+      {view === "payments" ? <PaymentReviewPanel initialPayments={paymentSeed} onChanged={async () => { await onChanged(); await loadInvoices(); }} propertyId={propertyId} readOnly={readOnly} /> : <InvoiceListView
         actionFeedback={actionFeedback}
         invoices={loadedInvoices}
         isLoading={isLoading}

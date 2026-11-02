@@ -68,6 +68,7 @@ import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPa
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { listAnnouncement } from "@/components/tenant/LoadMoreList";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
+import { PHONE_INPUT_PATTERN } from "@/lib/domain/phone";
 
 // บัญชีผู้เช่าหนึ่งคน คนหนึ่งอาจมีหลายการเข้าพัก เช่นย้ายห้องหรือเช่าหลายห้อง
 type Account = {
@@ -345,7 +346,7 @@ function TenantAccessBanner({ accessState, onRetry }: Readonly<{
   onRetry: () => void;
 }>) {
   if (accessState === "loading") {
-    return <output className="subscription-access-banner grace mx-auto mt-5 max-w-[1400px]">
+    return <output className="subscription-access-banner grace is-checking mx-auto mt-5 max-w-[1400px]">
       <span><LoaderCircle aria-hidden="true" className="animate-spin" /></span>
       <div>
         <strong>กำลังตรวจสอบสิทธิ์การใช้งาน</strong>
@@ -509,7 +510,7 @@ export function TenantPortal({
     <TenantAccessBanner accessState={accessState} onRetry={() => void notificationResource.reload()} />
     {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
     {/* ระยะของมือถือต้องเป็น utility เหมือนกัน กฎใน CSS ของคอมโพเนนต์แพ้ px-6 py-6 เสมอ */}
-    <div className="tenant-content mx-auto max-w-[1500px] px-6 py-6 max-md:px-4 max-md:pt-0 max-md:pb-5">
+    <div className="tenant-content mx-auto max-w-[1500px] px-6 pt-6 pb-24 max-md:px-4 max-md:pt-0 max-md:pb-5">
       <section className="min-w-0">{children}</section>
     </div>
     </section>
@@ -656,7 +657,6 @@ function AccountPanel({
     emergencyName: account.emergencyName ?? "",
     emergencyPhone: account.emergencyPhone ?? "",
   });
-  const [profileMessage, setProfileMessage] = useState("");
   const [profileError, setProfileError] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [password, setPassword] = useState({
@@ -681,7 +681,6 @@ function AccountPanel({
     event.preventDefault();
     setIsSavingProfile(true);
     setProfileError("");
-    setProfileMessage("");
     try {
       const updated = await apiData<Account>(await fetch("/api/v1/tenant/me", {
         method: "PATCH",
@@ -690,8 +689,8 @@ function AccountPanel({
         body: JSON.stringify(profile),
       }));
       onUpdated(updated);
-      setProfileMessage("บันทึกข้อมูลบัญชีแล้ว");
       setIsEditingProfile(false);
+      // แจ้งผ่าน toast ที่เดียว เคยขึ้นทั้ง toast และแถบเขียวในหน้าพร้อมกันจนดูซ้ำ
       notify({ message: "บันทึกข้อมูลบัญชีแล้ว" });
     } catch (error) {
       const message = formatClientError(error, "บันทึกข้อมูลไม่สำเร็จ");
@@ -741,12 +740,11 @@ function AccountPanel({
     <div className="account-content">
       <section className="account-content-section">
         <h2>ข้อมูลบัญชี</h2>
-        <div className="account-detail-row"><strong>ชื่อ-นามสกุล</strong><span>{account.user.displayName}</span><button onClick={() => { setProfileError(""); setProfileMessage(""); setIsEditingProfile(true); }} type="button">แก้ไข</button></div>
+        <div className="account-detail-row"><strong>ชื่อ-นามสกุล</strong><span>{account.user.displayName}</span><button aria-label="แก้ไขชื่อ เบอร์โทร ที่อยู่ และผู้ติดต่อฉุกเฉิน" onClick={() => { setProfileError(""); setIsEditingProfile(true); }} type="button">แก้ไขข้อมูล</button></div>
         <div className="account-detail-row"><strong>อีเมล</strong><span>{account.user.email}</span><small>จัดการโดยผู้ดูแลหอพัก</small></div>
         <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{formatThaiPhone(account.phone) || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
         <div className="account-detail-row"><strong>ที่อยู่</strong><span>{account.address || "ยังไม่ระบุ"}</span><small>ข้อมูลส่วนตัว</small></div>
         <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"}</small></div>
-        {profileMessage ? <output className="account-settings-message success block">{profileMessage}</output> : null}
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
       </section>
 
@@ -787,7 +785,7 @@ function AccountPanel({
         <header className="modal-header"><div><h2 id="tenant-profile-title">แก้ไขข้อมูลส่วนตัว</h2><p id="tenant-profile-description">ข้อมูลสำหรับการติดต่อและกรณีฉุกเฉิน</p></div><IconButton disabled={isSavingProfile} label="ปิด" onClick={() => setIsEditingProfile(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
         <div className="grid gap-4 sm:grid-cols-2">
           <label><span>ชื่อ-นามสกุล</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => setProfile({ ...profile, displayName: event.target.value })} required value={profile.displayName} /></label>
-          <label><span>เบอร์โทรศัพท์</span><input autoComplete="tel" maxLength={30} minLength={8} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} required type="tel" value={profile.phone} /></label>
+          <label><span>เบอร์โทรศัพท์</span><input autoComplete="tel" maxLength={30} minLength={8} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} pattern={PHONE_INPUT_PATTERN} required title="ตัวเลขอย่างน้อย 8 หลัก ใส่ขีดหรือ + นำหน้าได้" type="tel" value={profile.phone} /></label>
           <label className="sm:col-span-2"><span>ที่อยู่ (ไม่บังคับ)</span><textarea maxLength={1000} onChange={(event) => setProfile({ ...profile, address: event.target.value })} value={profile.address} /></label>
           <label><span>ผู้ติดต่อฉุกเฉิน</span><input maxLength={160} onChange={(event) => setProfile({ ...profile, emergencyName: event.target.value })} value={profile.emergencyName} /></label>
           <label><span>เบอร์ฉุกเฉิน</span><input maxLength={30} onChange={(event) => setProfile({ ...profile, emergencyPhone: event.target.value })} type="tel" value={profile.emergencyPhone} /></label>
@@ -1081,7 +1079,7 @@ function HomeTask({ detail, href, icon, label }: Readonly<{
   </Link>;
 }
 
-type Invoice = { id: string; invoiceNumber: string; billingMonth: string; status: string; dueDate: string; total: string; paidAt: string | null; cancelledAt: string | null };
+type Invoice = { id: string; invoiceNumber: string; billingMonth: string; status: string; dueDate: string; total: string; paidAt: string | null; cancelledAt: string | null; hasPendingSubmission?: boolean };
 type InvoiceDetail = Invoice & { subtotal: string; lateFee: string; room: { number: string }; items: Array<{ id: string; description: string; quantity: string; unitPrice: string; amount: string }> };
 type Submission = { id: string; amount: string; status: string; submittedAt: string; reviewedAt: string | null; rejectionNote: string | null };
 
@@ -1221,9 +1219,9 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
       const panelId = `tenant-invoice-details-${invoice.id}`;
       return <article className={`panel overflow-hidden p-0 transition ${isExpanded ? "border-brand" : ""}`} key={invoice.id}>
         <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => onToggle(invoice.id)} type="button">
-          <span><strong className="block text-lg">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · <InvoiceDueText invoice={invoice} /></small></span>
+          <span className="min-w-0"><strong className="block text-lg whitespace-nowrap">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · <InvoiceDueText invoice={invoice} /></small></span>
           <span className="flex shrink-0 items-center gap-4 text-right">
-            <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><Status value={invoice.status} /></span>
+            <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><InvoiceStatus invoice={invoice} /></span>
             <span className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" title={isExpanded ? "ยุบรายละเอียด" : "ขยายรายละเอียด"}><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></span>
           </span>
         </button>
@@ -1231,6 +1229,14 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
       </article>;
     })}
   </div>;
+}
+
+// ส่งสลิปแล้วรอหอตรวจ บอกให้ผู้เช่ารู้ว่าทำส่วนของตัวเองเสร็จแล้ว ไม่ใช่ยังขึ้นว่าเกินกำหนดอยู่
+function InvoiceStatus({ invoice }: Readonly<{ invoice: Invoice }>) {
+  if (invoice.hasPendingSubmission && ["PENDING", "OVERDUE"].includes(invoice.status)) {
+    return <span className="badge badge-pending">รอตรวจสอบสลิป</span>;
+  }
+  return <Status value={invoice.status} />;
 }
 
 // บิลที่ยังค้างบอกเป็นจำนวนวัน เลยกำหนดแล้วเป็นสีแดง บิลที่จ่ายหรือยกเลิกแล้วบอกแค่วันครบกำหนด
@@ -1628,7 +1634,18 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
     <div className="modal-grid"><DropdownField label="ประเภท" onChange={(value) => setForm({ ...form, type: value })} options={[{ label: "แจ้งซ่อม", value: "REPAIR" }, { label: "ร้องเรียน", value: "COMPLAINT" }]} value={form.type} /><DropdownField label="ความเร่งด่วน" onChange={(value) => setForm({ ...form, priority: value })} options={[{ label: "ปกติ", value: "NORMAL" }, { label: "ด่วน", value: "URGENT" }]} value={form.priority} /></div>
     <label><span>หัวข้อ</span><input maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} required value={form.title} /></label><label><span>รายละเอียด</span><textarea maxLength={4000} onChange={(event) => setForm({ ...form, detail: event.target.value })} required value={form.detail} /></label>
     {form.type === "COMPLAINT" ? <label className="flex items-center gap-2"><input checked={form.isAnonymous} className="size-5 min-h-0" onChange={(event) => setForm({ ...form, isAnonymous: event.target.checked })} type="checkbox" /> ไม่แสดงชื่อกับผู้ดูแลหอ</label> : null}
-    <label><span>แนบไฟล์ (ไม่บังคับ)</span><input accept="image/png,image/jpeg,application/pdf,.pdf" onChange={(event) => { const next = event.target.files?.[0] ?? null; if (next && next.size > 5 * 1024 * 1024) { setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB"); event.target.value = ""; setFile(null); return; } setError(""); setFile(next); }} type="file" /></label>{error ? <p className="form-alert error">{error}</p> : null}<footer className="modal-actions"><button onClick={onClose} type="button">ปิด</button><button className="primary-button" disabled={saving} type="submit">{ticketSubmitLabel(createdTicketId, saving)}</button></footer>
+    {/* ช่องแนบหน้าตาเดียวกับช่องแนบสลิป แทนปุ่มเลือกไฟล์ของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษ "Choose File" */}
+    <div className="grid gap-1.5">
+      <span className="text-sm font-semibold">แนบไฟล์ (ไม่บังคับ)</span>
+      <label className="slip-picker">
+        <input accept="image/png,image/jpeg,application/pdf,.pdf" className="sr-only" onChange={(event) => { const next = event.target.files?.[0] ?? null; if (next && next.size > 5 * 1024 * 1024) { setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB"); event.target.value = ""; setFile(null); return; } setError(""); setFile(next); }} type="file" />
+        <span className="slip-picker-icon">{file ? <FileText aria-hidden="true" size={24} /> : <ImagePlus aria-hidden="true" size={24} />}</span>
+        <span className="min-w-0">
+          <strong className="block truncate">{file ? file.name : "แนบรูปหรือไฟล์ประกอบ"}</strong>
+          <small className="block">{file ? "แตะเพื่อเปลี่ยนไฟล์" : "รูปภาพหรือ PDF ไม่เกิน 5 MB"}</small>
+        </span>
+      </label>
+    </div>{error ? <p className="form-alert error" role="alert">{error}</p> : null}<footer className="modal-actions"><button onClick={onClose} type="button">ปิด</button><button className="primary-button" disabled={saving} type="submit">{ticketSubmitLabel(createdTicketId, saving)}</button></footer>
   </form></Dialog>;
 }
 

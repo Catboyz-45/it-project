@@ -572,6 +572,7 @@ export function ComplaintsPage({
   const { confirm, confirmationDialog } = useConfirmation();
   const notify = useToast();
   const { page, pageItems, setPage, totalPages } = useTablePagination(complaints);
+  const replyTicket = complaints.find((item) => item.id === replyTicketId);
 
   const loadComplaints = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
@@ -691,7 +692,9 @@ export function ComplaintsPage({
         </div>
         {replyTicketId ? <div className="p-4"><TicketReplyThread
           endpoint={`/api/v1/admin/properties/${propertyId}/tickets/${replyTicketId}/replies`}
+          onClose={() => setReplyTicketId(null)}
           onRead={() => { void loadComplaints(); void onUnreadChanged(); }}
+          title={replyTicket ? `${ticketReference(replyTicket.id)} ${replyTicket.title}` : undefined}
           readOnly={readOnly}
           viewerRole="PROPERTY_ADMIN"
         /></div> : null}

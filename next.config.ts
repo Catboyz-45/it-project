@@ -6,6 +6,10 @@ const scriptSources = process.env.NODE_ENV === "development"
   ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
   : "script-src 'self' 'unsafe-inline'";
 
+// ทุกเส้นทางใช้นโยบายเดียวกัน ต่างกันแค่ใครเอาหน้าไปใส่ iframe ได้
+const contentSecurityPolicy = (frameAncestors: string) =>
+  `default-src 'self'; ${scriptSources}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors ${frameAncestors}; form-action 'self'`;
+
 const nextConfig: NextConfig = {
   // Docker ใช้ .next/standalone ตรง ๆ ได้ไฟล์ server.js พร้อม node_modules เท่าที่ใช้จริง image จึงเล็ก
   output: "standalone",
@@ -21,7 +25,7 @@ const nextConfig: NextConfig = {
     return [{
       source: "/(.*)",
       headers: [
-        { key: "Content-Security-Policy", value: `default-src 'self'; ${scriptSources}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'` },
+        { key: "Content-Security-Policy", value: contentSecurityPolicy("'none'") },
         // ข้ามเว็บอื่นส่งไปแค่ชื่อโดเมน ไม่ส่งพาธเต็มที่อาจมีรหัสห้องหรือรหัสผู้ใช้ติดไป
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "X-Content-Type-Options", value: "nosniff" },
@@ -31,7 +35,19 @@ const nextConfig: NextConfig = {
         // HSTS ใส่เฉพาะโปรดักชัน ใส่ตอน dev แล้วเบราว์เซอร์จะจำและบังคับ https กับ localhost ไปด้วย
         ...(process.env.NODE_ENV === "production" ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }] : []),
       ],
-    }];
+    },
+    // ไฟล์สลิปต้องแสดงในกรอบของหน้าตรวจสลิปบนโดเมนเราเอง ถ้าห้าม iframe ทุกที่ ช่องแสดงสลิปจะว่างเปล่า
+    // กฎนี้อยู่หลังกฎรวม Next จึงใช้ค่านี้แทนเฉพาะสองเส้นทางนี้ เว็บอื่นยังเอาไปใส่กรอบไม่ได้เหมือนเดิม
+    ...[
+      "/api/v1/admin/properties/:propertyId/payment-submissions/:paymentId/slip",
+      "/api/v1/super-admin/subscription-payments/:paymentId/slip",
+    ].map((source) => ({
+      source,
+      headers: [
+        { key: "Content-Security-Policy", value: contentSecurityPolicy("'self'") },
+        { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      ],
+    }))];
   },
 };
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { apiErrorResponse } from "@/lib/server/api";
+import { fileErrorResponse } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { parseTenantRecordId } from "@/lib/server/tenant-auth";
 import { getAdminSlip } from "@/lib/server/payments";
@@ -21,5 +21,5 @@ export async function GET(request: NextRequest, context: Context) {
       },
     });
   // ดักที่เดียวจบ แปลงข้อผิดพลาดทุกแบบเป็นคำตอบที่ปลอดภัย ไม่หลุดรายละเอียดภายในระบบ
-  } catch (error) { return apiErrorResponse(error, request); }
+  } catch (error) { return fileErrorResponse(error, request); }
 }

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, fileErrorResponse, readFormData } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { attachSignedLease, getSignedLeaseKey } from "@/lib/server/leases";
 import { assertUploadRateLimit } from "@/lib/server/api-rate-limit";
@@ -12,8 +12,9 @@ type Context = { params: Promise<{ propertyId: string; leaseId: string }> };
 // อัปโหลดไฟล์สัญญาที่ลงนามจริงแล้ว เก็บเป็นหลักฐานคู่กับข้อมูลในระบบ
 export async function POST(request: NextRequest, context: Context) {
   try {
-    // เช็ค origin เองเพราะคำขอนี้เป็น multipart จึงใช้ assertSameOrigin ที่บังคับ JSON ไม่ได้
-    if (request.headers.get("origin") !== request.nextUrl.origin) throw new ApiError(403, "Request origin is not allowed");
+    // multipart จึงส่ง null ไม่บังคับ JSON ส่วน origin ใช้ตัวตรวจกลางที่ดู x-forwarded-host ด้วย
+    // เทียบกับ nextUrl.origin ตรง ๆ ไม่ได้ เพราะหลัง proxy ค่านั้นเป็นที่อยู่ภายใน ไม่ใช่โดเมนจริง
+    assertSameOrigin(request, null);
     const params = await context.params;
     const { auth, propertyId } = await requireAdminProperty(request, params.propertyId);
     await assertUploadRateLimit(request, "signed-lease");
@@ -54,5 +55,5 @@ export async function GET(request: NextRequest, context: Context) {
         "X-Content-Type-Options": "nosniff",
       },
     });
-  } catch (error) { return apiErrorResponse(error, request); }
+  } catch (error) { return fileErrorResponse(error, request); }
 }

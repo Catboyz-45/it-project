@@ -7,7 +7,9 @@ const onlyDigits = (value: string) => value.replace(/\D/g, "");
 // บัญชี 12 หลัก (เช่นออมสิน ธ.ก.ส.) แบ่งทีละสี่หลัก
 export function formatBankAccount(value: string | null | undefined) {
   if (!value) return "";
-  const digits = onlyDigits(value);
+  const raw = onlyDigits(value);
+  // เบอร์ที่ขึ้นต้นด้วยรหัสประเทศ +66 แปลงเป็นเบอร์ในประเทศก่อน ตารางจะได้แสดงรูปแบบเดียวกันหมด
+  const digits = /^66\d{8,9}$/.test(raw) ? `0${raw.slice(2)}` : raw;
   if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 4)}-${digits.slice(4, 9)}-${digits.slice(9)}`;
   if (digits.length === 12) return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8)}`;
   return value;
@@ -16,7 +18,9 @@ export function formatBankAccount(value: string | null | undefined) {
 // เบอร์มือถือ 10 หลักเป็น 089-123-4567 เบอร์บ้านกรุงเทพ 9 หลักเป็น 02-123-4567 ต่างจังหวัดเป็น 053-123-456
 export function formatThaiPhone(value: string | null | undefined) {
   if (!value) return "";
-  const digits = onlyDigits(value);
+  const raw = onlyDigits(value);
+  // เบอร์ที่ขึ้นต้นด้วยรหัสประเทศ +66 แปลงเป็นเบอร์ในประเทศก่อน ตารางจะได้แสดงรูปแบบเดียวกันหมด
+  const digits = /^66\d{8,9}$/.test(raw) ? `0${raw.slice(2)}` : raw;
   if (digits.length === 10 && digits.startsWith("0")) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   if (digits.length === 9 && digits.startsWith("02")) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
   if (digits.length === 9 && digits.startsWith("0")) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;

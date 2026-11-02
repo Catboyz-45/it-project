@@ -2,7 +2,7 @@
 // โหลดและส่งข้อความจากเบราว์เซอร์ พร้อมเก็บสถานะของฟอร์ม
 
 import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
-import { LoaderCircle, MessageSquareReply, Send } from "lucide-react";
+import { LoaderCircle, MessageSquareReply, Send, X } from "lucide-react";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { formatThaiDateTime } from "@/lib/thai-format";
@@ -24,12 +24,17 @@ type Reply = {
 export function TicketReplyThread({
   // ส่ง URL เข้ามาต่างกันตามบทบาท ตัวคอมโพเนนต์จึงไม่ต้องรู้ว่าใครเป็นคนดู
   endpoint,
+  onClose,
   onRead,
   readOnly = false,
+  title,
   viewerRole,
 }: Readonly<{
   endpoint: string;
+  // กล่องที่เปิดแยกจากรายการ เช่นใต้ตารางของเจ้าของหอ ต้องบอกว่าเป็นของเรื่องไหนและมีปุ่มปิด
+  onClose?: () => void;
   onRead?: () => void;
+  title?: string;
   readOnly?: boolean;
   viewerRole: "PROPERTY_ADMIN" | "TENANT";
 }>) {
@@ -120,8 +125,9 @@ export function TicketReplyThread({
 
   return <section className="mt-4 rounded-2xl border border-black/10 bg-black/[.025] p-4" aria-label="การสนทนาในรายการแจ้งเรื่อง">
     <div className="mb-3 flex items-center gap-2">
-      <MessageSquareReply size={18} />
-      <strong>การตอบกลับ</strong>
+      <MessageSquareReply className="shrink-0" size={18} />
+      <strong className="min-w-0 flex-1 truncate">การตอบกลับ{title ? ` · ${title}` : ""}</strong>
+      {onClose ? <button aria-label="ปิดการตอบกลับ" className="rounded-lg p-1.5 text-[#62646c] hover:bg-black/5" onClick={onClose} type="button"><X size={16} /></button> : null}
     </div>
     {error ? <p className="form-alert error" role="alert">{error}</p> : null}
     {isLoading ? <p className="flex items-center gap-2 py-4 text-sm"><LoaderCircle className="animate-spin" size={16} /> กำลังโหลดข้อความ...</p> : <>

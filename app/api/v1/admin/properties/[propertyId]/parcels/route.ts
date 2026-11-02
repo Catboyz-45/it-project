@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createParcelSchema } from "@/lib/domain/property-operations";
 import { detectUploadSignature } from "@/lib/server/file-signatures";
 import { getStorageAdapter } from "@/lib/documents/storage";
-import { ApiError, apiErrorResponse, apiSuccessResponse, readFormData } from "@/lib/server/api";
+import { ApiError, apiErrorResponse, apiSuccessResponse, assertSameOrigin, readFormData } from "@/lib/server/api";
 import { requireAdminProperty } from "@/lib/server/admin-property-api";
 import { createParcel, listParcels } from "@/lib/server/property-operations";
 import { requireSubscriptionFeature } from "@/lib/server/saas";
@@ -32,8 +32,9 @@ async function storeParcelPhoto(file: File, propertyId: string) {
 export async function POST(request: NextRequest, context: Context) {
   let storedKey: string | undefined;
   try {
-    // เช็ค origin เองเพราะคำขอนี้เป็น multipart จึงใช้ assertSameOrigin ที่บังคับ JSON ไม่ได้
-    if (request.headers.get("origin") !== request.nextUrl.origin) throw new ApiError(403, "Request origin is not allowed");
+    // multipart จึงส่ง null ไม่บังคับ JSON ส่วน origin ใช้ตัวตรวจกลางที่ดู x-forwarded-host ด้วย
+    // เทียบกับ nextUrl.origin ตรง ๆ ไม่ได้ เพราะหลัง proxy ค่านั้นเป็นที่อยู่ภายใน ไม่ใช่โดเมนจริง
+    assertSameOrigin(request, null);
     const { auth, propertyId } = await requireAdminProperty(request, (await context.params).propertyId);
     await assertUploadRateLimit(request, "parcel");
     const form = await readFormData(request);

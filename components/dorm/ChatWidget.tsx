@@ -205,8 +205,8 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
   onToggleMenu: () => void;
 }>) {
   if (!contact) {
+    // หน้ารายชื่อเป็นหน้าแรกของหน้าต่าง ไม่มีที่ให้ย้อนกลับ ปุ่มย้อนกลับที่ทำงานเหมือนปุ่มปิดทำให้สับสน
     return <header className="chat-widget-header">
-      <IconButton label="ย้อนกลับ" onClick={onClose}><ChevronLeft size={22} /></IconButton>
       <div className="chat-widget-brand"><strong>ข้อความ</strong></div>
       <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={22} /></IconButton>
     </header>;

@@ -4,6 +4,7 @@
 import { SyntheticEvent, useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
+import { PHONE_INPUT_PATTERN } from "@/lib/domain/phone";
 
 // ฟอร์มสมัครของผู้เช่า ต้องมีรหัสเชิญจากหอพัก เพื่อให้ระบบผูกบัญชีกับห้องได้ถูก
 // สมัครแล้วยังเข้าใช้งานไม่ได้ทันที ต้องรอเจ้าของหออนุมัติก่อน
@@ -93,7 +94,7 @@ export function TenantRegistrationForm() {
       <input autoComplete="email" name="email" placeholder="name@example.com" required type="email" />
     </label>
     <label><span>เบอร์โทรศัพท์</span>
-      <input autoComplete="tel" minLength={8} name="phone" placeholder="08x xxx xxxx" required type="tel" />
+      <input autoComplete="tel" minLength={8} name="phone" pattern={PHONE_INPUT_PATTERN} placeholder="08x xxx xxxx" required title="ตัวเลขอย่างน้อย 8 หลัก ใส่ขีดหรือ + นำหน้าได้" type="tel" />
     </label>
     <label><span>รหัสผ่าน</span>
       <input

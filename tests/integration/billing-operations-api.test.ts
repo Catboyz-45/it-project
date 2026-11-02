@@ -70,6 +70,24 @@ describe("meters and invoices", () => {
     expect((await callApi("GET", `${base}/meter-readings/worksheet?billingMonth=${billingMonth}&type=GAS`, owner())).status).toBe(400);
   });
 
+  it("corrects a mistyped reading before billing and refuses impossible usage", async () => {
+    const worksheet = await callApi("GET", `${base}/meter-readings/worksheet?billingMonth=${billingMonth}&type=WATER`, owner());
+    const readingId = worksheet.json.data.find((row: { room: { id: string } }) => row.room.id === w.room.id).readingId;
+
+    // พิมพ์ต่อท้ายเลขเดิม 10 แล้วได้ 1018 ใช้ไปพันกว่าหน่วยยังอยู่ในเพดาน แต่ 10 ต่อด้วย 0018 จนเกินแสนต้องไม่ผ่าน
+    expect((await callApi("POST", `${base}/meter-readings`, {
+      ...owner(), body: { roomId: w.room.id, type: "WATER", billingMonth: "2099-01", currentReading: 10_000_018 },
+    })).status).toBe(400);
+    expect((await callApi("PATCH", `${base}/meter-readings/${readingId}`, { ...owner(), body: { currentReading: 10_000_018 } })).status).toBe(400);
+    expect((await callApi("PATCH", `${base}/meter-readings/${readingId}`, { ...owner(), body: { currentReading: 5 } })).status).toBe(400);
+
+    const corrected = await callApi("PATCH", `${base}/meter-readings/${readingId}`, { ...owner(), body: { currentReading: 20 } });
+    expect(corrected.status).toBe(200);
+    expect(corrected.json.data.currentReading).toBe("20");
+    // คืนค่าเดิมให้เทสต์ถัดไปที่คิดยอดบิลจากเลข 18
+    expect((await callApi("PATCH", `${base}/meter-readings/${readingId}`, { ...owner(), body: { currentReading: 18 } })).status).toBe(200);
+  });
+
   it("checks readiness, creates a draft invoice, and issues it", async () => {
     const preflight = await callApi("GET", `${base}/invoices/preflight?billingMonth=${billingMonth}&roomId=${w.room.id}`, owner());
     expect(preflight.status).toBe(200);
@@ -91,6 +109,11 @@ describe("meters and invoices", () => {
     const list = await callApi("GET", `${base}/invoices?billingMonth=${billingMonth}&status=PENDING&query=${encodeURIComponent(w.room.number)}`, owner());
     expect(list.status).toBe(200);
     expect(list.json.data.map((invoice: { id: string }) => invoice.id)).toContain(invoiceId);
+
+    // เลขมิเตอร์ที่ออกบิลไปแล้วแก้ไม่ได้ ไม่งั้นยอดในบิลกับเลขมิเตอร์จะไม่ตรงกัน
+    const worksheet = await callApi("GET", `${base}/meter-readings/worksheet?billingMonth=${billingMonth}&type=WATER`, owner());
+    const readingId = worksheet.json.data.find((row: { room: { id: string } }) => row.room.id === w.room.id).readingId;
+    expect((await callApi("PATCH", `${base}/meter-readings/${readingId}`, { ...owner(), body: { currentReading: 19 } })).status).toBe(409);
   });
 
   it("shows the bill to the tenant with a PromptPay QR code", async () => {
@@ -234,6 +257,21 @@ describe("parcels", () => {
     });
     expect(received.status).toBe(200);
     expect((await callApi("PATCH", `${base}/parcels/${parcelId}`, { ...owner(), body: {} })).status).toBe(400);
+  });
+
+  it("accepts an upload that reaches the app through a reverse proxy", async () => {
+    // หลัง nginx ที่อยู่ที่แอปเห็นเป็นที่อยู่ภายใน ส่วนเบราว์เซอร์ส่ง origin เป็นโดเมนจริง
+    // ต้องเทียบกับ x-forwarded-host ไม่ใช่ที่อยู่ภายใน ไม่งั้นอัปโหลดบนเว็บจริงโดนปฏิเสธ 403 ทุกครั้ง
+    const proxied = await callApi("POST", `http://app:3000${base}/parcels`, {
+      ...owner(),
+      form: formWith({ roomId: w.room.id }),
+      headers: { origin: "https://dorm.example", host: "app:3000", "x-forwarded-host": "dorm.example" },
+    });
+    expect(proxied.status).toBe(201);
+    // เว็บอื่นยังส่งมาไม่ได้เหมือนเดิม
+    expect((await callApi("POST", `${base}/parcels`, {
+      ...owner(), form: formWith({ roomId: w.room.id }), headers: { origin: "https://evil.example" },
+    })).status).toBe(403);
   });
 
   it("registers a parcel without a photo", async () => {

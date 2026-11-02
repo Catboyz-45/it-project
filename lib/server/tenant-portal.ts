@@ -183,12 +183,18 @@ export async function listTenantInvoices(
       select: {
         id: true, invoiceNumber: true, billingMonth: true, status: true,
         dueDate: true, total: true, paidAt: true, cancelledAt: true,
+        // นับเฉพาะสลิปที่รอตรวจ หน้าบิลจะบอกได้ว่าส่งหลักฐานแล้ว ไม่ใช่ยังขึ้นเกินกำหนดเหมือนไม่ได้ทำอะไร
+        _count: { select: { paymentSubmissions: { where: { status: "PENDING_REVIEW" } } } },
       },
     }),
     getDatabase().invoice.count({ where }),
   ]);
   return toPaginatedResult(
-    invoices.map((invoice) => ({ ...invoice, total: decimal(invoice.total) })),
+    invoices.map(({ _count, ...invoice }) => ({
+      ...invoice,
+      total: decimal(invoice.total),
+      hasPendingSubmission: _count.paymentSubmissions > 0,
+    })),
     pagination,
     total,
   );

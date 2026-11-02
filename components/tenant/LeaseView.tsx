@@ -8,7 +8,7 @@ import { formatThaiDate } from "@/lib/thai-format";
 
 type Lease = {
   id: string; leaseNumber: string; status: string; startDate: Date; endDate: Date;
-  monthlyRent: string; depositAmount: string; currentVersion: number;
+  monthlyRent: string; depositAmount: string; currentVersion: number; hasSignedDocument: boolean;
 };
 
 export function LeaseView({ current, upcoming }: Readonly<{ current: Lease | null; upcoming: Lease | null }>) {
@@ -35,10 +35,12 @@ function LeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) 
         <Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} />
         <Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} />
       </div>
-      {/* ลิงก์ธรรมดา ไม่ต้องใช้ JavaScript เปิดไฟล์ */}
-      <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank">
-        <FileText size={17} /> เปิดเอกสารลงนาม
-      </a>
+      {/* ลิงก์ธรรมดา ไม่ต้องใช้ JavaScript เปิดไฟล์ แสดงเฉพาะเมื่อมีไฟล์จริง ไม่งั้นกดแล้วเจอหน้า error */}
+      {lease.hasSignedDocument
+        ? <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank">
+          <FileText size={17} /> เปิดเอกสารลงนาม
+        </a>
+        : <p className="mt-5 text-sm text-[#62646c]">เจ้าของหอยังไม่ได้อัปโหลดไฟล์สัญญาที่ลงนามแล้ว ขอสำเนาได้ที่สำนักงานหอพัก</p>}
     </Panel>
   </section>;
 }
