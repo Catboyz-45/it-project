@@ -284,15 +284,18 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   // ---- ย้อนกลับและทำซ้ำ ----
   // ตัวแก้ไขแก้ DOM เองแทบทุกคำสั่ง ประวัติ undo ของเบราว์เซอร์จึงไม่รู้เรื่อง ต้องเก็บภาพก่อนแก้ไว้เอง
   // เก็บเป็น HTML ที่แปลงป้ายกลับเป็น {{key}} แล้ว ตอนย้อนก็โหลดใหม่ผ่าน loadIntoEditor เหมือนตอนเปิดหน้า
-  const historyRef = useRef<{ redo: string[]; typingAt: number; undo: string[] }>({ redo: [], typingAt: 0, undo: [] });
+  // เก็บชื่อแบบฟอร์มไปด้วย เพราะคืนค่ามาตรฐานเปลี่ยนทั้งเนื้อหาและชื่อ ย้อนกลับต้องได้ทั้งสองอย่างคืน
+  type Snapshot = { html: string; name: string };
+  const historyRef = useRef<{ redo: Snapshot[]; typingAt: number; undo: Snapshot[] }>({ redo: [], typingAt: 0, undo: [] });
   const [historySize, setHistorySize] = useState({ redo: 0, undo: 0 });
   const syncHistorySize = () => setHistorySize({ redo: historyRef.current.redo.length, undo: historyRef.current.undo.length });
 
   // เรียกก่อนทุกคำสั่งที่แก้เอกสาร เก็บสภาพปัจจุบันไว้ให้ย้อนกลับมาได้
   const pushHistory = () => {
     const history = historyRef.current;
-    const snapshot = editorHtml();
-    if (history.undo.at(-1) === snapshot) return;
+    const snapshot = { html: editorHtml(), name };
+    const previous = history.undo.at(-1);
+    if (previous?.html === snapshot.html && previous.name === snapshot.name) return;
     // เก็บย้อนหลัง 100 ขั้น พอสำหรับการแก้แบบฟอร์มหนึ่งรอบโดยไม่กินหน่วยความจำมากเกินไป
     history.undo = [...history.undo.slice(-99), snapshot];
     history.redo = [];
@@ -312,10 +315,11 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     if (target === undefined) return;
     const opposite = direction === "undo" ? "redo" : "undo";
     history[direction] = history[direction].slice(0, -1);
-    history[opposite] = [...history[opposite], editorHtml()];
+    history[opposite] = [...history[opposite], { html: editorHtml(), name }];
     history.typingAt = 0;
     lastRangeRef.current = null;
-    loadIntoEditor(target);
+    loadIntoEditor(target.html);
+    setName(target.name);
     syncHistorySize();
   };
 
@@ -957,17 +961,18 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     }
   };
 
-  // เอาแบบฟอร์มมาตรฐานมาวางแทนในตัวแก้ไข ยังไม่บันทึกจนกว่าจะกดบันทึก จึงยกเลิกได้ด้วยการออกโดยไม่บันทึก
+  // เอาแบบฟอร์มมาตรฐานมาวางแทนในตัวแก้ไข พร้อมชื่อมาตรฐาน ชื่อเก่าอาจอ้างถึงหอหรือเนื้อหาที่ไม่มีแล้ว ยังไม่บันทึกจนกว่าจะกดบันทึก จึงยกเลิกได้ด้วยการออกโดยไม่บันทึก
   const resetToStandard = async () => {
     if (!await confirm({
       title: "คืนค่าแบบฟอร์มมาตรฐาน?",
-      description: "เนื้อหาในตัวแก้ไขจะถูกแทนด้วยแบบฟอร์มมาตรฐานของระบบ แบบที่บันทึกไว้ยังไม่หายจนกว่าจะกดบันทึก",
+      description: "เนื้อหาและชื่อแบบฟอร์มจะถูกแทนด้วยแบบมาตรฐานของระบบ แบบที่บันทึกไว้ยังไม่หายจนกว่าจะกดบันทึก และกดเลิกทำเพื่อย้อนกลับได้",
       confirmLabel: "คืนค่ามาตรฐาน",
       variant: "danger",
     })) return;
     setError("");
     pushHistory();
     loadIntoEditor(defaultTemplates[kind].html);
+    setName(defaultTemplates[kind].name);
   };
 
   const keepEditorSelection = (event: React.MouseEvent) => event.preventDefault();
