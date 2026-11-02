@@ -2704,3 +2704,12 @@ select:disabled {
   .pay-step > h3 > span { @apply grid size-6 place-items-center rounded-full bg-brand text-[13px] font-bold text-white; }
   .pay-step > .primary-button { @apply min-h-12 justify-center text-base; }
 }
+
+/* แดชบอร์ดซุปเปอร์แอดมินใช้ชุดเดียวกับเจ้าของหอ แต่พื้นที่ของหน้ามีขอบซ้ายขวาของตัวเองอยู่แล้ว */
+@layer components {
+  .super-admin-content .overview { @apply mx-0; }
+  .usage-facts { @apply mt-3 mb-0 grid grid-cols-2 gap-3; }
+  .usage-facts > div { @apply rounded-xl bg-[#f7f7f9] px-4 py-3; }
+  .usage-facts dt { @apply text-[13px] text-[#5c5e66]; }
+  .usage-facts dd { @apply m-0 mt-0.5 text-xl font-bold text-[#1e1f22] tabular-nums; }
+}
