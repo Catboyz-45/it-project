@@ -485,16 +485,6 @@
   /* minmax(0,1fr) ให้คอลัมน์หดตามจอได้ ค่าเริ่มต้นของ grid ยืดตามความกว้างขั้นต่ำของการ์ดข้างใน จนล้นจอมือถือ */
   .tenant-home-surface { @apply grid grid-cols-[minmax(0,1fr)] gap-5; }
   /* แถบชำระเงินบนหน้าแรกผู้เช่า สีม่วงตามแบรนด์ตอนยังไม่ถึงกำหนด เปลี่ยนเป็นแดงเมื่อเลยกำหนด */
-  .tenant-pay-banner { @apply flex flex-wrap items-center gap-4 rounded-2xl border border-[#d9dbfb] bg-[#f4f5ff] p-4 sm:flex-nowrap sm:p-5; }
-  .tenant-pay-banner.is-late { @apply border-[#fecaca] bg-[#fef2f2]; }
-  .tenant-pay-banner-icon { @apply grid size-11 shrink-0 place-items-center rounded-xl bg-white text-brand; }
-  .tenant-pay-banner.is-late .tenant-pay-banner-icon { @apply text-[#dc2626]; }
-  .tenant-pay-banner > div { @apply flex-1; }
-  .tenant-pay-banner p { @apply text-sm text-[#4b4d55]; }
-  .tenant-pay-banner strong { @apply block text-2xl font-bold text-[#292a30]; }
-  .tenant-pay-banner-due { @apply text-sm font-semibold text-brand; }
-  .tenant-pay-banner.is-late .tenant-pay-banner-due { @apply text-[#dc2626]; }
-  .tenant-pay-banner .primary-button { @apply w-full justify-center sm:w-auto; }
   /* ช่องแนบสลิปแทนปุ่มเลือกไฟล์ของเบราว์เซอร์ ซึ่งขึ้นภาษาอังกฤษในเครื่องที่ตั้งภาษาอังกฤษ */
   .slip-picker { @apply relative flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-brand/30 bg-[#f8f8ff] p-4 transition-colors hover:border-brand/60 hover:bg-[#f2f3ff]; }
   .slip-picker:focus-within { @apply outline-2 outline-offset-2 outline-brand; }
@@ -634,30 +624,14 @@
   .page-header-slot .disabled-reason { @apply mt-1 max-w-64 text-xs leading-4; }
   .topbar h1 { @apply m-0 font-display text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
   .page-subtitle { @apply mt-1.5 text-sm leading-6 text-[#55575f]; }
-  .dashboard-actions, .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
+  .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
     @apply flex flex-wrap items-center gap-2;
   }
   /* คอลัมน์เดียวบนมือถือต้องหดได้ ไม่งั้นข้อความยาวในการ์ดดันคอลัมน์ให้กว้างเกินกรอบของส่วน */
   /* การ์ดกว้างอย่างน้อย 20rem ชื่องานจะได้อยู่บรรทัดเดียว จอแคบก็ลดจำนวนคอลัมน์เองแทนการบีบการ์ด */
-  .work-item-grid { @apply grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-3; }
-  .work-item-grid > a, .work-item-grid > button, .work-item-grid > div {
-    @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
-  }
-  .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
   /* สถานะว่างกินเต็มแถว จัดกลางแนวตั้ง ไม่ถูกกฎ flex ของการ์ดงานบีบจนข้อความตกบรรทัดเป็นท่อน ๆ */
-  .work-item-grid > .empty-state { @apply col-span-full grid min-h-36 place-items-center gap-1 border-dashed text-center; }
-  .work-item-icon { @apply grid size-9 shrink-0 place-items-center text-[#8b8d96]; }
-  .work-item-icon > svg { @apply size-4; }
-  .work-item-copy { @apply min-w-0 flex-1; }
   /* การ์ดงานของผู้เช่าและแอดมินใหญ่เป็นลิงก์ ส่วนของเจ้าของหอเป็นปุ่ม ต้องบังคับสีเดียวกัน
      ไม่งั้นการ์ดที่เป็นลิงก์ได้สีลิงก์ฟ้าไป หน้าตาไม่เหมือนกันทั้งที่เป็นการ์ดชนิดเดียวกัน */
-  .work-item-grid > a { @apply text-[#292a30] no-underline hover:no-underline; }
-  .work-item-copy strong { @apply block font-semibold text-[#292a30]; }
-  .work-item-copy small { @apply mt-1 block text-xs text-[#62646c]; }
-  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-[#fff7e0] px-2 py-1 text-sm font-bold text-amber-800; }
-  .work-item-count[data-tone="urgent"] { @apply bg-red-500 text-white; }
-  .work-item-arrow { @apply shrink-0 text-[#8a8c95] transition-transform; }
-  .work-item-grid > button:hover .work-item-arrow { @apply translate-x-0.5 text-brand; }
 
   /* โครงหน้าแบบ Section ของ Cal พื้นเทาอ่อนห่อไว้ชั้นนอก หัวข้อมีไอคอนกับคำอธิบาย
      แล้วเนื้อหาจริงอยู่บนการ์ดขาวข้างใน ใช้เหมือนกันทั้งสามโรล หน้าจะได้อ่านเป็นระบบเดียวกัน */
@@ -710,7 +684,6 @@
   .metric.tone-indigo, .figma-summary-card.tone-indigo { --summary-accent: #4655e8; --summary-tint: #f4f4f5; }
   .metric.tone-orange, .figma-summary-card.tone-orange { --summary-accent: #d97706; --summary-tint: #fff7e0; }
   .metric.tone-red, .figma-summary-card.tone-red { --summary-accent: #dc2626; --summary-tint: #fef2f2; }
-  .animated-number { font-variant-numeric: tabular-nums; }
   /* ตัวหนังสือในการ์ดตัวเลขขยายจาก 12px และเข้มขึ้น ผู้ใช้ที่อายุเยอะอ่านคำบรรยายใต้ตัวเลขได้สบายตา */
   .metric small, .figma-summary-card small { @apply text-[13px] leading-5 text-[#4b4d55]; }
 
@@ -1114,86 +1087,15 @@
   .payment-inspection-actions { @apply sticky bottom-0 mt-4 flex items-center justify-end gap-3 border-t border-[#e4e4e7] bg-surface/95 pt-4 backdrop-blur; }
   .payment-reject-button { @apply text-red-300; }
 
-  .workspace .dashboard-panel-stagger > .revenue-summary-panel { @apply flex flex-col self-stretch; }
-  .revenue-summary { @apply mt-4 flex flex-1 flex-col justify-center gap-4; }
-  .revenue-summary-total { @apply flex items-baseline justify-between gap-3 rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
-  .revenue-share-bar { @apply flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
-  .revenue-share-bar > span { @apply min-w-1 basis-0; }
-  .revenue-share-bar > .rent { background: var(--chart-rent); }
-  .revenue-share-bar > .water { background: var(--chart-water); }
-  .revenue-share-bar > .electric { background: var(--chart-electric); }
-  .revenue-share-bar > .other { background: var(--chart-other); }
-  .revenue-summary-total span { @apply text-sm font-medium text-[#62646c]; }
-  .revenue-summary-total strong { @apply text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
-  .revenue-breakdown { @apply grid grid-cols-2 gap-3; }
-  .revenue-breakdown > div { @apply relative rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-r-full; }
-  .revenue-breakdown dt { @apply text-xs font-semibold text-[#62646c]; }
-  .revenue-breakdown dd { @apply mt-1 flex items-baseline justify-between gap-2 text-lg font-semibold text-[#292a30] tabular-nums; }
-  .revenue-breakdown dd small { @apply text-xs font-medium text-[#62646c]; }
   /* สีกราฟชุดเดียวของทั้งระบบ อิงสีหลักม่วงของแบรนด์ แทนเขียวสะท้อนแสง ชมพู และเหลืองที่ตีกับสีหลัก */
-  .revenue-breakdown .rent::before { background: var(--chart-rent); }
-  .revenue-breakdown .water::before { background: var(--chart-water); }
-  .revenue-breakdown .electric::before { background: var(--chart-electric); }
-  .revenue-breakdown .other::before { background: var(--chart-other); }
-  .room-status-bar { @apply my-4 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
-  .room-status-bar > span { @apply min-w-1 basis-0; }
-  .room-status-bar > .occupied { background: var(--chart-occupied); }
-  .room-status-bar > .available { background: var(--chart-available); }
-  .room-status-bar > .maintenance { background: var(--chart-maintenance); }
-  .room-status-overview { @apply grid gap-2; }
-  .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border border-[#e4e4e7] bg-[#fff] p-3; }
-  .room-status-overview small { @apply text-[#62646c]; }
-  .room-status-overview > div > .badge { @apply justify-self-start; }
   .dashboard-empty-state { @apply grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#8b8d96] p-6 text-center text-sm text-[#62646c]; }
-  .priority-list { @apply grid gap-2; }
-  .priority-list button { @apply flex items-center justify-between gap-4 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-4 text-left hover:bg-[#fafafa]; }
-  .priority-list button strong, .priority-list button span { @apply block; }
-  .priority-list button span { @apply mt-1 text-sm text-[#62646c]; }
-  .priority-list button[data-tone="urgent"]:not(.is-clear) span { @apply font-medium text-[#b91c1c]; }
-  .priority-list button small { @apply inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 font-bold text-[#fff]; }
-  .priority-list button.is-clear { @apply border-[#e4e4e7] bg-[#fff] hover:bg-[#fafafa]; }
-  .priority-list button.is-clear small { @apply bg-transparent px-0 font-semibold text-brand; }
-  .quick-actions { @apply grid! grid-cols-3; }
-  .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:text-brand; }
-  .dashboard-actions { @apply grid-cols-2!; }
-  .dashboard-actions button > small { @apply inline-flex items-center gap-0.5 text-xs font-medium opacity-65; }
-  .mini-row { @apply mt-4 rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-4; }
-  .mini-row strong, .mini-row span { @apply block; }
-  .mini-row span { @apply mt-1 text-sm text-[#62646c]; }
   .invoice-list { @apply grid gap-2; }
   .invoice-row { @apply grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 rounded-2xl bg-brand/[.06] p-3; }
 
   /* The dashboard is an overview, so keep its density higher than detail pages. */
-  .dashboard-metric-stagger { @apply gap-3 px-6 py-4; }
-  .dashboard-metric-stagger > .metric { @apply min-h-24 rounded-2xl p-4; }
-  .dashboard-metric-stagger > .metric > span { @apply size-10 rounded-xl; }
-  .dashboard-metric-stagger > .metric strong { @apply mt-1 text-xl; }
-  .dashboard-panel-stagger { @apply gap-3 px-6; }
   /* หัวข้อบนสุดของหน้าแดชบอร์ดอยู่นอกกริด จึงไม่ได้ระยะขอบจากกริด ต้องเว้นเองให้ตรงกับกล่องด้านล่าง */
   .workspace > .view-transition > .app-section { @apply mx-6 mb-3; }
-  .workspace .dashboard-panel-stagger {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-  .workspace .dashboard-panel-stagger > .panel.full,
-  .workspace .dashboard-panel-stagger > .app-section.full { grid-column: 1 / -1; }
-  .workspace .dashboard-panel-stagger > .app-section { grid-column: span 6 / span 6; }
-  .workspace .dashboard-panel-stagger > .panel.wide,
-  .workspace .dashboard-panel-stagger > .app-section.wide { grid-column: span 7 / span 7; }
-  .workspace .dashboard-panel-stagger > .panel.wide + .panel,
-  .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: span 5 / span 5; }
-  .dashboard-panel-stagger > .panel { @apply rounded-2xl p-4; }
   /* หัวข้อของแผงบนแดชบอร์ดใช้ขนาดเดียวกับหัวข้อของส่วน จะได้ไม่มีหัวข้อสองขนาดในหน้าเดียว */
-  .dashboard-panel-stagger .panel-title { @apply mb-3; }
-  .dashboard-panel-stagger .work-item-grid { @apply gap-2; }
-  .dashboard-panel-stagger .work-item-grid > button,
-  .dashboard-panel-stagger .work-item-grid > div { @apply min-h-18 rounded-xl p-3; }
-  .dashboard-panel-stagger .work-item-icon { @apply size-10 rounded-xl; }
-  .dashboard-panel-stagger .dashboard-empty-state { @apply min-h-24 p-4; }
-  .dashboard-panel-stagger .priority-list button { @apply rounded-xl p-3; }
-  .dashboard-panel-stagger .quick-actions button { @apply min-h-16 rounded-xl p-2; }
-  .dashboard-panel-stagger .mini-row { @apply mt-3 rounded-xl p-3; }
-  .dashboard-panel-stagger .room-status-overview { @apply gap-1.5; }
-  .dashboard-panel-stagger .room-status-overview > div { @apply rounded-lg px-3 py-2; }
   .invoice-row > div:nth-child(2) small { @apply block text-xs text-[#62646c]; }
   .qr-box { @apply grid size-10 place-items-center rounded-xl bg-brand/10 text-brand; }
   .detail-list { @apply mb-5 grid grid-cols-2 gap-2; }
@@ -1229,7 +1131,6 @@
   .room-plan-card-detail { @apply text-[13px] text-[#5c5e66]; }
   .room-plan-card-foot { @apply mt-auto flex min-h-7 items-center justify-between gap-2 border-t border-[#ececf0] pt-2.5 text-[13px] text-[#5c5e66]; }
   .room-plan-tenant { @apply inline-flex min-w-0 items-center gap-1.5 truncate text-[#3f4147]; }
-  .interactive-card-action { @apply inline-flex items-center gap-1 font-bold text-brand; }
 
   /* แถบค้นหาเหนือตาราง ใช้ flex-wrap แทน grid ความกว้างตายตัว
      จอกลางอย่างแท็บเล็ตหรือหน้าต่างไม่เต็มจอ ปุ่มจะขึ้นแถวใหม่ทั้งปุ่ม ไม่บีบจนตัวหนังสือตัดเป็นหลายบรรทัด */
@@ -1887,15 +1788,7 @@
     :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) strong { @apply text-lg; }
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
-    .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
     .workspace > .view-transition > .app-section { @apply mx-4; }
-    .workspace .dashboard-panel-stagger > .panel,
-    .workspace .dashboard-panel-stagger > .panel.full,
-    .workspace .dashboard-panel-stagger > .panel.wide,
-    .workspace .dashboard-panel-stagger > .panel.wide + .panel,
-    .workspace .dashboard-panel-stagger > .app-section,
-    .workspace .dashboard-panel-stagger > .app-section.wide,
-    .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: 1 / -1; }
     .figma-room-grid, .room-grid { @apply grid-cols-2; }
     .payment-review-workspace { @apply grid-cols-1; }
     .payment-review-queue { @apply border-r-0 border-b border-[#e4e4e7]; }
@@ -1907,7 +1800,6 @@
     .rooms-view-toolbar { @apply items-stretch; }
     .rooms-view-toolbar .floor-tabs { @apply order-2 w-full overflow-x-auto; }
     .rooms-view-toggle { @apply ml-auto; }
-    .room-building-head, .room-floor-stack { @apply px-4; }
     .room-plan-grid { @apply grid-cols-2; }
     /* มือถือ: กล่องฟอร์มเลื่อนขึ้นจากขอบล่างเป็น bottom sheet มีขีดจับด้านบนให้รู้ว่าเป็นแผ่นที่ปัดลงได้ */
     .modal-backdrop { @apply items-end p-0; }
@@ -2353,7 +2245,6 @@ select:disabled {
   .mini-button,
   .icon-button,
   .interactive-card,
-  .quick-actions button,
   .modal-actions button {
     transition-duration: 1ms;
   }
@@ -2370,8 +2261,6 @@ select:disabled {
   .icon-button:active,
   .interactive-card:hover,
   .interactive-card:active,
-  .quick-actions button:hover,
-  .quick-actions button:active,
   .modal-actions button:hover,
   .modal-actions button:active {
     transform: none;
