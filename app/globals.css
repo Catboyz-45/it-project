@@ -460,9 +460,9 @@
   /* ป้ายตัวเลขบอกความด่วนด้วยสี เหลืองอ่อนคืองานรอทำ แดงทึบคือเลยกำหนดแล้ว
      สีหลักของแบรนด์เก็บไว้ให้ปุ่มกับเมนูที่เลือกอยู่ ป้ายจะได้ไม่แย่งความหมายกัน */
   .notification-badge {
-    @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold leading-4 text-amber-800;
+    @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-[#fff7e0] px-1.5 py-0.5 text-[11px] font-bold leading-4 text-amber-800;
   }
-  .notification-badge[data-tone="urgent"] { @apply border-red-500 bg-red-500 text-white; }
+  .notification-badge[data-tone="urgent"] { @apply bg-red-500 text-white; }
   .tenant-mobile-navigation { @apply hidden; }
   .tenant-brand { @apply mb-2 cursor-default hover:bg-brand/[.07]; }
   .tenant-sidebar-property { @apply mb-4 truncate px-3 text-xs font-semibold text-[#73757d]; }
@@ -654,8 +654,8 @@
   .work-item-grid > a { @apply text-[#292a30] no-underline hover:no-underline; }
   .work-item-copy strong { @apply block font-semibold text-[#292a30]; }
   .work-item-copy small { @apply mt-1 block text-xs text-[#62646c]; }
-  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-sm font-bold text-amber-800; }
-  .work-item-count[data-tone="urgent"] { @apply border-red-500 bg-red-500 text-white; }
+  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-[#fff7e0] px-2 py-1 text-sm font-bold text-amber-800; }
+  .work-item-count[data-tone="urgent"] { @apply bg-red-500 text-white; }
   .work-item-arrow { @apply shrink-0 text-[#8a8c95] transition-transform; }
   .work-item-grid > button:hover .work-item-arrow { @apply translate-x-0.5 text-brand; }
 
