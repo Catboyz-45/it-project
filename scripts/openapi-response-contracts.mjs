@@ -869,6 +869,7 @@ const jsonSuccessRules = [
   [({ apiPath }) => apiPath.endsWith("/invoices/bulk"), () => data("BulkInvoiceResult")],
   [({ apiPath }) => apiPath.endsWith("/invoices/recalculate-overdue"), () => data("OverdueRecalculation")],
   [({ apiPath }) => apiPath.endsWith("/meter-readings/bulk"), () => data("MeterReading", true)],
+  [({ apiPath }) => apiPath.endsWith("/meter-readings/{readingId}"), () => data("MeterReading")],
   [({ apiPath }) => apiPath === "/api/v1/tenant/register", () => data("TenantRegistration")],
   [({ apiPath }) => apiPath === "/api/v1/tenant/invitations/accept", () => data("TenantInvitationAcceptance")],
   [({ apiPath }) => apiPath === "/api/v1/tenant/occupancy-selection", () => data("TenantOccupancySelection")],

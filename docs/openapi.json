@@ -3483,6 +3483,107 @@
         }
       }
     },
+    "/api/v1/admin/properties/{propertyId}/meter-readings/{readingId}": {
+      "patch": {
+        "operationId": "patchAdminPropertiesByPropertyIdMeterReadingsByReadingId",
+        "summary": "PATCH /api/v1/admin/properties/{propertyId}/meter-readings/{readingId}",
+        "description": "Implementation: app/api/v1/admin/properties/[propertyId]/meter-readings/[readingId]/route.ts",
+        "tags": [
+          "Billing"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PropertyId"
+          },
+          {
+            "name": "readingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentReading"
+                ],
+                "properties": {
+                  "currentReading": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              },
+              "example": {
+                "currentReading": 1325
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MeterReading"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "id": "meter_01",
+                    "propertyId": "prop_baan_sabai",
+                    "roomId": "room_a101",
+                    "type": "ELECTRICITY",
+                    "billingMonth": "2026-07-01T00:00:00.000Z",
+                    "previousReading": "1250.00",
+                    "currentReading": "1320.00",
+                    "unitRate": "7.50",
+                    "recordedAt": "2026-07-28T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/admin/properties/{propertyId}/meter-readings/bulk": {
       "post": {
         "operationId": "postAdminPropertiesByPropertyIdMeterReadingsBulk",

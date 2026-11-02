@@ -110,6 +110,8 @@ json("post", "/api/v1/admin/properties/{propertyId}/meter-readings/bulk",
     previousReading: number(0), currentReading: number(0),
   }), { minItems: 1, maxItems: 10000 }) }),
   { readings: [{ roomId: "room_a101", type: "WATER", billingMonth: "2026-07", previousReading: 30, currentReading: 36 }] });
+json("patch", "/api/v1/admin/properties/{propertyId}/meter-readings/{readingId}",
+  object(["currentReading"], { currentReading: number(0) }), { currentReading: 1325 });
 json("post", "/api/v1/admin/properties/{propertyId}/invoices",
   object(["roomId", "billingMonth"], { roomId: id, billingMonth, issueImmediately: { type: "boolean", const: false } }),
   { roomId: "room_a101", billingMonth: "2026-07", issueImmediately: false });
