@@ -10,12 +10,13 @@ import type { SubscriptionUiAccessState } from "@/lib/client/subscription-access
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { isSubscriptionExpiringSoon } from "@/components/dorm/owner-notifications";
 import { formatThaiDate } from "@/lib/thai-format";
+import { alertTone } from "@/lib/domain/alert-urgency";
 
-// ป้ายตัวเลขบนเมนู ซ่อนไปเลยเมื่อไม่มีอะไรค้าง
-export function MenuBadge({ count, isReadOnly }: Readonly<{ count: number; isReadOnly: boolean }>) {
+// ป้ายตัวเลขบนเมนู ซ่อนไปเลยเมื่อไม่มีอะไรค้าง เป็นสีแดงเมื่อมีเรื่องเลยกำหนด ที่เหลือเป็นสีเหลือง
+export function MenuBadge({ count, isReadOnly, isUrgent }: Readonly<{ count: number; isReadOnly: boolean; isUrgent?: boolean }>) {
   if (count <= 0) return null;
   const purpose = isReadOnly ? "สำหรับตรวจสอบ" : "ที่ต้องดำเนินการ";
-  return <span aria-label={`${count} รายการ${purpose}`} className="notification-badge">{count > 99 ? "99+" : count}</span>;
+  return <span aria-label={`${count} รายการ${purpose}`} className="notification-badge" data-tone={alertTone(isUrgent)}>{count > 99 ? "99+" : count}</span>;
 }
 
 // แถบบอกสถานะสิทธิ์การใช้งานด้านบนพื้นที่ทำงาน แสดงได้ทีละกรณีเท่านั้น

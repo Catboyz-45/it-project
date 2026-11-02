@@ -11,6 +11,7 @@ import { AppSection } from "@/components/ui/AppSection";
 import { InvoiceList, Metric } from "../shared";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry } from "@/lib/domain/lease-expiry";
 import { formatThaiDate } from "@/lib/thai-format";
+import { alertTone } from "@/lib/domain/alert-urgency";
 
 // เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
 // 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน ส่วน ceil ทำให้เศษของวันนับเป็นหนึ่งวันเต็ม
@@ -95,7 +96,8 @@ function groupRevenueByMonth(invoices: Invoice[]): RevenueBar[] {
   return Array.from(groups.values()).slice(-12);
 }
 
-type WorkItem = { count: number; detail: string; icon: ReactNode; page: PageKey | null; title: string };
+// urgent คือเรื่องที่เลยกำหนดแล้ว ป้ายตัวเลขจะเป็นสีแดง งานที่แค่รอทำเป็นสีเหลือง
+type WorkItem = { count: number; detail: string; icon: ReactNode; page: PageKey | null; title: string; urgent?: boolean };
 
 // เตือนล่วงหน้า 30 วัน และเตือนตลอดถ้ายังไม่มีแพ็กเกจเลย นับเป็น 1 เพราะเป็นเรื่องเดียว
 function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscription"]): WorkItem {
@@ -106,6 +108,7 @@ function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscript
       icon: <CreditCard size={20} />,
       page: "subscription",
       title: "แพ็กเกจใกล้หมดอายุ",
+      urgent: true,
     };
   }
   const remainingDays = calendarDaysUntil(subscription.expiresAt);
@@ -115,6 +118,7 @@ function subscriptionWorkItem(subscription: OwnerDashboardAggregation["subscript
     icon: <CreditCard size={20} />,
     page: "subscription",
     title: remainingDays < 0 ? "แพ็กเกจหมดอายุแล้ว" : "แพ็กเกจใกล้หมดอายุ",
+    urgent: remainingDays < 0,
   };
 }
 
@@ -142,6 +146,7 @@ function buildWorkItems(aggregation: OwnerDashboardAggregation, readOnly: boolea
       icon: <AlertTriangle size={20} />,
       page: "invoices",
       title: "บิลค้างชำระ",
+      urgent: true,
     },
     {
       count: aggregation.operations.openTickets,
@@ -207,7 +212,7 @@ function OwnerWorkCard({ item, onOpenChat, onOpenPage }: Readonly<{
       <strong>{item.title}</strong>
       <small>{item.detail}</small>
     </span>
-    <span className="work-item-count">{item.count > 99 ? "99+" : item.count}</span>
+    <span className="work-item-count" data-tone={alertTone(item.urgent)}>{item.count > 99 ? "99+" : item.count}</span>
     <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
     <span className="sr-only">{actionLabel}</span>
   </button>;
@@ -240,26 +245,23 @@ function RevenueSummary({ bar, total }: Readonly<{ bar: RevenueBar | undefined; 
   </section>;
 }
 
-// วาดวงกลมด้วย conic-gradient ของ CSS เบากว่าดึงไลบรารีกราฟมาทั้งตัวเพื่อวงเดียว
-function RoomStatusChart({ availableEnd, availableRooms, items, maintenanceRooms, occupiedEnd, occupiedRooms, totalRooms }: Readonly<{
-  availableEnd: number;
+// แถบสัดส่วนแนวนอนแบบเดียวกับสรุปรายรับที่อยู่ข้างกัน สีชุดเดียวกับป้ายสถานะห้อง
+// ม่วงคือมีผู้เช่า เทาคือว่าง เหลืองคือซ่อม ดูแถบกับป้ายแล้วจับคู่กันได้ทันที
+function RoomStatusChart({ availableRooms, items, maintenanceRooms, occupiedRooms, totalRooms }: Readonly<{
   availableRooms: number;
-  items: Array<{ label: string; value: number; className: string }>;
+  items: Array<{ label: string; value: number; className: string; part: string }>;
   maintenanceRooms: number;
-  occupiedEnd: number;
   occupiedRooms: number;
   totalRooms: number;
 }>) {
-  const background = totalRooms > 0
-    // สีชุดเดียวกับป้ายสถานะห้อง ม่วงคือมีผู้เช่า เทาคือว่าง เหลืองคือซ่อม ดูกราฟกับป้ายแล้วจับคู่กันได้ทันที
-    ? `conic-gradient(var(--chart-occupied) 0 ${occupiedEnd}%, var(--chart-available) ${occupiedEnd}% ${availableEnd}%, var(--chart-maintenance) ${availableEnd}% 100%)`
-    : "#dedfe4";
   return <>
     <div
       aria-label={`มีผู้เช่า ${occupiedRooms} ห้อง ห้องว่าง ${availableRooms} ห้อง ซ่อมบำรุง ${maintenanceRooms} ห้อง`}
-      className="room-status-donut"
-      style={{ background }}
-    />
+      className="room-status-bar"
+      role="img"
+    >
+      {items.map((item) => item.value > 0 ? <span className={item.part} key={item.part} style={{ flexGrow: item.value }} /> : null)}
+    </div>
     <div className="room-status-overview">
       {items.map((item) => <div key={item.label}>
         <span className={item.className}>{item.label}</span>
@@ -311,13 +313,10 @@ export function OverviewPage({
   const latestRevenueTotal = latestRevenue
     ? latestRevenue.rent + latestRevenue.water + latestRevenue.electric + latestRevenue.other
     : 0;
-  // จุดตัดของวงกลมสถานะห้อง ส่วนที่สองต้องบวกต่อจากส่วนแรก เพราะ conic-gradient นับจากจุดเริ่มเสมอ
-  const occupiedEnd = percent(summary.occupied, rooms.length);
-  const availableEnd = occupiedEnd + percent(availableRooms, rooms.length);
   const roomStatusItems = [
-    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-occupied" },
-    { label: "ว่าง", value: availableRooms, className: "badge badge-available" },
-    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-maintenance" },
+    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-occupied", part: "occupied" },
+    { label: "ว่าง", value: availableRooms, className: "badge badge-available", part: "available" },
+    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-maintenance", part: "maintenance" },
   ];
   const urgentItems = [
     {
@@ -328,6 +327,7 @@ export function OverviewPage({
         : "ไม่มีบิลเลยกำหนด",
       onClick: () => setActivePage("invoices"),
       title: "บิลค้างชำระ",
+      urgent: true,
     },
     {
       action: "ดูสัญญา",
@@ -337,6 +337,7 @@ export function OverviewPage({
         : `ไม่มีสัญญาที่หมดภายใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`,
       onClick: () => setActivePage("contracts"),
       title: "สัญญาใกล้หมด",
+      urgent: false,
     },
   ];
   const workItems = buildWorkItems(aggregation, readOnly);
@@ -349,7 +350,7 @@ export function OverviewPage({
       <section className="stats dashboard-metric-stagger" aria-label="ภาพรวมธุรกิจ">
         <Metric icon={<Landmark />} label="ยอดบิลรอบล่าสุด" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดบิลรอบล่าสุด" value={finance.billed} />} detail={finance.cycleMonth ? formatCycleMonth(finance.cycleMonth) : "ยังไม่มีรอบบิล"} tone="indigo" />
         <Metric icon={<QrCode />} label="รายได้ที่รับแล้ว" value={<AnimatedNumber format={(value) => currency.format(value)} label="รายได้ที่รับแล้ว" value={summary.revenue} />} detail="ชำระแล้วในรอบนี้" tone="green" />
-        <Metric icon={<AlertTriangle />} label="ยอดค้างชำระ" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดค้างชำระ" value={summary.pending} />} detail={summary.overdue ? `เลยกำหนด ${summary.overdue} บิล` : "ไม่มีบิลเลยกำหนด"} tone="red" />
+        <Metric icon={<AlertTriangle />} label="ยอดค้างชำระ" value={<AnimatedNumber format={(value) => currency.format(value)} label="ยอดค้างชำระ" value={summary.pending} />} detail={summary.overdue ? `เลยกำหนด ${summary.overdue} บิล` : "ไม่มีบิลเลยกำหนด"} tone={summary.overdue ? "red" : "indigo"} />
         <Metric icon={<Building2 />} label="ห้องที่มีผู้เช่า" value={<AnimatedNumber format={(value) => `${value.toLocaleString("th-TH")} ห้อง`} label="ห้องที่มีผู้เช่า" value={summary.occupied} />} detail={`${percent(summary.occupied, rooms.length)}% ของห้องทั้งหมด`} tone="blue" />
       </section>
       </AppSection>
@@ -381,11 +382,9 @@ export function OverviewPage({
           title="สถานะห้อง"
         >
           <RoomStatusChart
-            availableEnd={availableEnd}
             availableRooms={availableRooms}
             items={roomStatusItems}
             maintenanceRooms={maintenanceRooms}
-            occupiedEnd={occupiedEnd}
             occupiedRooms={summary.occupied}
             totalRooms={rooms.length}
           />
@@ -401,7 +400,7 @@ export function OverviewPage({
           <div className="priority-list">
             {urgentItems.map((item) => (
               // เรื่องที่เป็นศูนย์ยังกดเข้าไปดูได้ แต่ทำเป็นสีจาง ไม่แย่งความสนใจจากเรื่องที่ต้องทำจริง
-              <button aria-label={`${item.title}: ${item.detail} กดเพื่อ${item.action}`} className={`interactive-card${item.count === 0 ? " is-clear" : ""}`} key={item.title} onClick={item.onClick} type="button">
+              <button aria-label={`${item.title}: ${item.detail} กดเพื่อ${item.action}`} className={`interactive-card${item.count === 0 ? " is-clear" : ""}`} data-tone={alertTone(item.urgent)} key={item.title} onClick={item.onClick} type="button">
                 <div>
                   <strong>{item.title}</strong>
                   <span>{item.detail}</span>
