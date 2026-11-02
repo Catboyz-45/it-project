@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ kin
       throw new ApiError(400, imageError instanceof Error ? imageError.message : "รูปภาพไม่ถูกต้อง");
     }
     const html = sanitizeTemplate(input.html);
-    if (html.length < 20) throw new ApiError(400, "เนื้อหา template ว่างเปล่า");
+    if (html.length < 20) throw new ApiError(400, "แบบฟอร์มไม่มีเนื้อหา");
     const unknown = validateTemplatePlaceholders(kind, html);
     if (unknown.length > 0) throw new ApiError(400, `ไม่รองรับตัวแปร: ${unknown.join(", ")}`);
     const template = await saveTemplate(propertyId, kind, input.name, html);

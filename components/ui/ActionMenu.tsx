@@ -25,10 +25,13 @@ export function ActionMenu({
   align = "end",
   items,
   label = "เปิดเมนูจัดการ",
+  trigger,
 }: Readonly<{
   align?: "start" | "end";
   items: ActionMenuItem[];
   label?: string;
+  // ใส่เมื่ออยากได้ปุ่มที่มีข้อความ เช่น "แทรก ▾" บนแถบเครื่องมือ แทนปุ่มจุดสามจุด
+  trigger?: ReactNode;
 }>) {
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>();
@@ -178,7 +181,18 @@ export function ActionMenu({
 
   return (
     <div className="action-menu" ref={rootRef}>
-      <IconButton
+      {trigger ? <button
+        aria-controls={isOpen ? menuId : undefined}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label={label}
+        className="action-menu-text-trigger"
+        onClick={() => setIsOpen((current) => !current)}
+        // ไม่ให้ปุ่มแย่งโฟกัสตอนกด ตัวแก้ไขเอกสารจะได้จำตำแหน่งเคอร์เซอร์เดิมไว้
+        onMouseDown={(event) => event.preventDefault()}
+        ref={triggerRef}
+        type="button"
+      >{trigger}</button> : <IconButton
         // ชี้ไปที่เมนูเฉพาะตอนเปิดอยู่ ไม่งั้นจะชี้ไปยัง id ที่ไม่มีใน DOM
         aria-controls={isOpen ? menuId : undefined}
         aria-expanded={isOpen}
@@ -188,7 +202,7 @@ export function ActionMenu({
         ref={triggerRef}
       >
         <MoreHorizontal aria-hidden="true" size={18} />
-      </IconButton>
+      </IconButton>}
       {/* วางที่ body กัน overflow ของตารางหรือการ์ดที่ครอบอยู่มาตัดเมนูขาด */}
       {isOpen && menuStyle && typeof document !== "undefined" ? createPortal(
         <div aria-label={label} className={`action-menu-popover action-menu-${align}`} id={menuId} onKeyDown={moveFocus} ref={menuRef} role="menu" style={menuStyle} tabIndex={-1}>

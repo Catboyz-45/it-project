@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import sanitizeHtml from "sanitize-html";
+import { documentFontFaceCss, documentFontFamily } from "@/lib/documents/document-fonts";
 import { getDocumentContentCss } from "@/lib/documents/document-styles";
 import type { DocumentData } from "@/lib/documents/placeholders";
 import { placeholderLabels } from "@/lib/documents/placeholders";
@@ -22,7 +25,7 @@ function escapeHtml(value: string) {
 
 // จัดรูปแบบตามชนิดของช่อง ตัวเลขใส่ทศนิยมสองตำแหน่ง ส่วนช่องที่ลงท้าย _date แปลงเป็นวันที่แบบไทย
 // +07:00 ตรึงเขตเวลาไทย เพราะข้อมูลที่ส่งมาเป็นแค่วันที่ ไม่มีเวลาติดมาด้วย
-function formatValue(key: string, value: string | number) {
+export function formatPlaceholderValue(key: string, value: string | number) {
   if (typeof value === "number") return value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (key.endsWith("_date")) return new Intl.DateTimeFormat("th-TH", { dateStyle: "long" }).format(new Date(`${value}T00:00:00+07:00`));
   return value;
@@ -72,7 +75,8 @@ export function sanitizeTemplate(html: string) {
       "*": {
         color: [/^#[0-9a-f]{6}$/i],
         "background-color": [/^#[0-9a-f]{6}$/i],
-        "font-family": [/^(Arial|Tahoma|Georgia|"Times New Roman"|'Times New Roman'|Times New Roman)$/],
+        // Sarabun กับ Noto Sans Thai มีตัวไทยทั้งคู่ ส่วนที่เหลือคงไว้ให้ Template เก่าที่เคยเลือกไว้ยังเปิดได้
+        "font-family": [/^(Sarabun|"Noto Sans Thai"|'Noto Sans Thai'|Noto Sans Thai|Arial|Tahoma|Georgia|"Times New Roman"|'Times New Roman'|Times New Roman)$/],
         "font-size": [/^(10|11|12|14|16|18|20|22|24|28|32|36)px$/],
       },
     },
@@ -101,13 +105,28 @@ export function renderTemplate(kind: DocumentKind, html: string, data: DocumentD
   return sanitized.replace(placeholderPattern, (_match, key: keyof DocumentData) => {
     const value = data[key];
     // escape ทุกค่าที่แทนเข้าไป ต่อให้ข้อมูลมาจากฐานของเราเองก็ไม่เชื่อ
-    return value === undefined ? "" : escapeHtml(String(formatValue(String(key), value)));
+    return value === undefined ? "" : escapeHtml(String(formatPlaceholderValue(String(key), value)));
   });
+}
+
+// ฝังไฟล์ฟอนต์ลงในหน้าที่ใช้ทำ PDF เพราะหน้านั้นเปิดจาก HTML ตรง ๆ ไม่มีเว็บให้โหลดไฟล์
+// อ่านครั้งเดียวแล้วเก็บไว้ ถ้าหาไฟล์ไม่เจอก็ปล่อยให้ใช้ Noto Sans Thai ที่ลงไว้ในเครื่องแทน
+let embeddedFontCss: string | null = null;
+function printableFontCss() {
+  if (embeddedFontCss !== null) return embeddedFontCss;
+  try {
+    const fontDirectory = path.join(process.cwd(), "public", "fonts", "sarabun");
+    embeddedFontCss = documentFontFaceCss((file) => `data:font/woff2;base64,${readFileSync(path.join(fontDirectory, file)).toString("base64")}`);
+  } catch {
+    embeddedFontCss = "";
+  }
+  return embeddedFontCss;
 }
 
 export function wrapPrintableHtml(body: string, title: string) {
   return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
-    @page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Thai",sans-serif;color:#171717;font-size:14px;line-height:1.65;margin:0}
+    ${printableFontCss()}
+    @page{size:A4;margin:18mm}*{box-sizing:border-box}body{font-family:${documentFontFamily},"Noto Sans Thai",Arial,sans-serif;color:#171717;font-size:14px;line-height:1.65;margin:0}
     ${getDocumentContentCss()}
   </style></head><body>${body}</body></html>`;
 }

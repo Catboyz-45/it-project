@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { TemplateEditor } from "@/components/dorm/DocumentTemplatePanel";
+import { TemplateEditor } from "@/components/dorm/document-editor/TemplateEditor";
 import { RetryButton } from "@/components/ui/DataNavigation";
 import type { DocumentKind, DocumentTemplateDto } from "@/lib/documents/types";
 
@@ -23,10 +23,10 @@ export function DocumentTemplateEditorRoute({ kind, propertyId }: Readonly<{ kin
       const response = await fetch(`/api/document-templates/${kind}?propertyId=${encodeURIComponent(propertyId)}`, { cache: "no-store" });
       const result = await response.json() as { error?: string; template?: DocumentTemplateDto };
       // เช็คทั้งสถานะและตัวข้อมูล เพราะตอบ 200 แต่ไม่มี template ก็ใช้งานต่อไม่ได้อยู่ดี
-      if (!response.ok || !result.template) throw new Error(result.error || "โหลด Template ไม่สำเร็จ");
+      if (!response.ok || !result.template) throw new Error(result.error || "โหลดแบบฟอร์มไม่สำเร็จ");
       setTemplate(result.template);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "โหลด Template ไม่สำเร็จ");
+      setError(loadError instanceof Error ? loadError.message : "โหลดแบบฟอร์มไม่สำเร็จ");
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +36,7 @@ export function DocumentTemplateEditorRoute({ kind, propertyId }: Readonly<{ kin
   useEffect(() => { void loadTemplate(); }, [loadTemplate]);
 
   // แยกสามสถานะให้ชัด กำลังโหลด โหลดพลาด และพร้อมใช้งาน
-  if (isLoading) return <main className="document-editor-state"><strong>กำลังโหลด Template...</strong></main>;
+  if (isLoading) return <main className="document-editor-state"><strong>กำลังโหลดแบบฟอร์ม...</strong></main>;
   if (error || !template) {
     return <main className="document-editor-state"><strong>เปิดหน้าแก้ไขไม่สำเร็จ</strong><p>{error}</p><RetryButton onClick={() => void loadTemplate()} /></main>;
   }

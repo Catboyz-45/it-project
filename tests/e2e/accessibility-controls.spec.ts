@@ -231,7 +231,7 @@ test.describe("Owner accessibility controls", () => {
     await page.keyboard.press("Home");
     await expect(heading).toBeFocused();
 
-    const editor = page.getByRole("textbox", { name: "เนื้อหา template" });
+    const editor = page.getByRole("textbox", { name: "เนื้อหาแบบฟอร์ม" });
     // จำลองการลากคลุมข้อความ ปุ่มตัวหนาจะทำงานได้ต้องมีข้อความถูกเลือกอยู่ก่อน
     await editor.evaluate((element) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);

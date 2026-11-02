@@ -149,6 +149,13 @@
     outline-offset: 3px !important;
     box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(70, 81, 199, 0.42) !important;
   }
+  /* กระดาษในตัวแก้ไขแบบฟอร์มทั้งแผ่นเป็นช่องพิมพ์ช่องเดียว วงเรืองแสงรอบกระดาษใหญ่ขนาดนั้นรบกวนสายตา
+     ใช้เส้นสีเดียวกันแต่บางลงแทน ต้องอยู่ชั้นเดียวกับกฎข้างบน เพราะ !important ของชั้นก่อนชนะชั้นหลังเสมอ */
+  .template-rich-editor.document-editor-paper[contenteditable]:focus-visible {
+    outline: 2px solid #4651c7 !important;
+    outline-offset: 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .06) !important;
+  }
 
   :is(input, select, textarea):focus-visible {
     border-color: #4651c7 !important;
@@ -1588,22 +1595,111 @@
   }
 
   .document-editor-state { @apply grid min-h-screen place-content-center gap-3 bg-canvas p-6 text-center; }
-  .document-editor-screen { @apply min-h-screen bg-canvas; }
-  .document-editor-header { @apply sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#e4e4e7] bg-canvas/90 p-4 backdrop-blur-xl; }
-  .document-editor-workspace { @apply grid grid-cols-[260px_minmax(0,1fr)_260px] gap-4 p-4; }
-  .document-editor-left, .document-editor-right { @apply rounded-2xl bg-surface p-4; }
-  .document-editor-canvas { @apply min-w-0 overflow-auto rounded-2xl bg-black/25 p-6; }
-  .document-editor-paper { @apply mx-auto min-h-[900px] max-w-[794px] bg-[#fff] p-12 text-[#000] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; }
-  .template-editor-toolbar { @apply flex flex-wrap gap-2 border-b border-[#e4e4e7] p-3; }
+  /* หน้าแก้ไขแบบฟอร์มเอกสาร: หัวหน้า แถบเครื่องมือ กระดาษ A4 ตรงกลาง และแถบตั้งค่าด้านขวา */
+  .document-editor-screen { @apply flex min-h-dvh flex-col bg-canvas; }
+  .document-editor-top { @apply sticky top-0 z-30 border-b border-[#e4e4e7] bg-[#fff]; }
+  .document-editor-header { @apply flex items-center justify-between gap-4 px-5 py-3; }
+  .document-editor-title { @apply min-w-0 flex-1; }
+  .document-editor-title small { @apply block text-xs font-medium text-[#62646c]; }
+  .document-editor-title h1 { @apply m-0 truncate font-display text-lg font-bold tracking-[-.01em] text-[#292a30]; }
+  .document-editor-header-actions { @apply flex shrink-0 items-center gap-2; }
+  .document-editor-save-state { @apply mr-1 text-xs font-medium text-[#62646c]; }
+  .document-editor-save-state.is-dirty { @apply text-amber-700; }
+  .document-editor-save-state.is-dirty::before { content: ""; @apply mr-1.5 inline-block size-1.5 rounded-full bg-amber-500 align-middle; }
+
+  .template-editor-toolbar { @apply flex flex-wrap items-center gap-x-1 gap-y-2 border-t border-[#f0f0f2] px-4 py-2; }
+  .template-toolbar-group { @apply flex items-center gap-0.5 border-r border-[#e4e4e7] pr-2 last:border-r-0; }
+  .template-toolbar-group .icon-button { @apply size-9 rounded-lg border-0 bg-transparent text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
   .template-editor-toolbar .icon-button.active,
-  .template-editor-toolbar .icon-button[aria-pressed="true"] {
-    @apply border-brand bg-brand text-white shadow-sm;
+  .template-editor-toolbar .icon-button[aria-pressed="true"] { @apply bg-brand/[.12] text-[#4651c7] hover:bg-brand/[.16]; }
+  .template-font-controls { @apply gap-1.5; }
+  .template-font-controls .dropdown-field { @apply w-auto; }
+  .template-font-controls .dropdown-field:first-child { @apply min-w-40; }
+  .template-font-controls .dropdown-field:nth-child(2) { @apply min-w-20; }
+  .template-font-controls .dropdown-trigger { @apply h-9 min-h-9 py-1 text-sm; }
+  .template-color-control { @apply relative flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-[#3f4048] hover:bg-[#f4f4f5]; }
+  .template-color-control input[type="color"] { @apply size-5 min-h-0 min-w-0 cursor-pointer appearance-none overflow-hidden rounded-md border border-[#d4d4d8] bg-transparent p-0 shadow-none; }
+  .template-color-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  .template-color-control input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
+  .template-color-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 5px; }
+  .template-color-control.highlight span { @apply text-xs font-medium; }
+  .action-menu-text-trigger { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5] aria-expanded:bg-[#f4f4f5]; }
+  .template-zoom-controls { @apply ml-auto gap-1; }
+  .template-zoom-controls strong { @apply w-11 text-center text-xs font-semibold text-[#62646c] tabular-nums; }
+  .template-image-input { @apply hidden; }
+
+  /* แถบตารางโผล่เฉพาะตอนเคอร์เซอร์อยู่ในตาราง ไม่ต้องกินที่ตลอดเวลา */
+  .template-table-actions { @apply flex flex-wrap items-center gap-1.5 border-t border-[#f0f0f2] bg-[#fafafa] px-4 py-2; }
+  .template-table-actions > span { @apply mr-1 text-xs font-semibold text-[#62646c]; }
+  .template-table-actions button { @apply inline-flex min-h-8 items-center gap-1 rounded-lg border border-[#e4e4e7] bg-[#fff] px-2.5 text-xs font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
+  .template-table-actions button.destructive-action { @apply text-red-700 hover:bg-red-50; }
+  .document-editor-error { @apply flex items-center gap-2 border-t border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-800; }
+  .document-editor-error > span { @apply flex-1; }
+  .document-editor-error .icon-button { @apply size-7 border-0 bg-transparent text-red-800 shadow-none hover:bg-red-100; }
+  .document-editor-disabled-reason { @apply px-5 pt-2 text-right; }
+
+  .document-editor-workspace { @apply grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-4 p-4; }
+  /* กระดาษเลื่อนในกรอบของตัวเอง แถบด้านขวาจะได้อยู่กับที่ขณะเลื่อนเอกสารยาว ๆ */
+  .document-editor-canvas { @apply min-w-0 overflow-auto rounded-xl border border-[#e4e4e7] bg-[#e9eaf0] px-6 py-8; max-height: calc(100dvh - 9.5rem); }
+  .document-editor-paper-scale { @apply mx-auto w-fit; }
+  .document-editor-paper-scale[data-zoom="75"] { zoom: .75; }
+  .document-editor-paper-scale[data-zoom="125"] { zoom: 1.25; }
+  /* ขนาดเป็นมิลลิเมตรตรงกับ A4 และขอบ 18 มม. ของ PDF การแบ่งหน้าในตัวแก้ไขจะได้ตรงกับไฟล์จริง */
+  .document-editor-paper {
+    @apply relative bg-[#fff] text-[#171717] shadow-[0_1px_3px_rgba(0,0,0,.08),0_8px_24px_rgba(0,0,0,.06)] outline-none;
+    width: 210mm; min-height: 297mm; padding: 18mm;
+    font-family: Sarabun, "Noto Sans Thai", Tahoma, sans-serif; font-size: 14px; line-height: 1.65;
   }
-  .template-editor-toolbar .icon-button[aria-pressed="true"]:hover { @apply bg-[#6975f5]; }
-  .template-editor-toolbar button,
-  .template-table-actions button,
-  .template-page-actions button,
-  .document-zoom-controls button { @apply min-h-11 min-w-11; }
+
+  /* ตัวคั่นหน้า: พื้นที่ว่างท้ายหน้า ช่องเทาระหว่างหน้า แล้วขอบบนของหน้าถัดไป */
+  .document-editor-paper .page-break {
+    display: block; height: var(--editor-page-fill, 0px); margin-inline: -18mm; user-select: none;
+    background:
+      linear-gradient(#fff, #fff) top / 100% calc(100% - 38px - 18mm) no-repeat,
+      linear-gradient(#fff, #fff) bottom / 100% 18mm no-repeat,
+      #e9eaf0;
+  }
+
+  /* ป้ายข้อมูลจากระบบในเอกสาร ลบได้ทั้งก้อน กดแก้ข้างในไม่ได้ */
+  .template-variable { @apply mx-px inline rounded-md bg-brand/[.10] px-1.5 py-px font-medium text-[#3d47b8] [box-decoration-break:clone]; }
+  .template-variable.is-value { @apply bg-emerald-50 text-emerald-900; }
+  .template-variable.is-empty { @apply bg-amber-50 text-amber-800 italic; }
+
+  .template-autocomplete { @apply fixed z-[110] grid max-h-80 w-72 overflow-y-auto rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; }
+  .template-autocomplete button { @apply grid min-h-10 gap-0.5 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-sm font-medium text-[#292a30] shadow-none hover:bg-[#f4f4f5]; }
+  .template-autocomplete button.is-active { @apply bg-brand/[.10] text-[#3d47b8]; }
+  .template-autocomplete small { @apply truncate text-xs font-normal text-[#62646c]; }
+
+  .document-editor-sidebar { @apply grid content-start gap-5 overflow-y-auto rounded-xl border border-[#e4e4e7] bg-[#fff] p-4; max-height: calc(100dvh - 9.5rem); }
+  .document-editor-sidebar h2 { @apply m-0 text-sm font-semibold text-[#292a30]; }
+  .document-editor-sidebar > section { @apply grid gap-2 border-t border-[#f0f0f2] pt-4; }
+  .document-editor-variables > header { @apply flex items-center justify-between gap-2; }
+  .document-editor-variables > p { @apply m-0 text-xs leading-5 text-[#62646c]; }
+  .document-editor-variables kbd { @apply rounded border border-[#d4d4d8] bg-[#fafafa] px-1 font-sans text-[11px] font-semibold text-[#292a30]; }
+  .document-editor-preview-source { @apply rounded-lg bg-emerald-50 px-2.5 py-1.5 text-emerald-900; }
+  .document-editor-preview-source.is-error { @apply bg-amber-50 text-amber-800; }
+  .document-editor-switch { @apply inline-flex min-h-8 items-center gap-2 rounded-lg border-0 bg-transparent px-1.5 text-xs font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5] disabled:cursor-not-allowed disabled:opacity-50; }
+  .document-editor-switch > span { @apply relative h-4 w-7 rounded-full bg-[#d4d4d8] transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-3 after:rounded-full after:bg-white after:transition-transform after:content-['']; }
+  .document-editor-switch[aria-pressed="true"] > span { @apply bg-brand after:translate-x-3; }
+  .template-placeholder-list { @apply grid gap-1; }
+  .template-placeholder-list button { @apply flex min-h-10 items-center justify-between gap-3 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-sm font-medium text-[#292a30] shadow-none hover:bg-brand/[.07]; }
+  .template-placeholder-list button::before { content: "+"; @apply grid size-5 shrink-0 place-items-center rounded-md bg-brand/[.10] text-xs font-bold text-[#4651c7]; }
+  .template-placeholder-list span { @apply flex-1; }
+  .template-placeholder-list small { @apply max-w-32 truncate text-xs font-normal text-[#62646c]; }
+  .document-editor-checklist ul { @apply m-0 grid list-none gap-1 p-0; }
+  .document-editor-checklist li { @apply flex min-h-9 items-center gap-2 text-sm text-[#3f4048]; }
+  .document-editor-checklist li > svg { @apply shrink-0; }
+  .document-editor-checklist li.is-done > svg { @apply text-emerald-600; }
+  .document-editor-checklist li.is-missing > svg { @apply text-amber-600; }
+  .document-editor-checklist li > span { @apply flex-1; }
+  .document-editor-checklist small { @apply text-xs text-[#62646c]; }
+  .document-editor-checklist li button { @apply min-h-8 rounded-lg border border-[#e4e4e7] bg-[#fff] px-2.5 text-xs font-semibold text-[#4651c7] shadow-none hover:bg-brand/[.07]; }
+  .document-editor-reset { @apply justify-center text-sm; }
+
+  .template-clause-list { @apply grid gap-2; }
+  .template-clause-list button { @apply grid gap-0.5 rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 text-left shadow-none hover:border-brand/40 hover:bg-brand/[.04]; }
+  .template-clause-list strong { @apply text-sm font-semibold text-[#292a30]; }
+  .template-clause-list span { @apply text-xs font-normal text-[#62646c]; }
 
   /* bg-color แยกจาก bg-image เหมือน .workspace ด้านบน: background-image รับ
      สีธรรมดาเป็น layer ท้ายไม่ได้ ผสมไว้ใน bg-[...] เดียวจะถูก browser ทิ้ง
@@ -1695,7 +1791,18 @@
     .figma-room-grid, .room-grid { @apply grid-cols-3; }
     .room-plan-grid { @apply grid-cols-3; }
     .document-editor-workspace { @apply grid-cols-1; }
-    .document-editor-left, .document-editor-right { @apply static; }
+    .document-editor-canvas, .document-editor-sidebar { max-height: none; }
+    /* จอแคบ แถบเครื่องมือเป็นแถวเดียวเลื่อนซ้ายขวาได้ และไม่ตรึงไว้ด้านบน ไม่งั้นจะบังเอกสารครึ่งจอ */
+    .document-editor-top { @apply static; }
+    .template-editor-toolbar { @apply flex-nowrap overflow-x-auto; }
+    .template-toolbar-group { @apply shrink-0; }
+    .template-zoom-controls { @apply ml-0; }
+    .template-font-controls .dropdown-field:first-child { @apply min-w-36; }
+    .template-font-controls .dropdown-field:nth-child(2) { @apply min-w-20; }
+    .template-font-controls .dropdown-trigger { @apply gap-2 px-2.5; }
+    .document-editor-header { @apply flex-wrap; }
+    .document-editor-header-actions { @apply w-full justify-end; }
+    .document-editor-canvas { @apply px-3 py-4; }
     .payment-review-workspace { @apply grid-cols-[minmax(260px,0.85fr)_minmax(0,1.4fr)]; }
     .payment-slip-preview { @apply h-[480px]; }
     .settings-room-actions { @apply grid-cols-1; }
@@ -1906,8 +2013,6 @@
     .chat-widget-header button,
     .template-editor-toolbar button,
     .template-table-actions button,
-    .template-page-actions button,
-    .document-zoom-controls button,
     .toast button { @apply min-h-11 min-w-11; }
     .settings-editable-list article { @apply items-start; }
     .account-detail-row { @apply grid-cols-1 gap-2 py-4; }

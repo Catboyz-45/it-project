@@ -91,6 +91,20 @@ describe("document templates", () => {
     expect(performance.now() - startedAt).toBeLessThan(1000);
   });
 
+  it("keeps the Thai document fonts and embeds Sarabun in printable output", () => {
+    const sanitized = sanitizeTemplate('<p style="font-family:Sarabun">ก</p><p style=\'font-family:"Noto Sans Thai"\'>ข</p>');
+    expect(sanitized).toContain("font-family:Sarabun");
+    expect(sanitized).toContain("Noto Sans Thai");
+    const printableHtml = wrapPrintableHtml("<article></article>", "ตัวอย่าง");
+    expect(printableHtml).toContain("@font-face{font-family:Sarabun");
+    expect(printableHtml).toContain("data:font/woff2;base64,");
+    expect(printableHtml).toContain("body{font-family:Sarabun,");
+  });
+
+  it("accepts the server-filled contract variables", () => {
+    expect(validateTemplatePlaceholders("contract", "<p>{{lessor_name}} {{rent_amount_text}} {{furniture_list}}</p>")).toEqual([]);
+  });
+
   it("rejects placeholders outside the kind allowlist", () => {
     expect(validateTemplatePlaceholders("invoice", "<p>{{tenant_name}} {{tenant_password}}</p>")).toEqual(["tenant_password"]);
   });

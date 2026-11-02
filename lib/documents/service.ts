@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { generatePdf } from "@/lib/documents/pdf";
-import type { DocumentData } from "@/lib/documents/placeholders";
+import type { ContractDocumentData, DocumentData } from "@/lib/documents/placeholders";
+import { withContractDetails } from "@/lib/documents/contract-details";
 import { defaultTemplates } from "@/lib/documents/default-templates";
 import { getTemplate, saveTemplate, toDatabaseKind } from "@/lib/documents/repository";
 import { getStorageAdapter } from "@/lib/documents/storage";
@@ -10,8 +11,14 @@ import type { DocumentKind } from "@/lib/documents/types";
 import { getDatabase } from "@/lib/server/db";
 import { getServerEnv } from "@/lib/server/env";
 
+// สัญญามีช่องที่เซิร์ฟเวอร์ต้องเติมเองจากฐานข้อมูล เช่นชื่อผู้ให้เช่า ค่าเช่าตัวอักษร และเฟอร์นิเจอร์ในห้อง
+export async function completeDocumentData(propertyId: string, kind: DocumentKind, data: DocumentData): Promise<DocumentData> {
+  return kind === "contract" ? withContractDetails(propertyId, data as ContractDocumentData) : data;
+}
+
 // สร้าง PDF จาก Template ของหอนั้น ใช้ทั้งตอนดูตัวอย่างและตอนสร้างจริง
-export async function renderDocumentPdf(propertyId: string, kind: DocumentKind, data: DocumentData) {
+export async function renderDocumentPdf(propertyId: string, kind: DocumentKind, input: DocumentData) {
+  const data = await completeDocumentData(propertyId, kind, input);
   // หอที่ยังไม่เคยเปิดหน้าแก้ Template จะยังไม่มีแถวของตัวเอง ใช้ของตั้งต้นแล้วบันทึกไว้ เหมือนตอนเปิดหน้าแก้
   // ไม่งั้นขอใบเสร็จครั้งแรกจะพังทั้งที่ระบบมี Template ตั้งต้นให้อยู่แล้ว
   const template = await getTemplate(propertyId, kind)
