@@ -1,90 +1,94 @@
 import Link from "next/link";
-import { Activity, Building2, ChevronRight, CreditCard, DoorOpen, Gauge, ListChecks, UsersRound, Wrench } from "lucide-react";
 import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
-import { AppSection } from "@/components/ui/AppSection";
 import { getSuperAdminDashboardAggregation } from "@/lib/server/dashboard-aggregation";
 
 // แดชบอร์ดรวมของแพลตฟอร์ม เป็น Server Component จึงอ่านฐานข้อมูลตรงนี้ได้เลยไม่ต้องยิง API
+// ใช้โครงเดียวกับหน้าแรกของเจ้าของหอ ตัวเลขสำคัญหนึ่งแถว แล้วตามด้วยงานที่ต้องทำและการใช้งานจริง
 export default async function SuperAdminPage() {
   // นับทุกตัวเลขมาในฟังก์ชันเดียว เลี่ยงการยิงถามหลายรอบให้หน้าโหลดช้า
   const aggregation = await getSuperAdminDashboardAggregation();
+  const { operations, subscriptions, usage } = aggregation;
 
-  // งานที่ค้างอยู่ของผู้ดูแลระบบ แสดงเฉพาะที่มีจำนวนจริง เหมือนหน้าแรกของอีกสองโรล
-  const workItems = [
+  // งานที่ค้างอยู่ของผู้ดูแลระบบ แสดงเฉพาะที่มีจำนวนจริง ทั้งสองเรื่องเป็นงานรอทำ จึงเป็นป้ายสีเหลือง
+  // เรื่องแจ้งซ่อมเป็นงานของเจ้าของหอแต่ละหอ ผู้ดูแลระบบปิดเองไม่ได้ จึงแสดงเป็นตัวเลขในการใช้งานจริงแทน
+  const todos = [
     {
-      count: aggregation.operations.pendingPayments,
-      detail: "ตรวจหลักฐานการชำระค่าสมาชิก",
+      action: "ตรวจสลิป",
+      count: operations.pendingPayments,
+      detail: "ยืนยันแล้วแพ็กเกจของหอต่ออายุให้ทันที",
       href: "/super-admin/subscriptions",
-      icon: <CreditCard size={20} />,
-      title: "การชำระรอตรวจ",
+      label: "รอตรวจ",
+      title: `การชำระค่าสมาชิกรอตรวจ ${operations.pendingPayments} รายการ`,
     },
     {
-      count: aggregation.subscriptions.expiringWithin30Days,
-      detail: "แพ็กเกจที่หมดอายุภายใน 30 วัน",
+      action: "ดูหอพัก",
+      count: subscriptions.expiringWithin30Days,
+      detail: "แพ็กเกจที่หมดอายุภายใน 30 วัน ควรแจ้งเจ้าของหอล่วงหน้า",
       // เปิดตารางหอพักที่กรองเฉพาะหอชุดเดียวกับตัวเลขนี้
       href: "/super-admin/properties?status=expiring",
-      icon: <Activity size={20} />,
-      title: "แพ็กเกจใกล้หมดอายุ",
+      label: "ใกล้หมด",
+      title: `แพ็กเกจใกล้หมดอายุ ${subscriptions.expiringWithin30Days} หอ`,
     },
-    // เรื่องแจ้งซ่อมเป็นงานของเจ้าของหอแต่ละหอ ผู้ดูแลระบบปิดเองไม่ได้ จึงแสดงเป็นตัวเลขในส่วนการใช้งานจริงแทน
   ].filter((item) => item.count > 0);
 
   return <>
     <SuperAdminPageHeader description="ติดตามสุขภาพของแพลตฟอร์ม สมาชิก รายได้ และงานที่ต้องดำเนินการ" title="แดชบอร์ด" />
 
-    {/* เรียงเป็นส่วน ๆ แบบเดียวกับหน้าแรกของเจ้าของหอและผู้เช่า
-        เดิมหน้านี้เป็นตัวเลขลอย ๆ สามแถวโดยไม่มีหัวข้อบอกว่าแต่ละแถวคืออะไร */}
-    <AppSection description="จำนวนหอ ผู้ดูแล และรายได้ต่อเดือน" icon={<Gauge />} title="ภาพรวมแพลตฟอร์ม">
-      <div className="figma-summary-grid three">
-        <Stat icon={<Building2 />} label="หอที่เปิดใช้งาน" tone="indigo" value={aggregation.properties.active} />
-        <Stat icon={<UsersRound />} label="แอดมินประจำหอ" tone="indigo" value={aggregation.users.PROPERTY_ADMIN ?? 0} />
-        {/* toLocaleString("th-TH") ใส่จุลภาคให้เอง อ่านเลขหลักล้านง่ายขึ้น */}
-        <Stat icon={<Activity />} label="รายได้ต่อเดือน (MRR)" tone="green" value={`฿${aggregation.revenue.mrr.toLocaleString("th-TH")}`} />
-      </div>
-    </AppSection>
+    <div className="overview">
+      <section aria-label="ตัวเลขแพลตฟอร์ม" className="overview-kpis">
+        <article className="overview-kpi">
+          <p>หอที่เปิดใช้งาน</p>
+          <strong>{aggregation.properties.active.toLocaleString("th-TH")}</strong>
+          <small>แอดมินประจำหอ {(aggregation.users.PROPERTY_ADMIN ?? 0).toLocaleString("th-TH")} คน</small>
+        </article>
+        <article className="overview-kpi">
+          <p>รายได้ต่อเดือน (MRR)</p>
+          {/* toLocaleString("th-TH") ใส่จุลภาคให้เอง อ่านเลขหลักล้านง่ายขึ้น */}
+          <strong>฿{aggregation.revenue.mrr.toLocaleString("th-TH")}</strong>
+          <small>จากสมาชิกที่ใช้งาน {subscriptions.active.toLocaleString("th-TH")} หอ</small>
+        </article>
+        <article className="overview-kpi">
+          <p>การชำระรอตรวจ</p>
+          <strong>{operations.pendingPayments.toLocaleString("th-TH")}</strong>
+          <small>{operations.pendingPayments > 0 ? "ตรวจได้ที่หน้าการชำระสมาชิก" : "ไม่มีรายการค้าง"}</small>
+        </article>
+        <article className="overview-kpi">
+          <p>หมดอายุใน 30 วัน</p>
+          <strong>{subscriptions.expiringWithin30Days.toLocaleString("th-TH")}</strong>
+          <small>ทดลองใช้อยู่ {subscriptions.trial.toLocaleString("th-TH")} หอ</small>
+        </article>
+      </section>
 
-    <AppSection
-      aside={workItems.length > 0 ? `${workItems.reduce((total, item) => total + item.count, 0)} รายการรอดำเนินการ` : "ไม่มีรายการค้าง"}
-      description="รายการที่ต้องเข้าไปจัดการในตอนนี้"
-      icon={<ListChecks />}
-      title="งานที่ต้องทำ"
-    >
-      {workItems.length > 0 ? (
-        <div className="work-item-grid">
-          {workItems.map((item) => (
-            <Link href={item.href} key={item.title}>
-              <span className="work-item-icon">{item.icon}</span>
-              <span className="work-item-copy"><strong>{item.title}</strong><small>{item.detail}</small></span>
-              <span className="work-item-count">{item.count > 99 ? "99+" : item.count}</span>
-              <ChevronRight aria-hidden="true" className="work-item-arrow" size={20} />
-            </Link>
-          ))}
-        </div>
-      ) : <p className="rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-sm text-[#62646c]">ไม่มีรายการที่ต้องดำเนินการในตอนนี้</p>}
-    </AppSection>
+      <div className="overview-row">
+        <section aria-labelledby="admin-today-title" className="overview-card today-card">
+          <header className="overview-card-head">
+            <div>
+              <h2 id="admin-today-title">งานที่ต้องทำ</h2>
+              <p>รายการที่ต้องเข้าไปจัดการในตอนนี้</p>
+            </div>
+            <small>{todos.length > 0 ? `${todos.reduce((total, item) => total + item.count, 0)} รายการรอดำเนินการ` : "ไม่มีรายการค้าง"}</small>
+          </header>
+          {todos.length === 0
+            ? <p className="today-empty">ไม่มีรายการที่ต้องดำเนินการในตอนนี้</p>
+            : <ul className="today-list">
+              {todos.map((item) => <li className="today-row" key={item.href}>
+                <span className="today-label" data-tone="pending">{item.label}</span>
+                <div className="today-copy"><strong>{item.title}</strong><span>{item.detail}</span></div>
+                <Link className="secondary-button" href={item.href}>{item.action}</Link>
+              </li>)}
+            </ul>}
+        </section>
 
-    <AppSection description="สถานะแพ็กเกจของหอทั้งหมด" icon={<CreditCard />} title="สมาชิก">
-      <div className="figma-summary-grid three">
-        <Stat icon={<CreditCard />} label="สมาชิกที่ใช้งาน" tone="green" value={aggregation.subscriptions.active} />
-        <Stat icon={<DoorOpen />} label="ทดลองใช้" tone="blue" value={aggregation.subscriptions.trial} />
-        <Stat icon={<Activity />} label="หมดอายุใน 30 วัน" tone="orange" value={aggregation.subscriptions.expiringWithin30Days} />
+        <section aria-labelledby="admin-usage-title" className="overview-card">
+          <h2 id="admin-usage-title">การใช้งานจริง</h2>
+          <dl className="usage-facts">
+            <div><dt>ห้องในระบบ</dt><dd>{usage.rooms.toLocaleString("th-TH")}</dd></div>
+            <div><dt>ผู้เช่าที่ใช้งาน</dt><dd>{usage.activeTenants.toLocaleString("th-TH")}</dd></div>
+            <div><dt>สมาชิกที่ใช้งาน</dt><dd>{subscriptions.active.toLocaleString("th-TH")}</dd></div>
+            <div><dt>เรื่องแจ้งที่ยังเปิด</dt><dd>{operations.openTickets.toLocaleString("th-TH")}</dd></div>
+          </dl>
+        </section>
       </div>
-    </AppSection>
-
-    <AppSection description="ปริมาณข้อมูลที่หอทั้งหมดใช้งานอยู่" icon={<DoorOpen />} title="การใช้งานจริง">
-      <div className="figma-summary-grid three">
-        <Stat icon={<DoorOpen />} label="ห้องในระบบ" tone="indigo" value={aggregation.usage.rooms} />
-        <Stat icon={<UsersRound />} label="ผู้เช่าที่ใช้งาน" tone="indigo" value={aggregation.usage.activeTenants} />
-        <Stat icon={<Wrench />} label="เรื่องแจ้งที่ยังเปิด" tone="orange" value={aggregation.operations.openTickets} />
-      </div>
-    </AppSection>
+    </div>
   </>;
-}
-
-// การ์ดตัวเลขใบเดียวกับที่ฝั่งเจ้าของหอใช้ tone คุมสีของไอคอนอย่างเดียว ไม่ได้คุมสีตัวเลข
-function Stat({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: React.ReactNode }>) {
-  return <article className={`figma-summary-card tone-${tone}`}>
-    <div><small>{label}</small><strong>{value}</strong></div>
-    <span>{icon}</span>
-  </article>;
 }

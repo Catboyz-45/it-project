@@ -485,16 +485,6 @@
   /* minmax(0,1fr) ให้คอลัมน์หดตามจอได้ ค่าเริ่มต้นของ grid ยืดตามความกว้างขั้นต่ำของการ์ดข้างใน จนล้นจอมือถือ */
   .tenant-home-surface { @apply grid grid-cols-[minmax(0,1fr)] gap-5; }
   /* แถบชำระเงินบนหน้าแรกผู้เช่า สีม่วงตามแบรนด์ตอนยังไม่ถึงกำหนด เปลี่ยนเป็นแดงเมื่อเลยกำหนด */
-  .tenant-pay-banner { @apply flex flex-wrap items-center gap-4 rounded-2xl border border-[#d9dbfb] bg-[#f4f5ff] p-4 sm:flex-nowrap sm:p-5; }
-  .tenant-pay-banner.is-late { @apply border-[#fecaca] bg-[#fef2f2]; }
-  .tenant-pay-banner-icon { @apply grid size-11 shrink-0 place-items-center rounded-xl bg-white text-brand; }
-  .tenant-pay-banner.is-late .tenant-pay-banner-icon { @apply text-[#dc2626]; }
-  .tenant-pay-banner > div { @apply flex-1; }
-  .tenant-pay-banner p { @apply text-sm text-[#4b4d55]; }
-  .tenant-pay-banner strong { @apply block text-2xl font-bold text-[#292a30]; }
-  .tenant-pay-banner-due { @apply text-sm font-semibold text-brand; }
-  .tenant-pay-banner.is-late .tenant-pay-banner-due { @apply text-[#dc2626]; }
-  .tenant-pay-banner .primary-button { @apply w-full justify-center sm:w-auto; }
   /* ช่องแนบสลิปแทนปุ่มเลือกไฟล์ของเบราว์เซอร์ ซึ่งขึ้นภาษาอังกฤษในเครื่องที่ตั้งภาษาอังกฤษ */
   .slip-picker { @apply relative flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-brand/30 bg-[#f8f8ff] p-4 transition-colors hover:border-brand/60 hover:bg-[#f2f3ff]; }
   .slip-picker:focus-within { @apply outline-2 outline-offset-2 outline-brand; }
@@ -634,30 +624,14 @@
   .page-header-slot .disabled-reason { @apply mt-1 max-w-64 text-xs leading-4; }
   .topbar h1 { @apply m-0 font-display text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
   .page-subtitle { @apply mt-1.5 text-sm leading-6 text-[#55575f]; }
-  .dashboard-actions, .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
+  .repair-top-actions, .meter-top-actions, .contract-actions, .template-actions, .modal-actions {
     @apply flex flex-wrap items-center gap-2;
   }
   /* คอลัมน์เดียวบนมือถือต้องหดได้ ไม่งั้นข้อความยาวในการ์ดดันคอลัมน์ให้กว้างเกินกรอบของส่วน */
   /* การ์ดกว้างอย่างน้อย 20rem ชื่องานจะได้อยู่บรรทัดเดียว จอแคบก็ลดจำนวนคอลัมน์เองแทนการบีบการ์ด */
-  .work-item-grid { @apply grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-3; }
-  .work-item-grid > a, .work-item-grid > button, .work-item-grid > div {
-    @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
-  }
-  .work-item-grid > a, .work-item-grid > button { @apply hover:bg-[#fafafa]; }
   /* สถานะว่างกินเต็มแถว จัดกลางแนวตั้ง ไม่ถูกกฎ flex ของการ์ดงานบีบจนข้อความตกบรรทัดเป็นท่อน ๆ */
-  .work-item-grid > .empty-state { @apply col-span-full grid min-h-36 place-items-center gap-1 border-dashed text-center; }
-  .work-item-icon { @apply grid size-9 shrink-0 place-items-center text-[#8b8d96]; }
-  .work-item-icon > svg { @apply size-4; }
-  .work-item-copy { @apply min-w-0 flex-1; }
   /* การ์ดงานของผู้เช่าและแอดมินใหญ่เป็นลิงก์ ส่วนของเจ้าของหอเป็นปุ่ม ต้องบังคับสีเดียวกัน
      ไม่งั้นการ์ดที่เป็นลิงก์ได้สีลิงก์ฟ้าไป หน้าตาไม่เหมือนกันทั้งที่เป็นการ์ดชนิดเดียวกัน */
-  .work-item-grid > a { @apply text-[#292a30] no-underline hover:no-underline; }
-  .work-item-copy strong { @apply block font-semibold text-[#292a30]; }
-  .work-item-copy small { @apply mt-1 block text-xs text-[#62646c]; }
-  .work-item-count { @apply inline-flex min-w-8 items-center justify-center rounded-full bg-[#fff7e0] px-2 py-1 text-sm font-bold text-amber-800; }
-  .work-item-count[data-tone="urgent"] { @apply bg-red-500 text-white; }
-  .work-item-arrow { @apply shrink-0 text-[#8a8c95] transition-transform; }
-  .work-item-grid > button:hover .work-item-arrow { @apply translate-x-0.5 text-brand; }
 
   /* โครงหน้าแบบ Section ของ Cal พื้นเทาอ่อนห่อไว้ชั้นนอก หัวข้อมีไอคอนกับคำอธิบาย
      แล้วเนื้อหาจริงอยู่บนการ์ดขาวข้างใน ใช้เหมือนกันทั้งสามโรล หน้าจะได้อ่านเป็นระบบเดียวกัน */
@@ -710,7 +684,6 @@
   .metric.tone-indigo, .figma-summary-card.tone-indigo { --summary-accent: #4655e8; --summary-tint: #f4f4f5; }
   .metric.tone-orange, .figma-summary-card.tone-orange { --summary-accent: #d97706; --summary-tint: #fff7e0; }
   .metric.tone-red, .figma-summary-card.tone-red { --summary-accent: #dc2626; --summary-tint: #fef2f2; }
-  .animated-number { font-variant-numeric: tabular-nums; }
   /* ตัวหนังสือในการ์ดตัวเลขขยายจาก 12px และเข้มขึ้น ผู้ใช้ที่อายุเยอะอ่านคำบรรยายใต้ตัวเลขได้สบายตา */
   .metric small, .figma-summary-card small { @apply text-[13px] leading-5 text-[#4b4d55]; }
 
@@ -1114,86 +1087,15 @@
   .payment-inspection-actions { @apply sticky bottom-0 mt-4 flex items-center justify-end gap-3 border-t border-[#e4e4e7] bg-surface/95 pt-4 backdrop-blur; }
   .payment-reject-button { @apply text-red-300; }
 
-  .workspace .dashboard-panel-stagger > .revenue-summary-panel { @apply flex flex-col self-stretch; }
-  .revenue-summary { @apply mt-4 flex flex-1 flex-col justify-center gap-4; }
-  .revenue-summary-total { @apply flex items-baseline justify-between gap-3 rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
-  .revenue-share-bar { @apply flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
-  .revenue-share-bar > span { @apply min-w-1 basis-0; }
-  .revenue-share-bar > .rent { background: var(--chart-rent); }
-  .revenue-share-bar > .water { background: var(--chart-water); }
-  .revenue-share-bar > .electric { background: var(--chart-electric); }
-  .revenue-share-bar > .other { background: var(--chart-other); }
-  .revenue-summary-total span { @apply text-sm font-medium text-[#62646c]; }
-  .revenue-summary-total strong { @apply text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
-  .revenue-breakdown { @apply grid grid-cols-2 gap-3; }
-  .revenue-breakdown > div { @apply relative rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-r-full; }
-  .revenue-breakdown dt { @apply text-xs font-semibold text-[#62646c]; }
-  .revenue-breakdown dd { @apply mt-1 flex items-baseline justify-between gap-2 text-lg font-semibold text-[#292a30] tabular-nums; }
-  .revenue-breakdown dd small { @apply text-xs font-medium text-[#62646c]; }
   /* สีกราฟชุดเดียวของทั้งระบบ อิงสีหลักม่วงของแบรนด์ แทนเขียวสะท้อนแสง ชมพู และเหลืองที่ตีกับสีหลัก */
-  .revenue-breakdown .rent::before { background: var(--chart-rent); }
-  .revenue-breakdown .water::before { background: var(--chart-water); }
-  .revenue-breakdown .electric::before { background: var(--chart-electric); }
-  .revenue-breakdown .other::before { background: var(--chart-other); }
-  .room-status-bar { @apply my-4 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
-  .room-status-bar > span { @apply min-w-1 basis-0; }
-  .room-status-bar > .occupied { background: var(--chart-occupied); }
-  .room-status-bar > .available { background: var(--chart-available); }
-  .room-status-bar > .maintenance { background: var(--chart-maintenance); }
-  .room-status-overview { @apply grid gap-2; }
-  .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border border-[#e4e4e7] bg-[#fff] p-3; }
-  .room-status-overview small { @apply text-[#62646c]; }
-  .room-status-overview > div > .badge { @apply justify-self-start; }
   .dashboard-empty-state { @apply grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#8b8d96] p-6 text-center text-sm text-[#62646c]; }
-  .priority-list { @apply grid gap-2; }
-  .priority-list button { @apply flex items-center justify-between gap-4 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-4 text-left hover:bg-[#fafafa]; }
-  .priority-list button strong, .priority-list button span { @apply block; }
-  .priority-list button span { @apply mt-1 text-sm text-[#62646c]; }
-  .priority-list button[data-tone="urgent"]:not(.is-clear) span { @apply font-medium text-[#b91c1c]; }
-  .priority-list button small { @apply inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 font-bold text-[#fff]; }
-  .priority-list button.is-clear { @apply border-[#e4e4e7] bg-[#fff] hover:bg-[#fafafa]; }
-  .priority-list button.is-clear small { @apply bg-transparent px-0 font-semibold text-brand; }
-  .quick-actions { @apply grid! grid-cols-3; }
-  .quick-actions button { @apply flex min-h-20 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-3 font-bold transition duration-150 ease-out hover:border-brand hover:text-brand; }
-  .dashboard-actions { @apply grid-cols-2!; }
-  .dashboard-actions button > small { @apply inline-flex items-center gap-0.5 text-xs font-medium opacity-65; }
-  .mini-row { @apply mt-4 rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-4; }
-  .mini-row strong, .mini-row span { @apply block; }
-  .mini-row span { @apply mt-1 text-sm text-[#62646c]; }
   .invoice-list { @apply grid gap-2; }
   .invoice-row { @apply grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 rounded-2xl bg-brand/[.06] p-3; }
 
   /* The dashboard is an overview, so keep its density higher than detail pages. */
-  .dashboard-metric-stagger { @apply gap-3 px-6 py-4; }
-  .dashboard-metric-stagger > .metric { @apply min-h-24 rounded-2xl p-4; }
-  .dashboard-metric-stagger > .metric > span { @apply size-10 rounded-xl; }
-  .dashboard-metric-stagger > .metric strong { @apply mt-1 text-xl; }
-  .dashboard-panel-stagger { @apply gap-3 px-6; }
   /* หัวข้อบนสุดของหน้าแดชบอร์ดอยู่นอกกริด จึงไม่ได้ระยะขอบจากกริด ต้องเว้นเองให้ตรงกับกล่องด้านล่าง */
   .workspace > .view-transition > .app-section { @apply mx-6 mb-3; }
-  .workspace .dashboard-panel-stagger {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-  .workspace .dashboard-panel-stagger > .panel.full,
-  .workspace .dashboard-panel-stagger > .app-section.full { grid-column: 1 / -1; }
-  .workspace .dashboard-panel-stagger > .app-section { grid-column: span 6 / span 6; }
-  .workspace .dashboard-panel-stagger > .panel.wide,
-  .workspace .dashboard-panel-stagger > .app-section.wide { grid-column: span 7 / span 7; }
-  .workspace .dashboard-panel-stagger > .panel.wide + .panel,
-  .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: span 5 / span 5; }
-  .dashboard-panel-stagger > .panel { @apply rounded-2xl p-4; }
   /* หัวข้อของแผงบนแดชบอร์ดใช้ขนาดเดียวกับหัวข้อของส่วน จะได้ไม่มีหัวข้อสองขนาดในหน้าเดียว */
-  .dashboard-panel-stagger .panel-title { @apply mb-3; }
-  .dashboard-panel-stagger .work-item-grid { @apply gap-2; }
-  .dashboard-panel-stagger .work-item-grid > button,
-  .dashboard-panel-stagger .work-item-grid > div { @apply min-h-18 rounded-xl p-3; }
-  .dashboard-panel-stagger .work-item-icon { @apply size-10 rounded-xl; }
-  .dashboard-panel-stagger .dashboard-empty-state { @apply min-h-24 p-4; }
-  .dashboard-panel-stagger .priority-list button { @apply rounded-xl p-3; }
-  .dashboard-panel-stagger .quick-actions button { @apply min-h-16 rounded-xl p-2; }
-  .dashboard-panel-stagger .mini-row { @apply mt-3 rounded-xl p-3; }
-  .dashboard-panel-stagger .room-status-overview { @apply gap-1.5; }
-  .dashboard-panel-stagger .room-status-overview > div { @apply rounded-lg px-3 py-2; }
   .invoice-row > div:nth-child(2) small { @apply block text-xs text-[#62646c]; }
   .qr-box { @apply grid size-10 place-items-center rounded-xl bg-brand/10 text-brand; }
   .detail-list { @apply mb-5 grid grid-cols-2 gap-2; }
@@ -1210,28 +1112,25 @@
   .rooms-view-toggle { @apply flex gap-0.5 rounded-lg bg-[#f1f1f3] p-1; }
   .rooms-view-toggle button { @apply inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-[#62646c] transition-colors duration-150 hover:text-[#292a30] lg:min-h-8; }
   .rooms-view-toggle button.active { @apply bg-[#fff] font-semibold text-[#292a30] shadow-[0_1px_2px_rgba(0,0,0,.08)]; }
+  /* ผังห้องแบบใหม่ ไม่มีกรอบอาคารซ้อนกรอบชั้น หัวชั้นเป็นตัวหนังสือ การ์ดห้องบอกสถานะด้วยจุดสีแบบ Discord */
   .room-building-stack { @apply grid gap-6; }
-  .room-building-card { @apply overflow-hidden rounded-xl border border-[#e0e1e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
-  .room-building-head { @apply border-b border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
-  .room-building-head > div { @apply block; }
-  .room-building-head h2 { @apply m-0 text-base font-semibold text-[#292a30]; }
-  .room-building-head p { @apply mt-0.5 text-sm text-[#62646c]; }
-  .room-floor-stack { @apply grid gap-6 p-5; }
-  .room-floor-group { @apply grid gap-3; }
-  .room-floor-group > header { @apply flex items-center gap-3; }
-  .room-floor-group > header > div { @apply flex shrink-0 items-baseline gap-2; }
-  .room-floor-group > header strong { @apply text-base text-[#292a30]; }
-  .room-floor-group > header small { @apply text-xs text-[#62646c]; }
-  .room-floor-group > header > span { @apply h-px flex-1 bg-[#e5e6eb]; }
-  .room-plan-grid { @apply grid grid-cols-4 gap-3; }
-  .room-plan-card { @apply grid min-h-28 gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left text-[#292a30] transition-colors duration-150 hover:bg-[#fafafa]; }
-  .room-plan-card.selected { @apply border-brand/40 bg-brand/[.08]; }
-  .room-plan-card-head { @apply flex items-start justify-between gap-2; }
-  .room-plan-card-head > strong { @apply text-base font-semibold; }
-  .room-plan-card-detail { @apply text-sm text-[#686a73]; }
-  .room-plan-card-foot { @apply mt-auto flex items-center justify-between gap-2 border-t border-[#e4e4e7] pt-3 text-xs text-[#62646c]; }
-  .room-plan-card-foot > strong { @apply rounded-lg bg-red-50 px-2 py-1 text-red-700; }
-  .interactive-card-action { @apply inline-flex items-center gap-1 font-bold text-brand; }
+  .room-building-title { @apply m-0 text-base font-semibold text-[#292a30]; }
+  .room-building-title small { @apply ml-1 text-sm font-normal text-[#62646c]; }
+  .room-building-section { @apply grid gap-5; }
+  .room-floor-group { @apply grid gap-2.5; }
+  .room-floor-group > header { @apply flex items-baseline gap-2; }
+  .room-floor-group > header strong { @apply text-[15px] font-semibold text-[#292a30]; }
+  .room-floor-group > header small { @apply text-[13px] text-[#6d6f78]; }
+  .room-plan-grid { @apply grid gap-2.5; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
+  .room-plan-card { @apply grid min-h-28 gap-2 rounded-2xl border border-[#e3e3e8] bg-[#fff] p-3.5 text-left text-[#1e1f22] transition-colors duration-150 hover:border-brand/40; }
+  .room-plan-card[data-status="maintenance"] { @apply border-dashed border-[#e8c477] bg-[#fffbf0]; }
+  .room-plan-card[aria-pressed="true"] { @apply border-brand bg-[#f5f6ff]; box-shadow: inset 0 0 0 1px var(--color-brand); }
+  .room-plan-card-head { @apply flex items-center justify-between gap-2; }
+  .room-plan-card-head > strong { @apply text-xl font-bold tracking-[-.01em]; }
+  .room-status-label { @apply inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[#3f4147]; }
+  .room-plan-card-detail { @apply text-[13px] text-[#5c5e66]; }
+  .room-plan-card-foot { @apply mt-auto flex min-h-7 items-center justify-between gap-2 border-t border-[#ececf0] pt-2.5 text-[13px] text-[#5c5e66]; }
+  .room-plan-tenant { @apply inline-flex min-w-0 items-center gap-1.5 truncate text-[#3f4147]; }
 
   /* แถบค้นหาเหนือตาราง ใช้ flex-wrap แทน grid ความกว้างตายตัว
      จอกลางอย่างแท็บเล็ตหรือหน้าต่างไม่เต็มจอ ปุ่มจะขึ้นแถวใหม่ทั้งปุ่ม ไม่บีบจนตัวหนังสือตัดเป็นหลายบรรทัด */
@@ -1889,15 +1788,7 @@
     :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) strong { @apply text-lg; }
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
-    .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
     .workspace > .view-transition > .app-section { @apply mx-4; }
-    .workspace .dashboard-panel-stagger > .panel,
-    .workspace .dashboard-panel-stagger > .panel.full,
-    .workspace .dashboard-panel-stagger > .panel.wide,
-    .workspace .dashboard-panel-stagger > .panel.wide + .panel,
-    .workspace .dashboard-panel-stagger > .app-section,
-    .workspace .dashboard-panel-stagger > .app-section.wide,
-    .workspace .dashboard-panel-stagger > .app-section.wide + .app-section { grid-column: 1 / -1; }
     .figma-room-grid, .room-grid { @apply grid-cols-2; }
     .payment-review-workspace { @apply grid-cols-1; }
     .payment-review-queue { @apply border-r-0 border-b border-[#e4e4e7]; }
@@ -1909,7 +1800,6 @@
     .rooms-view-toolbar { @apply items-stretch; }
     .rooms-view-toolbar .floor-tabs { @apply order-2 w-full overflow-x-auto; }
     .rooms-view-toggle { @apply ml-auto; }
-    .room-building-head, .room-floor-stack { @apply px-4; }
     .room-plan-grid { @apply grid-cols-2; }
     /* มือถือ: กล่องฟอร์มเลื่อนขึ้นจากขอบล่างเป็น bottom sheet มีขีดจับด้านบนให้รู้ว่าเป็นแผ่นที่ปัดลงได้ */
     .modal-backdrop { @apply items-end p-0; }
@@ -2355,7 +2245,6 @@ select:disabled {
   .mini-button,
   .icon-button,
   .interactive-card,
-  .quick-actions button,
   .modal-actions button {
     transition-duration: 1ms;
   }
@@ -2372,8 +2261,6 @@ select:disabled {
   .icon-button:active,
   .interactive-card:hover,
   .interactive-card:active,
-  .quick-actions button:hover,
-  .quick-actions button:active,
   .modal-actions button:hover,
   .modal-actions button:active {
     transform: none;
@@ -2503,4 +2390,223 @@ select:disabled {
   .read-only-notice,
   .read-only-control-note,
   .subscription-access-banner.is-checking { animation-duration: 1ms; }
+}
+
+/* ===== หน้าแดชบอร์ดเจ้าของหอแบบใหม่ =====
+   โครงแบบ Cal การ์ดขาวขอบบางชั้นเดียว ตัวเลขเป็นพระเอก สีม่วงใช้กับปุ่มและห้องที่มีผู้เช่า
+   ป้ายบอกความด่วนใช้ชุดเดียวกับเมนู เหลืองอ่อนคือรอทำ แดงทึบคือเลยกำหนด เขียวคือเสร็จแล้ว */
+@layer components {
+  .overview { @apply mx-6 mb-8 grid gap-4; }
+  .overview-kpis { @apply grid gap-3; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .overview-kpi { @apply grid content-start gap-1 rounded-2xl border border-[#e4e4e7] bg-[#fff] px-5 py-4; }
+  .overview-kpi > p { @apply m-0 text-sm text-[#5c5e66]; }
+  .overview-kpi > strong { @apply text-2xl font-bold text-[#1e1f22] tabular-nums; }
+  .overview-kpi > strong > span { @apply text-base font-medium text-[#5c5e66]; }
+  .overview-kpi > small { @apply text-xs text-[#5c5e66]; }
+  .overview-kpi[data-tone="urgent"] > strong { @apply text-[#b42318]; }
+  .overview-kpi[data-tone="urgent"] > small { @apply font-semibold text-[#b42318]; }
+  .overview-progress { @apply my-1 block h-1.5 overflow-hidden rounded-full bg-[#ececf0]; }
+  .overview-progress > span { @apply block h-full rounded-full bg-brand; }
+  .overview-progress[data-tone="done"] > span { background: #23a55a; }
+  .overview-share { @apply my-1 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-[#ececf0]; }
+  .overview-share > span { @apply min-w-1 basis-0; }
+  .overview-share > [data-status="occupied"] { background: var(--chart-occupied); }
+  .overview-share > [data-status="available"] { background: var(--chart-available); }
+  .overview-share > [data-status="maintenance"] { background: var(--chart-maintenance); }
+
+  /* จุดสถานะแบบ Discord ม่วงคือมีผู้เช่า วงกลมโปร่งคือว่าง เหลืองคือปิดซ่อม */
+  .status-dot { @apply inline-block size-2.5 shrink-0 rounded-full; }
+  .status-dot[data-status="occupied"] { background: var(--chart-occupied); }
+  .status-dot[data-status="available"] { box-shadow: inset 0 0 0 2px #b5b7bf; }
+  .status-dot[data-status="maintenance"] { background: var(--chart-maintenance); }
+
+  .overview-row { @apply flex flex-wrap items-start gap-4; }
+  .overview-card { @apply min-w-0 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-5; flex: 1 1 320px; }
+  .overview-row > .today-card, .overview-row > .room-map { flex: 2 1 520px; }
+  .overview-card h2 { @apply m-0 text-base font-semibold text-[#1e1f22]; }
+  .overview-card-text { @apply mt-2 mb-4 text-sm text-[#5c5e66]; }
+  .overview-card-head { @apply flex items-center justify-between gap-3 border-b border-[#ececf0] px-5 py-4; }
+  .overview-card-head p { @apply mt-0.5 mb-0 text-sm text-[#5c5e66]; }
+  .overview-card-head > small { @apply shrink-0 text-sm text-[#5c5e66]; }
+
+  .today-card { @apply overflow-hidden p-0; }
+  .today-list { @apply m-0 list-none p-0; }
+  .today-row { @apply flex flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-[#ececf0] px-5 py-3.5 last:border-b-0; }
+  .today-label { @apply inline-flex shrink-0 items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold whitespace-nowrap; }
+  .today-row > .today-label { @apply w-20; }
+  .today-label[data-tone="pending"] { @apply bg-[#fff7e0] text-amber-800; }
+  .today-label[data-tone="urgent"] { @apply bg-red-500 text-white; }
+  .today-label[data-tone="done"] { @apply bg-[#e6f6ec] text-[#1a7f45]; }
+  .today-label[data-tone="neutral"] { @apply bg-[#f1f1f4] text-[#3f4147]; }
+  .today-copy { @apply min-w-0; flex: 1 1 220px; }
+  .today-copy strong { @apply block text-sm font-semibold text-[#1e1f22]; }
+  .today-copy span { @apply mt-0.5 block text-[13px] text-[#5c5e66]; }
+  .today-empty { @apply m-0 px-5 py-10 text-center text-sm text-[#5c5e66]; }
+
+  .cycle-card-head { @apply flex items-center justify-between gap-2; }
+  .cycle-steps { @apply mt-4 mb-0 list-none p-0; }
+  .cycle-steps > li { @apply relative flex gap-3 pb-4 last:pb-0; }
+  .cycle-steps > li:not(:last-child)::after { content: ""; position: absolute; left: 11px; top: 28px; bottom: 4px; width: 2px; border-radius: 1px; background: #dfe0e6; }
+  .cycle-steps > li[data-state="done"]:not(:last-child)::after { background: #23a55a; }
+  .cycle-steps > li > div { @apply min-w-0 flex-1; }
+  .cycle-steps strong { @apply block text-sm font-semibold text-[#1e1f22]; }
+  .cycle-steps span:not(.cycle-dot):not(.overview-progress):not(.overview-progress > span) { @apply mt-0.5 block text-xs text-[#5c5e66]; }
+  .cycle-steps > li[data-state="todo"] strong { @apply text-[#5c5e66]; }
+  .cycle-dot { @apply grid size-6 shrink-0 place-items-center rounded-full border-2 border-[#d9dae0] bg-[#fff] text-white; }
+  .cycle-steps > li[data-state="done"] > .cycle-dot { @apply border-[#23a55a] bg-[#23a55a]; }
+  .cycle-steps > li[data-state="active"] > .cycle-dot { @apply border-brand bg-brand; box-shadow: inset 0 0 0 4px #fff; }
+  .cycle-steps .overview-progress { @apply mt-2; }
+  .cycle-card-link { @apply mt-4 flex w-full items-center justify-center gap-1.5; }
+
+  .room-map-head { @apply flex flex-wrap items-center justify-between gap-2.5; }
+  .room-map-legend { @apply m-0 flex list-none gap-3.5 p-0 text-xs text-[#5c5e66]; }
+  .room-map-legend li { @apply inline-flex items-center gap-1.5; }
+  .room-map-floor { @apply mt-4; }
+  .room-map-floor > p { @apply mt-0 mb-2 text-xs font-semibold text-[#6d6f78]; }
+  .room-map-grid { @apply grid gap-2; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .room-map-tile { @apply grid min-w-0 gap-1 rounded-xl border border-[#e3e3e8] bg-[#fff] px-3 py-2.5 text-left text-[#1e1f22] transition-colors hover:border-brand/50; }
+  .room-map-tile > span { @apply flex items-center justify-between gap-2; }
+  .room-map-tile strong { @apply text-[15px] font-bold; }
+  .room-map-tile small { @apply truncate text-xs text-[#5c5e66]; }
+  .room-map-tile[data-status="occupied"] { @apply border-[#c9cdfb] bg-[#f5f6ff]; }
+  .room-map-tile[data-status="maintenance"] { @apply border-dashed border-[#e8c477] bg-[#fffbf0]; }
+
+  .follow-list { @apply mt-3 mb-0 grid list-none gap-1 p-0; }
+  .follow-list button { @apply flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-[#1e1f22] hover:bg-[#fafafa]; }
+  .follow-copy { @apply min-w-0 flex-1; }
+  .follow-copy strong { @apply block truncate text-sm font-semibold; }
+  .follow-copy span { @apply block text-xs text-[#5c5e66]; }
+  .follow-amount { @apply grid shrink-0 justify-items-end gap-1; }
+  .follow-amount strong { @apply text-sm font-semibold tabular-nums; }
+
+  /* วงกลมตัวอักษรแรกของชื่อ สีคงที่ตามชื่อ เข้มพอให้ตัวอักษรขาวอ่านได้ */
+  .initial-avatar { @apply inline-grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white; }
+  .initial-avatar[data-size="sm"] { @apply size-6 text-[11px]; }
+  .initial-avatar[data-size="lg"] { @apply size-10 text-base; }
+  .initial-avatar[data-tone="0"] { background: #5865f2; }
+  .initial-avatar[data-tone="1"] { background: #c03b84; }
+  .initial-avatar[data-tone="2"] { background: #1a7f45; }
+  .initial-avatar[data-tone="3"] { background: #b45309; }
+  .initial-avatar[data-tone="4"] { background: #4b5563; }
+
+  @media (max-width: 767px) {
+    .overview { @apply mx-4; }
+    .overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .overview-kpi { @apply px-4 py-3; }
+    .overview-kpi > strong { @apply text-xl; }
+  }
+}
+
+/* ===== หน้าผังห้องแบบใหม่ ===== ตัวกรองสถานะ ผังห้องด้านซ้าย แผงรายละเอียดด้านขวา */
+@layer components {
+  .filter-chips { @apply flex flex-wrap gap-2; }
+  .filter-chips > button { @apply inline-flex min-h-9 items-center gap-2 rounded-full border border-[#d9dae0] bg-[#fff] py-0 pr-2 pl-3.5 text-[13px] font-semibold text-[#1e1f22] transition-colors hover:border-[#b5b7bf]; }
+  .filter-chips > button[aria-pressed="true"] { @apply border-[#1e1f22] bg-[#1e1f22] text-white; }
+  .filter-chip-count { @apply inline-grid h-5 min-w-5 place-items-center rounded-full bg-[#f1f1f4] px-1.5 text-[11px] font-bold text-[#3f4147]; }
+  .filter-chips > button[aria-pressed="true"] .filter-chip-count { @apply bg-white/20 text-white; }
+
+  .rooms-layout { @apply flex flex-wrap items-start gap-5; }
+  .rooms-results { flex: 3 1 520px; @apply min-w-0; }
+  .room-detail { flex: 1 1 300px; @apply min-w-0 overflow-hidden rounded-2xl border border-[#e3e3e8] bg-[#fff]; }
+  @media (min-width: 1024px) { .room-detail { @apply sticky top-4; } }
+  .room-detail-head { @apply flex items-start justify-between gap-2 border-b border-[#ececf0] px-5 py-4; }
+  .room-detail-head h2 { @apply m-0 text-xl font-bold text-[#1e1f22]; }
+  .room-detail-head p { @apply mt-1 mb-0 text-[13px] text-[#5c5e66]; }
+  .room-detail-section { @apply grid gap-2.5 border-b border-[#ececf0] px-5 py-4; }
+  .room-detail-caption { @apply m-0 text-xs font-semibold text-[#6d6f78]; }
+  .room-detail-title { @apply m-0 text-[15px] font-semibold text-[#1e1f22]; }
+  .room-detail-muted { @apply m-0 text-[13px] text-[#5c5e66]; }
+  .room-detail-empty { @apply m-0 px-5 py-10 text-center text-sm text-[#5c5e66]; }
+  .room-detail-people { @apply m-0 grid list-none gap-3 p-0; }
+  .room-detail-people li { @apply flex items-center gap-2.5; }
+  .room-detail-people strong { @apply block text-sm font-semibold text-[#1e1f22]; }
+  .room-detail-people span:not(.initial-avatar) { @apply block text-xs text-[#5c5e66]; }
+  .room-detail-facts { @apply m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 border-b border-[#ececf0] px-5 py-4 text-sm; }
+  .room-detail-facts dt { @apply text-[#5c5e66]; }
+  .room-detail-facts dd { @apply m-0 text-right text-[#1e1f22] tabular-nums; }
+  .room-detail-actions { @apply flex flex-wrap gap-2 px-5 py-4; }
+  .room-detail-actions > button { @apply flex-1 justify-center; }
+}
+
+/* ===== หน้าบิลแบบใหม่ ===== แถบตัวเลขที่กดกรองได้ ชื่อผู้เช่ามีวงกลมตัวอักษร ป้ายค้างชำระเป็นแดงทึบ */
+@layer components {
+  .money-strip { @apply grid overflow-hidden rounded-2xl border border-[#e3e3e8] bg-[#fff]; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .money-strip > button { @apply grid min-h-20 content-center gap-1 border-0 border-r border-[#ececf0] bg-transparent px-5 py-3.5 text-left transition-colors last:border-r-0 hover:bg-[#fafafb]; }
+  .money-strip > button > span { @apply text-[13px] text-[#5c5e66]; }
+  .money-strip > button > strong { @apply text-xl font-bold text-[#1e1f22] tabular-nums; }
+  .money-strip > button[data-tone="urgent"] > strong { @apply text-[#b42318]; }
+  .money-strip > button[aria-pressed="true"] { @apply bg-[#eef0fe]; box-shadow: inset 0 -2px 0 var(--color-brand); }
+  .invoice-tenant { @apply inline-flex items-center gap-2; }
+  .invoice-table .figma-status.badge-overdue { @apply border-red-500 bg-red-500 text-white; }
+  @media (max-width: 767px) {
+    .money-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .money-strip > button { @apply border-b; }
+  }
+}
+
+/* ===== หน้าจดมิเตอร์แบบใหม่ ===== แถบความคืบหน้าเหนือตาราง และป้ายสถานะสีเดียวกับทั้งระบบ */
+@layer components {
+  .meter-progress { @apply flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-[#e3e3e8] bg-[#fff] px-5 py-4; }
+  .meter-progress-main { @apply min-w-0; flex: 1 1 280px; }
+  .meter-progress-main p { @apply m-0 mb-2 text-sm text-[#5c5e66]; }
+  .meter-progress-main strong { @apply text-[15px] font-semibold text-[#1e1f22]; }
+  .meter-progress-main .overview-progress { @apply h-2; }
+  .meter-progress-facts { @apply m-0 flex flex-wrap gap-8; }
+  .meter-progress-facts dt { @apply text-[13px] text-[#5c5e66]; }
+  .meter-progress-facts dd { @apply m-0 mt-0.5 text-lg font-bold text-[#1e1f22] tabular-nums; }
+  .meter-progress-facts dd[data-tone="pending"] { @apply text-amber-800; }
+  .meter-status { @apply gap-1; }
+}
+
+/* ===== หน้าแรกผู้เช่าแบบใหม่ ===== การ์ดบิลใหญ่กับปุ่มจ่าย แล้วตามด้วยทางลัดบริการของหอ */
+@layer components {
+  .tenant-overview { @apply grid gap-3; }
+  .tenant-overview-title { @apply m-0 text-base font-semibold text-[#1e1f22]; }
+  .tenant-bill-hero { @apply grid gap-2 rounded-[20px] border border-[#e3e3e8] bg-[#fff] p-5; }
+  .tenant-bill-hero-head { @apply flex flex-wrap items-center justify-between gap-2; }
+  .tenant-bill-hero-label { @apply m-0 text-sm font-semibold text-[#5c5e66]; }
+  .tenant-bill-hero-amount { @apply text-[40px] leading-tight font-bold tracking-[-.02em] text-[#1e1f22] tabular-nums; }
+  .tenant-bill-hero-note { @apply m-0 inline-flex items-center gap-1.5 text-sm text-[#5c5e66]; }
+  .tenant-bill-hero[data-state="clear"] .tenant-bill-hero-note { @apply text-[#1a7f45]; }
+  .tenant-bill-hero-action { @apply mt-2 min-h-12 justify-center rounded-[14px] text-base; }
+  .tenant-bill-hero-hint { @apply m-0 text-center text-xs text-[#5c5e66]; }
+  .tenant-service-grid { @apply grid gap-2.5; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .tenant-service-tile { @apply flex min-h-16 items-center gap-3 rounded-2xl border border-[#e3e3e8] bg-[#fff] p-3.5 text-[#1e1f22] no-underline transition-colors hover:border-brand/40 hover:no-underline; }
+  .tenant-service-icon { @apply grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef0fe] text-[#4752c4]; }
+  .tenant-service-copy { @apply min-w-0 flex-1; }
+  .tenant-service-copy strong { @apply block text-sm font-semibold; }
+  .tenant-service-copy small { @apply block truncate text-xs text-[#5c5e66]; }
+  @media (max-width: 767px) {
+    .tenant-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tenant-service-tile { @apply flex-col items-start gap-2; }
+    .tenant-service-tile .notification-badge { @apply absolute top-3 right-3; }
+    .tenant-service-tile { @apply relative; }
+    .tenant-bill-hero-amount { @apply text-[34px]; }
+  }
+}
+
+/* ขั้นตอนจ่ายบิลของผู้เช่า เลขขั้นในวงกลมสีหลัก แต่ละขั้นเป็นการ์ดของตัวเอง */
+@layer components {
+  .pay-steps { @apply mt-5 grid gap-3; }
+  .pay-step { @apply grid gap-4 rounded-[18px] border border-[#e3e3e8] bg-[#fff] p-4; }
+  .pay-step > h3 { @apply m-0 flex items-center gap-2.5 text-[15px] font-bold text-[#1e1f22]; }
+  .pay-step > h3 > span { @apply grid size-6 place-items-center rounded-full bg-brand text-[13px] font-bold text-white; }
+  .pay-step > .primary-button { @apply min-h-12 justify-center text-base; }
+}
+
+/* แดชบอร์ดซุปเปอร์แอดมินใช้ชุดเดียวกับเจ้าของหอ แต่พื้นที่ของหน้ามีขอบซ้ายขวาของตัวเองอยู่แล้ว */
+@layer components {
+  .super-admin-content .overview { @apply mx-0; }
+  .usage-facts { @apply mt-3 mb-0 grid grid-cols-2 gap-3; }
+  .usage-facts > div { @apply rounded-xl bg-[#f7f7f9] px-4 py-3; }
+  .usage-facts dt { @apply text-[13px] text-[#5c5e66]; }
+  .usage-facts dd { @apply m-0 mt-0.5 text-xl font-bold text-[#1e1f22] tabular-nums; }
+}
+
+/* ภาษาไทยไม่เว้นวรรคระหว่างคำ เบราว์เซอร์บางตัว (เช่น Chromium บน Linux) ตัดบรรทัดได้แค่ตรงช่องว่าง
+   ข้อความยาวที่ไม่มีช่องว่างจึงดันการ์ดให้กว้างเกินจอมือถือ ให้ตัดตรงไหนก็ได้เมื่อจำเป็น
+   และล็อกคอลัมน์ของกริดหน้าใหม่ไว้ที่ minmax(0, 1fr) เนื้อหาข้างในจะได้ดันหน้าให้กว้างขึ้นไม่ได้ */
+@layer components {
+  :is(.overview, .tenant-overview, .rooms-layout, .room-detail, .money-strip, .meter-progress, .pay-steps) { overflow-wrap: anywhere; }
+  .overview, .tenant-overview, .pay-steps { grid-template-columns: minmax(0, 1fr); }
 }
