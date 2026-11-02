@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import type { ComplaintRecord } from "@/types/dashboard";
+import { ticketStatusLabels } from "@/lib/ui-labels";
 import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import type { PageKey } from "@/types/navigation";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
@@ -21,12 +23,6 @@ const parcelStatusLabels: Record<string, "waiting" | "received" | "cancelled"> =
   RECEIVED: "received",
 };
 
-const ticketStatusLabels: Record<string, "แก้ไขแล้ว" | "ยกเลิกแล้ว" | "กำลังตรวจสอบ" | "รับเรื่องแล้ว"> = {
-  RESOLVED: "แก้ไขแล้ว",
-  CANCELLED: "ยกเลิกแล้ว",
-  ACKNOWLEDGED: "กำลังตรวจสอบ",
-  IN_PROGRESS: "กำลังตรวจสอบ",
-};
 
 export default async function PropertyWorkspaceSectionPage({
   params,
@@ -141,7 +137,8 @@ async function loadComplaints(propertyId: string, userId: string) {
     date: formatThaiDateTime(item.createdAt),
     hasUnreadReply: item.hasUnreadReply,
     type: item.type,
-    status: ticketStatusLabels[item.status] ?? "รับเรื่องแล้ว",
+    // คำเรียกชุดกลางเดียวกับฝั่งผู้เช่าและหน้ารายการที่โหลดฝั่งเบราว์เซอร์
+    status: (ticketStatusLabels[item.status] ?? "รับเรื่องแล้ว") as ComplaintRecord["status"] | "ยกเลิกแล้ว",
   }));
 }
 

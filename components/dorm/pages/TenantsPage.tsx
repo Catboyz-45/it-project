@@ -79,7 +79,7 @@ function TenantTable({ hasQuery, isLoading, loadError, onOpenDetail, tenants }: 
 
 // วันที่ในข้อมูลเป็น "YYYY-MM-DD" แปลงเป็นแบบไทยให้ตรงกับหน้าสัญญา อ่านเป็น UTC กันวันเลื่อนตามเขตเวลา
 function formatLeaseDay(value: string | undefined) {
-  return value ? new Date(`${value}T00:00:00.000Z`).toLocaleDateString("th-TH", { timeZone: "UTC" }) : "-";
+  return value ? formatThaiDate(`${value}T00:00:00.000Z`) : "-";
 }
 
 // ผู้พักร่วมไม่ได้เซ็นสัญญาเอง ใช้สัญญาของผู้เช่าหลักในห้องเดียวกัน

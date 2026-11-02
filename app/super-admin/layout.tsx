@@ -26,7 +26,7 @@ export default async function SuperAdminLayout({
     <aside className="sidebar super-admin-sidebar" id={appSidebarId}>
       <div className="sidebar-head mb-5">
         <div className="brand">
-          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Control" imageClassName="size-11" showTagline />
+          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" imageClassName="size-11" subtitle="ผู้ดูแลแพลตฟอร์ม" />
         </div>
         <NavToggle />
       </div>

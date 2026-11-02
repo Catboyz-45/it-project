@@ -241,7 +241,8 @@ function RoomStatusChart({ availableEnd, availableRooms, items, maintenanceRooms
   totalRooms: number;
 }>) {
   const background = totalRooms > 0
-    ? `conic-gradient(#35ed7e 0 ${occupiedEnd}%, #fbbf24 ${occupiedEnd}% ${availableEnd}%, #ec48bd ${availableEnd}% 100%)`
+    // สีชุดเดียวกับป้ายสถานะห้อง ม่วงคือมีผู้เช่า เทาคือว่าง เหลืองคือซ่อม ดูกราฟกับป้ายแล้วจับคู่กันได้ทันที
+    ? `conic-gradient(var(--chart-occupied) 0 ${occupiedEnd}%, var(--chart-available) ${occupiedEnd}% ${availableEnd}%, var(--chart-maintenance) ${availableEnd}% 100%)`
     : "#dedfe4";
   return <>
     <div
@@ -304,9 +305,9 @@ export function OverviewPage({
   const occupiedEnd = percent(summary.occupied, rooms.length);
   const availableEnd = occupiedEnd + percent(availableRooms, rooms.length);
   const roomStatusItems = [
-    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-paid" },
-    { label: "ว่าง", value: availableRooms, className: "badge badge-pending" },
-    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-scheduled" },
+    { label: "มีผู้เช่า", value: summary.occupied, className: "badge badge-occupied" },
+    { label: "ว่าง", value: availableRooms, className: "badge badge-available" },
+    { label: "ซ่อม", value: maintenanceRooms, className: "badge badge-maintenance" },
   ];
   const urgentItems = [
     {

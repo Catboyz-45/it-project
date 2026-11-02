@@ -1,6 +1,7 @@
 "use client";
 // โหลดข้อมูล ส่งคำขอ และคัดลอกรหัสจากเบราว์เซอร์
 
+import { formatThaiDateTime } from "@/lib/thai-format";
 import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
@@ -265,22 +266,18 @@ function InvitationStatus({ invitation }: Readonly<{ invitation: Invitation }>) 
     EXPIRED: "หมดอายุ",
     REVOKED: "ยกเลิกแล้ว",
   };
+  // ใช้ป้ายสถานะชุดกลาง สีกับขนาดจะได้เหมือนป้ายในหน้าอื่นทุกหน้า
   const styles: Record<Invitation["status"], string> = {
-    PENDING: "bg-amber-100 text-amber-800",
-    ACCEPTED: "bg-emerald-100 text-emerald-800",
-    EXPIRED: "bg-slate-100 text-slate-700",
-    REVOKED: "bg-red-100 text-red-700",
+    PENDING: "badge-pending",
+    ACCEPTED: "badge-paid",
+    EXPIRED: "badge-cancelled",
+    REVOKED: "badge-cancelled",
   };
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${styles[status]}`}>{labels[status]}</span>;
+  return <span className={`badge ${styles[status]}`}>{labels[status]}</span>;
 }
 
-// จัดรูปแบบวันเวลาแบบไทยไว้ที่เดียว ทุกที่ในหน้านี้จะได้แสดงเหมือนกัน
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("th-TH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
+// ใช้ตัวจัดรูปแบบกลางของทั้งระบบ วันเวลาในหน้านี้จะได้หน้าตาเหมือนหน้าอื่น
+const formatDateTime = formatThaiDateTime;
 
 // ดึงรายการห้องและประวัติคำเชิญพร้อมกัน ไม่ต้องรอผลของกันและกัน
 async function requestInvitationData(propertyId: string, page: number) {

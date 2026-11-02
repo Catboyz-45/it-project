@@ -2,6 +2,7 @@
 // รายการพัสดุของหอ ตัวเลขสรุป และการแบ่งหน้าฝั่งเซิร์ฟเวอร์
 // แยกจาก ParcelsPage เพราะเป็นการดึงและแปลงข้อมูลล้วน ๆ ไม่เกี่ยวกับหน้าจอ
 
+import { formatThaiDateTime } from "@/lib/thai-format";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type ParcelSummary = { today: number; waiting: number; received: number; olderThanThreeDays: number };
@@ -53,8 +54,8 @@ function toParcelRecord(item: ParcelResponseItem): ParcelRecord {
     roomId: item.room.number,
     // ไม่ได้ระบุผู้รับ แปลว่าเป็นพัสดุของห้อง ไม่ใช่ของคนใดคนหนึ่ง
     tenantName: item.recipientTenant?.user.displayName ?? "พัสดุส่วนกลางของห้อง",
-    registeredAt: new Date(item.registeredAt).toLocaleString("th-TH"),
-    receivedAt: item.receivedAt ? new Date(item.receivedAt).toLocaleString("th-TH") : undefined,
+    registeredAt: formatThaiDateTime(item.registeredAt),
+    receivedAt: item.receivedAt ? formatThaiDateTime(item.receivedAt) : undefined,
     status: statusMap[item.status],
     updatedAt: item.updatedAt,
   };

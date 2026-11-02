@@ -16,7 +16,7 @@ import { DropdownField } from "@/components/dorm/DropdownField";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
-import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
+import { ServerTablePagination } from "@/components/dorm/TablePagination";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { formatAuditAction, formatAuditFailureDetail, formatAuditResult } from "@/lib/ui-labels";
 import { readApiPayload } from "@/lib/client/api-error";
@@ -266,45 +266,13 @@ function PaginatedTable<T>({
         hasCriteria={Boolean(debouncedQuery || filter)}
         rows={rows}
       >{children}</TableRows>}
-      {pageInfo ? (
-        <>
-        <LiveAnnouncement message={tableAnnouncement({
-          isLoading,
-          page: pageInfo.page,
-          total: pageInfo.total ?? rows.length,
-          totalPages: pageInfo.totalPages ?? (pageInfo.hasNextPage ? pageInfo.page + 1 : pageInfo.page),
-        })} />
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-[#62646c]">
-          <span>
-            ทั้งหมด {(pageInfo.total ?? rows.length).toLocaleString("th-TH")}{" "}
-            รายการ
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              className="secondary-button"
-              disabled={pageInfo.page <= 1 || isLoadingMore}
-              onClick={() => void load(pageInfo.page - 1, false)}
-              type="button"
-            >
-              ก่อนหน้า
-            </button>
-            <span>
-              หน้า {pageInfo.page} /{" "}
-              {pageInfo.totalPages ??
-                (pageInfo.hasNextPage ? pageInfo.page + 1 : pageInfo.page)}
-            </span>
-            <button
-              className="secondary-button"
-              disabled={!pageInfo.hasNextPage || isLoadingMore}
-              onClick={() => void load(pageInfo.page + 1, false)}
-              type="button"
-            >
-              ถัดไป
-            </button>
-          </div>
-        </div>
-        </>
-      ) : null}
+      {/* ใช้ตัวแบ่งหน้าตัวเดียวกับตารางของเจ้าของหอ หน้าตาและข้อความจะได้เหมือนกันทุกตารางในระบบ */}
+      {pageInfo ? <ServerTablePagination
+        currentItemCount={rows.length}
+        disabled={isLoadingMore}
+        onPageChange={(page) => void load(page, false)}
+        pageInfo={pageInfo}
+      /> : null}
     </>
   );
 }
@@ -753,18 +721,6 @@ function ResourceSection({ children }: Readonly<{ children: React.ReactNode }>) 
   return (
     <section className="panel admin-resource p-0">{children}</section>
   );
-}
-
-// ข้อความที่อ่านให้ผู้ใช้โปรแกรมอ่านหน้าจอฟัง บอกว่ากำลังโหลดหรือกำลังแสดงหน้าไหน
-function tableAnnouncement({ isLoading, page, total, totalPages }: {
-  isLoading: boolean;
-  page: number;
-  total: number;
-  totalPages: number;
-}) {
-  const current = page.toLocaleString("th-TH");
-  if (isLoading) return `กำลังโหลดหน้า ${current}`;
-  return `พบ ${total.toLocaleString("th-TH")} รายการ กำลังแสดงหน้า ${current} จาก ${totalPages.toLocaleString("th-TH")} หน้า`;
 }
 
 // form.get คืนได้ทั้งสตริงและ File การ String() ตรง ๆ จะได้ "[object File]" ส่งขึ้นเซิร์ฟเวอร์

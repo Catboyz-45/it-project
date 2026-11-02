@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { formatAuditAction, formatAuditResult, formatStatus, formatVehicleType, roomTypeLabel } from "@/lib/ui-labels";
+import { formatAuditAction, formatAuditResult, formatInvoiceStatus, formatStatus, formatTicketStatus, formatVehicleType, roomTypeLabel } from "@/lib/ui-labels";
 
 describe("UI labels", () => {
   // ผู้ใช้ต้องไม่เห็นค่าดิบอย่าง PENDING_REVIEW และค่าที่ยังไม่ได้แปลก็ต้องมีคำสำรองรองรับ
@@ -60,5 +60,23 @@ describe("UI labels", () => {
     const actions = new Set(files.flatMap((file) => [...readFileSync(file, "utf8").matchAll(/action: "([A-Z]+_[A-Z0-9_]+)"/g)].map((match) => match[1])));
     const unlabeled = [...actions].filter((action) => formatAuditAction(action) === "เหตุการณ์ระบบ");
     expect(unlabeled).toEqual([]);
+  });
+});
+
+describe("shared status vocabulary", () => {
+  it("names an invoice the same way for owners and tenants", () => {
+    expect(formatInvoiceStatus("PENDING")).toBe("รอชำระ");
+    expect(formatInvoiceStatus("OVERDUE")).toBe("ค้างชำระ");
+    expect(formatInvoiceStatus("PAID")).toBe("ชำระแล้ว");
+    // สถานะที่ไม่ใช่ของบิลตกไปใช้คำกลาง ไม่ขึ้นค่าดิบ
+    expect(formatInvoiceStatus("PENDING_REVIEW")).toBe("รอตรวจสอบ");
+  });
+
+  it("names a ticket the same way for owners and tenants", () => {
+    expect(formatTicketStatus("OPEN")).toBe("รับเรื่องแล้ว");
+    expect(formatTicketStatus("ACKNOWLEDGED")).toBe("กำลังตรวจสอบ");
+    expect(formatTicketStatus("IN_PROGRESS")).toBe("กำลังตรวจสอบ");
+    expect(formatTicketStatus("RESOLVED")).toBe("เสร็จแล้ว");
+    expect(formatTicketStatus(null)).toBe("-");
   });
 });

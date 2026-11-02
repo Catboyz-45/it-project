@@ -2,7 +2,7 @@
 // ใช้ Record<string, string> ไม่ใช่ชนิดที่แคบ เพราะรวมสถานะจากหลายตารางไว้ด้วยกัน
 const statusLabels: Record<string, string> = {
   ACCEPTED: "รับแล้ว",
-  ACKNOWLEDGED: "รับทราบแล้ว",
+  ACKNOWLEDGED: "กำลังตรวจสอบ",
   ACTIVE: "ใช้งานอยู่",
   APPROVED: "อนุมัติแล้ว",
   CANCELLED: "ยกเลิกแล้ว",
@@ -13,7 +13,7 @@ const statusLabels: Record<string, string> = {
   FAILED: "ไม่สำเร็จ",
   IN_PROGRESS: "กำลังดำเนินการ",
   OPEN: "รับเรื่องแล้ว",
-  OVERDUE: "เกินกำหนดชำระ",
+  OVERDUE: "ค้างชำระ",
   PAID: "ชำระแล้ว",
   PENDING: "รอดำเนินการ",
   PENDING_PAYMENT: "รอชำระเงิน",
@@ -118,6 +118,28 @@ export function formatStatus(value: string | null | undefined) {
   if (!value) return "-";
   return statusLabels[value] ?? "สถานะอื่น";
 }
+
+// คำเรียกสถานะบิลชุดเดียว ใช้ทั้งฝั่งเจ้าของหอและผู้เช่า บิลใบเดียวกันจะได้เรียกเหมือนกันทุกหน้า
+// แยกจาก statusLabels เพราะ PENDING ของบิลแปลว่ารอชำระ ส่วนของตารางอื่นแปลว่ารอดำเนินการ
+export const invoiceStatusLabels: Record<string, string> = {
+  DRAFT: "ฉบับร่าง",
+  PENDING: "รอชำระ",
+  OVERDUE: "ค้างชำระ",
+  PAID: "ชำระแล้ว",
+  CANCELLED: "ยกเลิกแล้ว",
+};
+
+// คำเรียกสถานะเรื่องแจ้งซ่อมชุดเดียว ฝั่งเจ้าของหอรวมรับทราบกับกำลังทำเป็นขั้นเดียว ผู้เช่าจึงเห็นแบบเดียวกัน
+export const ticketStatusLabels: Record<string, string> = {
+  OPEN: "รับเรื่องแล้ว",
+  ACKNOWLEDGED: "กำลังตรวจสอบ",
+  IN_PROGRESS: "กำลังตรวจสอบ",
+  RESOLVED: "เสร็จแล้ว",
+  CANCELLED: "ยกเลิกแล้ว",
+};
+
+export const formatInvoiceStatus = (value: string) => invoiceStatusLabels[value] ?? formatStatus(value);
+export const formatTicketStatus = (value: string | null | undefined) => (value && ticketStatusLabels[value]) || formatStatus(value);
 
 // audit log มีทั้งเหตุการณ์ที่ตั้งชื่อไว้เอง และเหตุการณ์อัตโนมัติจาก API ที่ชื่อเป็นรูปแบบตายตัว
 // จึงต้องมีทั้งตารางแปลและ regex รองรับ

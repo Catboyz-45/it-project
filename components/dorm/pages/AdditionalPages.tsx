@@ -38,6 +38,7 @@ import { ownerPagePath } from "@/lib/navigation-routes";
 import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
 import { formatThaiDateTime } from "@/lib/thai-format";
+import { ticketStatusLabels } from "@/lib/ui-labels";
 
 // ขอบเขตผู้รับประกาศ ไล่จากกว้างไปแคบ ทั้งหอ อาคาร ชั้น หรือระบุห้อง
 type AnnouncementAudience = "ALL_TENANTS" | "BUILDING" | "FLOOR" | "ROOM";
@@ -511,12 +512,8 @@ const announcementStatusLabels: Record<string, Announcement["status"]> = {
   DRAFT: "ฉบับร่าง",
 };
 
-const complaintStatusLabels: Record<string, Complaint["status"]> = {
-  RESOLVED: "แก้ไขแล้ว",
-  CANCELLED: "ยกเลิกแล้ว",
-  ACKNOWLEDGED: "กำลังตรวจสอบ",
-  IN_PROGRESS: "กำลังตรวจสอบ",
-};
+// ใช้คำเรียกชุดกลางเดียวกับฝั่งผู้เช่า เรื่องเดียวกันจะได้ไม่ถูกเรียกต่างกันคนละหน้า
+const complaintStatusLabels = ticketStatusLabels as Record<string, Complaint["status"]>;
 
 // เลื่อนสถานะทีละขั้น สถานะที่ไม่อยู่ในตารางแปลว่าปิดงานไปแล้ว ไม่มีขั้นถัดไป
 const nextComplaintStatus: Record<string, string> = {
@@ -532,7 +529,7 @@ export type Complaint = {
   date: string;
   hasUnreadReply?: boolean;
   type?: "REPAIR" | "COMPLAINT";
-  status: "รับเรื่องแล้ว" | "กำลังตรวจสอบ" | "แก้ไขแล้ว" | "ยกเลิกแล้ว";
+  status: "รับเรื่องแล้ว" | "กำลังตรวจสอบ" | "เสร็จแล้ว" | "ยกเลิกแล้ว";
   detail?: string;
   priority?: "NORMAL" | "URGENT";
   updatedAt?: string;
@@ -669,7 +666,7 @@ export function ComplaintsPage({
         <Summary label="เรื่องทั้งหมด" value={`${complaints.length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="indigo" />
         <Summary label="รายการใหม่" value={`${complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="red" />
         <Summary label="กำลังตรวจสอบ" value={`${complaints.filter((item) => item.status === "กำลังตรวจสอบ").length} รายการ`} icon={<Clock3 size={20} />} tone="orange" />
-        <Summary label="แก้ไขแล้ว" value={`${complaints.filter((item) => item.status === "แก้ไขแล้ว").length} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
+        <Summary label="เสร็จแล้ว" value={`${complaints.filter((item) => item.status === "เสร็จแล้ว").length} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
       </div>
       <nav aria-label="เลือกมุมมองแจ้งซ่อมและร้องเรียน" className="repair-section-tabs">
         <Link className="active" href={ownerPagePath(propertyId, "complaints")}>ทั้งหมด</Link>
@@ -679,12 +676,12 @@ export function ComplaintsPage({
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "แก้ไขแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
+            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
               items={[
                 { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: replyTicketId === item.id ? "ปิดข้อความ" : "เปิดข้อความ", onSelect: () => setReplyTicketId((current) => current === item.id ? null : item.id) },
-                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
-                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
-                ...(!readOnly && !["แก้ไขแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
+                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
+                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
+                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
               ]}
               label={`จัดการเรื่อง ${item.title} ${ticketReference(item.id)}`}
             /></td></tr>)}</tbody>

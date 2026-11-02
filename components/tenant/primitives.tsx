@@ -2,7 +2,7 @@
 // แยกออกจาก TenantPortal เพื่อให้ Server Component เรียกใช้ได้ด้วย
 // ของพวกนี้เคยอยู่ในไฟล์ที่ประกาศ use client จึงถูกส่งไปรันบนเบราว์เซอร์ทั้งที่ไม่จำเป็น
 import type { ReactNode } from "react";
-import { formatStatus } from "@/lib/ui-labels";
+import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-labels";
 
 export function Panel({ children, title }: Readonly<{ children: ReactNode; title: string }>) {
   return <section className="panel"><h2 className="mb-4 text-base font-semibold">{title}</h2>{children}</section>;
@@ -20,12 +20,18 @@ export function Empty({ description, icon, text }: Readonly<{ description?: stri
   return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}</div>;
 }
 
-// สีบอกความหมายก่อนอ่าน เขียวคือเสร็จแล้ว แดงคือเลยกำหนดหรือถูกปฏิเสธ ที่เหลือเป็นสีกลาง
+// สีบอกความหมายก่อนอ่าน ใช้ชุดเดียวกับฝั่งเจ้าของหอ เขียวคือเสร็จแล้ว เหลืองคือรอทำ แดงคือเลยกำหนดหรือถูกปฏิเสธ
 const statusTone: Record<string, string> = {
-  PAID: "badge-paid", APPROVED: "badge-paid", RESOLVED: "badge-paid",
+  PAID: "badge-paid", APPROVED: "badge-paid", RESOLVED: "badge-paid", RECEIVED: "badge-paid",
+  PENDING: "badge-pending", PENDING_REVIEW: "badge-pending", WAITING: "badge-pending",
+  OPEN: "badge-pending", ACKNOWLEDGED: "badge-pending", IN_PROGRESS: "badge-pending",
   OVERDUE: "badge-overdue", REJECTED: "badge-overdue",
+  DRAFT: "badge-draft", CANCELLED: "badge-cancelled",
 };
 
-export function Status({ value }: Readonly<{ value: string }>) {
-  return <span className={`badge ${statusTone[value] ?? ""}`}>{formatStatus(value)}</span>;
+// kind บอกว่าเป็นสถานะของอะไร บิลกับเรื่องแจ้งซ่อมมีคำเรียกเฉพาะ ต้องตรงกับที่เจ้าของหอเห็น
+const labelFor = { invoice: formatInvoiceStatus, ticket: formatTicketStatus, other: formatStatus } as const;
+
+export function Status({ kind = "other", value }: Readonly<{ kind?: keyof typeof labelFor; value: string }>) {
+  return <span className={`badge ${statusTone[value] ?? ""}`}>{labelFor[kind](value)}</span>;
 }

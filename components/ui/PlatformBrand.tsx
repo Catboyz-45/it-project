@@ -8,6 +8,8 @@ type PlatformBrandProps = {
   // บางที่ใช้โลโก้เล็กกว่าเมนูหลัก
   imageClassName?: string;
   showTagline?: boolean;
+  // บรรทัดรองแทนสโลแกน เช่นบอกว่าอยู่ส่วนไหนของระบบ สั้นพอให้อยู่บรรทัดเดียวเหมือนแถบข้างของเจ้าของหอ
+  subtitle?: string;
 };
 
 // โลโก้กับชื่อแบรนด์ ดึงจาก platformProfile ที่เดียว เปลี่ยนทีเดียวเปลี่ยนทั้งระบบ
@@ -16,7 +18,9 @@ export function PlatformBrand({
   context,
   imageClassName = "size-11",
   showTagline = false,
+  subtitle,
 }: Readonly<PlatformBrandProps>) {
+  const secondLine = subtitle ?? (showTagline ? platformProfile.tagline : null);
   return (
     // min-w-0 จำเป็นสำหรับให้ truncate ข้างในทำงาน
     <div className={`flex min-w-0 items-center gap-3 ${className}`}>
@@ -35,7 +39,7 @@ export function PlatformBrand({
         <strong className="block truncate font-black">
           {platformProfile.name}{context ? ` ${context}` : ""}
         </strong>
-        {showTagline ? <small className="block leading-snug">{platformProfile.tagline}</small> : null}
+        {secondLine ? <small className={`block leading-snug${subtitle ? " truncate" : ""}`}>{secondLine}</small> : null}
       </div>
     </div>
   );

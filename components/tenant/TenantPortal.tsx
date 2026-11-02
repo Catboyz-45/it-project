@@ -57,9 +57,9 @@ import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currency } from "@/lib/dorm-utils";
 import { describeInvoiceDue } from "@/lib/domain/invoice-due";
-import { formatBankAccount, formatThaiDate, formatThaiDateTime, formatThaiPhone } from "@/lib/thai-format";
+import { formatBankAccount, formatThaiDate, formatThaiDateTime, formatThaiMonth, formatThaiPhone } from "@/lib/thai-format";
 import { CopyButton } from "@/components/ui/CopyButton";
-import { formatStatus } from "@/lib/ui-labels";
+import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-labels";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
@@ -465,7 +465,7 @@ export function TenantPortal({
     <aside className="sidebar tenant-sidebar" id={appSidebarId}>
       <div className="sidebar-head">
         <div className="brand tenant-brand">
-          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" context="Tenant" imageClassName="size-11" showTagline />
+          <PlatformBrand className="[&_small]:text-[#62646c] [&_strong]:text-base" imageClassName="size-11" subtitle="พื้นที่ผู้เช่า" />
         </div>
         <NavToggle />
       </div>
@@ -510,7 +510,7 @@ export function TenantPortal({
     <TenantAccessBanner accessState={accessState} onRetry={() => void notificationResource.reload()} />
     {/* เนื้อของแท็บมาจาก page ของ route นั้น เปลี่ยนแท็บจึงเปลี่ยนเฉพาะตรงนี้ เปลือกอยู่เหมือนเดิม */}
     {/* ระยะของมือถือต้องเป็น utility เหมือนกัน กฎใน CSS ของคอมโพเนนต์แพ้ px-6 py-6 เสมอ */}
-    <div className="tenant-content mx-auto max-w-[1500px] px-6 pt-6 pb-24 max-md:px-4 max-md:pt-0 max-md:pb-5">
+    <div className="tenant-content mx-auto max-w-[1500px] px-6 pt-0 pb-24 max-md:px-4 max-md:pb-5">
       <section className="min-w-0">{children}</section>
     </div>
     </section>
@@ -1030,7 +1030,7 @@ function HomeTaskList({ isLoading, isPrimary, openTicket, summary, unpaidInvoice
       detail={`บิล ${unpaidInvoice.invoiceNumber} · ${describeInvoiceDue(unpaidInvoice.dueDate).text}`}
       href={tenantPagePath("invoices")}
       icon={<ReceiptText size={20} />}
-      label={unpaidInvoice.status === "OVERDUE" || describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "บิลเกินกำหนดชำระ" : "ชำระบิลรอบล่าสุด"}
+      label={unpaidInvoice.status === "OVERDUE" || describeInvoiceDue(unpaidInvoice.dueDate).isLate ? "บิลค้างชำระ" : "ชำระบิลรอบล่าสุด"}
     /> : null}
     {waitingParcels > 0 ? <HomeTask detail={`มีพัสดุรอรับ ${waitingParcels} รายการ`} href={tenantPagePath("parcels")} icon={<Package size={20} />} label="รับพัสดุที่หอพัก" /> : null}
     {openTickets > 0 ? <HomeTask detail={openTicket ? `รายการล่าสุด: ${openTicket.title}` : `${openTickets} รายการกำลังดำเนินการ`} href={tenantPagePath("tickets")} icon={<Wrench size={20} />} label="ติดตามเรื่องที่แจ้งไว้" /> : null}
@@ -1198,9 +1198,9 @@ function InvoiceHistoryTable({ expandedInvoiceId, historyTotal, onChanged, onTog
         return <Fragment key={invoice.id}>
           <tr>
             <th className="px-6 py-4 text-sm font-bold" scope="row">{invoice.invoiceNumber}</th>
-            <td>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })}</td>
+            <td>{formatThaiMonth(invoice.billingMonth.slice(0, 7))}</td>
             <td><strong>{currency.format(Number(invoice.total))}</strong></td>
-            <td><Status value={invoice.status} /></td>
+            <td><Status kind="invoice" value={invoice.status} /></td>
             <td>{completedAt ? formatThaiDate(completedAt) : "—"}</td>
             <td><button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggle(invoice.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
           </tr>
@@ -1218,8 +1218,8 @@ function InvoiceCards({ expandedInvoiceId, onChanged, onToggle, readOnly, resour
       const isExpanded = expandedInvoiceId === invoice.id;
       const panelId = `tenant-invoice-details-${invoice.id}`;
       return <article className={`panel overflow-hidden p-0 transition ${isExpanded ? "border-brand" : ""}`} key={invoice.id}>
-        <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => onToggle(invoice.id)} type="button">
-          <span className="min-w-0"><strong className="block text-lg whitespace-nowrap">{invoice.invoiceNumber}</strong><small>{new Date(invoice.billingMonth).toLocaleDateString("th-TH", { month: "long", year: "numeric" })} · <InvoiceDueText invoice={invoice} /></small></span>
+        <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber} ยอด ${currency.format(Number(invoice.total))} สถานะ ${formatInvoiceStatus(invoice.status)}`} className="flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-brand/[.03]" onClick={() => onToggle(invoice.id)} type="button">
+          <span className="min-w-0"><strong className="block text-lg whitespace-nowrap">{invoice.invoiceNumber}</strong><small>{formatThaiMonth(invoice.billingMonth.slice(0, 7))} · <InvoiceDueText invoice={invoice} /></small></span>
           <span className="flex shrink-0 items-center gap-4 text-right">
             <span><strong className="block text-xl">{currency.format(Number(invoice.total))}</strong><InvoiceStatus invoice={invoice} /></span>
             <span className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" title={isExpanded ? "ยุบรายละเอียด" : "ขยายรายละเอียด"}><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></span>
@@ -1236,7 +1236,7 @@ function InvoiceStatus({ invoice }: Readonly<{ invoice: Invoice }>) {
   if (invoice.hasPendingSubmission && ["PENDING", "OVERDUE"].includes(invoice.status)) {
     return <span className="badge badge-pending">รอตรวจสอบสลิป</span>;
   }
-  return <Status value={invoice.status} />;
+  return <Status kind="invoice" value={invoice.status} />;
 }
 
 // บิลที่ยังค้างบอกเป็นจำนวนวัน เลยกำหนดแล้วเป็นสีแดง บิลที่จ่ายหรือยกเลิกแล้วบอกแค่วันครบกำหนด
@@ -1552,7 +1552,7 @@ function TicketHistoryTable({ historyTotal, onRead, onToggleReply, openReplyTick
             <th className="px-6 py-4 text-sm font-bold" scope="row">{ticket.title}</th>
             <td>{ticketTypeLabel(ticket.type)}</td>
             <td>{formatThaiDateTime(ticket.createdAt)}</td>
-            <td><Status value={ticket.status} /></td>
+            <td><Status kind="ticket" value={ticket.status} /></td>
             <td><button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggleReply(ticket.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
           </tr>
           {isExpanded ? <tr><td className="p-0!" colSpan={5}><div className="p-5" id={detailsId}>
@@ -1588,7 +1588,7 @@ function ticketTypeLabel(type: Ticket["type"]) {
 // คำบรรยายของเหตุการณ์หนึ่งบรรทัดในไทม์ไลน์ของเรื่องแจ้ง
 function ticketEventLabel(event: Ticket["events"][number]) {
   if (event.type === "CREATED") return "สร้างรายการ";
-  if (event.type === "STATUS_CHANGED") return `เปลี่ยนสถานะ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}`;
+  if (event.type === "STATUS_CHANGED") return `เปลี่ยนสถานะ ${formatTicketStatus(event.fromValue)} → ${formatTicketStatus(event.toValue)}`;
   if (event.type === "PRIORITY_CHANGED") return `เปลี่ยนความสำคัญ ${formatStatus(event.fromValue)} → ${formatStatus(event.toValue)}`;
   if (event.type === "REPLY_ADDED") return "มีข้อความตอบกลับ";
   return "แนบไฟล์";
@@ -1602,7 +1602,7 @@ function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggl
   toggleReply?: () => void;
 }>) {
   return <>
-    <div className="flex flex-wrap gap-2"><Status value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
+    <div className="flex flex-wrap gap-2"><Status kind="ticket" value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
     <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
     {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
     <ol className="mt-4 grid gap-2 border-t border-[#e4e4e7] pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{formatThaiDateTime(event.createdAt)}</time> · {ticketEventLabel(event)}</li>)}</ol>

@@ -126,11 +126,28 @@ async function expectControlsDoNotOverlap(controls: Locator) {
       return null;
     };
 
+    // ตัดส่วนที่ถูกกล่องเลื่อนได้บังไว้ออก ปุ่มในแถวที่เลื่อนพ้นกรอบตารางไปแล้วกดไม่โดน
+    // ถ้าใช้กรอบเต็มของมันจะดูเหมือนไปทับแถบแบ่งหน้าที่อยู่ใต้ตาราง
+    const visibleRectOf = (element: Element) => {
+      const rect = element.getBoundingClientRect();
+      let { bottom, left, right, top } = rect;
+      for (let node = element.parentElement; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+        const clip = node.getBoundingClientRect();
+        left = Math.max(left, clip.left);
+        top = Math.max(top, clip.top);
+        right = Math.min(right, clip.right);
+        bottom = Math.min(bottom, clip.bottom);
+      }
+      return { bottom, left, right, top };
+    };
+
     const rendered = elements.map((element) => ({
       element,
       label: element.getAttribute("aria-label") ?? element.textContent?.replace(/\s+/g, " ").trim() ?? element.tagName,
       layer: fixedLayerOf(element),
-      rect: element.getBoundingClientRect(),
+      rect: visibleRectOf(element),
     }));
     const failures: string[] = [];
 
