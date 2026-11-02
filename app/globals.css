@@ -2654,3 +2654,17 @@ select:disabled {
     .money-strip > button { @apply border-b; }
   }
 }
+
+/* ===== หน้าจดมิเตอร์แบบใหม่ ===== แถบความคืบหน้าเหนือตาราง และป้ายสถานะสีเดียวกับทั้งระบบ */
+@layer components {
+  .meter-progress { @apply flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-[#e3e3e8] bg-[#fff] px-5 py-4; }
+  .meter-progress-main { @apply min-w-0; flex: 1 1 280px; }
+  .meter-progress-main p { @apply m-0 mb-2 text-sm text-[#5c5e66]; }
+  .meter-progress-main strong { @apply text-[15px] font-semibold text-[#1e1f22]; }
+  .meter-progress-main .overview-progress { @apply h-2; }
+  .meter-progress-facts { @apply m-0 flex flex-wrap gap-8; }
+  .meter-progress-facts dt { @apply text-[13px] text-[#5c5e66]; }
+  .meter-progress-facts dd { @apply m-0 mt-0.5 text-lg font-bold text-[#1e1f22] tabular-nums; }
+  .meter-progress-facts dd[data-tone="pending"] { @apply text-amber-800; }
+  .meter-status { @apply gap-1; }
+}

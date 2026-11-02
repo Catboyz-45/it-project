@@ -373,6 +373,7 @@ export function MetersPage({
   const abnormalRooms = touchedRows
     .filter((row) => meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts).abnormal)
     .map((row) => row.room.number);
+  const rowFigures = rows.map((row) => meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts));
 
   return (
     <section className="meter-figma-page">
@@ -388,6 +389,15 @@ export function MetersPage({
         onFloorChange={(value) => { setFloor(value); setPage(1); }}
         onQueryChange={(value) => { setQuery(value); setPage(1); }}
         query={query}
+      />
+
+      <MeterProgress
+        amount={rowFigures.reduce((total, figures) => total + figures.amount, 0)}
+        drafted={touchedRows.filter((row) => (currentDrafts[row.room.id] ?? "").trim() !== "").length}
+        mode={mode}
+        saved={rows.filter((row) => row.readingId).length}
+        total={rows.length}
+        warnings={rowFigures.filter((figures) => figures.abnormal || figures.overLimit).length}
       />
 
       <article className="meter-table-card">
@@ -461,11 +471,28 @@ function meterRowFigures(row: MeterWorksheetRow, currentDrafts: Record<string, s
 }
 
 // ป้ายสถานะท้ายแถว บันทึกแล้ว ต้องตรวจสอบ หรือรอบันทึก
+// สีชุดเดียวกับป้ายแจ้งเตือนทั้งระบบ แดงทึบคือผิดจนบันทึกไม่ได้ เหลืองคือควรตรวจอีกครั้ง เขียวคือเสร็จแล้ว
 function MeterRowStatus({ abnormal, overLimit, saved }: Readonly<{ abnormal: boolean; overLimit: boolean; saved: boolean }>) {
-  if (overLimit) return <span className="badge badge-overdue"><AlertTriangle size={13} /> เกินเพดาน</span>;
-  if (saved) return <span className="badge badge-paid"><Check size={13} /> บันทึกแล้ว</span>;
-  if (abnormal) return <span className="badge bg-amber-100 text-amber-800"><AlertTriangle size={13} /> โปรดตรวจสอบ</span>;
-  return <span className="badge badge-pending"><Check size={13} /> รอบันทึก</span>;
+  if (overLimit) return <span className="today-label meter-status" data-tone="urgent"><AlertTriangle size={13} /> เกินเพดาน</span>;
+  if (saved) return <span className="today-label meter-status" data-tone="done"><Check size={13} /> บันทึกแล้ว</span>;
+  if (abnormal) return <span className="today-label meter-status" data-tone="pending"><AlertTriangle size={13} /> โปรดตรวจสอบ</span>;
+  return <span className="today-label meter-status" data-tone="neutral">รอบันทึก</span>;
+}
+
+// ความคืบหน้าของการจดรอบนี้ เห็นทันทีว่าเหลือกี่ห้อง ยอดรวมเท่าไร และมีห้องไหนต้องตรวจ
+function MeterProgress({ amount, drafted, mode, saved, total, warnings }: Readonly<{ amount: number; drafted: number; mode: "water" | "electric"; saved: number; total: number; warnings: number }>) {
+  const done = Math.min(total, saved + drafted);
+  const share = total > 0 ? Math.round((done / total) * 100) : 0;
+  return <section aria-label="ความคืบหน้าการจดมิเตอร์" className="meter-progress">
+    <div className="meter-progress-main">
+      <p><strong>จดแล้ว {done} จาก {total} ห้อง</strong>{drafted > 0 ? <span> · ยังไม่บันทึก {drafted} ห้อง</span> : null}</p>
+      <span aria-hidden="true" className="overview-progress"><span style={{ width: `${Math.max(2, share)}%` }} /></span>
+    </div>
+    <dl className="meter-progress-facts">
+      <div><dt>ค่า{mode === "water" ? "น้ำ" : "ไฟ"}รวมรอบนี้</dt><dd>฿{amount.toLocaleString("th-TH")}</dd></div>
+      <div><dt>ต้องตรวจอีกครั้ง</dt><dd data-tone={warnings > 0 ? "pending" : undefined}>{warnings} ห้อง</dd></div>
+    </dl>
+  </section>;
 }
 
 type MeterTableProps = Readonly<{
