@@ -466,6 +466,14 @@
   .tenant-sidebar-footer > button,
   .super-admin-sidebar .sidebar-footer > button { @apply w-full justify-center; }
   .tenant-content .tenant-page-title { @apply hidden; }
+  .tenant-invoice-lines { @apply grid rounded-xl border border-[#e4e4e7] bg-[#fff] px-4; }
+  .tenant-invoice-lines > div { @apply flex items-baseline justify-between gap-4 border-b border-[#f0f0f2] py-3 last:border-b-0; }
+  .tenant-invoice-lines dt { @apply grid min-w-0 text-sm text-[#3f4048]; }
+  .tenant-invoice-lines dt small { @apply mt-0.5 text-xs text-[#62646c]; }
+  .tenant-invoice-lines dd { @apply shrink-0 text-sm font-semibold text-[#292a30] tabular-nums; }
+  .tenant-invoice-lines > .is-total { @apply border-t border-b-0 border-[#e4e4e7] py-4; }
+  .tenant-invoice-lines > .is-total dt { @apply text-base font-semibold text-[#292a30]; }
+  .tenant-invoice-lines > .is-total dd { @apply text-lg font-bold; }
   .tenant-receipt-link { @apply mt-4 inline-flex items-center gap-2 no-underline; }
   .tenant-workspace > .subscription-access-banner { @apply mx-6; }
   /* หน้าแรกของผู้เช่าเคยมีการ์ดขาวใบใหญ่ครอบทุกอย่างอีกชั้น ซึ่งอีกสองโรลไม่มี
@@ -627,7 +635,8 @@
     @apply flex flex-wrap items-center gap-2;
   }
   /* คอลัมน์เดียวบนมือถือต้องหดได้ ไม่งั้นข้อความยาวในการ์ดดันคอลัมน์ให้กว้างเกินกรอบของส่วน */
-  .work-item-grid { @apply grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 xl:grid-cols-3; }
+  /* การ์ดกว้างอย่างน้อย 20rem ชื่องานจะได้อยู่บรรทัดเดียว จอแคบก็ลดจำนวนคอลัมน์เองแทนการบีบการ์ด */
+  .work-item-grid { @apply grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-3; }
   .work-item-grid > a, .work-item-grid > button, .work-item-grid > div {
     @apply flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] p-4 text-left transition-colors duration-150;
   }
@@ -1102,14 +1111,21 @@
   .payment-reject-button { @apply text-red-300; }
 
   .workspace .dashboard-panel-stagger > .revenue-summary-panel { @apply flex flex-col self-stretch; }
-  .revenue-summary { @apply mt-4 grid flex-1 content-center grid-cols-[minmax(190px,.72fr)_minmax(0,2fr)] gap-4; }
-  .revenue-summary-total { @apply flex min-h-24 flex-col justify-center rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
+  .revenue-summary { @apply mt-4 flex flex-1 flex-col justify-center gap-4; }
+  .revenue-summary-total { @apply flex items-baseline justify-between gap-3 rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-5 py-4; }
+  .revenue-share-bar { @apply flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#f0f0f2]; }
+  .revenue-share-bar > span { @apply min-w-1 basis-0; }
+  .revenue-share-bar > .rent { background: var(--chart-rent); }
+  .revenue-share-bar > .water { background: var(--chart-water); }
+  .revenue-share-bar > .electric { background: var(--chart-electric); }
+  .revenue-share-bar > .other { background: var(--chart-other); }
   .revenue-summary-total span { @apply text-sm font-medium text-[#62646c]; }
-  .revenue-summary-total strong { @apply mt-1 text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
+  .revenue-summary-total strong { @apply text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
   .revenue-breakdown { @apply grid grid-cols-2 gap-3; }
   .revenue-breakdown > div { @apply relative rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-r-full; }
   .revenue-breakdown dt { @apply text-xs font-semibold text-[#62646c]; }
-  .revenue-breakdown dd { @apply mt-1 text-lg font-semibold text-[#292a30]; }
+  .revenue-breakdown dd { @apply mt-1 flex items-baseline justify-between gap-2 text-lg font-semibold text-[#292a30] tabular-nums; }
+  .revenue-breakdown dd small { @apply text-xs font-medium text-[#62646c]; }
   /* สีกราฟชุดเดียวของทั้งระบบ อิงสีหลักม่วงของแบรนด์ แทนเขียวสะท้อนแสง ชมพู และเหลืองที่ตีกับสีหลัก */
   .revenue-breakdown .rent::before { background: var(--chart-rent); }
   .revenue-breakdown .water::before { background: var(--chart-water); }
@@ -1119,6 +1135,7 @@
   .room-status-overview { @apply grid gap-2; }
   .room-status-overview > div { @apply grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border border-[#e4e4e7] bg-[#fff] p-3; }
   .room-status-overview small { @apply text-[#62646c]; }
+  .room-status-overview > div > .badge { @apply justify-self-start; }
   .dashboard-empty-state { @apply grid min-h-40 place-items-center rounded-2xl border border-dashed border-[#8b8d96] p-6 text-center text-sm text-[#62646c]; }
   .priority-list { @apply grid gap-2; }
   .priority-list button { @apply flex items-center justify-between gap-4 rounded-2xl border border-transparent bg-brand/[.06] p-4 text-left hover:bg-brand/10; }
@@ -1865,9 +1882,6 @@
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
     .workspace .dashboard-panel-stagger { grid-template-columns: minmax(0, 1fr); @apply px-4; }
     .workspace > .view-transition > .app-section { @apply mx-4; }
-    .revenue-summary { @apply grid-cols-1; }
-    .revenue-summary-total { @apply min-h-24; }
-    .revenue-breakdown { @apply grid-cols-1; }
     .workspace .dashboard-panel-stagger > .panel,
     .workspace .dashboard-panel-stagger > .panel.full,
     .workspace .dashboard-panel-stagger > .panel.wide,

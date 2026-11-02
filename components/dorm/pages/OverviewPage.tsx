@@ -214,18 +214,28 @@ function OwnerWorkCard({ item, onOpenChat, onOpenPage }: Readonly<{
 }
 
 // สรุปรายรับของรอบล่าสุด แยกตามประเภทค่าใช้จ่าย
+// แถบสัดส่วนสีเดียวกับเส้นสีของแต่ละช่อง ดูแวบเดียวรู้ว่ารายรับส่วนใหญ่มาจากอะไร
 function RevenueSummary({ bar, total }: Readonly<{ bar: RevenueBar | undefined; total: number }>) {
   if (!bar) return <div className="dashboard-empty-state">ยังไม่มีข้อมูลบิลสำหรับสรุปรายรับ</div>;
+  const parts = [
+    { className: "rent", label: "ค่าเช่า", value: bar.rent },
+    { className: "water", label: "ค่าน้ำ", value: bar.water },
+    { className: "electric", label: "ค่าไฟ", value: bar.electric },
+    { className: "other", label: "อื่น ๆ", value: bar.other },
+  ];
   return <section aria-label={`สรุปรายรับรอบ ${formatCycleMonth(bar.label)}`} className="revenue-summary">
     <div className="revenue-summary-total">
       <span>ยอดรวมรอบนี้</span>
       <strong>{currency.format(total)}</strong>
     </div>
+    <div aria-hidden="true" className="revenue-share-bar">
+      {parts.map((part) => part.value > 0 ? <span className={part.className} key={part.className} style={{ flexGrow: part.value }} /> : null)}
+    </div>
     <dl className="revenue-breakdown">
-      <div className="rent"><dt>ค่าเช่า</dt><dd>{currency.format(bar.rent)}</dd></div>
-      <div className="water"><dt>ค่าน้ำ</dt><dd>{currency.format(bar.water)}</dd></div>
-      <div className="electric"><dt>ค่าไฟ</dt><dd>{currency.format(bar.electric)}</dd></div>
-      <div className="other"><dt>อื่น ๆ</dt><dd>{currency.format(bar.other)}</dd></div>
+      {parts.map((part) => <div className={part.className} key={part.className}>
+        <dt>{part.label}</dt>
+        <dd>{currency.format(part.value)}<small>{percent(part.value, total)}%</small></dd>
+      </div>)}
     </dl>
   </section>;
 }

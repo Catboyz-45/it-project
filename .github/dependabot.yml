@@ -19,6 +19,11 @@ updates:
         update-types:
           - patch
           - minor
+    # pg 9 เลิกต่อคิวคำสั่งซ้อนให้ แต่ Prisma adapter-pg ยังยิงคำสั่งซ้อนใน transaction อยู่ (ดู lib/server/db.ts)
+    ignore:
+      - dependency-name: pg
+        update-types:
+          - version-update:semver-major
     labels:
       - dependencies
       - security

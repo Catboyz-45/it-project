@@ -1272,13 +1272,19 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: Readonly<{ id: str
 function InvoiceLineItems({ detail }: Readonly<{ detail: ReturnType<typeof useApiResource<InvoiceDetail>> }>) {
   if (detail.isLoading) return <Loading />;
   if (!detail.data) return <ErrorState error={detail.error} retry={() => void detail.reload()} />;
-  return <div className="grid gap-2">
-    {detail.data.items.map((item) => <div className="flex justify-between gap-3 rounded-xl bg-[#f3f3f5] p-3" key={item.id}>
-      <span>{item.description} × {item.quantity}</span>
-      <strong>{currency.format(Number(item.amount))}</strong>
+  // จัดเป็นตารางรายการแบบใบแจ้งหนี้ ตัวเลขชิดขวาเรียงหลักตรงกัน แล้วปิดท้ายด้วยยอดรวม
+  // ค่าปรับล่าช้าเป็นรายการหนึ่งในบิลอยู่แล้ว จึงไม่ต้องแยกแถวซ้ำ
+  return <dl className="tenant-invoice-lines">
+    {detail.data.items.map((item) => <div key={item.id}>
+      <dt>
+        {item.description}
+        {/* จำนวน 1 ไม่ต้องบอก บอกเฉพาะรายการที่คิดหลายหน่วย จะได้เห็นว่าคิดหน่วยละเท่าไร */}
+        {Number(item.quantity) === 1 ? null : <small>{Number(item.quantity).toLocaleString("th-TH")} × {currency.format(Number(item.unitPrice))}</small>}
+      </dt>
+      <dd>{currency.format(Number(item.amount))}</dd>
     </div>)}
-    <div className="flex justify-between p-3 text-lg"><span>ค่าปรับ</span><strong>{currency.format(Number(detail.data.lateFee))}</strong></div>
-  </div>;
+    <div className="is-total"><dt>รวมทั้งสิ้น</dt><dd>{currency.format(Number(detail.data.total))}</dd></div>
+  </dl>;
 }
 
 // กล่องชำระเงิน มี QR พร้อมเพย์และช่องอัปโหลดสลิป
@@ -1354,13 +1360,19 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
 
 // ประวัติสลิปที่เคยส่งไป พร้อมเหตุผลเมื่อถูกปฏิเสธ
 function SubmissionHistory({ submissions }: Readonly<{ submissions: Submission[] | null }>) {
+  // ใช้กรอบรายการแบบเดียวกับรายการในบิลด้านบน ทั้งบิลจะได้ดูเป็นชุดเดียวกัน
   return <div className="mt-5">
-    <strong>ประวัติหลักฐาน</strong>
-    {submissions?.map((item) => <div className="mt-2 flex justify-between rounded-xl bg-[#f3f3f5] p-3" key={item.id}>
-      <span>{formatThaiDateTime(item.submittedAt)}</span>
-      <span><Status value={item.status} />{item.rejectionNote ? <small className="block">{item.rejectionNote}</small> : null}</span>
-    </div>)}
-    {submissions?.length === 0 ? <p className="mt-2 text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}
+    <h3 className="mb-2 text-sm font-semibold text-[#292a30]">ประวัติหลักฐาน</h3>
+    {submissions?.length ? <dl className="tenant-invoice-lines">
+      {submissions.map((item) => <div key={item.id}>
+        <dt>
+          {formatThaiDateTime(item.submittedAt)}
+          {item.rejectionNote ? <small>{item.rejectionNote}</small> : null}
+        </dt>
+        <dd><Status value={item.status} /></dd>
+      </div>)}
+    </dl> : null}
+    {submissions?.length === 0 ? <p className="text-sm text-[#62646c]">ยังไม่เคยส่งหลักฐาน</p> : null}
   </div>;
 }
 

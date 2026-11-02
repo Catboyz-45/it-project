@@ -29,7 +29,7 @@ const roleConfig: Record<SidebarAccountRole, {
   SUPER_ADMIN: {
     accountHref: "/super-admin/account",
     accountLabel: "บัญชีและความปลอดภัย",
-    context: "Nestly Control",
+    context: "ผู้ดูแลแพลตฟอร์ม",
     roleLabel: "ผู้ดูแลระบบ",
     tone: "admin",
   },
