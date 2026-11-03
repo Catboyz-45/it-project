@@ -1641,13 +1641,31 @@
   /* กฎกลางของช่องเลือกเผื่อที่ขวา 2.5rem ไว้ให้ลูกศรแบบ !important ช่องขนาดตัวอักษรที่แคบจึงไม่เหลือที่ให้ตัวเลข
      ลูกศรของ DropdownField เป็นไอคอนในปุ่มอยู่แล้ว ไม่ต้องเผื่อที่ซ้ำ */
   .template-font-controls .dropdown-trigger { @apply h-9 min-h-9 gap-1.5 py-1 text-sm; padding-inline: .625rem !important; }
-  .template-color-control { @apply relative flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-[#3f4048] hover:bg-[#f4f4f5]; }
-  .template-color-control input[type="color"] { @apply size-5 min-h-0 min-w-0 cursor-pointer appearance-none overflow-hidden rounded-md border border-[#d4d4d8] bg-transparent p-0 shadow-none; }
-  .template-color-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-  .template-color-control input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
-  .template-color-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 5px; }
-  .template-color-control.highlight span { @apply text-xs font-medium; }
-  .template-toolbar-text-button { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
+  /* ปุ่มสีแบบ Word: ตัวปุ่มกับลูกศรติดกันเป็นก้อนเดียว แถบสีใต้ไอคอนคือสีที่จะใส่ */
+  .template-color-menu { @apply flex h-9 items-stretch rounded-lg hover:bg-[#f4f4f5]; }
+  .template-color-menu > button { @apply min-h-0 border-0 bg-transparent text-[#3f4048] shadow-none; }
+  .template-color-apply { @apply relative grid w-9 place-items-center rounded-l-lg pb-1 hover:bg-[#e9eaee]; }
+  .template-color-bar { @apply absolute bottom-1.5 left-2 right-2 h-1 rounded-full border border-black/10; }
+  .template-color-toggle { @apply grid w-5 place-items-center rounded-r-lg hover:bg-[#e9eaee] aria-expanded:bg-[#e9eaee]; }
+  .template-color-popover { @apply fixed z-[120] grid w-64 gap-2 rounded-xl border border-[#e4e4e7] bg-[#fff] p-3 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)]; }
+  .template-color-clear { @apply flex min-h-9 items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-sm font-medium text-[#292a30] shadow-none hover:bg-[#f4f4f5]; }
+  .template-color-none { @apply relative size-5 rounded border border-[#d4d4d8] bg-[#fff]; }
+  .template-color-none::after { content: ""; @apply absolute top-1/2 left-1/2 h-px w-6 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-500; }
+  .template-color-grid { @apply grid grid-cols-8 gap-1.5; }
+  .template-color-swatch { @apply aspect-square min-h-0 w-full rounded-md border border-black/10 p-0 shadow-none hover:scale-110 aria-pressed:ring-2 aria-pressed:ring-brand aria-pressed:ring-offset-1; }
+  .template-color-custom { @apply flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-medium text-[#292a30] hover:bg-[#f4f4f5]; }
+  .template-color-custom input[type="color"] { @apply size-5 min-h-0 min-w-0 cursor-pointer appearance-none overflow-hidden rounded border border-[#d4d4d8] bg-transparent p-0 shadow-none; }
+  .template-color-custom input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  .template-color-custom input[type="color"]::-webkit-color-swatch { border: 0; }
+  .template-color-custom input[type="color"]::-moz-color-swatch { border: 0; }
+  /* ตารางช่องเลือกขนาดแบบ Word */
+  .template-table-grid { @apply -ml-1 mt-1 grid w-fit gap-1 rounded-lg p-1 outline-none focus-visible:ring-2 focus-visible:ring-brand; }
+  .template-table-grid > button { @apply size-6 min-h-0 rounded border border-[#d4d4d8] bg-[#fff] p-0 shadow-none; }
+  .template-table-grid > button.is-active { @apply border-brand bg-brand/[.18]; }
+  .template-table-size { @apply mt-2 text-sm font-semibold text-[#292a30] tabular-nums; }
+  .template-table-custom { @apply mt-2 border-t border-[#f0f0f2]; }
+  .template-table-custom > p { @apply pt-3 text-xs font-medium text-[#62646c]; }
+  .template-table-divider { @apply mx-1 h-5 w-px bg-[#e4e4e7]; }
   .action-menu-text-trigger { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5] aria-expanded:bg-[#f4f4f5]; }
   .document-editor-stage { @apply relative min-w-0; }
   .template-zoom-controls { @apply absolute right-4 bottom-4 z-10 flex items-center gap-0.5 rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-[0_4px_14px_rgba(0,0,0,.08)]; }

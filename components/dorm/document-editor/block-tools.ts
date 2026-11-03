@@ -279,6 +279,52 @@ export function clearInnerStyles(element: HTMLElement, properties: string[]) {
   });
 }
 
+// เอาสีหรือไฮไลต์ออกจากข้อความที่เลือก ปุ่ม "อัตโนมัติ" กับ "ไม่มีไฮไลต์"
+// ถ้าเลือกแค่บางส่วนของคำที่มีสี ต้องตัด span เดิมเป็นสามท่อน ท่อนหน้าและหลังยังมีสีเหมือนเดิม
+export function removeStyleFromRange(range: Range, property: string) {
+  const common = range.commonAncestorContainer;
+  let outer: HTMLElement | null = null;
+  for (let element = common instanceof Element ? common : common.parentElement; element && !element.matches("[contenteditable='true']"); element = element.parentElement) {
+    if (element instanceof HTMLElement && element.tagName === "SPAN" && element.style.getPropertyValue(property)) outer = element;
+  }
+  if (!outer) {
+    // ไม่มี span ครอบทั้งช่วง ล้างสีของ span ย่อยที่อยู่ข้างในช่วงที่เลือก
+    const holder = document.createElement("span");
+    holder.append(range.extractContents());
+    clearInnerStyles(holder, [property]);
+    const nodes = Array.from(holder.childNodes);
+    range.insertNode(holder);
+    holder.replaceWith(...nodes);
+    return nodes;
+  }
+  const before = document.createRange();
+  before.setStart(outer, 0);
+  before.setEnd(range.startContainer, range.startOffset);
+  const after = document.createRange();
+  after.setStart(range.endContainer, range.endOffset);
+  after.setEnd(outer, outer.childNodes.length);
+  const head = before.extractContents();
+  const tail = after.extractContents();
+  if (head.textContent) {
+    const headSpan = outer.cloneNode(false) as HTMLElement;
+    headSpan.append(head);
+    outer.before(headSpan);
+  }
+  if (tail.textContent) {
+    const tailSpan = outer.cloneNode(false) as HTMLElement;
+    tailSpan.append(tail);
+    outer.after(tailSpan);
+  }
+  outer.style.removeProperty(property);
+  clearInnerStyles(outer, [property]);
+  const nodes = Array.from(outer.childNodes);
+  if (!outer.getAttribute("style")) {
+    outer.replaceWith(...nodes);
+    return nodes;
+  }
+  return [outer];
+}
+
 // ---- วางข้อความจากที่อื่น ----
 // เก็บไว้แค่โครงสร้างกับตัวหนา เอียง ขีดเส้นใต้ สไตล์อื่นจาก Word หรือเว็บทิ้งหมด
 // ไม่งั้นสีหรือฟอนต์แปลก ๆ จะโผล่ในตัวแก้ไขแต่หายไปตอนบันทึก เพราะเซิร์ฟเวอร์กรองออก

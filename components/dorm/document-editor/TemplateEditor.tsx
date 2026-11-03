@@ -1,7 +1,7 @@
 "use client";
 // เป็นตัวแก้ไขเอกสาร ต้องแตะ DOM การเลือกข้อความ และวัดขนาดจริงตลอดเวลา
 
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Check, ChevronDown, Eye, FilePlus2, Heading2, ImagePlus, Italic, List, Minus, PenLine, Plus, Redo2, RotateCcw, Save, ScrollText, Table2, TriangleAlert, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Baseline, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Bold, Check, ChevronDown, Eye, FilePlus2, Heading2, Highlighter, ImagePlus, Italic, List, Minus, PenLine, Plus, Redo2, RotateCcw, Save, ScrollText, Table2, Trash2, TriangleAlert, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ActionMenu } from "@/components/ui/ActionMenu";
@@ -9,7 +9,8 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
-import { type SavedRange, clearInnerStyles, cssColorToHex, cleanPastedHtml, createPageBreak, indentListItem, outdentListItem, restoreRange, saveRange, spanCoveringRange, decoratePageBreaks, hasBlockContent, insertBlocksAtCaret, isAtBlockEnd, isAtBlockStart, isBlankBlock, isManualPageBreak, isPageBreak, mergeBlocks, placeCaretAtStart, plainTextFragment, splitBlockAtCaret, stripPageBreakDecorations, toggleHeading, toggleList, topLevelBlock } from "@/components/dorm/document-editor/block-tools";
+import { ColorMenu, type ColorOption } from "@/components/dorm/document-editor/ColorMenu";
+import { type SavedRange, clearInnerStyles, removeStyleFromRange, cssColorToHex, cleanPastedHtml, createPageBreak, indentListItem, outdentListItem, restoreRange, saveRange, spanCoveringRange, decoratePageBreaks, hasBlockContent, insertBlocksAtCaret, isAtBlockEnd, isAtBlockStart, isBlankBlock, isManualPageBreak, isPageBreak, mergeBlocks, placeCaretAtStart, plainTextFragment, splitBlockAtCaret, stripPageBreakDecorations, toggleHeading, toggleList, topLevelBlock } from "@/components/dorm/document-editor/block-tools";
 import { chipifyPlaceholders, createPlaceholderChip, renderPlaceholderChip, serializePlaceholders, showPlaceholderValues, snippetFragment, usedPlaceholderKeys } from "@/components/dorm/document-editor/placeholder-chips";
 import { defaultTemplates } from "@/lib/documents/default-templates";
 import { documentFontFaceCss, documentFontOptions } from "@/lib/documents/document-fonts";
@@ -36,6 +37,21 @@ type Alignment = "text-left" | "text-center" | "text-right";
 type PreviewValues = { status: "idle" | "loading" | "ready" | "failed"; label: string; values: Record<string, string> | null; error: string };
 type Autocomplete = { index: number; left: number; node: Text; offset: number; query: string; top: number };
 type EditKind = "insert" | "delete" | "style" | "other";
+type TableEdit = "row-above" | "row-below" | "column-left" | "column-right" | "remove-row" | "remove-column" | "remove-table";
+
+// สีสำเร็จรูปแบบ Word แถวบนสีสด แถวล่างเฉดเข้ม ใช้ #rrggbb เพราะเซิร์ฟเวอร์รับแค่รูปแบบนี้
+const textColors: ColorOption[] = [
+  { label: "ดำ", value: "#171717" }, { label: "เทาเข้ม", value: "#4b5563" }, { label: "แดง", value: "#dc2626" }, { label: "ส้ม", value: "#ea580c" },
+  { label: "เหลืองทอง", value: "#ca8a04" }, { label: "เขียว", value: "#16a34a" }, { label: "ฟ้า", value: "#0284c7" }, { label: "น้ำเงิน", value: "#2563eb" },
+  { label: "เทา", value: "#9ca3af" }, { label: "ม่วง", value: "#7c3aed" }, { label: "แดงเข้ม", value: "#991b1b" }, { label: "น้ำตาล", value: "#78350f" },
+  { label: "ชมพู", value: "#db2777" }, { label: "เขียวเข้ม", value: "#166534" }, { label: "เขียวน้ำทะเล", value: "#0d9488" }, { label: "น้ำเงินเข้ม", value: "#1e3a8a" },
+];
+const highlightColors: ColorOption[] = [
+  { label: "เหลือง", value: "#fff2a8" }, { label: "เขียวอ่อน", value: "#c8f7c5" }, { label: "ฟ้าอ่อน", value: "#bfe3ff" }, { label: "ชมพูอ่อน", value: "#ffd6e7" },
+  { label: "ส้มอ่อน", value: "#ffe0b2" }, { label: "ม่วงอ่อน", value: "#e4d7ff" }, { label: "เทาอ่อน", value: "#e5e7eb" }, { label: "เหลืองเข้ม", value: "#fde047" },
+];
+// ขนาดตารางที่เลือกจากตารางช่องได้ ใหญ่กว่านี้พิมพ์ตัวเลขเอง
+const tableGridSize = { columns: 8, rows: 8 };
 type ImageSize = "small" | "medium" | "full";
 // ความกว้างรูปเทียบกับพื้นที่เนื้อหา A4 (กว้าง 174 มม. หลังหักขอบ 18 มม. สองข้าง)
 const imageSizeRatio: Record<ImageSize, number> = { small: 0.3, medium: 0.6, full: 1 };
@@ -103,6 +119,11 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const [isClauseDialogOpen, setIsClauseDialogOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState(3);
   const [tableRows, setTableRows] = useState(3);
+  // ช่องที่เมาส์ชี้อยู่ในตารางเลือกขนาด เริ่มที่ 3x3 ให้กด Enter ได้ทันทีเหมือนค่าเดิม
+  const [tableHover, setTableHover] = useState({ columns: 3, rows: 3 });
+  // สีที่ใช้ล่าสุด ปุ่มสีกดครั้งเดียวใส่สีนี้ได้เลยแบบ Word
+  const [textColor, setTextColor] = useState("#dc2626");
+  const [highlightColor, setHighlightColor] = useState("#fff2a8");
   // "fit" คือย่อกระดาษให้พอดีความกว้างของกรอบ เป็นค่าเริ่มต้น จอเล็กจะได้ไม่ต้องเลื่อนซ้ายขวา
   const [zoomMode, setZoomMode] = useState<"fit" | number>("fit");
   const [fitPercent, setFitPercent] = useState(100);
@@ -122,7 +143,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const [activeFormats, setActiveFormats] = useState({
     alignment: "text-left" as Alignment,
     bold: false,
-    color: "#171717",
     fontFamily: "Sarabun",
     fontSize: "14",
     heading: false,
@@ -461,7 +481,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setActiveFormats({
       alignment: blockAlignment(block),
       bold: Boolean(element.closest("strong,b")),
-      color: cssColorToHex(style.color, "#171717"),
       fontFamily,
       fontSize: String(Math.round(Number.parseFloat(style.fontSize))),
       heading: Boolean(element.closest("h1,h2,h3")),
@@ -555,6 +574,21 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     if (style) clearInnerStyles(element, properties);
     range.insertNode(element);
     selectNodes(element, element, true);
+  };
+
+  // ใส่หรือเอาสีออกจากข้อความที่เลือก null คือเอาออก (อัตโนมัติ / ไม่มีไฮไลต์)
+  const applyColor = (property: "color" | "background-color", color: string | null) => {
+    if (color) {
+      if (property === "color") setTextColor(color);
+      else setHighlightColor(color);
+      wrapSelection("span", undefined, property === "color" ? { color } : { backgroundColor: color });
+      return;
+    }
+    const range = formattedRange();
+    if (!range) return;
+    pushTypingHistory("style");
+    const nodes = removeStyleFromRange(range, property);
+    if (nodes.length) selectNodes(nodes[0], nodes[nodes.length - 1]);
   };
 
   // ปุ่มตัวหนา ตัวเอียง ขีดเส้นใต้ กดซ้ำต้องเอารูปแบบออก ไม่ใช่ครอบซ้อนอีกชั้น
@@ -737,14 +771,15 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const insertHeading = () => toggleBlockStyle(toggleHeading, "คลิกในย่อหน้าที่ต้องการทำเป็นหัวข้อก่อน");
   const insertList = () => toggleBlockStyle(toggleList, "คลิกในย่อหน้าที่ต้องการทำเป็นรายการก่อน");
 
-  const insertTable = () => {
+  const insertTable = (tableRows: number, tableColumns: number) => {
     const table = document.createElement("table");
     const body = document.createElement("tbody");
     for (let rowIndex = 0; rowIndex < tableRows; rowIndex += 1) {
       const row = document.createElement("tr");
       for (let columnIndex = 0; columnIndex < tableColumns; columnIndex += 1) {
+        // ช่องว่างแบบ Word ไม่ต้องลบข้อความตัวอย่างก่อนพิมพ์ แถวแรกเป็นหัวตาราง
         const cell = document.createElement(rowIndex === 0 ? "th" : "td");
-        cell.textContent = rowIndex === 0 ? `หัวข้อ ${columnIndex + 1}` : "ข้อความ";
+        cell.append(document.createElement("br"));
         row.append(cell);
       }
       body.append(row);
@@ -754,6 +789,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     fragment.append(table);
     insertBlock(fragment);
     setIsTableDialogOpen(false);
+    // เคอร์เซอร์เข้าไปรอที่ช่องแรก พิมพ์หัวตารางได้ทันที
+    const firstCell = table.querySelector("th,td");
+    if (firstCell) {
+      lastRangeRef.current = placeCaretAtStart(firstCell).cloneRange();
+      updateActiveFormats();
+    }
   };
 
   // ขึ้นหน้าใหม่ตรงเคอร์เซอร์แบบ Ctrl+Enter ใน Word ข้อความหลังเคอร์เซอร์ย้ายไปต้นหน้าถัดไป
@@ -852,7 +893,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const index = cells.indexOf(cell);
     let target = cells[index + (event.shiftKey ? -1 : 1)];
     if (!target && !event.shiftKey) {
-      editTable("add-row");
+      editTable("row-below");
       target = Array.from(table.querySelectorAll<HTMLTableCellElement>("th,td"))[index + 1];
     }
     if (!target) return true;
@@ -873,7 +914,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     return cell instanceof HTMLTableCellElement && editorRef.current?.contains(cell) ? cell : null;
   };
 
-  const editTable = (action: "add-row" | "remove-row" | "add-column" | "remove-column") => {
+  // แก้ตารางแบบแท็บ Layout ของ Word แทรกแถวบนล่าง คอลัมน์ซ้ายขวา ลบแถว ลบคอลัมน์ หรือลบทั้งตาราง
+  const editTable = (action: TableEdit) => {
     const cell = activeTableCell();
     const row = cell?.parentElement;
     const table = cell?.closest("table");
@@ -882,36 +924,63 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       return;
     }
     setError("");
+    if (action === "remove-row" && table.rows.length <= 1) return setError("ตารางต้องเหลืออย่างน้อย 1 แถว ถ้าไม่ใช้แล้วกดลบตาราง");
+    if (action === "remove-column" && row.cells.length <= 1) return setError("ตารางต้องเหลืออย่างน้อย 1 คอลัมน์ ถ้าไม่ใช้แล้วกดลบตาราง");
     pushHistory();
-    if (action === "add-row") {
-      const newRow = table.insertRow(row.rowIndex + 1);
-      // แถวใหม่ต้องมีจำนวนช่องเท่าแถวที่กดเพิ่ม ไม่งั้นตารางเบี้ยว
-      Array.from(row.cells).forEach(() => { newRow.insertCell().textContent = "ข้อความ"; });
-    } else if (action === "remove-row") {
-      if (table.rows.length <= 1) return setError("ตารางต้องเหลืออย่างน้อย 1 แถว");
-      table.deleteRow(row.rowIndex);
-    } else if (action === "add-column") {
-      Array.from(table.rows).forEach((currentRow, rowIndex) => {
-        const newCell = document.createElement(rowIndex === 0 ? "th" : "td");
-        newCell.textContent = rowIndex === 0 ? "หัวข้อ" : "ข้อความ";
-        currentRow.cells[cell.cellIndex]?.after(newCell);
+    let focusCell: HTMLTableCellElement | null = null;
+    if (action === "row-above" || action === "row-below") {
+      const newRow = table.insertRow(row.rowIndex + (action === "row-below" ? 1 : 0));
+      // แถวใหม่ต้องมีจำนวนช่องเท่าแถวเดิม ไม่งั้นตารางเบี้ยว แทรกเหนือหัวตารางก็ได้หัวตารางเพิ่มอีกแถว
+      Array.from(row.cells).forEach((sourceCell) => {
+        const newCell = document.createElement(action === "row-above" ? sourceCell.tagName.toLowerCase() : "td");
+        newCell.append(document.createElement("br"));
+        newRow.append(newCell);
       });
+      focusCell = newRow.cells[cell.cellIndex] ?? newRow.cells[0];
+    } else if (action === "column-left" || action === "column-right") {
+      Array.from(table.rows).forEach((currentRow) => {
+        const reference = currentRow.cells[Math.min(cell.cellIndex, currentRow.cells.length - 1)];
+        const newCell = document.createElement(reference?.tagName.toLowerCase() === "th" ? "th" : "td");
+        newCell.append(document.createElement("br"));
+        if (!reference) currentRow.append(newCell);
+        else if (action === "column-left") reference.before(newCell);
+        else reference.after(newCell);
+        if (currentRow === row) focusCell = newCell;
+      });
+    } else if (action === "remove-row") {
+      const nextRow = table.rows[row.rowIndex + 1] ?? table.rows[row.rowIndex - 1];
+      table.deleteRow(row.rowIndex);
+      focusCell = nextRow?.cells[Math.min(cell.cellIndex, nextRow.cells.length - 1)] ?? null;
+    } else if (action === "remove-column") {
+      const index = cell.cellIndex;
+      Array.from(table.rows).forEach((currentRow) => currentRow.cells[index]?.remove());
+      focusCell = row.cells[Math.min(index, row.cells.length - 1)] ?? null;
     } else {
-      if (row.cells.length <= 1) return setError("ตารางต้องเหลืออย่างน้อย 1 คอลัมน์");
-      Array.from(table.rows).forEach((currentRow) => currentRow.cells[cell.cellIndex]?.remove());
+      const next = table.nextElementSibling;
+      table.remove();
+      if (next) lastRangeRef.current = placeCaretAtStart(next).cloneRange();
     }
-    lastRangeRef.current = null;
+    if (focusCell) {
+      const range = document.createRange();
+      range.selectNodeContents(focusCell);
+      range.collapse(true);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      lastRangeRef.current = range.cloneRange();
+    } else if (action !== "remove-table") lastRangeRef.current = null;
+    updateActiveFormats();
+    window.requestAnimationFrame(paginateEditor);
   };
 
-  const confirmTableDeletion = async (action: "remove-row" | "remove-column") => {
-    const target = action === "remove-row" ? "แถว" : "คอลัมน์";
+  const confirmTableDeletion = async (action: "remove-row" | "remove-column" | "remove-table") => {
+    const target = { "remove-column": "คอลัมน์", "remove-row": "แถว", "remove-table": "ตาราง" }[action];
     if (!activeTableCell()) {
       setError(`คลิกในช่องตารางที่ต้องการลบ${target}ก่อน`);
       return;
     }
     if (!await confirm({
-      title: `ลบ${target}ตาราง?`,
-      description: `ข้อความทั้งหมดใน${target}ที่เลือกจะถูกลบออกจากเอกสาร`,
+      title: action === "remove-table" ? "ลบทั้งตาราง?" : `ลบ${target}ตาราง?`,
+      description: action === "remove-table" ? "ตารางและข้อความทั้งหมดในตารางจะถูกลบ กดย้อนกลับ (Ctrl+Z) เพื่อเอาคืนได้" : `ข้อความทั้งหมดใน${target}ที่เลือกจะถูกลบออกจากเอกสาร`,
       confirmLabel: `ลบ${target}`,
       variant: "danger",
     })) return;
@@ -1255,7 +1324,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
   const pageBreakShortcut = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ Enter" : "Ctrl Enter";
   const insertItems = [
-    { id: "table", icon: <Table2 size={16} />, label: "ตาราง...", onSelect: () => setIsTableDialogOpen(true) },
+    { id: "table", icon: <Table2 size={16} />, label: "ตาราง...", onSelect: () => {
+      setTableHover({ columns: 3, rows: 3 });
+      setIsTableDialogOpen(true);
+    } },
     { id: "image", icon: <ImagePlus size={16} />, label: "รูปภาพ (ไม่เกิน 1 MB)", onSelect: () => imageInputRef.current?.click() },
     { hint: pageBreakShortcut, id: "page-break", icon: <FilePlus2 size={16} />, label: "ขึ้นหน้าใหม่", onSelect: insertPageBreak },
     ...(kind === "contract" ? [{ id: "clauses", icon: <ScrollText size={16} />, label: "ข้อสัญญาสำเร็จรูป...", onSelect: () => setIsClauseDialogOpen(true) }] : []),
@@ -1284,8 +1356,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
           options={fontSizes.map((size) => ({ value: String(size), label: String(size) }))}
           value={fontSizes.includes(Number(activeFormats.fontSize)) ? activeFormats.fontSize : "14"}
         />
-        <label className="template-color-control" title="สีตัวอักษร"><span aria-hidden="true">A</span><input aria-label="สีตัวอักษร" value={activeFormats.color} onMouseDown={rememberSelection} onChange={(event) => wrapSelection("span", undefined, { color: event.target.value })} type="color" /></label>
-        <label className="template-color-control highlight" title="สีไฮไลต์"><span aria-hidden="true">ไฮไลต์</span><input aria-label="สีไฮไลต์ข้อความ" defaultValue="#fff2a8" onMouseDown={rememberSelection} onChange={(event) => wrapSelection("span", undefined, { backgroundColor: event.target.value })} type="color" /></label>
+        <ColorMenu clearLabel="อัตโนมัติ (ดำ)" colors={textColors} icon={<Baseline aria-hidden="true" size={17} />} label="สีตัวอักษร" lastColor={textColor} onApply={(color) => applyColor("color", color)} />
+        <ColorMenu clearLabel="ไม่มีไฮไลต์" colors={highlightColors} icon={<Highlighter aria-hidden="true" size={16} />} label="สีไฮไลต์" lastColor={highlightColor} onApply={(color) => applyColor("background-color", color)} />
       </div>
       <div className="template-toolbar-group">
         <IconButton aria-pressed={activeFormats.alignment === "text-left"} className={activeFormats.alignment === "text-left" ? "active" : ""} label="ชิดซ้าย" onClick={() => applyAlignment("text-left")} onMouseDown={keepEditorSelection}><AlignLeft size={16} /></IconButton>
@@ -1295,7 +1367,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       </div>
       <div className="template-toolbar-group">
         <ActionMenu align="start" items={insertItems} label="แทรก" trigger={<><Plus aria-hidden="true" size={16} /> แทรก <ChevronDown aria-hidden="true" size={14} /></>} />
-        <button className="template-toolbar-text-button" onClick={insertPageBreak} onMouseDown={keepEditorSelection} title={`ขึ้นหน้าใหม่ตรงเคอร์เซอร์ (${pageBreakShortcut})`} type="button"><FilePlus2 aria-hidden="true" size={16} /> ขึ้นหน้าใหม่</button>
       </div>
       <div className="template-toolbar-group template-history-controls">
         <IconButton disabled={historySize.undo === 0} label="เลิกทำ (Ctrl+Z)" onClick={() => stepHistory("undo")} onMouseDown={keepEditorSelection}><Undo2 size={16} /></IconButton>
@@ -1320,10 +1391,14 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
         {toolbar}
         {activeFormats.inTable ? <div aria-label="แก้ไขตาราง" className="template-table-actions" role="group">
           <span>ตาราง</span>
-          <button onClick={() => editTable("add-row")} onMouseDown={keepEditorSelection} type="button"><Plus size={14} /> เพิ่มแถว</button>
-          <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-row")} onMouseDown={keepEditorSelection} type="button"><Minus size={14} /> ลบแถว</button>
-          <button onClick={() => editTable("add-column")} onMouseDown={keepEditorSelection} type="button"><Plus size={14} /> เพิ่มคอลัมน์</button>
-          <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-column")} onMouseDown={keepEditorSelection} type="button"><Minus size={14} /> ลบคอลัมน์</button>
+          <button onClick={() => editTable("row-above")} onMouseDown={keepEditorSelection} type="button"><BetweenHorizontalStart aria-hidden="true" size={14} /> แทรกแถวบน</button>
+          <button onClick={() => editTable("row-below")} onMouseDown={keepEditorSelection} type="button"><BetweenHorizontalEnd aria-hidden="true" size={14} /> แทรกแถวล่าง</button>
+          <button onClick={() => editTable("column-left")} onMouseDown={keepEditorSelection} type="button"><BetweenVerticalStart aria-hidden="true" size={14} /> แทรกคอลัมน์ซ้าย</button>
+          <button onClick={() => editTable("column-right")} onMouseDown={keepEditorSelection} type="button"><BetweenVerticalEnd aria-hidden="true" size={14} /> แทรกคอลัมน์ขวา</button>
+          <span aria-hidden="true" className="template-table-divider" />
+          <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-row")} onMouseDown={keepEditorSelection} type="button"><Minus aria-hidden="true" size={14} /> ลบแถว</button>
+          <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-column")} onMouseDown={keepEditorSelection} type="button"><Minus aria-hidden="true" size={14} /> ลบคอลัมน์</button>
+          <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-table")} onMouseDown={keepEditorSelection} type="button"><Trash2 aria-hidden="true" size={14} /> ลบตาราง</button>
         </div> : null}
         {selectedImage ? <div aria-label="แก้ไขรูปภาพ" className="template-table-actions" role="group">
           <span>รูปภาพ</span>
@@ -1463,10 +1538,52 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
       {isTableDialogOpen ? (
         <Dialog ariaDescribedBy="template-table-description" ariaLabelledBy="template-table-title" className="modal-sm" onClose={() => setIsTableDialogOpen(false)}>
-          <form className="modal-form" onSubmit={(event) => { event.preventDefault(); insertTable(); }}>
-            <header className="modal-header"><div><h2 id="template-table-title">แทรกตาราง</h2><p id="template-table-description">เพิ่มหรือลบแถวทีหลังได้ โดยคลิกในตารางแล้วใช้แถบตารางด้านบน</p></div><IconButton label="ปิด" onClick={() => setIsTableDialogOpen(false)}><X /></IconButton></header>
+          <header className="modal-header"><div><h2 id="template-table-title">แทรกตาราง</h2><p id="template-table-description">ชี้เมาส์เลือกขนาดแล้วคลิก หรือใช้ลูกศรแล้วกด Enter</p></div><IconButton label="ปิด" onClick={() => setIsTableDialogOpen(false)}><X /></IconButton></header>
+          {/* ตารางช่องแบบ Word ช่องที่ชี้คือมุมขวาล่างของตาราง ทุกช่องที่อยู่ก่อนหน้าจะไฮไลต์ตาม */}
+          <div
+            aria-describedby="template-table-size"
+            aria-label="เลือกขนาดตาราง"
+            className="template-table-grid"
+            data-dialog-initial-focus
+            onKeyDown={(event) => {
+              const moves: Record<string, [number, number]> = { ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0] };
+              if (event.key === "Enter") {
+                event.preventDefault();
+                insertTable(tableHover.rows, tableHover.columns);
+                return;
+              }
+              const move = moves[event.key];
+              if (!move) return;
+              event.preventDefault();
+              setTableHover((current) => ({
+                columns: Math.max(1, Math.min(tableGridSize.columns, current.columns + move[1])),
+                rows: Math.max(1, Math.min(tableGridSize.rows, current.rows + move[0])),
+              }));
+            }}
+            role="group"
+            style={{ gridTemplateColumns: `repeat(${tableGridSize.columns}, 1fr)` }}
+            tabIndex={0}
+          >
+            {Array.from({ length: tableGridSize.rows * tableGridSize.columns }, (_, index) => {
+              const rows = Math.floor(index / tableGridSize.columns) + 1;
+              const columns = (index % tableGridSize.columns) + 1;
+              const isActive = rows <= tableHover.rows && columns <= tableHover.columns;
+              return <button
+                aria-hidden="true"
+                className={isActive ? "is-active" : undefined}
+                key={index}
+                onClick={() => insertTable(rows, columns)}
+                onMouseEnter={() => setTableHover({ columns, rows })}
+                tabIndex={-1}
+                type="button"
+              />;
+            })}
+          </div>
+          <p aria-live="polite" className="template-table-size" id="template-table-size">{tableHover.rows} แถว × {tableHover.columns} คอลัมน์</p>
+          <form className="modal-form template-table-custom" onSubmit={(event) => { event.preventDefault(); insertTable(tableRows, tableColumns); }}>
+            <p>หรือกำหนดขนาดเอง</p>
             <div className="modal-grid">
-              <label><span>จำนวนแถว</span><input max={12} min={1} onChange={(event) => setTableRows(Number(event.target.value))} required type="number" value={tableRows} /></label>
+              <label><span>จำนวนแถว</span><input max={30} min={1} onChange={(event) => setTableRows(Number(event.target.value))} required type="number" value={tableRows} /></label>
               <label><span>จำนวนคอลัมน์</span><input max={8} min={1} onChange={(event) => setTableColumns(Number(event.target.value))} required type="number" value={tableColumns} /></label>
             </div>
             <footer className="modal-actions"><button onClick={() => setIsTableDialogOpen(false)} type="button">ยกเลิก</button><button type="submit">แทรกตาราง</button></footer>

@@ -141,16 +141,34 @@ async function selectFirstWordOfLongParagraph(page: Page) {
   });
 }
 
-test("text colour updates one span while dragging and saves as hex", async ({ page }) => {
+test("colour menus apply, replace and remove colour, and save as hex", async ({ page }) => {
   await openStandardTemplate(page);
+  const toolbar = page.getByRole("toolbar", { name: "เครื่องมือจัดรูปแบบ" });
   await placeCaret(page, "middle-of-long-paragraph");
   await selectFirstWordOfLongParagraph(page);
-  const colour = page.getByLabel("สีตัวอักษร");
-  // ลากในตัวเลือกสีส่ง input หลายครั้งติดกัน ต้องได้ span เดียว ไม่ซ้อนกันเป็นชั้น ๆ
-  for (const value of ["#aa0000", "#bb0000", "#cc0000"]) await colour.fill(value);
   const paragraph = page.locator("[data-test-paragraph]").first();
+
+  // ปุ่ม A ใส่สีล่าสุด (แดง) ทันที แล้วเลือกสีอื่นจากตารางสีแทนที่ใน span เดิม
+  await toolbar.getByRole("button", { name: /^สีตัวอักษร \(/ }).click();
   await expect(paragraph.locator("span[style]")).toHaveCount(1);
-  await expect(colour).toHaveValue("#cc0000");
+  await toolbar.getByRole("button", { name: "เลือกสีตัวอักษร" }).click();
+  await page.getByRole("dialog", { name: "สีตัวอักษร" }).getByRole("button", { exact: true, name: "น้ำเงิน" }).click();
+  await expect(paragraph.locator("span[style]")).toHaveCount(1);
+  await expect(toolbar.getByRole("button", { name: /^สีตัวอักษร \(/ })).toHaveAccessibleName("สีตัวอักษร (น้ำเงิน)");
+
+  // ลากในช่อง "สีอื่น…" ส่ง input หลายครั้งติดกัน ต้องยังเป็น span เดียว
+  await toolbar.getByRole("button", { name: "เลือกสีตัวอักษร" }).click();
+  const custom = page.getByLabel("สีตัวอักษรอื่น");
+  for (const value of ["#aa0000", "#bb0000", "#cc0000"]) await custom.fill(value);
+  await expect(paragraph.locator("span[style]")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  // ไฮไลต์แล้วเอาออกด้วย "ไม่มีไฮไลต์"
+  await toolbar.getByRole("button", { name: /^สีไฮไลต์ \(/ }).click();
+  await expect(paragraph.locator("span[style*='background']")).toHaveCount(1);
+  await toolbar.getByRole("button", { name: "เลือกสีไฮไลต์" }).click();
+  await page.getByRole("button", { name: "ไม่มีไฮไลต์" }).click();
+  await expect(paragraph.locator("span[style*='background']")).toHaveCount(0);
 
   // ดักคำขอบันทึกไว้ดูอย่างเดียว ไม่ให้ถึงเซิร์ฟเวอร์ แบบฟอร์มของหอทดสอบจะได้ไม่เปลี่ยน
   let savedHtml = "";
@@ -163,6 +181,51 @@ test("text colour updates one span while dragging and saves as hex", async ({ pa
   await expect.poll(() => savedHtml).toContain("color: #cc0000");
   expect(savedHtml).not.toContain("rgb(");
   expect(savedHtml).not.toContain("page-break-remove");
+
+  // "อัตโนมัติ" เอาสีออกจนไม่เหลือ span เลือกคำที่มีสีอยู่ทั้งคำก่อน
+  await paragraph.locator("span[style]").evaluate((span) => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+  });
+  await toolbar.getByRole("button", { name: "เลือกสีตัวอักษร" }).click();
+  await page.getByRole("button", { name: /อัตโนมัติ/ }).click();
+  await expect(paragraph.locator("span[style]")).toHaveCount(0);
+});
+
+test("table size grid inserts an empty table and the table bar edits it like Word", async ({ page }) => {
+  await openStandardTemplate(page);
+  await placeCaret(page, "middle-of-long-paragraph");
+  await page.getByRole("toolbar", { name: "เครื่องมือจัดรูปแบบ" }).getByRole("button", { name: /แทรก/ }).click();
+  await page.getByRole("menuitem", { name: /ตาราง/ }).click();
+  // ลูกศรจาก 3x3 ลงหนึ่ง ขวาหนึ่ง ได้ 4x4 แล้วกด Enter
+  const grid = page.getByRole("group", { name: "เลือกขนาดตาราง" });
+  await expect(grid).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByText("4 แถว × 4 คอลัมน์")).toBeVisible();
+  await page.keyboard.press("Enter");
+  const table = page.locator(".document-editor-paper table");
+  await expect(table.locator("tr")).toHaveCount(4);
+  await expect(table.locator("tr").first().locator("th")).toHaveCount(4);
+  await expect(table).toHaveText("");
+
+  // เคอร์เซอร์รอในช่องแรกแล้ว พิมพ์หัวตารางได้เลย
+  await page.keyboard.type("รายการ");
+  await expect(table.locator("th").first()).toHaveText("รายการ");
+  const bar = page.getByRole("group", { name: "แก้ไขตาราง" });
+  await bar.getByRole("button", { name: "แทรกแถวบน" }).click();
+  await expect(table.locator("tr")).toHaveCount(5);
+  await bar.getByRole("button", { name: "แทรกคอลัมน์ซ้าย" }).click();
+  await expect(table.locator("tr").first().locator("th,td")).toHaveCount(5);
+
+  await bar.getByRole("button", { name: "ลบตาราง" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "ลบตาราง" }).click();
+  await expect(table).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(table).toHaveCount(1);
 });
 
 test("bullet lists show bullets, indent with Tab and end on an empty item", async ({ page }) => {
