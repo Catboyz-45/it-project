@@ -6,9 +6,9 @@ import { Building2, ChevronDown, ChevronLeft, X } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
-import { formatThaiDateTime } from "@/lib/thai-format";
+import { chatListTime } from "@/lib/chat-time";
 
 // หนึ่งห้องสนทนา ผู้ดูแลระบบคุยกับเจ้าของหอแต่ละหอคนละห้อง
 type SupportConversation = {
@@ -16,8 +16,17 @@ type SupportConversation = {
   propertyId: string;
   propertyName: string;
   lastMessageAt: string | null;
+  lastMessage: { body: string; fromSelf: boolean; hasAttachment: boolean } | null;
   unreadCount: number;
 };
+
+// บรรทัดที่สองของรายชื่อ ข้อความล่าสุดพร้อมบอกว่าใครพูด
+function supportPreview(conversation: SupportConversation) {
+  const last = conversation.lastMessage;
+  if (!last) return "ยังไม่มีข้อความ";
+  const body = last.body || (last.hasAttachment ? "ส่งไฟล์แนบ" : "");
+  return last.fromSelf ? `คุณ: ${body}` : body;
+}
 
 // ข้อความหนึ่งข้อความ ส่งเป็นข้อความอย่างเดียว ไฟล์อย่างเดียว หรือทั้งสองอย่างก็ได้
 type SupportMessage = {
@@ -148,7 +157,7 @@ export function SuperAdminChatWidget() {
           onOpen={(conversation) => { setSelected(conversation); setIsOptionsOpen(false); }}
         /> : (
           <ChatMessageList
-            emptyText="ยังไม่มีข้อความ เริ่มสนทนากับหอพักได้เลย"
+            emptyState={<ChatEmptyState description="ข้อความจะส่งถึงเจ้าของหอนี้" title="ยังไม่มีข้อความ" />}
             endRef={endRef}
             hasOlderMessages={hasOlderMessages}
             isLoading={isLoadingMessages}
@@ -191,12 +200,17 @@ function ConversationList({ conversations, hasNextPage, isLoading, isLoadingMore
     {isLoading ? <p className="chat-conversation-prompt py-8">กำลังโหลดรายการสนทนา...</p> : null}
     {!isLoading && conversations.length === 0 ? <p className="chat-conversation-prompt py-8">ยังไม่มีข้อความจากหอพัก</p> : null}
     {conversations.map((conversation) => <button key={conversation.id} onClick={() => onOpen(conversation)} type="button">
-      <span className="chat-list-avatar support"><Building2 aria-hidden="true" size={19} /></span>
-      <span className="min-w-0 flex-1">
-        <strong className="block truncate">{conversation.propertyName}</strong>
-        <small>{conversation.lastMessageAt ? `ล่าสุด ${formatThaiDateTime(conversation.lastMessageAt)}` : "ยังไม่มีข้อความ"}</small>
+      <span aria-hidden="true" className="chat-list-avatar support"><Building2 size={18} /></span>
+      <span className="chat-contact-text">
+        <span className="chat-contact-line">
+          <strong>{conversation.propertyName}</strong>
+          <small>{conversation.lastMessageAt ? chatListTime(conversation.lastMessageAt) : ""}</small>
+        </span>
+        <span className="chat-contact-line">
+          <small className="chat-contact-preview">{supportPreview(conversation)}</small>
+          <UnreadBadge className="chat-unread-badge" count={conversation.unreadCount} />
+        </span>
       </span>
-      <UnreadBadge className="notification-badge" count={conversation.unreadCount} />
     </button>)}
     {hasNextPage ? <LoadMoreButton isLoading={isLoadingMore} label="โหลดหอพักเพิ่มเติม" onClick={onLoadMore} /> : null}
   </div>;

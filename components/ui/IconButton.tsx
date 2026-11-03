@@ -43,6 +43,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
   ...props
 }, ref) {
   const tooltipText = tooltip ?? label;
+  // ปุ่มที่เปิดเมนูหรือแผงค้างอยู่ไม่ต้องมีคำแนะนำ ไม่งั้นคำแนะนำไปบังหัวแผงที่เพิ่งเปิด
+  const isPopupOpen = props["aria-expanded"] === true || props["aria-expanded"] === "true";
   // id เฉพาะตัว เพราะหน้าหนึ่งมีปุ่มไอคอนหลายอัน แต่ละอันต้องชี้คำแนะนำของตัวเอง
   const tooltipId = useId();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -127,7 +129,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       <button
         {...props}
         // ชี้ไปที่คำแนะนำเฉพาะตอนแสดงอยู่ ไม่งั้นจะชี้ไปยัง id ที่ไม่มีใน DOM
-        aria-describedby={isTooltipVisible ? tooltipId : undefined}
+        aria-describedby={isTooltipVisible && !isPopupOpen ? tooltipId : undefined}
         aria-label={label}
         className={`icon-button icon-button-${size} icon-button-${variant} ${className}`.trim()}
         // แสดงทั้งตอนเมาส์ชี้และตอนโฟกัสด้วยคีย์บอร์ด ไม่งั้นคนที่ใช้ Tab จะไม่เห็นคำแนะนำเลย
@@ -162,7 +164,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         {children}
       </button>
       {/* วางที่ body กัน overflow ของตารางหรือการ์ดที่ครอบอยู่มาตัดคำแนะนำขาด */}
-      {isTooltipVisible && tooltipStyle && typeof document !== "undefined"
+      {isTooltipVisible && !isPopupOpen && tooltipStyle && typeof document !== "undefined"
         ? createPortal(
           <span className="icon-tooltip" id={tooltipId} ref={tooltipRef} role="tooltip" style={tooltipStyle}>
             {tooltipText}

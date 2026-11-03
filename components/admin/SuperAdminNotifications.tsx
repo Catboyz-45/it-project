@@ -74,10 +74,10 @@ export function SuperAdminNotificationBell() {
   if (!context) return null;
   const { counts, isRefreshing, openChat, refresh } = context;
   const items: NotificationCenterItem[] = [
-    { id: "pending-accounts", count: counts.pendingAccounts, title: "บัญชีเจ้าของหอรออนุมัติ", description: "ตรวจสอบข้อมูลผู้สมัครแล้วอนุมัติหรือปฏิเสธบัญชี", href: "/super-admin/accounts", icon: <UsersRound size={19} /> },
-    { id: "pending-subscription-payments", count: counts.pendingSubscriptionPayments, title: "หลักฐานค่าสมาชิกรอตรวจสอบ", description: "ตรวจสลิปแล้วอนุมัติหรือปฏิเสธการชำระค่าสมาชิก", href: "/super-admin/subscriptions", icon: <CreditCard size={19} /> },
-    { id: "expiring-subscriptions", count: counts.expiringSubscriptions, title: "แพ็กเกจใกล้หมดอายุ", description: "หอที่แพ็กเกจจะหมดภายใน 30 วัน ติดต่อให้ต่ออายุก่อนระบบถูกจำกัด", href: "/super-admin/properties?status=expiring", icon: <CalendarClock size={19} /> },
-    { id: "support-messages", count: counts.unreadSupportMessages, title: "ข้อความใหม่จากเจ้าของหอ", description: "เปิดกล่องข้อความเพื่อตอบคำถามการใช้งานระบบ", onSelect: openChat, icon: <MessageSquare size={19} /> },
+    { id: "pending-accounts", tone: "attention", count: counts.pendingAccounts, title: "บัญชีเจ้าของหอรออนุมัติ", description: "ตรวจสอบข้อมูลผู้สมัครแล้วอนุมัติหรือปฏิเสธบัญชี", href: "/super-admin/accounts", icon: <UsersRound size={19} /> },
+    { id: "pending-subscription-payments", tone: "attention", count: counts.pendingSubscriptionPayments, title: "หลักฐานค่าสมาชิกรอตรวจสอบ", description: "ตรวจสลิปแล้วอนุมัติหรือปฏิเสธการชำระค่าสมาชิก", href: "/super-admin/subscriptions", icon: <CreditCard size={19} /> },
+    { id: "expiring-subscriptions", tone: "attention", count: counts.expiringSubscriptions, title: "แพ็กเกจใกล้หมดอายุ", description: "หอที่แพ็กเกจจะหมดภายใน 30 วัน ติดต่อให้ต่ออายุก่อนระบบถูกจำกัด", href: "/super-admin/properties?status=expiring", icon: <CalendarClock size={19} /> },
+    { id: "support-messages", tone: "attention", count: counts.unreadSupportMessages, title: "ข้อความใหม่จากเจ้าของหอ", description: "เปิดกล่องข้อความเพื่อตอบคำถามการใช้งานระบบ", onSelect: openChat, icon: <MessageSquare size={19} /> },
   ];
-  return <NotificationCenter isLoading={isRefreshing} items={items} onRefresh={refresh} storageKey="super-admin-notifications" />;
+  return <NotificationCenter footerLink={{ href: "/super-admin", label: "ดูภาพรวมทั้งหมด" }} isLoading={isRefreshing} items={items} onRefresh={refresh} storageKey="super-admin-notifications" />;
 }

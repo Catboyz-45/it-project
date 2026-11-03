@@ -189,3 +189,35 @@ describe("chat read state per role", () => {
     expect(await countSuperAdminUnreadSupportMessages()).toBe(superAdminBefore);
   });
 });
+
+// รายชื่อแชทบอกข้อความล่าสุดแบบย่อ และบอกว่าใครพูด เทียบจากมุมของคนที่เปิดดู
+describe("conversation list preview", () => {
+  it("returns the latest message, shortened and marked by who sent it", async () => {
+    if (!fixture) throw new Error("Fixture was not initialized");
+    const conversation = await ensureTenantConversation({
+      propertyId: fixture.property.id,
+      tenantProfileId,
+      tenantName: "ผู้เช่าทดสอบแชท",
+      roomNumber: fixture.room.number,
+    });
+    const later = Date.now() + 120_000;
+    const longBody = `แอร์ไม่เย็น ${"ก".repeat(120)}`;
+    await getDatabase().chatMessage.createMany({
+      data: [
+        { propertyId: fixture.property.id, conversationId: conversation.id, body: "ข้อความเก่า", senderRole: "ADMIN", senderUserId: fixture.owner.id, clientId: randomUUID(), createdAt: new Date(later) },
+        { propertyId: fixture.property.id, conversationId: conversation.id, body: longBody, senderRole: "TENANT", senderUserId: tenantUserId, clientId: randomUUID(), createdAt: new Date(later + 1000) },
+      ],
+    });
+
+    const owner: ConversationActor = { userId: fixture.owner.id, role: "PROPERTY_ADMIN", propertyId: fixture.property.id };
+    const ownerView = await listConversations(owner, "TENANT_PROPERTY", pagination);
+    const ownerPreview = ownerView.data.find((item) => item.id === conversation.id)?.lastMessage;
+    expect(ownerPreview).toMatchObject({ fromSelf: false, hasAttachment: false });
+    expect(ownerPreview?.body.startsWith("แอร์ไม่เย็น")).toBe(true);
+    expect(ownerPreview?.body.length).toBeLessThanOrEqual(81);
+
+    const tenant: ConversationActor = { userId: tenantUserId, role: "TENANT", propertyId: fixture.property.id, tenantProfileId };
+    const tenantView = await listConversations(tenant, "TENANT_PROPERTY", pagination);
+    expect(tenantView.data.find((item) => item.id === conversation.id)?.lastMessage?.fromSelf).toBe(true);
+  });
+});

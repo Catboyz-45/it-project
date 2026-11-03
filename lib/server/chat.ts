@@ -165,8 +165,33 @@ export type ConversationDto = {
   propertyName: string;
   tenant: { id: string; name: string; roomNumber: string } | null;
   lastMessageAt: string | null;
+  // ข้อความล่าสุดแบบย่อ ให้รายชื่อแชทบอกได้เลยว่าคุยอะไรค้างไว้ ไม่ต้องกดเข้าไปดู
+  lastMessage: ConversationPreview | null;
   unreadCount: number;
 };
+
+export type ConversationPreview = { body: string; fromSelf: boolean; hasAttachment: boolean };
+
+const previewLength = 80;
+const latestMessageSelect = {
+  orderBy: { createdAt: "desc" },
+  take: 1,
+  select: { body: true, senderRole: true, attachmentName: true },
+} as const;
+
+// ตัดข้อความให้สั้นพอสำหรับบรรทัดเดียว ไม่ส่งข้อความเต็มออกไปเกินจำเป็น
+function toConversationPreview(
+  message: { body: string; senderRole: ChatSenderRole; attachmentName: string | null } | undefined,
+  ownRole: ChatSenderRole,
+): ConversationPreview | null {
+  if (!message) return null;
+  const body = message.body.replace(/\s+/g, " ").trim();
+  return {
+    body: body.length > previewLength ? `${body.slice(0, previewLength)}…` : body,
+    fromSelf: message.senderRole === ownRole,
+    hasAttachment: Boolean(message.attachmentName),
+  };
+}
 
 // บทบาทของผู้ส่งมาจากฝั่งเซิร์ฟเวอร์เสมอ ไม่เอาที่ฝั่งเบราว์เซอร์ส่งมา
 function senderRoleFor(actor: ConversationActor): ChatSenderRole {
@@ -246,6 +271,7 @@ export async function listConversations(
       tenantName: true, roomNumber: true, lastMessageAt: true,
       lastTenantReadAt: true, lastAdminReadAt: true, lastSuperAdminReadAt: true,
       property: { select: { name: true } },
+      messages: latestMessageSelect,
     },
   });
   const page = toPaginatedResult(rows, pagination);
@@ -269,6 +295,7 @@ export async function listConversations(
         roomNumber: row.roomNumber ?? "-",
       } : null,
       lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
+      lastMessage: toConversationPreview(row.messages[0], senderRoleFor(actor)),
       unreadCount,
     };
   }));
@@ -314,6 +341,7 @@ export async function listSuperAdminSupportConversations(pagination: PaginationI
     select: {
       id: true, type: true, propertyId: true, lastMessageAt: true, lastSuperAdminReadAt: true,
       property: { select: { name: true } },
+      messages: latestMessageSelect,
       _count: {
         select: {
           messages: { where: { senderRole: { not: "SUPER_ADMIN" } } },
@@ -339,6 +367,7 @@ export async function listSuperAdminSupportConversations(pagination: PaginationI
       propertyName: row.property.name,
       tenant: null,
       lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
+      lastMessage: toConversationPreview(row.messages[0], "SUPER_ADMIN"),
       unreadCount,
     };
   }));

@@ -1,13 +1,14 @@
 "use client";
 // ต่อสตรีมข้อความ จัดการการเลื่อน และอัปโหลดไฟล์จากเบราว์เซอร์
 
-import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, Crown, Pin, X } from "lucide-react";
+import { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, Headset, Search, X } from "lucide-react";
 import type { Tenant } from "@/types/dorm";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { IconButton } from "@/components/ui/IconButton";
+import { chatListTime, chatRoomBadge } from "@/lib/chat-time";
 
 // หน้าต่างแชทมีสองหน้า รายชื่อคู่สนทนา กับห้องสนทนา
 type ChatView = "tenants" | "chat";
@@ -23,6 +24,12 @@ type ChatMessage = {
 };
 // isSupport แยกแอดมินใหญ่ออกจากผู้เช่า เพราะใช้คนละ API และแสดงผลต่างกัน
 type ChatContact = { id: string; isSupport?: boolean; name: string; roomId: string };
+// สรุปห้องสนทนาของผู้เช่าแต่ละคน ใช้บอกเวลาและข้อความล่าสุดในรายชื่อ
+type ConversationSummary = {
+  lastMessage: { body: string; fromSelf: boolean; hasAttachment: boolean } | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+};
 
 // คนละ API เพราะสิทธิ์ต่างกัน คุยกับแอดมินใหญ่เป็นช่องทางช่วยเหลือของหอ
 // ส่วนคุยกับผู้เช่าต้องเป็นผู้เช่าในหอนี้เท่านั้น
@@ -32,14 +39,23 @@ function contactEndpoint(propertyId: string, contactId: string, isSupport?: bool
     : `/api/v1/admin/properties/${propertyId}/tenant-chat/${contactId}`;
 }
 
-// จำนวนที่ยังไม่ได้อ่านของผู้เช่าแต่ละคน ใช้ขึ้นป้ายในรายชื่อ
-async function loadTenantUnreadCounts(propertyId: string): Promise<Record<string, number>> {
+// สรุปห้องสนทนาของผู้เช่าทุกคน จำนวนที่ยังไม่อ่าน เวลา และข้อความล่าสุด
+async function loadConversationSummaries(propertyId: string): Promise<Record<string, ConversationSummary>> {
   const response = await fetch(`/api/v1/admin/properties/${propertyId}/tenant-chat?pageSize=100`, { cache: "no-store" });
-  const result = await response.json() as { conversations?: Array<{ tenant: { id: string } | null; unreadCount: number }> };
+  const result = await response.json() as { conversations?: Array<ConversationSummary & { tenant: { id: string } | null }> };
   if (!response.ok || !result.conversations) return {};
   return Object.fromEntries(result.conversations
-    .filter((conversation) => conversation.tenant && conversation.unreadCount > 0)
-    .map((conversation) => [conversation.tenant!.id, conversation.unreadCount]));
+    .filter((conversation) => conversation.tenant)
+    .map(({ lastMessage, lastMessageAt, tenant, unreadCount }) => [tenant!.id, { lastMessage, lastMessageAt, unreadCount }]));
+}
+
+// บรรทัดที่สองของรายชื่อ ข้อความล่าสุดพร้อมบอกว่าใครพูด ยังไม่เคยคุยก็บอกชื่อผู้เช่าแทน
+function previewText(contact: ChatContact, summary: ConversationSummary | undefined) {
+  if (contact.isSupport) return "ช่วยเหลือการใช้งานระบบ";
+  const last = summary?.lastMessage;
+  if (!last) return "ยังไม่มีข้อความ";
+  const body = last.body || (last.hasAttachment ? "ส่งไฟล์แนบ" : "");
+  return last.fromSelf ? `คุณ: ${body}` : body;
 }
 
 // หน้าต่างแชทมุมจอฝั่งเจ้าของหอ คุยกับผู้เช่าและกับแอดมินใหญ่
@@ -67,11 +83,13 @@ export function ChatWidget({
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [view, setView] = useState<ChatView>("tenants");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const [tenantUnread, setTenantUnread] = useState<Record<string, number>>({});
+  const [summaries, setSummaries] = useState<Record<string, ConversationSummary>>({});
+  const [contactQuery, setContactQuery] = useState("");
+  const composerInputRef = useRef<HTMLInputElement>(null);
 
   const refreshTenantUnread = useCallback(async () => {
     try {
-      setTenantUnread(await loadTenantUnreadCounts(propertyId));
+      setSummaries(await loadConversationSummaries(propertyId));
     } catch {
       // ป้ายรายคนโหลดไม่ได้ก็ยังคุยได้ปกติ ไม่ต้องขึ้นข้อผิดพลาด
     }
@@ -95,12 +113,20 @@ export function ChatWidget({
   }, [openSignal]);
 
   // ปักแอดมินใหญ่ไว้บนสุดเสมอ เพราะเป็นช่องทางขอความช่วยเหลือเรื่องระบบ
+  // ผู้เช่าเรียงตามที่คุยล่าสุด คนที่ยังไม่เคยคุยต่อท้ายเรียงตามเลขห้อง
   const contacts = useMemo<ChatContact[]>(
     () => [
       { id: "super-admin", isSupport: true, name: "แอดมินใหญ่", roomId: "SUPPORT" },
-      ...tenants.map((tenant) => ({ id: tenant.id, name: tenant.name, roomId: tenant.roomId })),
+      ...tenants
+        .map((tenant) => ({ id: tenant.id, name: tenant.name, roomId: tenant.roomId }))
+        .sort((left, right) => {
+          const leftAt = summaries[left.id]?.lastMessageAt ?? "";
+          const rightAt = summaries[right.id]?.lastMessageAt ?? "";
+          if (leftAt !== rightAt) return rightAt.localeCompare(leftAt);
+          return left.roomId.localeCompare(right.roomId, "th", { numeric: true });
+        }),
     ],
-    [tenants],
+    [summaries, tenants],
   );
   const selectedContact = useMemo(
     () => contacts.find((contact) => contact.id === selectedTenantId) ?? contacts[0],
@@ -145,11 +171,19 @@ export function ChatWidget({
         {view === "tenants" ? <ContactList
           contacts={contacts}
           onOpen={openTenantChat}
-          unreadFor={(contact) => contact.isSupport ? supportUnreadCount : tenantUnread[contact.id] ?? 0}
+          onQueryChange={setContactQuery}
+          query={contactQuery}
+          summaryFor={(contact) => summaries[contact.id]}
+          unreadFor={(contact) => contact.isSupport ? supportUnreadCount : summaries[contact.id]?.unreadCount ?? 0}
         /> : null}
 
         {view === "chat" && selectedContact ? <ChatMessageList
-          emptyText={emptyConversationText(selectedContact)}
+          emptyState={<ChatEmptyState
+            description={selectedContact.isSupport ? "ถามเรื่องการใช้งานระบบหรือแพ็กเกจได้ที่นี่" : `ข้อความจะส่งถึง ${selectedContact.name} ห้อง ${selectedContact.roomId}`}
+            onSuggest={(text) => { setMessage(text); composerInputRef.current?.focus(); }}
+            suggestions={selectedContact.isSupport ? ["สอบถามการใช้งาน", "ต่ออายุแพ็กเกจ"] : ["แจ้งบิลเดือนนี้", "มีพัสดุมาถึง"]}
+            title={selectedContact.isSupport ? "เริ่มคุยกับแอดมินใหญ่" : "เริ่มคุยกับผู้เช่า"}
+          />}
           endRef={endRef}
           hasOlderMessages={hasOlderMessages}
           isLoading={isLoading}
@@ -167,6 +201,7 @@ export function ChatWidget({
         canSend={!readOnly || Boolean(selectedContact?.isSupport)}
         error={error}
         fileInputRef={fileInputRef}
+        inputRef={composerInputRef}
         isReady={isReady}
         isSending={isSending}
         message={message}
@@ -182,16 +217,16 @@ export function ChatWidget({
   </>;
 }
 
-// ยังไม่มีข้อความเลย ข้อความชวนเริ่มสนทนาต่างกันตามคู่สนทนา
-function emptyConversationText(contact: ChatContact) {
-  return contact.isSupport
-    ? "ยังไม่มีข้อความ เริ่มสนทนากับแอดมินใหญ่"
-    : `ยังไม่มีข้อความ เริ่มสนทนากับผู้เช่าห้อง ${contact.roomId}`;
-}
-
 // ชื่อที่แสดงของคู่สนทนา แอดมินใหญ่ไม่มีเลขห้อง
 function contactTitle(contact: ChatContact) {
   return contact.isSupport ? "แอดมินใหญ่" : `ห้อง ${contact.roomId}`;
+}
+
+// วงกลมรูปโปรไฟล์ แอดมินใหญ่เป็นไอคอน ผู้เช่าเป็นเลขห้องแบบสั้น
+function ContactAvatar({ contact, size = "md" }: Readonly<{ contact: ChatContact; size?: "sm" | "md" }>) {
+  return <span aria-hidden="true" className={`chat-list-avatar${contact.isSupport ? " support" : ""}`} data-size={size}>
+    {contact.isSupport ? <Headset size={size === "sm" ? 15 : 18} /> : chatRoomBadge(contact.roomId)}
+  </span>;
 }
 
 // หัวหน้าต่างคนละแบบ ในห้องสนทนามีปุ่มย้อนกลับกับชื่อคู่สนทนา
@@ -208,36 +243,64 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
     // หน้ารายชื่อเป็นหน้าแรกของหน้าต่าง ไม่มีที่ให้ย้อนกลับ ปุ่มย้อนกลับที่ทำงานเหมือนปุ่มปิดทำให้สับสน
     return <header className="chat-widget-header">
       <div className="chat-widget-brand"><strong>ข้อความ</strong></div>
-      <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={22} /></IconButton>
+      <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={20} /></IconButton>
     </header>;
   }
   return <header className="chat-widget-header chat-conversation-header">
-    <IconButton label="ย้อนกลับไปยังรายชื่อผู้เช่า" onClick={onBackToList}><ChevronLeft size={22} /></IconButton>
+    <IconButton label="ย้อนกลับไปยังรายชื่อผู้เช่า" onClick={onBackToList}><ChevronLeft size={20} /></IconButton>
     <div className="chat-conversation-brand">
-      <span className={`chat-person-avatar muted${contact.isSupport ? " support" : ""}`}>{contact.isSupport ? <Crown size={19} /> : contact.roomId}</span>
-      <strong>{contactTitle(contact)}</strong>
+      <ContactAvatar contact={contact} size="sm" />
+      <span className="min-w-0">
+        <strong className="block truncate">{contact.isSupport ? "แอดมินใหญ่" : contact.name}</strong>
+        <small className="block truncate">{contact.isSupport ? "ช่วยเหลือการใช้งานระบบ" : `ห้อง ${contact.roomId}`}</small>
+      </span>
     </div>
     <div className="chat-header-actions">
       <WindowOptionsMenu isExpanded={isExpanded} isMenuOpen={isMenuOpen} onToggleExpanded={onToggleExpanded} onToggleMenu={onToggleMenu} />
-      <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={22} /></IconButton>
+      <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={20} /></IconButton>
     </div>
   </header>;
 }
 
-// รายชื่อคู่สนทนา แอดมินใหญ่ถูกปักไว้บนสุดเสมอ
-function ContactList({ contacts, onOpen, unreadFor }: Readonly<{
+// รายชื่อคู่สนทนา แอดมินใหญ่ถูกปักไว้บนสุดเสมอ ค้นหาด้วยเลขห้องหรือชื่อได้
+function ContactList({ contacts, onOpen, onQueryChange, query, summaryFor, unreadFor }: Readonly<{
   contacts: ChatContact[];
   onOpen: (contactId: string) => void;
+  onQueryChange: (value: string) => void;
+  query: string;
+  summaryFor: (contact: ChatContact) => ConversationSummary | undefined;
   unreadFor: (contact: ChatContact) => number;
 }>) {
-  return <div className="chat-tenant-list">
-    {contacts.map((contact) => <button className={contact.isSupport ? "chat-support-contact" : ""} key={contact.id} onClick={() => onOpen(contact.id)} type="button">
-      <span className={`chat-list-avatar${contact.isSupport ? " support" : ""}`}>{contact.isSupport ? <Crown size={20} /> : contact.roomId}</span>
-      <span><strong>{contactTitle(contact)}</strong><small>{contact.isSupport ? "สอบถามปัญหาการใช้งานระบบ" : contact.name}</small></span>
-      {contact.isSupport && unreadFor(contact) === 0 ? <Pin className="chat-pinned-icon" size={16} /> : null}
-      <UnreadBadge className="notification-badge" count={unreadFor(contact)} />
-    </button>)}
-  </div>;
+  const normalized = query.trim().toLocaleLowerCase("th");
+  const visible = normalized
+    ? contacts.filter((contact) => `${contact.roomId} ${contact.name} ${contactTitle(contact)}`.toLocaleLowerCase("th").includes(normalized))
+    : contacts;
+  return <>
+    <label className="chat-search">
+      <Search aria-hidden="true" size={15} />
+      <input aria-label="ค้นหาห้องหรือชื่อผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือชื่อ" type="search" value={query} />
+    </label>
+    <div className="chat-tenant-list">
+      {visible.length === 0 ? <p className="chat-conversation-prompt py-6">ไม่พบห้องหรือชื่อนี้</p> : null}
+      {visible.map((contact) => {
+        const summary = summaryFor(contact);
+        const unread = unreadFor(contact);
+        return <button className={contact.isSupport ? "chat-support-contact" : ""} data-unread={unread > 0 || undefined} key={contact.id} onClick={() => onOpen(contact.id)} type="button">
+          <ContactAvatar contact={contact} />
+          <span className="chat-contact-text">
+            <span className="chat-contact-line">
+              <strong>{contact.isSupport ? "แอดมินใหญ่" : `ห้อง ${contact.roomId} · ${contact.name}`}</strong>
+              <small>{contact.isSupport ? "ปักหมุด" : summary?.lastMessageAt ? chatListTime(summary.lastMessageAt) : ""}</small>
+            </span>
+            <span className="chat-contact-line">
+              <small className="chat-contact-preview">{previewText(contact, summary)}</small>
+              <UnreadBadge className="chat-unread-badge" count={unread} />
+            </span>
+          </span>
+        </button>;
+      })}
+    </div>
+  </>;
 }
 
 // ท้ายหน้าต่าง ช่องพิมพ์ข้อความ หรือป้ายบอกว่าอ่านอย่างเดียวเมื่อส่งไม่ได้
@@ -246,6 +309,7 @@ function ChatFooter({ canSend, show, showReadOnlyNotice, ...composer }: Readonly
   canSend: boolean;
   error: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   isReady: boolean;
   isSending: boolean;
   message: string;

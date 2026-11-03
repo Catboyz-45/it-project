@@ -11,6 +11,7 @@ import { SyntheticEvent, Fragment, ReactNode, createContext, useCallback, useCon
 import {
   AlertCircle,
   ArrowRight,
+  Building2,
   Download,
   ImagePlus,
   Bell,
@@ -28,7 +29,6 @@ import {
   Paperclip,
   QrCode,
   ReceiptText,
-  Send,
   Upload,
   UserRound,
   Wrench,
@@ -37,9 +37,9 @@ import {
 import { TicketReplyThread } from "@/components/dorm/TicketReplyThread";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
-import { LoadMoreButton, RetryButton } from "@/components/ui/DataNavigation";
+import { RetryButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
@@ -316,11 +316,11 @@ function tabNotificationCount(tab: TenantTab, summary: TenantNotificationSummary
 function buildTenantNotifications(summary: TenantNotificationSummary | null): NotificationCenterItem[] {
   if (!summary) return [];
   return [
-    { id: "unpaid-invoices", count: summary.unpaidInvoices, title: "บิลที่รอชำระ", description: "ตรวจสอบยอดและกำหนดชำระของบิลล่าสุด", href: tenantPagePath("invoices"), icon: <ReceiptText size={19} /> },
+    { id: "unpaid-invoices", tone: "attention", count: summary.unpaidInvoices, title: "บิลที่รอชำระ", description: "ตรวจสอบยอดและกำหนดชำระของบิลล่าสุด", href: tenantPagePath("invoices"), icon: <ReceiptText size={19} /> },
     { id: "waiting-parcels", count: summary.waitingParcels, title: "มีพัสดุรอรับ", description: "ติดต่อหอพักเพื่อรับพัสดุของคุณ", href: tenantPagePath("parcels"), icon: <Package size={19} /> },
     { id: "open-tickets", count: summary.openTickets, title: "เรื่องแจ้งที่กำลังดำเนินการ", description: "ติดตามสถานะงานซ่อมหรือเรื่องร้องเรียน", href: tenantPagePath("tickets"), icon: <Wrench size={19} /> },
-    { id: "ticket-replies", count: summary.unreadTicketReplies, title: "มีคำตอบใหม่ในเรื่องแจ้ง", description: "เปิดอ่านคำตอบล่าสุดจากผู้ดูแลหอ", href: tenantPagePath("tickets"), icon: <MessageSquare size={19} /> },
-    { id: "messages", count: summary.unreadMessages, title: "ข้อความใหม่จากหอพัก", description: "เปิดอ่านข้อความจากผู้ดูแลหอ", href: tenantPagePath("chat"), icon: <MessageSquare size={19} /> },
+    { id: "ticket-replies", tone: "attention", count: summary.unreadTicketReplies, title: "มีคำตอบใหม่ในเรื่องแจ้ง", description: "เปิดอ่านคำตอบล่าสุดจากผู้ดูแลหอ", href: tenantPagePath("tickets"), icon: <MessageSquare size={19} /> },
+    { id: "messages", tone: "attention", count: summary.unreadMessages, title: "ข้อความใหม่จากหอพัก", description: "เปิดอ่านข้อความจากผู้ดูแลหอ", href: tenantPagePath("chat"), icon: <MessageSquare size={19} /> },
   ];
 }
 
@@ -496,7 +496,7 @@ export function TenantPortal({
         </div>
         <div className="tenant-header-actions flex items-center gap-3">
           <PageHeaderTarget />
-          {active ? <NotificationCenter isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
+          {active ? <NotificationCenter footerLink={{ href: tenantPagePath("home"), label: "ดูภาพรวมทั้งหมด" }} isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
           {account.occupancies.some(({ status }) => status === "ACTIVE") ? <DropdownField
             ariaLabel="เลือกการเข้าพัก"
             disabled={isSwitching}
@@ -568,6 +568,7 @@ export function TenantPortal({
         onClose={() => setIsQuickChatOpen(false)}
         onRead={notificationResource.reload}
         propertyId={roomResource.data.room.property.id}
+        propertyName={roomResource.data.room.property.name}
         readOnly={isReadOnly}
         variant="widget"
       />
@@ -636,7 +637,7 @@ function TenantChatSection({ isReadOnly, onRead, roomResource }: Readonly<{
   if (roomResource.error || !roomResource.data) {
     return <ErrorState error={roomResource.error} retry={() => void roomResource.reload()} />;
   }
-  return <TenantChat onRead={onRead} propertyId={roomResource.data.room.property.id} readOnly={isReadOnly} />;
+  return <TenantChat onRead={onRead} propertyId={roomResource.data.room.property.id} propertyName={roomResource.data.room.property.name} readOnly={isReadOnly} />;
 }
 
 // แท็บบัญชีของฉัน แก้ข้อมูลติดต่อและเปลี่ยนรหัสผ่าน
@@ -1590,10 +1591,14 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
 }
 
 type ChatMessage = { id: string; body: string; senderRole: "ADMIN" | "TENANT" | "SUPER_ADMIN"; senderName: string; createdAt: string; attachment: { name: string; mimeType: string; size: number; url: string } | null };
+// ปุ่มลัดในหน้าว่าง เรื่องที่ผู้เช่าทักหอบ่อยที่สุด กดแล้วเติมข้อความให้พิมพ์ต่อ
+const tenantChatSuggestions = ["สอบถามเรื่องบิล", "แจ้งซ่อม", "สอบถามเรื่องพัสดุ"];
+
 function TenantChat({
   onClose,
   onRead,
   propertyId,
+  propertyName,
   readOnly,
   variant = "page",
 }: Readonly<{
@@ -1601,9 +1606,11 @@ function TenantChat({
   // เปิดอ่านแล้วให้เปลือกโหลดตัวเลขบนป้ายแชทและกระดิ่งใหม่
   onRead?: () => unknown;
   propertyId: string;
+  propertyName: string;
   readOnly: boolean;
   variant?: "page" | "widget";
 }>) {
+  const composerInputRef = useRef<HTMLInputElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const {
@@ -1618,40 +1625,51 @@ function TenantChat({
     streaming: true,
   });
 
-  const messageList = <TenantChatMessages
+  const messageList = <ChatMessageList
+    className={variant === "widget" ? "chat-conversation tenant-quick-chat-messages" : "chat-conversation tenant-chat-message-list"}
+    emptyState={<ChatEmptyState
+      description={readOnly ? "ประวัติข้อความกับหอพักจะแสดงที่นี่" : "เลือกเรื่องด้านล่าง หรือพิมพ์เองได้เลย"}
+      onSuggest={readOnly ? undefined : (text) => { setMessage(text); composerInputRef.current?.focus(); }}
+      suggestions={tenantChatSuggestions}
+      title="เริ่มคุยกับหอพัก"
+    />}
     endRef={endRef}
     hasOlderMessages={hasOlderMessages}
     isLoading={isLoading}
     isLoadingOlder={isLoadingOlder}
     messages={messages}
     onLoadOlder={() => void loadOlderMessages()}
+    ownRole="TENANT"
     scrollRef={scrollRef}
-    variant={variant}
   />;
 
-  const composer = <TenantChatComposer
-    attachment={attachment}
-    fileInputRef={fileInputRef}
-    isReady={isReady}
-    isSending={isSending}
-    message={message}
-    onSubmit={sendMessage}
-    readOnly={readOnly}
-    setAttachment={setAttachment}
-    setError={setError}
-    setMessage={setMessage}
-    variant={variant}
-  />;
+  // โหมดอ่านอย่างเดียวแสดงป้ายแทนช่องพิมพ์
+  const composer = readOnly
+    ? <div className="p-3"><ReadOnlyNotice>อ่านประวัติข้อความได้ แต่ไม่สามารถส่งข้อความใหม่ได้</ReadOnlyNotice></div>
+    : <ChatComposer
+      attachment={attachment}
+      error=""
+      fileInputRef={fileInputRef}
+      inputLabel="ข้อความถึงหอพัก"
+      inputRef={composerInputRef}
+      isReady={isReady}
+      isSending={isSending}
+      message={message}
+      onSubmit={sendMessage}
+      setAttachment={setAttachment}
+      setError={setError}
+      setMessage={setMessage}
+    />;
 
   if (variant === "widget") {
     // dialog แบบเปิดค้างไม่บังหน้า (non-modal) ผู้เช่ายังใช้หน้าข้างหลังได้ระหว่างแชท
     return <dialog aria-label="แชทกับหอพัก" className={`chat-widget tenant-chat-widget${isExpanded ? " expanded" : ""}`} open>
       <header className="chat-widget-header">
         <div className="chat-conversation-brand">
-          <span className="chat-person-avatar support"><MessageSquare aria-hidden="true" size={19} /></span>
-          <span>
-            <strong className="block">ติดต่อหอ</strong>
-            <small className="block text-[#62646c]">ข้อความถึงผู้ดูแลหอพัก</small>
+          <span aria-hidden="true" className="chat-list-avatar support" data-size="sm"><Building2 size={15} /></span>
+          <span className="min-w-0">
+            <strong className="block truncate">{propertyName}</strong>
+            <small className="block truncate">ข้อความถึงผู้ดูแลหอพัก</small>
           </span>
         </div>
         <div className="chat-header-actions">
@@ -1661,7 +1679,7 @@ function TenantChat({
             onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
             onToggleMenu={() => setIsOptionsOpen((current) => !current)}
           />
-          <button aria-label="ปิดช่องแชท" onClick={onClose} type="button"><X aria-hidden="true" size={20} /></button>
+          <IconButton label="ปิดช่องแชท" onClick={onClose}><X aria-hidden="true" size={20} /></IconButton>
         </div>
       </header>
       {error ? <p className="chat-error mx-3 mt-3" role="alert">{error}</p> : null}
@@ -1677,116 +1695,6 @@ function TenantChat({
       {composer}
     </Panel>
   </div>;
-}
-
-// ไฟล์แนบในข้อความ รูปแสดงเป็นภาพตัวอย่าง ไฟล์อื่นแสดงเป็นลิงก์พร้อมขนาด
-function TenantChatAttachment({ attachment }: Readonly<{ attachment: ChatMessage["attachment"] }>) {
-  if (!attachment) return null;
-  if (attachment.mimeType.startsWith("image/")) {
-    return <a className="chat-image-attachment" href={attachment.url} rel="noreferrer" target="_blank">
-      <Image alt={attachment.name} height={240} src={attachment.url} unoptimized width={320} />
-    </a>;
-  }
-  return <a className="chat-file-attachment" href={attachment.url} rel="noreferrer" target="_blank">
-    <FileText aria-hidden="true" size={22} />
-    <span><strong>{attachment.name}</strong><small>{(attachment.size / 1024).toFixed(1)} KB</small></span>
-  </a>;
-}
-
-// รายการข้อความ หน้าเต็มกับหน้าต่างมุมจอใช้คลาสคนละชุด
-function TenantChatMessages({ endRef, hasOlderMessages, isLoading, isLoadingOlder, messages, onLoadOlder, scrollRef, variant }: Readonly<{
-  endRef: React.RefObject<HTMLDivElement | null>;
-  hasOlderMessages: boolean;
-  isLoading: boolean;
-  isLoadingOlder: boolean;
-  messages: ChatMessage[];
-  onLoadOlder: () => void;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
-  variant: "page" | "widget";
-}>) {
-  const className = variant === "widget"
-    ? "tenant-quick-chat-messages"
-    : "tenant-chat-message-list my-4 h-[420px] overflow-y-auto rounded-xl bg-[#f3f3f5] p-4";
-  return <div className={className} ref={scrollRef}>
-    {isLoading ? <Loading /> : null}
-    {!isLoading && messages.length === 0 ? <p className="m-auto text-center text-sm text-[#62646c]">ยังไม่มีข้อความ เริ่มพูดคุยกับหอพักได้เลย</p> : null}
-    {!isLoading && hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={isLoadingOlder} label="โหลดข้อความก่อนหน้า" onClick={onLoadOlder} /> : null}
-    {messages.map((item) => <article className={`chat-message ${item.senderRole === "TENANT" ? "from-tenant" : "from-admin"}`} key={item.id}>
-      <strong>{item.senderName}</strong>
-      {item.body ? <p>{item.body}</p> : null}
-      <TenantChatAttachment attachment={item.attachment} />
-      <time dateTime={item.createdAt}>{formatThaiDateTime(item.createdAt)}</time>
-    </article>)}
-    <div ref={endRef} />
-  </div>;
-}
-
-// ช่องพิมพ์ข้อความของผู้เช่า โหมดอ่านอย่างเดียวแสดงป้ายแทนฟอร์ม
-function TenantChatComposer({ attachment, fileInputRef, isReady, isSending, message, onSubmit, readOnly, setAttachment, setError, setMessage, variant }: Readonly<{
-  attachment: File | null;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  isReady: boolean;
-  isSending: boolean;
-  message: string;
-  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
-  readOnly: boolean;
-  setAttachment: (file: File | null) => void;
-  setError: (value: string) => void;
-  setMessage: (value: string) => void;
-  variant: "page" | "widget";
-}>) {
-  if (readOnly) {
-    return <div className={variant === "widget" ? "p-3" : undefined}>
-      <ReadOnlyNotice>อ่านประวัติข้อความได้ แต่ไม่สามารถส่งข้อความใหม่ได้</ReadOnlyNotice>
-    </div>;
-  }
-
-  const clearAttachment = () => {
-    setAttachment(null);
-    // ล้างค่า input ด้วย ไม่งั้นเลือกไฟล์ชื่อเดิมซ้ำจะไม่เกิด onChange
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // ตรวจขนาดตั้งแต่ตอนเลือก จะได้ไม่เสียเวลาอัปโหลดแล้วโดนปฏิเสธ ส่วนเซิร์ฟเวอร์ตรวจซ้ำอยู่ดี
-  const pickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (file && file.size > 5 * 1024 * 1024) {
-      setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB");
-      event.target.value = "";
-      return;
-    }
-    setError("");
-    setAttachment(file);
-  };
-
-  const nothingToSend = !message.trim() && !attachment;
-
-  return <form className={variant === "widget" ? "chat-composer" : "tenant-chat-composer"} onSubmit={onSubmit}>
-    {attachment ? <div className="chat-attachment-preview">
-      <FileText aria-hidden="true" size={18} />
-      <span>{attachment.name}</span>
-      <IconButton label="นำไฟล์แนบออก" onClick={clearAttachment} size="sm"><X aria-hidden="true" size={16} /></IconButton>
-    </div> : null}
-    <div className="flex gap-2">
-      <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
-      <IconButton className="chat-attach-button" disabled={isSending || !isReady} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}>
-        <Paperclip aria-hidden="true" size={18} />
-      </IconButton>
-      <input
-        aria-label="ข้อความถึงหอพัก"
-        className="min-w-0 flex-1 rounded-xl border border-[#d7d8df] px-4"
-        maxLength={4000}
-        onChange={(event) => setMessage(event.target.value)}
-        placeholder="พิมพ์ข้อความ..."
-        value={message}
-      />
-      <button aria-label={isSending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} className={variant === "widget" ? undefined : "primary-button"} disabled={isSending || nothingToSend || !isReady} type="submit">
-        {isSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send aria-hidden="true" size={17} />}
-        {variant === "page" ? <span>{isSending ? "กำลังส่ง..." : "ส่ง"}</span> : null}
-      </button>
-    </div>
-    {variant === "page" && nothingToSend && !isSending ? <p className="disabled-reason mt-2">พิมพ์ข้อความหรือแนบไฟล์ก่อนกดส่ง</p> : null}
-  </form>;
 }
 
 function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: Readonly<{ children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }>) {

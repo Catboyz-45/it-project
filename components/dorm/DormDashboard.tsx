@@ -361,7 +361,7 @@ export function DormDashboard({
             <div className="top-actions repair-top-actions">
               <PageHeaderTarget />
               <OwnerGlobalSearch propertyId={propertyId} />
-              <NotificationCenter isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadCounts()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
+              <NotificationCenter footerLink={{ href: ownerPagePath(propertyId, "overview"), label: "ดูทั้งหมดในแดชบอร์ด" }} isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadCounts()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
             </div>
           </header>
         ) : null}
