@@ -3,16 +3,15 @@
 // สถานะและฟอร์มทั้งหมดในหมวดนี้เป็นเรื่องภายในของตัวเอง หน้าตั้งค่าหอไม่ต้องรู้ด้วย
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
-import { Dialog } from "@/components/ui/Dialog";
-import { IconButton } from "@/components/ui/IconButton";
+import { AccountFormCard, AccountProfileCard, AccountReadOnlyField } from "@/components/account/AccountLayout";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
-import { PasswordField, TextField } from "@/components/dorm/pages/settings-fields";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
+import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 
 type FormState = { message: string; tone: "error" | "success" } | null;
 type PasswordDraft = { confirmPassword: string; currentPassword: string; newPassword: string };
+
+const emptyPasswords: PasswordDraft = { confirmPassword: "", currentPassword: "", newPassword: "" };
 
 export function AccountSettingsSection({
   accountEmail,
@@ -23,18 +22,21 @@ export function AccountSettingsSection({
   accountName: string;
   onAccountNameChange: (name: string) => void;
 }>) {
-  const [profileName, setProfileName] = useState(accountName);
+  // ชื่อที่บันทึกแล้ว กับชื่อที่กำลังพิมพ์ในช่อง แยกกันไว้ ปุ่มอัปเดตจะกดได้เมื่อสองค่านี้ต่างกัน
+  const [savedName, setSavedName] = useState(accountName);
+  const [draftName, setDraftName] = useState(accountName);
   const [profileState, setProfileState] = useState<FormState>(null);
   const [passwordState, setPasswordState] = useState<FormState>(null);
-  const [passwords, setPasswords] = useState({ confirmPassword: "", currentPassword: "", newPassword: "" });
+  const [passwords, setPasswords] = useState<PasswordDraft>(emptyPasswords);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-  const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
-  const [isPasswordEditorOpen, setIsPasswordEditorOpen] = useState(false);
+  const isNameChanged = draftName.trim() !== savedName;
+  // ช่องกรอกอยู่ในหน้าแล้ว ไม่ใช่ในกล่อง เผลอออกจากหน้าตอนพิมพ์ค้างไว้ต้องเตือนก่อน
+  useUnsavedChanges((isNameChanged || Object.values(passwords).some(Boolean)) && !isSavingProfile && !isSavingPassword);
 
   // บันทึกชื่อที่แสดงของบัญชี แยกจากการตั้งค่าหอ เพราะเป็นข้อมูลของผู้ใช้ไม่ใช่ของหอ
   const saveProfile = async () => {
-    const displayName = profileName.trim();
+    const displayName = draftName.trim();
     if (displayName.length < 2) {
       setProfileState({ message: "กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร", tone: "error" });
       return;
@@ -43,11 +45,11 @@ export function AccountSettingsSection({
     setProfileState(null);
     try {
       const saved = await saveDisplayNameRequest(displayName);
-      setProfileName(saved);
+      setSavedName(saved);
+      setDraftName(saved);
       // บอกหน้าแม่ด้วย ชื่อบนแถบข้างจะได้เปลี่ยนตามทันทีโดยไม่ต้องรีเฟรช
       onAccountNameChange(saved);
-      setProfileState({ message: "บันทึกข้อมูลโปรไฟล์แล้ว", tone: "success" });
-      setIsProfileEditorOpen(false);
+      setProfileState({ message: "บันทึกชื่อที่แสดงแล้ว", tone: "success" });
     } catch (error) {
       setProfileState({ message: error instanceof Error ? error.message : "บันทึกโปรไฟล์ไม่สำเร็จ", tone: "error" });
     } finally {
@@ -76,96 +78,43 @@ export function AccountSettingsSection({
     }
   };
 
+  const updatePassword = (key: keyof PasswordDraft) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswords((current) => ({ ...current, [key]: event.target.value }));
+    setPasswordState(null);
+  };
+
   return <div className="account-content">
-    <AccountProfileCard email={accountEmail} name={profileName} roleLabel="เจ้าของหอ" />
+    <AccountProfileCard email={accountEmail} name={savedName} roleLabel="เจ้าของหอ" />
 
-    <AccountCard description="ชื่อนี้แสดงในระบบและในข้อความถึงผู้เช่า" title="ข้อมูลบัญชี">
-      <AccountRow
-        action={<button className="secondary-button" onClick={() => { setProfileState(null); setIsProfileEditorOpen(true); }} type="button">แก้ไข</button>}
-        label="ชื่อที่แสดง"
-        value={profileName}
-      />
-      <AccountRow hint="เปลี่ยนได้โดยแอดมินใหญ่" label="อีเมลสำหรับเข้าสู่ระบบ" locked value={accountEmail} />
+    <AccountFormCard
+      action={<button className="primary-button" disabled={isSavingProfile || !isNameChanged} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}
+      description="ชื่อนี้แสดงในระบบและในข้อความถึงผู้เช่า"
+      onSubmit={() => void saveProfile()}
+      title="ข้อมูลบัญชี"
+    >
+      <label className="account-field"><span>ชื่อที่แสดง</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => { setDraftName(event.target.value); setProfileState(null); }} required value={draftName} /></label>
+      <AccountReadOnlyField hint="เปลี่ยนได้โดยแอดมินใหญ่" label="อีเมลสำหรับเข้าสู่ระบบ" value={accountEmail} />
       <FormMessage state={profileState} />
-    </AccountCard>
+    </AccountFormCard>
 
-    <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
-      <AccountRow
-        action={<button className="secondary-button" onClick={() => { setPasswordState(null); setIsPasswordEditorOpen(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
-        hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
-        label="รหัสผ่าน"
-        value="••••••••••••"
-      />
-    </AccountCard>
+    <AccountFormCard
+      action={<button className="primary-button" disabled={isSavingPassword || !passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword} type="submit">{isSavingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button>}
+      description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น"
+      hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+      onSubmit={() => void changePassword()}
+      title="ความปลอดภัย"
+    >
+      <label className="account-field"><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={updatePassword("currentPassword")} required type="password" value={passwords.currentPassword} /></label>
+      <div className="account-field-pair">
+        <label className="account-field"><span>รหัสผ่านใหม่</span><input aria-describedby="owner-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={updatePassword("newPassword")} required type="password" value={passwords.newPassword} /></label>
+        <label className="account-field"><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={updatePassword("confirmPassword")} required type="password" value={passwords.confirmPassword} /></label>
+      </div>
+      {passwords.newPassword ? <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="owner-password-requirements" password={passwords.newPassword} /> : null}
+      <FormMessage state={passwordState} />
+    </AccountFormCard>
 
     <PrivacyPreferencesPanel />
-
-    <ProfileEditorDialog
-      isOpen={isProfileEditorOpen}
-      isSaving={isSavingProfile}
-      onChange={(value) => { setProfileName(value); setProfileState(null); }}
-      onClose={() => setIsProfileEditorOpen(false)}
-      onSubmit={saveProfile}
-      state={profileState}
-      value={profileName}
-    />
-    <PasswordEditorDialog
-      isOpen={isPasswordEditorOpen}
-      isSaving={isSavingPassword}
-      onChange={setPasswords}
-      onClose={() => setIsPasswordEditorOpen(false)}
-      onSubmit={changePassword}
-      passwords={passwords}
-      state={passwordState}
-    />
   </div>;
-}
-
-// กล่องแก้ชื่อที่แสดง เปิดจากแถวข้อมูลบัญชี
-function ProfileEditorDialog({ isOpen, isSaving, onChange, onClose, onSubmit, state, value }: Readonly<{
-  isOpen: boolean;
-  isSaving: boolean;
-  onChange: (value: string) => void;
-  onClose: () => void;
-  onSubmit: () => Promise<void>;
-  state: FormState;
-  value: string;
-}>) {
-  if (!isOpen) return null;
-  return <Dialog ariaDescribedBy="profile-editor-description" ariaLabelledBy="profile-editor-title" className="confirmation-modal" onClose={onClose}>
-    <form className="modal-form" onSubmit={(event) => { event.preventDefault(); void onSubmit(); }}>
-      <header className="modal-header"><div><h2 id="profile-editor-title">แก้ไขชื่อโปรไฟล์</h2><p id="profile-editor-description">ชื่อนี้จะแสดงในระบบและข้อความถึงผู้เช่า</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างแก้ไขชื่อโปรไฟล์"><X /></IconButton></header>
-      <TextField label="ชื่อที่แสดง" value={value} onChange={onChange} />
-      <FormMessage state={state} />
-      <footer className="modal-actions"><button onClick={onClose} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังบันทึก..." : "บันทึก"}</button></footer>
-    </form>
-  </Dialog>;
-}
-
-// กล่องเปลี่ยนรหัสผ่าน หลังเปลี่ยนสำเร็จเซิร์ฟเวอร์จะยกเลิก session ทั้งหมด
-function PasswordEditorDialog({ isOpen, isSaving, onChange, onClose, onSubmit, passwords, state }: Readonly<{
-  isOpen: boolean;
-  isSaving: boolean;
-  onChange: (update: (current: PasswordDraft) => PasswordDraft) => void;
-  onClose: () => void;
-  onSubmit: () => Promise<void>;
-  passwords: PasswordDraft;
-  state: FormState;
-}>) {
-  if (!isOpen) return null;
-  return <Dialog ariaDescribedBy="password-editor-description" ariaLabelledBy="password-editor-title" className="modal-md" onClose={onClose}>
-    <form className="modal-form" onSubmit={(event) => { event.preventDefault(); void onSubmit(); }}>
-      <header className="modal-header"><div><h2 id="password-editor-title">เปลี่ยนรหัสผ่าน</h2><p id="password-editor-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างเปลี่ยนรหัสผ่าน"><X /></IconButton></header>
-      <div className="account-password-fields">
-        <PasswordField label="รหัสผ่านปัจจุบัน" onChange={(value) => onChange((current) => ({ ...current, currentPassword: value }))} value={passwords.currentPassword} />
-        <PasswordField describedBy="owner-password-requirements" label="รหัสผ่านใหม่" onChange={(value) => onChange((current) => ({ ...current, newPassword: value }))} value={passwords.newPassword} />
-        <PasswordField label="ยืนยันรหัสผ่านใหม่" onChange={(value) => onChange((current) => ({ ...current, confirmPassword: value }))} value={passwords.confirmPassword} />
-      </div>
-      <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="owner-password-requirements" password={passwords.newPassword} />
-      <FormMessage state={state} />
-      <footer className="modal-actions"><button onClick={onClose} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
-    </form>
-  </Dialog>;
 }
 
 // ข้อความผลลัพธ์ของฟอร์ม ผิดพลาดใช้ role="alert" ให้โปรแกรมอ่านหน้าจอแจ้งทันที

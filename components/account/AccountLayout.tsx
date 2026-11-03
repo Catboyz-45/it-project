@@ -26,21 +26,34 @@ export function AccountCard({ children, description, title }: Readonly<{ childre
   </section>;
 }
 
-// แถวข้อมูล ป้ายอยู่บน ค่าอยู่ล่าง ปุ่มอยู่ขวาในแถวเดียวกัน ตาไม่ต้องกวาดข้ามจอ
-// locked ใส่กุญแจแทนปุ่ม ใช้กับข้อมูลที่ผู้ใช้แก้เองไม่ได้ เช่นอีเมล
-export function AccountRow({ action, hint, label, locked = false, value }: Readonly<{
-  action?: ReactNode;
+// การ์ดที่แก้ข้อมูลได้ในตัวแบบหน้าตั้งค่าของ Cal ช่องกรอกอยู่ในการ์ด ปุ่มบันทึกอยู่ท้ายการ์ด ไม่ต้องเปิดกล่องแยก
+// hint คือข้อความเล็กข้างปุ่ม เช่นเตือนว่าเปลี่ยนรหัสผ่านแล้วจะออกจากทุกอุปกรณ์
+export function AccountFormCard({ action, children, description, hint, onSubmit, title }: Readonly<{
+  action: ReactNode;
+  children: ReactNode;
+  description?: string;
   hint?: ReactNode;
-  label: string;
-  locked?: boolean;
-  value: ReactNode;
+  onSubmit: () => void;
+  title: string;
 }>) {
-  return <div className="account-row">
-    <div className="account-row-text">
+  const id = useId();
+  return <section aria-labelledby={id} className="account-card">
+    <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
+      <header><h2 id={id}>{title}</h2>{description ? <p>{description}</p> : null}</header>
+      <div className="account-card-body">{children}</div>
+      <footer className="account-card-actions">{hint ? <small>{hint}</small> : <span />}{action}</footer>
+    </form>
+  </section>;
+}
+
+// ช่องที่แก้เองไม่ได้ เช่นอีเมล แสดงเป็นช่องอ่านอย่างเดียวพร้อมกุญแจ ให้รู้ว่าไม่ใช่ช่องที่ลืมเปิด
+export function AccountReadOnlyField({ hint, label, value }: Readonly<{ hint: string; label: string; value: string }>) {
+  const hintId = useId();
+  return <div className="account-field">
+    <label>
       <span>{label}</span>
-      <strong>{value}</strong>
-      {hint ? <small>{hint}</small> : null}
-    </div>
-    {action ?? (locked ? <Lock aria-label="แก้ไขเองไม่ได้" className="account-row-lock" role="img" size={16} /> : null)}
+      <span className="account-readonly-input"><input aria-describedby={hintId} readOnly value={value} /><Lock aria-hidden="true" size={15} /></span>
+    </label>
+    <small id={hintId}>{hint}</small>
   </div>;
 }

@@ -1,15 +1,13 @@
 "use client";
 // เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
-import { SyntheticEvent, useState } from "react";
-import { X } from "lucide-react";
-import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
-import { Dialog } from "@/components/ui/Dialog";
-import { IconButton } from "@/components/ui/IconButton";
+import { useState } from "react";
+import { AccountFormCard, AccountProfileCard, AccountReadOnlyField } from "@/components/account/AccountLayout";
 import { useToast } from "@/components/ui/ToastProvider";
 import { formatClientError, readApiPayload } from "@/lib/client/api-error";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
+import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 
 // ข้อความผลลัพธ์ที่แสดงในหน้า แยกจาก toast เพราะต้องค้างไว้ให้อ่านได้จนกว่าจะทำใหม่
 type Message = { message: string; tone: "error" | "success" } | null;
@@ -22,14 +20,14 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email, role
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [profileMessage, setProfileMessage] = useState<Message>(null);
   const [passwordMessage, setPasswordMessage] = useState<Message>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isEditingPassword, setIsEditingPassword] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const notify = useToast();
+  // ช่องกรอกอยู่ในหน้าแล้ว ไม่ใช่ในกล่อง เผลอออกจากหน้าตอนพิมพ์ค้างไว้ต้องเตือนก่อน
+  useUnsavedChanges((draftName.trim() !== displayName || Object.values(passwords).some(Boolean)) && !isSavingProfile && !isSavingPassword);
 
-  const saveProfile = async (event: SyntheticEvent) => {
-    event.preventDefault();
-    setIsSaving(true);
+  const saveProfile = async () => {
+    setIsSavingProfile(true);
     setProfileMessage(null);
     try {
       const payload = await readApiPayload<{ error?: string; requestId?: string; user: { displayName: string } }>(await fetch("/api/account/profile", {
@@ -39,28 +37,27 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email, role
         body: JSON.stringify({ displayName: draftName }),
       }), "บันทึกชื่อไม่สำเร็จ");
       setDisplayName(payload.user.displayName);
+      setDraftName(payload.user.displayName);
       setProfileMessage({ message: "บันทึกชื่อที่แสดงแล้ว", tone: "success" });
-      setIsEditingProfile(false);
       notify({ message: "บันทึกชื่อที่แสดงแล้ว" });
     } catch (error) {
       const message = formatClientError(error, "บันทึกชื่อไม่สำเร็จ");
       setProfileMessage({ message, tone: "error" });
       notify({ message, tone: "error" });
     } finally {
-      setIsSaving(false);
+      setIsSavingProfile(false);
     }
   };
 
   // เปลี่ยนรหัสผ่าน เซิร์ฟเวอร์จะยกเลิก session ทั้งหมดแล้วบังคับให้เข้าใหม่
-  const changePassword = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const changePassword = async () => {
     setPasswordMessage(null);
     // เทียบสองช่องก่อน ที่เหลือให้เซิร์ฟเวอร์ตรวจ เพราะต้องเช็ครหัสเดิมด้วย
     if (passwords.newPassword !== passwords.confirmPassword) {
       setPasswordMessage({ message: "รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน", tone: "error" });
       return;
     }
-    setIsSaving(true);
+    setIsSavingPassword(true);
     try {
       const payload = await readApiPayload<{ error?: string; requestId?: string; redirectTo?: string }>(await fetch("/api/account/password", {
         method: "POST",
@@ -75,57 +72,46 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email, role
       // ปลดล็อกปุ่มเฉพาะตอนพลาด สำเร็จแล้วกำลังจะเปลี่ยนหน้าอยู่ ไม่ต้องปลด
       setPasswordMessage({ message, tone: "error" });
       notify({ message, tone: "error" });
-      setIsSaving(false);
+      setIsSavingPassword(false);
     }
+  };
+
+  const updatePassword = (key: keyof typeof passwords) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswords((current) => ({ ...current, [key]: event.target.value }));
+    setPasswordMessage(null);
   };
 
   return <div className="account-content">
     <AccountProfileCard email={email} name={displayName} roleLabel={roleLabel} />
 
-    <AccountCard description="ชื่อนี้แสดงในระบบและประวัติการดำเนินการ" title="ข้อมูลบัญชี">
-      <AccountRow
-        // ตั้งค่าสำเนาใหม่ทุกครั้งที่เปิด กันค่าที่แก้ค้างจากรอบก่อนที่กดยกเลิกไป
-        action={<button className="secondary-button" onClick={() => { setDraftName(displayName); setProfileMessage(null); setIsEditingProfile(true); }} type="button">แก้ไข</button>}
-        label="ชื่อที่แสดง"
-        value={displayName}
-      />
-      <AccountRow label="อีเมลสำหรับเข้าสู่ระบบ" locked value={email} />
+    <AccountFormCard
+      action={<button className="primary-button" disabled={isSavingProfile || draftName.trim() === displayName} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}
+      description="ชื่อนี้แสดงในระบบและประวัติการดำเนินการ"
+      onSubmit={() => void saveProfile()}
+      title="ข้อมูลบัญชี"
+    >
+      <label className="account-field"><span>ชื่อที่แสดง</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => { setDraftName(event.target.value); setProfileMessage(null); }} required value={draftName} /></label>
+      <AccountReadOnlyField hint="ใช้สำหรับเข้าสู่ระบบ เปลี่ยนเองไม่ได้" label="อีเมลสำหรับเข้าสู่ระบบ" value={email} />
       {profileMessage ? <ProfileMessage message={profileMessage.message} tone={profileMessage.tone} /> : null}
-    </AccountCard>
+    </AccountFormCard>
 
-    <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
-      <AccountRow
-        action={<button className="secondary-button" onClick={() => { setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordMessage(null); setIsEditingPassword(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
-        hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
-        label="รหัสผ่าน"
-        value="••••••••••••"
-      />
-    </AccountCard>
+    <AccountFormCard
+      action={<button className="primary-button" disabled={isSavingPassword || !passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword} type="submit">{isSavingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button>}
+      description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น"
+      hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+      onSubmit={() => void changePassword()}
+      title="ความปลอดภัย"
+    >
+      <label className="account-field"><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={updatePassword("currentPassword")} required type="password" value={passwords.currentPassword} /></label>
+      <div className="account-field-pair">
+        <label className="account-field"><span>รหัสผ่านใหม่</span><input aria-describedby="basic-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={updatePassword("newPassword")} required type="password" value={passwords.newPassword} /></label>
+        <label className="account-field"><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={updatePassword("confirmPassword")} required type="password" value={passwords.confirmPassword} /></label>
+      </div>
+      {passwords.newPassword ? <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="basic-password-requirements" password={passwords.newPassword} /> : null}
+      {passwordMessage ? <ProfileMessage message={passwordMessage.message} tone={passwordMessage.tone} /> : null}
+    </AccountFormCard>
 
     <PrivacyPreferencesPanel />
-
-    {isEditingProfile ? <Dialog ariaDescribedBy="basic-profile-description" ariaLabelledBy="basic-profile-title" className="confirmation-modal" onClose={() => { if (!isSaving) setIsEditingProfile(false); }}>
-      <form className="modal-form" onSubmit={saveProfile}>
-        <header className="modal-header"><div><h2 id="basic-profile-title">แก้ไขชื่อโปรไฟล์</h2><p id="basic-profile-description">ชื่อนี้จะแสดงในระบบและประวัติการดำเนินการ</p></div><IconButton disabled={isSaving} label="ปิด" onClick={() => setIsEditingProfile(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
-        <label><span>ชื่อที่แสดง</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => setDraftName(event.target.value)} required value={draftName} /></label>
-        {profileMessage ? <p className={`account-settings-message ${profileMessage.tone}`} role="alert">{profileMessage.message}</p> : null}
-        <footer className="modal-actions"><button disabled={isSaving} onClick={() => setIsEditingProfile(false)} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังบันทึก..." : "บันทึก"}</button></footer>
-      </form>
-    </Dialog> : null}
-
-    {isEditingPassword ? <Dialog ariaDescribedBy="basic-password-description" ariaLabelledBy="basic-password-title" className="modal-md" onClose={() => { if (!isSaving) setIsEditingPassword(false); }}>
-      <form className="modal-form" onSubmit={changePassword}>
-        <header className="modal-header"><div><h2 id="basic-password-title">เปลี่ยนรหัสผ่าน</h2><p id="basic-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSaving} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
-        <div className="account-password-fields">
-          <label><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={(event) => setPasswords((current) => ({ ...current, currentPassword: event.target.value }))} required type="password" value={passwords.currentPassword} /></label>
-          <label><span>รหัสผ่านใหม่</span><input aria-describedby="basic-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPasswords((current) => ({ ...current, newPassword: event.target.value }))} required type="password" value={passwords.newPassword} /></label>
-          <label><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPasswords((current) => ({ ...current, confirmPassword: event.target.value }))} required type="password" value={passwords.confirmPassword} /></label>
-        </div>
-        <PasswordRequirements confirmation={passwords.confirmPassword} currentPassword={passwords.currentPassword} id="basic-password-requirements" password={passwords.newPassword} />
-        {passwordMessage ? <p className={`account-settings-message ${passwordMessage.tone}`} role="alert">{passwordMessage.message}</p> : null}
-        <footer className="modal-actions"><button disabled={isSaving} onClick={() => setIsEditingPassword(false)} type="button">ยกเลิก</button><button disabled={isSaving} type="submit">{isSaving ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
-      </form>
-    </Dialog> : null}
   </div>;
 }
 

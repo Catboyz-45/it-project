@@ -61,7 +61,7 @@ import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primit
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
-import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
+import { AccountCard, AccountFormCard, AccountProfileCard, AccountReadOnlyField } from "@/components/account/AccountLayout";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { listAnnouncement } from "@/components/tenant/LoadMoreList";
@@ -664,8 +664,6 @@ function AccountPanel({
   });
   const [passwordError, setPasswordError] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isEditingPassword, setIsEditingPassword] = useState(false);
   const notify = useToast();
   const isProfileDirty = profile.displayName !== account.user.displayName
     || profile.phone !== account.phone
@@ -675,8 +673,7 @@ function AccountPanel({
   const isPasswordDirty = Object.values(password).some(Boolean);
   useUnsavedChanges((isProfileDirty || isPasswordDirty) && !isSavingProfile && !isSavingPassword);
 
-  const saveProfile = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const saveProfile = async () => {
     setIsSavingProfile(true);
     setProfileError("");
     try {
@@ -687,7 +684,6 @@ function AccountPanel({
         body: JSON.stringify(profile),
       }));
       onUpdated(updated);
-      setIsEditingProfile(false);
       // แจ้งผ่าน toast ที่เดียว เคยขึ้นทั้ง toast และแถบเขียวในหน้าพร้อมกันจนดูซ้ำ
       notify({ message: "บันทึกข้อมูลบัญชีแล้ว" });
     } catch (error) {
@@ -699,8 +695,7 @@ function AccountPanel({
     }
   };
 
-  const changePassword = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const changePassword = async () => {
     setPasswordError("");
     if (password.newPassword !== password.confirmPassword) {
       setPasswordError("รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน");
@@ -738,27 +733,40 @@ function AccountPanel({
     <div className="account-content">
       <AccountProfileCard email={account.user.email} name={account.user.displayName} roleLabel="ผู้เช่า" />
 
-      <AccountCard description="ใช้ติดต่อคุณ และติดต่อคนใกล้ชิดในกรณีฉุกเฉิน" title="ข้อมูลส่วนตัว">
-        <AccountRow
-          action={<button aria-label="แก้ไขชื่อ เบอร์โทร ที่อยู่ และผู้ติดต่อฉุกเฉิน" className="secondary-button" onClick={() => { setProfileError(""); setIsEditingProfile(true); }} type="button">แก้ไขข้อมูล</button>}
-          label="ชื่อ-นามสกุล"
-          value={account.user.displayName}
-        />
-        <AccountRow hint="เปลี่ยนได้โดยผู้ดูแลหอพัก" label="อีเมลสำหรับเข้าสู่ระบบ" locked value={account.user.email} />
-        <AccountRow label="เบอร์โทรศัพท์" value={formatThaiPhone(account.phone) || "ยังไม่ระบุ"} />
-        <AccountRow label="ที่อยู่" value={account.address || "ยังไม่ระบุ"} />
-        <AccountRow hint={formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"} label="ผู้ติดต่อฉุกเฉิน" value={account.emergencyName || "ยังไม่ระบุ"} />
+      <AccountFormCard
+        action={<button className="primary-button" disabled={isSavingProfile || !isProfileDirty} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}
+        description="ใช้ติดต่อคุณ และติดต่อคนใกล้ชิดในกรณีฉุกเฉิน"
+        onSubmit={() => void saveProfile()}
+        title="ข้อมูลส่วนตัว"
+      >
+        <div className="account-field-pair">
+          <label className="account-field"><span>ชื่อ-นามสกุล</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => setProfile({ ...profile, displayName: event.target.value })} required value={profile.displayName} /></label>
+          <label className="account-field"><span>เบอร์โทรศัพท์</span><input autoComplete="tel" maxLength={30} minLength={8} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} pattern={PHONE_INPUT_PATTERN} required title="ตัวเลขอย่างน้อย 8 หลัก ใส่ขีดหรือ + นำหน้าได้" type="tel" value={profile.phone} /></label>
+        </div>
+        <AccountReadOnlyField hint="เปลี่ยนได้โดยผู้ดูแลหอพัก" label="อีเมลสำหรับเข้าสู่ระบบ" value={account.user.email} />
+        <label className="account-field"><span>ที่อยู่ (ไม่บังคับ)</span><textarea maxLength={1000} onChange={(event) => setProfile({ ...profile, address: event.target.value })} rows={2} value={profile.address} /></label>
+        <div className="account-field-pair">
+          <label className="account-field"><span>ผู้ติดต่อฉุกเฉิน</span><input maxLength={160} onChange={(event) => setProfile({ ...profile, emergencyName: event.target.value })} value={profile.emergencyName} /></label>
+          <label className="account-field"><span>เบอร์ฉุกเฉิน</span><input maxLength={30} onChange={(event) => setProfile({ ...profile, emergencyPhone: event.target.value })} type="tel" value={profile.emergencyPhone} /></label>
+        </div>
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
-      </AccountCard>
+      </AccountFormCard>
 
-      <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
-        <AccountRow
-          action={<button className="secondary-button" onClick={() => { setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordError(""); setIsEditingPassword(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
-          hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
-          label="รหัสผ่าน"
-          value="••••••••••••"
-        />
-      </AccountCard>
+      <AccountFormCard
+        action={<button className="primary-button" disabled={isSavingPassword || !password.currentPassword || !password.newPassword || !password.confirmPassword} type="submit">{isSavingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button>}
+        description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น"
+        hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+        onSubmit={() => void changePassword()}
+        title="ความปลอดภัย"
+      >
+        <label className="account-field"><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={(event) => { setPassword({ ...password, currentPassword: event.target.value }); setPasswordError(""); }} required type="password" value={password.currentPassword} /></label>
+        <div className="account-field-pair">
+          <label className="account-field"><span>รหัสผ่านใหม่</span><input aria-describedby="tenant-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => { setPassword({ ...password, newPassword: event.target.value }); setPasswordError(""); }} required type="password" value={password.newPassword} /></label>
+          <label className="account-field"><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => { setPassword({ ...password, confirmPassword: event.target.value }); setPasswordError(""); }} required type="password" value={password.confirmPassword} /></label>
+        </div>
+        {password.newPassword ? <PasswordRequirements confirmation={password.confirmPassword} currentPassword={password.currentPassword} id="tenant-password-requirements" password={password.newPassword} /> : null}
+        {passwordError ? <p className="account-settings-message error" role="alert">{passwordError}</p> : null}
+      </AccountFormCard>
 
       <AccountCard description="ห้องที่คุณเคยและกำลังเข้าพัก" title="การเข้าพักของฉัน">
         <div className="account-occupancy-list">
@@ -781,34 +789,6 @@ function AccountPanel({
       <PrivacyPreferencesPanel />
     </div>
 
-    {isEditingProfile ? <Dialog ariaDescribedBy="tenant-profile-description" ariaLabelledBy="tenant-profile-title" className="modal-md" onClose={() => { if (!isSavingProfile) setIsEditingProfile(false); }}>
-      <form className="modal-form" onSubmit={saveProfile}>
-        <header className="modal-header"><div><h2 id="tenant-profile-title">แก้ไขข้อมูลส่วนตัว</h2><p id="tenant-profile-description">ข้อมูลสำหรับการติดต่อและกรณีฉุกเฉิน</p></div><IconButton disabled={isSavingProfile} label="ปิด" onClick={() => setIsEditingProfile(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label><span>ชื่อ-นามสกุล</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => setProfile({ ...profile, displayName: event.target.value })} required value={profile.displayName} /></label>
-          <label><span>เบอร์โทรศัพท์</span><input autoComplete="tel" maxLength={30} minLength={8} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} pattern={PHONE_INPUT_PATTERN} required title="ตัวเลขอย่างน้อย 8 หลัก ใส่ขีดหรือ + นำหน้าได้" type="tel" value={profile.phone} /></label>
-          <label className="sm:col-span-2"><span>ที่อยู่ (ไม่บังคับ)</span><textarea maxLength={1000} onChange={(event) => setProfile({ ...profile, address: event.target.value })} value={profile.address} /></label>
-          <label><span>ผู้ติดต่อฉุกเฉิน</span><input maxLength={160} onChange={(event) => setProfile({ ...profile, emergencyName: event.target.value })} value={profile.emergencyName} /></label>
-          <label><span>เบอร์ฉุกเฉิน</span><input maxLength={30} onChange={(event) => setProfile({ ...profile, emergencyPhone: event.target.value })} type="tel" value={profile.emergencyPhone} /></label>
-        </div>
-        {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
-        <footer className="modal-actions"><button disabled={isSavingProfile} onClick={() => setIsEditingProfile(false)} type="button">ยกเลิก</button><button disabled={isSavingProfile} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "บันทึก"}</button></footer>
-      </form>
-    </Dialog> : null}
-
-    {isEditingPassword ? <Dialog ariaDescribedBy="tenant-password-description" ariaLabelledBy="tenant-password-title" className="modal-md" onClose={() => { if (!isSavingPassword) setIsEditingPassword(false); }}>
-      <form className="modal-form" onSubmit={changePassword}>
-        <header className="modal-header"><div><h2 id="tenant-password-title">เปลี่ยนรหัสผ่าน</h2><p id="tenant-password-description">หลังเปลี่ยนแล้วระบบจะออกจากทุกอุปกรณ์</p></div><IconButton disabled={isSavingPassword} label="ปิด" onClick={() => setIsEditingPassword(false)} tooltip="ปิดหน้าต่าง"><X /></IconButton></header>
-        <div className="account-password-fields">
-          <label><span>รหัสผ่านปัจจุบัน</span><input autoComplete="current-password" maxLength={256} onChange={(event) => setPassword({ ...password, currentPassword: event.target.value })} required type="password" value={password.currentPassword} /></label>
-          <label><span>รหัสผ่านใหม่</span><input aria-describedby="tenant-password-requirements" autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword({ ...password, newPassword: event.target.value })} required type="password" value={password.newPassword} /></label>
-          <label><span>ยืนยันรหัสผ่านใหม่</span><input autoComplete="new-password" maxLength={128} minLength={12} onChange={(event) => setPassword({ ...password, confirmPassword: event.target.value })} required type="password" value={password.confirmPassword} /></label>
-        </div>
-        <PasswordRequirements confirmation={password.confirmPassword} currentPassword={password.currentPassword} id="tenant-password-requirements" password={password.newPassword} />
-        {passwordError ? <p className="account-settings-message error" role="alert">{passwordError}</p> : null}
-        <footer className="modal-actions"><button disabled={isSavingPassword} onClick={() => setIsEditingPassword(false)} type="button">ยกเลิก</button><button disabled={isSavingPassword} type="submit">{isSavingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}</button></footer>
-      </form>
-    </Dialog> : null}
   </div>;
 }
 
