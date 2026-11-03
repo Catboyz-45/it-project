@@ -76,17 +76,19 @@ describe("central API responses", () => {
     // และ targetType ต้องกลายเป็นพาธของคำขอ
     apiSuccessResponse(requestOf("POST"), { ok: true });
     apiSuccessBinaryResponse(requestOf("DELETE"), null, { headers: {} });
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const rows = await getDatabase().auditLog.findMany({
-      where: { propertyId: fixture.property.id, createdAt: { gte: before } },
-      select: { action: true, targetType: true, result: true },
-    });
     const path = "/api/v1/admin/properties/p1/documents";
-    expect(rows).toEqual(expect.arrayContaining([
-      expect.objectContaining({ action: "API_POST_SUCCESS", targetType: path, result: "SUCCESS" }),
-      expect.objectContaining({ action: "API_DELETE_SUCCESS", targetType: path, result: "SUCCESS" }),
-    ]));
+    const propertyId = fixture.property.id;
+    // audit เขียนแบบไม่รอผล รอคงที่ 100ms ไม่พอเมื่อเครื่อง CI ช้า จึงถามซ้ำจนเจอ
+    await vi.waitFor(async () => {
+      const rows = await getDatabase().auditLog.findMany({
+        where: { propertyId, createdAt: { gte: before } },
+        select: { action: true, targetType: true, result: true },
+      });
+      expect(rows).toEqual(expect.arrayContaining([
+        expect.objectContaining({ action: "API_POST_SUCCESS", targetType: path, result: "SUCCESS" }),
+        expect.objectContaining({ action: "API_DELETE_SUCCESS", targetType: path, result: "SUCCESS" }),
+      ]));
+    }, { interval: 100, timeout: 5000 });
   });
 });
 
