@@ -1,15 +1,15 @@
 "use client";
 // เป็นตัวแก้ไขเอกสาร ต้องแตะ DOM การเลือกข้อความ และวัดขนาดจริงตลอดเวลา
 
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Check, ChevronDown, Eye, FilePlus2, FileText, Heading2, ImagePlus, Italic, List, Minus, PenLine, Plus, Redo2, RotateCcw, Save, ScrollText, Table2, Trash2, TriangleAlert, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Check, ChevronDown, Eye, FilePlus2, Heading2, ImagePlus, Italic, List, Minus, PenLine, Plus, Redo2, RotateCcw, Save, ScrollText, Table2, TriangleAlert, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
+import { cleanPastedHtml, createPageBreak, decoratePageBreaks, hasBlockContent, insertBlocksAtCaret, isAtBlockEnd, isAtBlockStart, isBlankBlock, isManualPageBreak, isPageBreak, mergeBlocks, placeCaretAtStart, plainTextFragment, splitBlockAtCaret, stripPageBreakDecorations, toggleHeading, toggleList, topLevelBlock } from "@/components/dorm/document-editor/block-tools";
 import { chipifyPlaceholders, createPlaceholderChip, renderPlaceholderChip, serializePlaceholders, showPlaceholderValues, snippetFragment, usedPlaceholderKeys } from "@/components/dorm/document-editor/placeholder-chips";
 import { defaultTemplates } from "@/lib/documents/default-templates";
 import { documentFontFaceCss, documentFontOptions } from "@/lib/documents/document-fonts";
@@ -28,11 +28,14 @@ export const templateTitles: Record<DocumentKind, { panel: string; editor: strin
 
 const fontSizes = [10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36];
 const zoomSteps = [50, 75, 100, 125, 150];
+// ช่องเทาระหว่างหน้ากระดาษ ต้องตรงกับ 38px ใน .page-break ของ globals.css
+const pageGap = 38;
 const editorFontCss = documentFontFaceCss((file) => `/fonts/sarabun/${file}`);
 
 type Alignment = "text-left" | "text-center" | "text-right";
 type PreviewValues = { status: "idle" | "loading" | "ready" | "failed"; label: string; values: Record<string, string> | null; error: string };
 type Autocomplete = { index: number; left: number; node: Text; offset: number; query: string; top: number };
+type EditKind = "insert" | "delete" | "other";
 
 // การจัดวางของย่อหน้าที่เคอร์เซอร์อยู่ ไม่ได้ใส่คลาสไว้ก็ถือว่าชิดซ้ายตามค่าเริ่มต้น
 function blockAlignment(block: Element | null): Alignment {
@@ -81,7 +84,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const isPaginatingRef = useRef(false);
   // จำตำแหน่งที่เลือกไว้ เพราะกดปุ่มบนแถบเครื่องมือแล้วโฟกัสจะหลุดออกจากตัวแก้ไข
   const lastRangeRef = useRef<Range | null>(null);
-  const pendingPageDeleteRef = useRef<(() => void) | null>(null);
   const paginationScrollRef = useRef<{
     anchor: HTMLElement | null;
     anchorTop: number | null;
@@ -94,7 +96,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { confirm, confirmationDialog } = useConfirmation();
-  const [isDeletePageConfirmOpen, setIsDeletePageConfirmOpen] = useState(false);
   const [isTableDialogOpen, setIsTableDialogOpen] = useState(false);
   const [isClauseDialogOpen, setIsClauseDialogOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState(3);
@@ -102,6 +103,9 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   // "fit" คือย่อกระดาษให้พอดีความกว้างของกรอบ เป็นค่าเริ่มต้น จอเล็กจะได้ไม่ต้องเลื่อนซ้ายขวา
   const [zoomMode, setZoomMode] = useState<"fit" | number>("fit");
   const [fitPercent, setFitPercent] = useState(100);
+  // จำนวนหน้าทั้งหมด กับหน้าที่อยู่กลางจอตอนนี้ โชว์ข้างปุ่มซูมแบบโปรแกรมเอกสารทั่วไป
+  const [pageCount, setPageCount] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const canvasRef = useRef<HTMLElement>(null);
   const [isContentDirty, setIsContentDirty] = useState(false);
   const [usedKeys, setUsedKeys] = useState<Set<string>>(new Set());
@@ -113,8 +117,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     bold: false,
     fontFamily: "Sarabun",
     fontSize: "14",
+    heading: false,
     inTable: false,
     italic: false,
+    list: false,
     underline: false,
   });
 
@@ -122,6 +128,18 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const displayValues = showValues ? preview.values : null;
   // ฟังก์ชันที่สร้างป้ายใหม่ต้องรู้ค่าปัจจุบันโดยไม่ต้องสร้างฟังก์ชันใหม่ทุกครั้งที่สลับโหมด
   const displayValuesRef = useRef(displayValues);
+
+  // หาว่าหน้าไหนอยู่ตรงหนึ่งในสามของจอจากบน ใช้ขนาดบนจอเทียบกับขนาดจริง จึงถูกทุกระดับการซูม
+  const updateCurrentPage = useCallback(() => {
+    const canvas = canvasRef.current;
+    const paper = editorRef.current;
+    if (!canvas || !paper?.offsetHeight) return;
+    const paperRect = paper.getBoundingClientRect();
+    const scale = paperRect.height / paper.offsetHeight || 1;
+    const pageSpan = ((paper.offsetWidth / 210) * 297 + pageGap) * scale;
+    const probe = canvas.getBoundingClientRect().top + canvas.clientHeight / 3 - paperRect.top;
+    setCurrentPage(Math.max(1, Math.floor(probe / pageSpan) + 1));
+  }, []);
 
   // แบ่งหน้าเอง โดยวัดว่าเนื้อหาล้นขอบกระดาษ A4 ตรงไหนแล้วแทรกตัวคั่นหน้าเข้าไป
   // ทำเองเพราะ CSS อย่างเดียวคุมไม่ได้ว่าจะขึ้นหน้าใหม่ตรงไหนขณะพิมพ์อยู่
@@ -150,7 +168,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const pageHeight = 297 * pixelsPerMillimeter;
     // ขอบกระดาษ 18 มม. ทั้งบนและล่าง ตรงกับ @page ของ PDF
     const pagePadding = 18 * pixelsPerMillimeter;
-    const pageGap = 38;
     // ยืดตัวคั่นให้สูงพอดันเนื้อหาที่เหลือไปเริ่มต้นหน้าถัดไปพอดี เหมือนหน้ากระดาษจริง
     const fillPageBreaks = () => {
       const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break"));
@@ -190,6 +207,8 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     editor.style.removeProperty("min-height");
     const lastPageIndex = Math.max(0, Math.ceil((editor.offsetHeight - pageHeight - 1) / (pageHeight + pageGap)));
     editor.style.minHeight = `${lastPageIndex * (pageHeight + pageGap) + pageHeight}px`;
+    setPageCount(lastPageIndex + 1);
+    updateCurrentPage();
     // คืนตำแหน่งเคอร์เซอร์ เพราะการแทรกตัวคั่นทำให้การเลือกข้อความหลุด
     if (previousRange && editor.contains(previousRange.commonAncestorContainer)) {
       selection?.removeAllRanges();
@@ -215,7 +234,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       window.setTimeout(restoreScroll, 600);
     }
     isPaginatingRef.current = false;
-  }, []);
+  }, [updateCurrentPage]);
 
   // ดึง HTML ที่จะบันทึก ทำบนสำเนาเพื่อไม่ให้กระทบสิ่งที่ผู้ใช้กำลังแก้อยู่
   const editorHtml = useCallback(() => {
@@ -224,6 +243,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const clone = editor.cloneNode(true) as HTMLElement;
     // ป้ายกลับเป็น {{key}} ตัวคั่นกับค่าความสูงที่ระบบใส่ไว้ก็ตัดออก เพราะเป็นของสำหรับแสดงผลเท่านั้น
     serializePlaceholders(clone);
+    stripPageBreakDecorations(clone);
     clone.querySelectorAll(".editor-auto-page-break").forEach((pageBreak) => pageBreak.remove());
     clone.querySelectorAll<HTMLElement>(".page-break").forEach((pageBreak) => {
       pageBreak.style.removeProperty("--editor-page-fill");
@@ -249,6 +269,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const editor = editorRef.current;
     if (!editor) return;
     editor.innerHTML = html;
+    decoratePageBreaks(editor);
     chipifyPlaceholders(editor, labels);
     showPlaceholderValues(editor, labels, displayValuesRef.current);
     setUsedKeys(usedPlaceholderKeys(editor));
@@ -290,7 +311,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   // เก็บเป็น HTML ที่แปลงป้ายกลับเป็น {{key}} แล้ว ตอนย้อนก็โหลดใหม่ผ่าน loadIntoEditor เหมือนตอนเปิดหน้า
   // เก็บชื่อแบบฟอร์มไปด้วย เพราะคืนค่ามาตรฐานเปลี่ยนทั้งเนื้อหาและชื่อ ย้อนกลับต้องได้ทั้งสองอย่างคืน
   type Snapshot = { html: string; name: string };
-  const historyRef = useRef<{ redo: Snapshot[]; typingAt: number; undo: Snapshot[] }>({ redo: [], typingAt: 0, undo: [] });
+  const historyRef = useRef<{ redo: Snapshot[]; typingAt: number; typingKind: EditKind; undo: Snapshot[] }>({ redo: [], typingAt: 0, typingKind: "other", undo: [] });
   const [historySize, setHistorySize] = useState({ redo: 0, undo: 0 });
   const syncHistorySize = () => setHistorySize({ redo: historyRef.current.redo.length, undo: historyRef.current.undo.length });
 
@@ -307,10 +328,13 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   };
 
   // พิมพ์ต่อเนื่องนับเป็นขั้นเดียว เว้นช่วงเกินหนึ่งวินาทีค่อยนับเป็นขั้นใหม่ เหมือนโปรแกรมพิมพ์เอกสารทั่วไป
-  const pushTypingHistory = () => {
+  // เปลี่ยนจากพิมพ์เป็นลบ (หรือกลับกัน) ก็นับเป็นขั้นใหม่ กดย้อนจะได้คืนทีละอย่าง
+  const pushTypingHistory = (kind: EditKind) => {
     const now = Date.now();
-    if (now - historyRef.current.typingAt > 1_000) pushHistory();
-    historyRef.current.typingAt = now;
+    const history = historyRef.current;
+    if (now - history.typingAt > 1_000 || kind !== history.typingKind || kind === "other") pushHistory();
+    history.typingAt = now;
+    history.typingKind = kind;
   };
 
   const stepHistory = (direction: "undo" | "redo") => {
@@ -330,7 +354,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   useEffect(() => {
     loadIntoEditor(template.html);
     // เปิดแบบฟอร์มใหม่หรือเพิ่งบันทึก เริ่มประวัติใหม่ ไม่ให้ย้อนกลับไปเนื้อหาของรอบก่อน
-    historyRef.current = { redo: [], typingAt: 0, undo: [] };
+    historyRef.current = { redo: [], typingAt: 0, typingKind: "other", undo: [] };
     setHistorySize({ redo: 0, undo: 0 });
     // เทียบกับ HTML หลังแปลงไปกลับหนึ่งรอบ ช่องที่เขียนว่า {{ key }} มีเว้นวรรคจะได้ไม่ถูกนับว่าแก้แล้ว
     savedHtmlRef.current = editorHtml();
@@ -425,8 +449,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       bold: Boolean(element.closest("strong,b")),
       fontFamily,
       fontSize: String(Math.round(Number.parseFloat(style.fontSize))),
+      heading: Boolean(element.closest("h1,h2,h3")),
       inTable: Boolean(element.closest("td,th")),
       italic: Boolean(element.closest("em,i")),
+      list: Boolean(element.closest("li")),
       underline: Boolean(element.closest("u")),
     });
   }, []);
@@ -614,27 +640,33 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setActiveFormats((current) => ({ ...current, alignment: className }));
   };
 
-  const insertHeading = () => {
+  const documentRootOf = (editor: HTMLElement) => editor.querySelector<HTMLElement>(".document") ?? editor;
+
+  // หัวข้อกับรายการเปลี่ยนทั้งย่อหน้าที่เคอร์เซอร์อยู่ กดซ้ำเพื่อกลับเป็นย่อหน้าธรรมดา เหมือนสไตล์ใน Word
+  const toggleBlockStyle = (toggle: typeof toggleHeading, hint: string) => {
+    const editor = editorRef.current;
     const range = selectedRange();
-    const heading = document.createElement("h2");
-    if (range && !range.collapsed) {
-      pushHistory();
-      heading.append(range.extractContents());
-      range.insertNode(heading);
-      window.getSelection()?.removeAllRanges();
+    if (!editor || !range) {
+      setError(hint);
       return;
     }
-    heading.textContent = "หัวข้อ";
-    insertNodeAtSelection(heading);
+    const snapshot = { html: editorHtml(), name };
+    if (!toggle(documentRootOf(editor), range)) {
+      setError(hint);
+      return;
+    }
+    setError("");
+    // เก็บภาพก่อนแก้ลงประวัติหลังรู้แล้วว่าแก้ได้จริง กดไม่ติดจะได้ไม่มีขั้นว่างในประวัติ
+    const history = historyRef.current;
+    history.undo = [...history.undo.slice(-99), snapshot];
+    history.redo = [];
+    syncHistorySize();
+    rememberSelection();
+    updateActiveFormats();
+    window.requestAnimationFrame(paginateEditor);
   };
-
-  const insertList = () => {
-    const list = document.createElement("ul");
-    const item = document.createElement("li");
-    item.textContent = "รายการ";
-    list.append(item);
-    insertNodeAtSelection(list);
-  };
+  const insertHeading = () => toggleBlockStyle(toggleHeading, "คลิกในย่อหน้าที่ต้องการทำเป็นหัวข้อก่อน");
+  const insertList = () => toggleBlockStyle(toggleList, "คลิกในย่อหน้าที่ต้องการทำเป็นรายการก่อน");
 
   const insertTable = () => {
     const table = document.createElement("table");
@@ -655,70 +687,114 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setIsTableDialogOpen(false);
   };
 
+  // ขึ้นหน้าใหม่ตรงเคอร์เซอร์แบบ Ctrl+Enter ใน Word ข้อความหลังเคอร์เซอร์ย้ายไปต้นหน้าถัดไป
+  // อยู่ในตาราง รายการ หรือไม่ได้คลิกในย่อหน้า ให้ขึ้นหน้าใหม่ต่อจากก้อนนั้นแทน
   const insertPageBreak = () => {
-    const pageBreak = document.createElement("div");
-    pageBreak.className = "page-break";
-    const fragment = document.createDocumentFragment();
-    fragment.append(pageBreak);
-    insertBlock(fragment);
-  };
-
-  const mergeWithPreviousPage = () => {
     const editor = editorRef.current;
+    if (!editor) return;
+    const root = documentRootOf(editor);
     const range = selectedRange();
-    if (!editor || !range) {
-      setError("คลิกในหน้าที่ต้องการรวมกับหน้าก่อน แล้วเลือกคำสั่งอีกครั้ง");
+    const block = range ? topLevelBlock(root, range.startContainer) : null;
+    if (!range || !block || !block.matches("p,h1,h2,h3")) {
+      const pageBreak = createPageBreak();
+      const fragment = document.createDocumentFragment();
+      fragment.append(pageBreak);
+      insertBlock(fragment);
+      const next = pageBreak.nextElementSibling;
+      if (next) placeCaretAtStart(next);
       return;
     }
-    const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break:not(.editor-auto-page-break)"));
-    const previousPageBreak = pageBreaks
-      .findLast((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING);
-    if (!previousPageBreak) {
-      setError("หน้านี้ขึ้นหน้าใหม่เองเพราะเนื้อหาเต็มหน้า ไม่ได้มาจากการกดขึ้นหน้าใหม่ จึงรวมกับหน้าก่อนไม่ได้");
-      return;
-    }
-    setError("");
     pushHistory();
-    previousPageBreak.remove();
-    lastRangeRef.current = null;
+    if (!range.collapsed) range.deleteContents();
+    const pageBreak = createPageBreak();
+    let next: HTMLElement;
+    if (isAtBlockStart(block, range) && !isBlankBlock(block)) {
+      // กดที่ต้นย่อหน้า ทั้งย่อหน้าย้ายไปหน้าใหม่ ไม่ต้องเหลือย่อหน้าว่างไว้ข้างหลัง
+      block.before(pageBreak);
+      next = block;
+    } else {
+      next = splitBlockAtCaret(block, range);
+      next.before(pageBreak);
+    }
+    editor.focus({ preventScroll: true });
+    lastRangeRef.current = placeCaretAtStart(next).cloneRange();
+    next.scrollIntoView?.({ block: "nearest" });
     window.requestAnimationFrame(paginateEditor);
   };
 
-  const deleteCurrentPage = () => {
-    const editor = editorRef.current;
-    const range = selectedRange();
-    if (!editor || !range) {
-      setError("คลิกข้อความในหน้าที่ต้องการลบ แล้วเลือกคำสั่งอีกครั้ง");
-      return;
+  // เอาตัวแบ่งหน้าออก เนื้อหาหน้าถัดไปจะไหลขึ้นมาต่อหน้าก่อน
+  const removePageBreak = (pageBreak: HTMLElement) => {
+    const next = pageBreak.nextElementSibling;
+    pushHistory();
+    pageBreak.remove();
+    if (next) {
+      editorRef.current?.focus({ preventScroll: true });
+      lastRangeRef.current = placeCaretAtStart(next).cloneRange();
     }
-    const pageBreaks = Array.from(editor.querySelectorAll<HTMLElement>(".page-break:not(.editor-auto-page-break)"));
-    const previousPageBreak = pageBreaks
-      .findLast((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_FOLLOWING);
-    const nextPageBreak = pageBreaks.find((pageBreak) => pageBreak.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_PRECEDING);
-    const pageContainer = previousPageBreak?.parentElement ?? nextPageBreak?.parentElement;
-    if (!pageContainer || (previousPageBreak && previousPageBreak.parentElement !== pageContainer) || (nextPageBreak && nextPageBreak.parentElement !== pageContainer)) {
-      setError("ลบได้เฉพาะหน้าที่แบ่งด้วยคำสั่งขึ้นหน้าใหม่ หน้านี้ขึ้นใหม่เองเพราะเนื้อหาเต็มหน้า");
-      return;
-    }
+    window.requestAnimationFrame(paginateEditor);
+  };
 
-    const childNodes = Array.from(pageContainer.childNodes);
-    const startIndex = previousPageBreak ? childNodes.indexOf(previousPageBreak) + 1 : 0;
-    const endIndex = nextPageBreak ? childNodes.indexOf(nextPageBreak) : childNodes.length;
-    const pageNodes = childNodes.slice(startIndex, endIndex);
-    if (pageNodes.length === 0) {
-      setError("หน้านี้ไม่มีเนื้อหาให้ลบ");
-      return;
-    }
-    pendingPageDeleteRef.current = () => {
+  // Backspace ต้นย่อหน้า กับ Delete ท้ายย่อหน้า ถ้าติดตัวแบ่งหน้าอยู่ให้เอาตัวแบ่งออก
+  // ถ้าเป็นหน้าที่ขึ้นใหม่เองเพราะเต็ม ให้ต่อย่อหน้าเข้าหากันแทน เหมือนไม่มีขอบหน้าคั่น
+  const handleBoundaryDelete = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (!editor || !range?.collapsed) return false;
+    const root = documentRootOf(editor);
+    const block = topLevelBlock(root, range.startContainer);
+    if (!block || isPageBreak(block)) return false;
+    const backwards = event.key === "Backspace";
+    if (backwards ? !isAtBlockStart(block, range) : !isAtBlockEnd(block, range)) return false;
+    const neighbour = backwards ? block.previousElementSibling : block.nextElementSibling;
+    if (isManualPageBreak(neighbour)) {
+      event.preventDefault();
       pushHistory();
-      pageNodes.forEach((node) => node.remove());
-      if (nextPageBreak) nextPageBreak.remove();
-      else previousPageBreak?.remove();
-      setError("");
-      lastRangeRef.current = null;
+      neighbour.remove();
+      lastRangeRef.current = range.cloneRange();
       window.requestAnimationFrame(paginateEditor);
-    };
-    setIsDeletePageConfirmOpen(true);
+      return true;
+    }
+    if (!neighbour || !isPageBreak(neighbour)) return false;
+    const other = backwards ? neighbour.previousElementSibling : neighbour.nextElementSibling;
+    if (!(other instanceof HTMLElement)) return false;
+    event.preventDefault();
+    const snapshot = { html: editorHtml(), name };
+    const joined = backwards ? mergeBlocks(other, block) : mergeBlocks(block, other);
+    if (!joined) return true;
+    const history = historyRef.current;
+    history.undo = [...history.undo.slice(-99), snapshot];
+    history.redo = [];
+    syncHistorySize();
+    neighbour.remove();
+    selection?.removeAllRanges();
+    selection?.addRange(joined);
+    lastRangeRef.current = joined.cloneRange();
+    window.requestAnimationFrame(paginateEditor);
+    return true;
+  };
+
+  // Tab ในตารางไปช่องถัดไป Shift+Tab ย้อนช่อง กด Tab ที่ช่องสุดท้ายเพิ่มแถวใหม่ให้ เหมือนตารางใน Word
+  const moveBetweenTableCells = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const cell = activeTableCell();
+    const table = cell?.closest("table");
+    if (!cell || !table) return false;
+    event.preventDefault();
+    const cells = Array.from(table.querySelectorAll<HTMLTableCellElement>("th,td"));
+    const index = cells.indexOf(cell);
+    let target = cells[index + (event.shiftKey ? -1 : 1)];
+    if (!target && !event.shiftKey) {
+      editTable("add-row");
+      target = Array.from(table.querySelectorAll<HTMLTableCellElement>("th,td"))[index + 1];
+    }
+    if (!target) return true;
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    lastRangeRef.current = range.cloneRange();
+    return true;
   };
 
   const activeTableCell = () => {
@@ -863,6 +939,68 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     insertPlaceholder(key, range);
   };
 
+  // ฟัง beforeinput ของเบราว์เซอร์ตรง ๆ เพราะ onBeforeInput ของ React ส่งมาเฉพาะตอนพิมพ์ตัวอักษร
+  // ไม่ส่งตอนลบ ตัด หรือลากวาง การลบจึงไม่เคยถูกเก็บลงประวัติ กดย้อนแล้วข้ามไปหลายขั้น
+  const handleBeforeInput = useEffectEvent((event: InputEvent) => {
+    // คำสั่งเลิกทำจากเมนูของเบราว์เซอร์ใช้ประวัติของเราแทน ไม่งั้นสองประวัติจะตีกัน
+    if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+      event.preventDefault();
+      stepHistory(event.inputType === "historyUndo" ? "undo" : "redo");
+      return;
+    }
+    // ตัวหนาเอียงจากเมนูของเบราว์เซอร์ใช้แท็กคนละแบบกับปุ่ม ให้ไปผ่านคำสั่งของเราแทน
+    if (event.inputType.startsWith("format")) {
+      event.preventDefault();
+      const tagName = ({ formatBold: "strong", formatItalic: "em", formatUnderline: "u" } as const)[event.inputType as "formatBold" | "formatItalic" | "formatUnderline"];
+      if (tagName) toggleInlineFormat(tagName);
+      return;
+    }
+    const kind: EditKind = event.inputType.startsWith("insertText") || event.inputType === "insertCompositionText"
+      ? "insert"
+      : event.inputType.startsWith("delete") && !event.inputType.startsWith("deleteBy") ? "delete" : "other";
+    pushTypingHistory(kind);
+    rememberPaginationPosition();
+    rememberSelection();
+  });
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const listener = (event: Event) => handleBeforeInput(event as InputEvent);
+    editor.addEventListener("beforeinput", listener);
+    return () => editor.removeEventListener("beforeinput", listener);
+  }, []);
+
+  // วางข้อความจาก Word เว็บ หรือไฟล์อื่น เก็บแค่โครงย่อหน้า ตาราง และตัวหนาเอียงขีดเส้นใต้
+  // ช่อง {{key}} ในข้อความที่วางกลายเป็นป้ายเหมือนพิมพ์ในตัวแก้ไข
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const editor = editorRef.current;
+    const html = event.clipboardData.getData("text/html");
+    const text = event.clipboardData.getData("text/plain");
+    const range = selectedRange();
+    if (!editor || !range || (!html && !text)) return;
+    event.preventDefault();
+    pushHistory();
+    const fragment = html ? cleanPastedHtml(html) : plainTextFragment(text);
+    const holder = document.createElement("div");
+    holder.append(fragment);
+    chipifyPlaceholders(holder, labels);
+    showPlaceholderValues(holder, labels, displayValuesRef.current);
+    const content = document.createDocumentFragment();
+    content.append(...Array.from(holder.childNodes));
+    range.deleteContents();
+    const root = documentRootOf(editor);
+    if (hasBlockContent(content)) {
+      const last = insertBlocksAtCaret(root, range, content);
+      if (last) placeCaretAfter(last.lastChild ?? last);
+    } else {
+      const last = content.lastChild;
+      range.insertNode(content);
+      if (last) placeCaretAfter(last);
+    }
+    window.requestAnimationFrame(paginateEditor);
+  };
+
   const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const key = event.key.toLowerCase();
     if ((event.metaKey || event.ctrlKey) && (key === "z" || key === "y")) {
@@ -876,6 +1014,16 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       insertPageBreak();
       return;
     }
+    // ตัวหนา เอียง ขีดเส้นใต้ ผ่านคำสั่งของเราเอง ไม่ใช้ของเบราว์เซอร์ จะได้ย้อนกลับได้และใช้แท็กเดียวกับปุ่ม
+    const formatShortcut = { b: "strong", i: "em", u: "u" } as const;
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && key in formatShortcut) {
+      event.preventDefault();
+      toggleInlineFormat(formatShortcut[key as keyof typeof formatShortcut]);
+      return;
+    }
+    const isAutocompleteOpen = Boolean(autocomplete && autocompleteOptions.length > 0);
+    if ((event.key === "Backspace" || event.key === "Delete") && !isAutocompleteOpen && handleBoundaryDelete(event)) return;
+    if (event.key === "Tab" && !isAutocompleteOpen && moveBetweenTableCells(event)) return;
     if (!autocomplete || autocompleteOptions.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -996,16 +1144,11 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     { id: "signature", icon: <PenLine size={16} />, label: "บล็อกลายเซ็น", onSelect: () => insertBlock(snippetFragment(signatureBlockHtml(kind), labels)) },
   ];
 
-  const pageItems = [
-    { hint: pageBreakShortcut, id: "page-break", icon: <FilePlus2 size={16} />, label: "ขึ้นหน้าใหม่หลังย่อหน้านี้", onSelect: insertPageBreak },
-    { id: "merge", icon: <Minus size={16} />, label: "รวมกับหน้าก่อน", onSelect: mergeWithPreviousPage },
-    { id: "delete", icon: <Trash2 size={16} />, label: "ลบหน้าปัจจุบัน", onSelect: deleteCurrentPage, variant: "danger" as const },
-  ];
 
   const toolbar = (
     <div className="template-editor-toolbar" aria-label="เครื่องมือจัดรูปแบบ" onKeyDown={handleToolbarKeyDown} ref={toolbarRef} role="toolbar">
       <div className="template-toolbar-group">
-        <IconButton label="หัวข้อ" onClick={insertHeading} onMouseDown={keepEditorSelection}><Heading2 size={16} /></IconButton>
+        <IconButton aria-pressed={activeFormats.heading} className={activeFormats.heading ? "active" : ""} label="หัวข้อ" onClick={insertHeading} onMouseDown={keepEditorSelection}><Heading2 size={16} /></IconButton>
         <IconButton aria-pressed={activeFormats.bold} className={activeFormats.bold ? "active" : ""} label="ตัวหนา" onClick={() => toggleInlineFormat("strong")} onMouseDown={keepEditorSelection}><Bold size={16} /></IconButton>
         <IconButton aria-pressed={activeFormats.italic} className={activeFormats.italic ? "active" : ""} label="ตัวเอียง" onClick={() => toggleInlineFormat("em")} onMouseDown={keepEditorSelection}><Italic size={16} /></IconButton>
         <IconButton aria-pressed={activeFormats.underline} className={activeFormats.underline ? "active" : ""} label="ขีดเส้นใต้" onClick={() => toggleInlineFormat("u")} onMouseDown={keepEditorSelection}><Underline size={16} /></IconButton>
@@ -1030,11 +1173,11 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
         <IconButton aria-pressed={activeFormats.alignment === "text-left"} className={activeFormats.alignment === "text-left" ? "active" : ""} label="ชิดซ้าย" onClick={() => applyAlignment("text-left")} onMouseDown={keepEditorSelection}><AlignLeft size={16} /></IconButton>
         <IconButton aria-pressed={activeFormats.alignment === "text-center"} className={activeFormats.alignment === "text-center" ? "active" : ""} label="กึ่งกลาง" onClick={() => applyAlignment("text-center")} onMouseDown={keepEditorSelection}><AlignCenter size={16} /></IconButton>
         <IconButton aria-pressed={activeFormats.alignment === "text-right"} className={activeFormats.alignment === "text-right" ? "active" : ""} label="ชิดขวา" onClick={() => applyAlignment("text-right")} onMouseDown={keepEditorSelection}><AlignRight size={16} /></IconButton>
-        <IconButton label="รายการหัวข้อ" onClick={insertList} onMouseDown={keepEditorSelection}><List size={16} /></IconButton>
+        <IconButton aria-pressed={activeFormats.list} className={activeFormats.list ? "active" : ""} label="รายการแบบจุด" onClick={insertList} onMouseDown={keepEditorSelection}><List size={16} /></IconButton>
       </div>
       <div className="template-toolbar-group">
         <ActionMenu align="start" items={insertItems} label="แทรก" trigger={<><Plus aria-hidden="true" size={16} /> แทรก <ChevronDown aria-hidden="true" size={14} /></>} />
-        <ActionMenu align="start" items={pageItems} label="จัดการหน้า" trigger={<><FileText aria-hidden="true" size={16} /> หน้า <ChevronDown aria-hidden="true" size={14} /></>} />
+        <button className="template-toolbar-text-button" onClick={insertPageBreak} onMouseDown={keepEditorSelection} title={`ขึ้นหน้าใหม่ตรงเคอร์เซอร์ (${pageBreakShortcut})`} type="button"><FilePlus2 aria-hidden="true" size={16} /> ขึ้นหน้าใหม่</button>
       </div>
       <div className="template-toolbar-group template-history-controls">
         <IconButton disabled={historySize.undo === 0} label="เลิกทำ (Ctrl+Z)" onClick={() => stepHistory("undo")} onMouseDown={keepEditorSelection}><Undo2 size={16} /></IconButton>
@@ -1084,31 +1227,20 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
         {/* ปุ่มซูมลอยอยู่มุมล่างของพื้นที่กระดาษ แบบโปรแกรมเอกสารทั่วไป แถบเครื่องมือจะได้เหลือที่ให้คำสั่งแก้เอกสาร */}
         <div className="document-editor-stage">
           <div aria-label="มุมมอง" className="template-zoom-controls" role="group">
+            <span className="template-page-indicator">หน้า {Math.min(currentPage, pageCount)} / {pageCount}</span>
             <IconButton disabled={zoomOutTarget === undefined} label="ย่อมุมมอง" onClick={() => { if (zoomOutTarget !== undefined) setZoomMode(zoomOutTarget); }}><ZoomOut size={16} /></IconButton>
             <button aria-label={`มุมมอง ${zoomPercent}% กดเพื่อปรับให้พอดีความกว้าง`} aria-pressed={zoomMode === "fit"} className="template-zoom-fit" onClick={() => setZoomMode("fit")} type="button">
               {zoomMode === "fit" ? "พอดีจอ" : `${zoomPercent}%`}
             </button>
             <IconButton disabled={zoomInTarget === undefined} label="ขยายมุมมอง" onClick={() => { if (zoomInTarget !== undefined) setZoomMode(zoomInTarget); }}><ZoomIn size={16} /></IconButton>
           </div>
-        <section className="document-editor-canvas" aria-label="พื้นที่กระดาษ A4" ref={canvasRef}>
+        <section className="document-editor-canvas" aria-label="พื้นที่กระดาษ A4" onScroll={updateCurrentPage} ref={canvasRef}>
           {/* ใช้ CSS zoom ไม่ใช่ transform เพราะ zoom ย่อพื้นที่ที่กระดาษกินด้วย กรอบจะไม่มีที่ว่างหรือแถบเลื่อนเกิน */}
           <div className="document-editor-paper-scale" style={{ zoom: zoomPercent / 100 }}>
             <div
               aria-label="เนื้อหาแบบฟอร์ม"
               className="template-rich-editor document-editor-paper"
               contentEditable
-              onBeforeInput={(event) => {
-                // คำสั่งเลิกทำจากเมนูของเบราว์เซอร์ใช้ประวัติของเราแทน ไม่งั้นสองประวัติจะตีกัน
-                const inputType = (event.nativeEvent as InputEvent).inputType;
-                if (inputType === "historyUndo" || inputType === "historyRedo") {
-                  event.preventDefault();
-                  stepHistory(inputType === "historyUndo" ? "undo" : "redo");
-                  return;
-                }
-                pushTypingHistory();
-                rememberPaginationPosition();
-                rememberSelection();
-              }}
               onBlur={() => window.setTimeout(() => setAutocomplete(null), 150)}
               onInput={() => {
                 if (!paginationScrollRef.current || paginationScrollRef.current.validUntil <= Date.now()) {
@@ -1120,9 +1252,15 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
                 updateAutocomplete();
                 window.requestAnimationFrame(paginateEditor);
               }}
+              onClick={(event) => {
+                const removeButton = (event.target as Element).closest?.(".page-break-remove");
+                const pageBreak = removeButton?.closest(".page-break");
+                if (pageBreak instanceof HTMLElement) removePageBreak(pageBreak);
+              }}
               onKeyDown={handleEditorKeyDown}
               onKeyUp={rememberSelection}
               onMouseUp={rememberSelection}
+              onPaste={handlePaste}
               ref={editorRef}
               aria-multiline="true"
               role="textbox"
@@ -1221,23 +1359,6 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
         </Dialog>
       ) : null}
 
-      {isDeletePageConfirmOpen ? (
-        <ConfirmationDialog
-          confirmLabel="ลบหน้า"
-          description="ข้อความและข้อมูลทั้งหมดในหน้าปัจจุบันจะถูกลบ และไม่สามารถเรียกคืนได้"
-          onCancel={() => {
-            pendingPageDeleteRef.current = null;
-            setIsDeletePageConfirmOpen(false);
-          }}
-          onConfirm={() => {
-            pendingPageDeleteRef.current?.();
-            pendingPageDeleteRef.current = null;
-            setIsDeletePageConfirmOpen(false);
-          }}
-          title="ลบหน้าปัจจุบันหรือไม่?"
-          variant="danger"
-        />
-      ) : null}
       {confirmationDialog}
     </main>
   );

@@ -1647,9 +1647,11 @@
   .template-color-control input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
   .template-color-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 5px; }
   .template-color-control.highlight span { @apply text-xs font-medium; }
+  .template-toolbar-text-button { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
   .action-menu-text-trigger { @apply inline-flex h-9 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-sm font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5] aria-expanded:bg-[#f4f4f5]; }
   .document-editor-stage { @apply relative min-w-0; }
   .template-zoom-controls { @apply absolute right-4 bottom-4 z-10 flex items-center gap-0.5 rounded-xl border border-[#e4e4e7] bg-[#fff] p-1 shadow-[0_4px_14px_rgba(0,0,0,.08)]; }
+  .template-page-indicator { @apply border-r border-[#e4e4e7] px-2.5 text-xs font-semibold whitespace-nowrap text-[#3f4048] tabular-nums; }
   .template-zoom-controls .icon-button { @apply size-9 border-0 bg-transparent text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
   .template-zoom-controls .template-zoom-fit { @apply h-9 min-w-16 rounded-lg border-0 bg-transparent px-2 text-xs font-semibold text-[#62646c] shadow-none tabular-nums hover:bg-[#f4f4f5] aria-pressed:text-[#4651c7]; }
   .template-history-controls { @apply ml-auto; }
@@ -1683,6 +1685,13 @@
       linear-gradient(#fff, #fff) top / 100% calc(100% - 38px - 18mm) no-repeat,
       linear-gradient(#fff, #fff) bottom / 100% 18mm no-repeat,
       #e9eaf0;
+  }
+
+  /* ป้ายกลางช่องเทา บอกว่าหน้านี้แบ่งเอง กดเพื่อรวมกับหน้าก่อน หน้าที่ขึ้นใหม่เองเพราะเต็มไม่มีป้ายนี้ */
+  .document-editor-paper .page-break { position: relative; }
+  .document-editor-paper .page-break-remove {
+    @apply absolute left-1/2 inline-flex min-h-0 -translate-x-1/2 translate-y-1/2 items-center rounded-full border border-[#d4d4d8] bg-[#fff] px-2.5 py-0.5 text-[11px] leading-5 font-semibold text-[#62646c] shadow-none hover:border-red-300 hover:bg-red-50 hover:text-red-700;
+    bottom: calc(18mm + 19px); font-family: var(--font-anuphan), system-ui, sans-serif;
   }
 
   /* ป้ายข้อมูลจากระบบในเอกสาร ลบได้ทั้งก้อน กดแก้ข้างในไม่ได้ */
