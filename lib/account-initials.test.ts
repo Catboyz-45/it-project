@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountInitials } from "@/lib/account-initials";
+import { accountInitials, firstInitial } from "@/lib/account-initials";
 
 describe("account initials", () => {
   // สระหน้าอย่าง ใ เ แ ไม่ใช่ตัวแรกที่คนใช้จำชื่อ จึงข้ามไปเอาพยัญชนะ
@@ -26,5 +26,13 @@ describe("account initials", () => {
 
   it("falls back to a question mark for an empty name", () => {
     expect(accountInitials("   ")).toBe("?");
+  });
+
+  // วงกลมตัวอักษรเดียวต้องข้ามสระหน้าเหมือนกัน ไม่งั้น "เจ้าของหอ" ได้วงกลมที่มีแค่ "เ"
+  it("gives one consonant for single-letter avatars", () => {
+    expect(firstInitial("เจ้าของหอ โรบอท")).toBe("จ้");
+    expect(firstInitial("ใจดี")).toBe("จ");
+    expect(firstInitial("nestly admin")).toBe("N");
+    expect(firstInitial("   ")).toBe("?");
   });
 });

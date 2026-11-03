@@ -3,7 +3,8 @@
 // สถานะและฟอร์มทั้งหมดในหมวดนี้เป็นเรื่องภายในของตัวเอง หน้าตั้งค่าหอไม่ต้องรู้ด้วย
 
 import { useState } from "react";
-import { CheckCircle2, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
+import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
@@ -76,38 +77,26 @@ export function AccountSettingsSection({
   };
 
   return <div className="account-content">
-    <section className="account-content-section">
-      <h2>ข้อมูลบัญชี</h2>
-      <div className="account-detail-row">
-        <strong>ชื่อที่แสดง</strong>
-        <span>{profileName}</span>
-        <button onClick={() => { setProfileState(null); setIsProfileEditorOpen(true); }} type="button">แก้ไข</button>
-      </div>
-      <div className="account-detail-row">
-        <strong>อีเมล</strong>
-        <span>{accountEmail}</span>
-        <small>จัดการโดยแอดมินใหญ่</small>
-      </div>
+    <AccountProfileCard email={accountEmail} name={profileName} roleLabel="เจ้าของหอ" />
+
+    <AccountCard description="ชื่อนี้แสดงในระบบและในข้อความถึงผู้เช่า" title="ข้อมูลบัญชี">
+      <AccountRow
+        action={<button className="secondary-button" onClick={() => { setProfileState(null); setIsProfileEditorOpen(true); }} type="button">แก้ไข</button>}
+        label="ชื่อที่แสดง"
+        value={profileName}
+      />
+      <AccountRow hint="เปลี่ยนได้โดยแอดมินใหญ่" label="อีเมลสำหรับเข้าสู่ระบบ" locked value={accountEmail} />
       <FormMessage state={profileState} />
-    </section>
+    </AccountCard>
 
-    <section className="account-content-section">
-      <h2>รหัสผ่านและความปลอดภัย</h2>
-      <div className="account-detail-row">
-        <strong>รหัสผ่าน</strong>
-        <span>••••••••••••</span>
-        <button onClick={() => { setPasswordState(null); setIsPasswordEditorOpen(true); }} type="button">แก้ไข</button>
-      </div>
-    </section>
-
-    <section className="account-content-section">
-      <h2>สถานะบัญชี</h2>
-      <div className="account-standing-row">
-        <span><CheckCircle2 size={22} /></span>
-        <div><strong>บัญชีของคุณพร้อมใช้งาน</strong><p>บัญชีเปิดใช้งานตามปกติและยังไม่พบปัญหาด้านความปลอดภัย</p></div>
-        <ChevronRight size={20} />
-      </div>
-    </section>
+    <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
+      <AccountRow
+        action={<button className="secondary-button" onClick={() => { setPasswordState(null); setIsPasswordEditorOpen(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
+        hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+        label="รหัสผ่าน"
+        value="••••••••••••"
+      />
+    </AccountCard>
 
     <PrivacyPreferencesPanel />
 

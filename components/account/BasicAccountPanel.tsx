@@ -2,7 +2,8 @@
 // เก็บค่าที่กรอกและส่งคำขอจากเบราว์เซอร์
 
 import { SyntheticEvent, useState } from "react";
-import { CheckCircle2, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
+import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -14,7 +15,7 @@ import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 type Message = { message: string; tone: "error" | "success" } | null;
 
 // หน้าบัญชีแบบย่อ ใช้กับผู้เช่าและผู้ดูแลระบบ ที่ไม่มีหน้าตั้งค่าหอพักเต็มรูปแบบ
-export function BasicAccountPanel({ displayName: initialDisplayName, email }: Readonly<{ displayName: string; email: string }>) {
+export function BasicAccountPanel({ displayName: initialDisplayName, email, roleLabel }: Readonly<{ displayName: string; email: string; roleLabel: string }>) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
   // แก้บนสำเนา ชื่อจริงบนหน้าจะเปลี่ยนเมื่อบันทึกสำเร็จเท่านั้น
   const [draftName, setDraftName] = useState(initialDisplayName);
@@ -79,35 +80,27 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email }: Re
   };
 
   return <div className="account-content">
-    <section className="account-content-section">
-      <h2>ข้อมูลบัญชี</h2>
-      <div className="account-detail-row">
-        <strong>ชื่อที่แสดง</strong><span>{displayName}</span>
-        {/* ตั้งค่าสำเนาใหม่ทุกครั้งที่เปิด กันค่าที่แก้ค้างจากรอบก่อนที่กดยกเลิกไป */}
-        <button onClick={() => { setDraftName(displayName); setProfileMessage(null); setIsEditingProfile(true); }} type="button">แก้ไข</button>
-      </div>
-      <div className="account-detail-row">
-        <strong>อีเมล</strong><span>{email}</span><small>ใช้สำหรับเข้าสู่ระบบ</small>
-      </div>
+    <AccountProfileCard email={email} name={displayName} roleLabel={roleLabel} />
+
+    <AccountCard description="ชื่อนี้แสดงในระบบและประวัติการดำเนินการ" title="ข้อมูลบัญชี">
+      <AccountRow
+        // ตั้งค่าสำเนาใหม่ทุกครั้งที่เปิด กันค่าที่แก้ค้างจากรอบก่อนที่กดยกเลิกไป
+        action={<button className="secondary-button" onClick={() => { setDraftName(displayName); setProfileMessage(null); setIsEditingProfile(true); }} type="button">แก้ไข</button>}
+        label="ชื่อที่แสดง"
+        value={displayName}
+      />
+      <AccountRow label="อีเมลสำหรับเข้าสู่ระบบ" locked value={email} />
       {profileMessage ? <ProfileMessage message={profileMessage.message} tone={profileMessage.tone} /> : null}
-    </section>
+    </AccountCard>
 
-    <section className="account-content-section">
-      <h2>รหัสผ่านและความปลอดภัย</h2>
-      <div className="account-detail-row">
-        <strong>รหัสผ่าน</strong><span>••••••••••••</span>
-        <button onClick={() => { setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordMessage(null); setIsEditingPassword(true); }} type="button">แก้ไข</button>
-      </div>
-    </section>
-
-    <section className="account-content-section">
-      <h2>สถานะบัญชี</h2>
-      <div className="account-standing-row">
-        <span><CheckCircle2 size={22} /></span>
-        <div><strong>บัญชีของคุณพร้อมใช้งาน</strong><p>บัญชีเปิดใช้งานตามปกติและยังไม่พบปัญหาด้านความปลอดภัย</p></div>
-        <ChevronRight aria-hidden="true" size={20} />
-      </div>
-    </section>
+    <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
+      <AccountRow
+        action={<button className="secondary-button" onClick={() => { setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordMessage(null); setIsEditingPassword(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
+        hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+        label="รหัสผ่าน"
+        value="••••••••••••"
+      />
+    </AccountCard>
 
     <PrivacyPreferencesPanel />
 

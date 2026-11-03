@@ -10,7 +10,7 @@ export default async function SuperAdminAccountPage() {
   return <>
     <SuperAdminPageHeader description="จัดการข้อมูลบัญชี รหัสผ่าน และความปลอดภัยของคุณ" title="บัญชีของฉัน" />
     <section className="super-admin-account-page">
-      <BasicAccountPanel displayName={auth.displayName} email={auth.email} />
+      <BasicAccountPanel displayName={auth.displayName} email={auth.email} roleLabel="ผู้ดูแลระบบ" />
     </section>
   </>;
 }

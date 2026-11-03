@@ -14,6 +14,13 @@ function firstLetterOf(word: string) {
   return graphemesOf(word.replace(leadingThaiVowels, ""))[0] ?? word[0];
 }
 
+// ตัวอักษรเดียวของชื่อ ใช้ในวงกลมเล็ก ๆ อย่างรายชื่อผู้เช่า "เจ้าของหอ" ได้ "จ้" ไม่ใช่ "เ"
+export function firstInitial(name: string) {
+  const word = name.trim();
+  if (!word) return "?";
+  return firstLetterOf(word).toLocaleUpperCase("th");
+}
+
 // ตัวย่อชื่อ ชื่อสองคำเอาตัวแรกของแต่ละคำ เช่น "สมชาย ใจดี" ได้ "สจ"
 // ชื่อไทยคำเดียวเอาตัวแรกตัวเดียว เพราะสองพยางค์แรกมักอ่านเป็นคำที่ความหมายเพี้ยน
 // เช่น "ผู้ดูแลระบบ" ถ้าเอาสองตัวจะได้ "ผู้ดู" ส่วนชื่ออังกฤษคำเดียวยังเอาสองตัว เช่น "nestly" ได้ "NE"

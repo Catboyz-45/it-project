@@ -2,7 +2,14 @@
 
 // แผงตั้งค่าความเป็นส่วนตัว ใช้ร่วมกันได้ทุกบทบาทเพราะทำงานกับบัญชีตัวเองเท่านั้น
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Cookie, ExternalLink, FileText, ShieldCheck } from "lucide-react";
+import { AccountCard } from "@/components/account/AccountLayout";
+
+const legalDocuments = [
+  { href: "/legal/terms", icon: FileText, label: "ข้อกำหนดการใช้บริการ" },
+  { href: "/legal/privacy", icon: ShieldCheck, label: "ประกาศความเป็นส่วนตัว" },
+  { href: "/legal/cookies", icon: Cookie, label: "นโยบายคุกกี้" },
+];
 
 // รูปของข้อมูลที่ API ส่งกลับมา วันที่เป็นสตริงเพราะผ่าน JSON มา
 type Preferences = {
@@ -51,24 +58,28 @@ export function PrivacyPreferencesPanel() {
     }
   }
 
-  return <section className="account-content-section privacy-preferences-panel">
-    <h2>ความเป็นส่วนตัวและข้อตกลง</h2>
-    <div className="legal-document-summary">
-      <ShieldCheck aria-hidden="true" />
-      <div><strong>เอกสารที่ใช้งานอยู่</strong><p><a href="/legal/terms">ข้อกำหนดการใช้บริการ</a> · <a href="/legal/privacy">ประกาศความเป็นส่วนตัว</a> · <a href="/legal/cookies">นโยบายคุกกี้</a></p></div>
-    </div>
-    <label className="legal-preference-toggle">
-      <span><strong>ข่าวสารและคำแนะนำจาก Nestly</strong><small>ไม่บังคับและถอนความยินยอมได้ทุกเมื่อ</small></span>
+  return <AccountCard description="เอกสารที่ใช้กับบัญชีนี้ และการรับข่าวสาร" title="ความเป็นส่วนตัว">
+    {legalDocuments.map(({ href, icon: Icon, label }) => (
+      <a className="account-link-row" href={href} key={href}>
+        <Icon aria-hidden="true" size={18} />
+        <span>{label}</span>
+        <ExternalLink aria-hidden="true" size={15} />
+      </a>
+    ))}
+    <label className="account-row account-switch-row">
+      <span className="account-row-text"><strong>ข่าวสารและคำแนะนำจาก Nestly</strong><small>ไม่บังคับ ปิดได้ทุกเมื่อ</small></span>
       <input
         aria-label="รับข่าวสารและคำแนะนำจาก Nestly"
         checked={preferences?.marketing.enabled ?? false}
+        className="account-switch"
         // ปิดสวิตช์ระหว่างที่ยังโหลดไม่เสร็จหรือกำลังบันทึก กันการกดรัว
         disabled={!preferences || pending}
         onChange={(event) => void updateMarketing(event.target.checked)}
+        role="switch"
         type="checkbox"
       />
     </label>
     {/* output ประกาศผลแบบ polite ให้เอง โปรแกรมอ่านหน้าจอจึงบอกผลโดยไม่ตัดจังหวะที่ผู้ใช้กำลังทำอยู่ */}
     {message ? <output className="account-settings-message block">{message}</output> : null}
-  </section>;
+  </AccountCard>;
 }

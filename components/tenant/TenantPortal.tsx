@@ -17,7 +17,6 @@ import {
   Clock3,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   FileText,
   Home,
   LoaderCircle,
@@ -62,6 +61,7 @@ import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primit
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
+import { AccountCard, AccountProfileCard, AccountRow } from "@/components/account/AccountLayout";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
 import { listAnnouncement } from "@/components/tenant/LoadMoreList";
@@ -736,28 +736,31 @@ function AccountPanel({
 
   return <div className="tenant-account-page">
     <div className="account-content">
-      <section className="account-content-section">
-        <h2>ข้อมูลบัญชี</h2>
-        <div className="account-detail-row"><strong>ชื่อ-นามสกุล</strong><span>{account.user.displayName}</span><button aria-label="แก้ไขชื่อ เบอร์โทร ที่อยู่ และผู้ติดต่อฉุกเฉิน" onClick={() => { setProfileError(""); setIsEditingProfile(true); }} type="button">แก้ไขข้อมูล</button></div>
-        <div className="account-detail-row"><strong>อีเมล</strong><span>{account.user.email}</span><small>จัดการโดยผู้ดูแลหอพัก</small></div>
-        <div className="account-detail-row"><strong>เบอร์โทรศัพท์</strong><span>{formatThaiPhone(account.phone) || "ยังไม่ระบุ"}</span><small>ใช้สำหรับการติดต่อ</small></div>
-        <div className="account-detail-row"><strong>ที่อยู่</strong><span>{account.address || "ยังไม่ระบุ"}</span><small>ข้อมูลส่วนตัว</small></div>
-        <div className="account-detail-row"><strong>ผู้ติดต่อฉุกเฉิน</strong><span>{account.emergencyName || "ยังไม่ระบุ"}</span><small>{formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"}</small></div>
+      <AccountProfileCard email={account.user.email} name={account.user.displayName} roleLabel="ผู้เช่า" />
+
+      <AccountCard description="ใช้ติดต่อคุณ และติดต่อคนใกล้ชิดในกรณีฉุกเฉิน" title="ข้อมูลส่วนตัว">
+        <AccountRow
+          action={<button aria-label="แก้ไขชื่อ เบอร์โทร ที่อยู่ และผู้ติดต่อฉุกเฉิน" className="secondary-button" onClick={() => { setProfileError(""); setIsEditingProfile(true); }} type="button">แก้ไขข้อมูล</button>}
+          label="ชื่อ-นามสกุล"
+          value={account.user.displayName}
+        />
+        <AccountRow hint="เปลี่ยนได้โดยผู้ดูแลหอพัก" label="อีเมลสำหรับเข้าสู่ระบบ" locked value={account.user.email} />
+        <AccountRow label="เบอร์โทรศัพท์" value={formatThaiPhone(account.phone) || "ยังไม่ระบุ"} />
+        <AccountRow label="ที่อยู่" value={account.address || "ยังไม่ระบุ"} />
+        <AccountRow hint={formatThaiPhone(account.emergencyPhone) || "ยังไม่ระบุเบอร์"} label="ผู้ติดต่อฉุกเฉิน" value={account.emergencyName || "ยังไม่ระบุ"} />
         {profileError ? <p className="account-settings-message error" role="alert">{profileError}</p> : null}
-      </section>
+      </AccountCard>
 
-      <section className="account-content-section">
-        <h2>รหัสผ่านและความปลอดภัย</h2>
-        <div className="account-detail-row"><strong>รหัสผ่าน</strong><span>••••••••••••</span><button onClick={() => { setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordError(""); setIsEditingPassword(true); }} type="button">แก้ไข</button></div>
-      </section>
+      <AccountCard description="ใช้รหัสผ่านที่เดายากและไม่ซ้ำกับเว็บอื่น" title="ความปลอดภัย">
+        <AccountRow
+          action={<button className="secondary-button" onClick={() => { setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" }); setPasswordError(""); setIsEditingPassword(true); }} type="button">เปลี่ยนรหัสผ่าน</button>}
+          hint="เปลี่ยนแล้วระบบจะออกจากระบบทุกอุปกรณ์"
+          label="รหัสผ่าน"
+          value="••••••••••••"
+        />
+      </AccountCard>
 
-      <section className="account-content-section">
-        <h2>สถานะบัญชี</h2>
-        <div className="account-standing-row"><span><CheckCircle2 size={22} /></span><div><strong>บัญชีของคุณพร้อมใช้งาน</strong><p>บัญชีผู้เช่าเปิดใช้งานตามปกติและเข้าถึงข้อมูลตามสิทธิ์ของคุณ</p></div><ChevronRight aria-hidden="true" size={20} /></div>
-      </section>
-
-      <section className="account-content-section">
-        <h2>การเข้าพักของฉัน</h2>
+      <AccountCard description="ห้องที่คุณเคยและกำลังเข้าพัก" title="การเข้าพักของฉัน">
         <div className="account-occupancy-list">
         {account.occupancies.length ? account.occupancies.map((occupancy) => <article className="account-occupancy-row" key={occupancy.id}>
           <div>
@@ -771,10 +774,10 @@ function AccountPanel({
           <span className="badge">{occupancyLabels[occupancy.status]}</span>
         </article>) : <Empty description="เมื่อเจ้าของหอเพิ่มคุณเข้าห้องแล้ว ข้อมูลห้องและบริการจะแสดงที่นี่" icon={<Home />} text="ยังไม่มีข้อมูลการเข้าพัก" />}
         </div>
-        <div className="mt-5 border-t border-[#e4e4e7] pt-5">
+        <div className="account-card-footer">
         <AcceptInvitationForm onAccepted={refreshAccount} />
         </div>
-      </section>
+      </AccountCard>
       <PrivacyPreferencesPanel />
     </div>
 
