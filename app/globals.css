@@ -848,8 +848,8 @@
   .contract-table { --contract-actions-width: 56px; }
   .contract-table.has-next-steps { --contract-actions-width: 216px; }
   .contract-table .figma-table-head, .contract-table .figma-table-row {
-    grid-template-columns: minmax(150px,1fr) minmax(56px,.4fr) minmax(120px,.9fr) minmax(88px,.6fr) minmax(190px,1.1fr) minmax(112px,.6fr) var(--contract-actions-width);
-    min-width: calc(836px + var(--contract-actions-width));
+    grid-template-columns: minmax(140px,1fr) minmax(48px,.4fr) minmax(110px,.9fr) minmax(80px,.6fr) minmax(190px,1.1fr) minmax(104px,.6fr) var(--contract-actions-width);
+    min-width: calc(792px + var(--contract-actions-width));
   }
   /* ปุ่มชิดซ้ายตรงหัวคอลัมน์ "จัดการ" และคอลัมน์กว้างคงที่ ปุ่มจะได้อยู่ใกล้ข้อมูลในแถว ไม่ลอยไปขอบขวา */
   .contract-table .contract-actions { @apply flex-nowrap justify-start gap-2; }
