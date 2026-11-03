@@ -7032,6 +7032,103 @@
         }
       }
     },
+    "/api/v1/admin/properties/{propertyId}/ticket-inbox": {
+      "get": {
+        "operationId": "getAdminPropertiesByPropertyIdTicketInbox",
+        "summary": "GET /api/v1/admin/properties/{propertyId}/ticket-inbox",
+        "description": "Implementation: app/api/v1/admin/properties/[propertyId]/ticket-inbox/route.ts",
+        "tags": [
+          "Properties"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PropertyId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TicketInboxItem"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "ticket_01",
+                      "type": "REPAIR",
+                      "title": "แอร์ไม่เย็น",
+                      "detail": "เปิดแล้วมีแต่ลม",
+                      "status": "ACKNOWLEDGED",
+                      "isAnonymous": false,
+                      "createdAt": "2026-07-28T09:00:00.000Z",
+                      "updatedAt": "2026-07-28T09:30:00.000Z",
+                      "lastActivityAt": "2026-07-28T11:00:00.000Z",
+                      "roomNumber": "A101",
+                      "tenantName": "สมชาย ใจดี",
+                      "lastMessage": {
+                        "body": "ช่างเข้าได้กี่โมงครับ",
+                        "fromSelf": false,
+                        "hasAttachment": false
+                      },
+                      "hasUnread": true,
+                      "attachments": [
+                        {
+                          "id": "attachment_01",
+                          "fileName": "air.jpg",
+                          "mimeType": "image/jpeg"
+                        }
+                      ],
+                      "statusEvents": [
+                        {
+                          "id": "event_01",
+                          "toValue": "ACKNOWLEDGED",
+                          "createdAt": "2026-07-28T09:30:00.000Z"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/v1/admin/properties/{propertyId}/tickets": {
       "get": {
         "operationId": "listServiceTickets",
@@ -11851,6 +11948,98 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/v1/tenant/ticket-inbox": {
+      "get": {
+        "operationId": "getTenantTicketInbox",
+        "summary": "GET /api/v1/tenant/ticket-inbox",
+        "description": "Implementation: app/api/v1/tenant/ticket-inbox/route.ts",
+        "tags": [
+          "Tenant Portal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TicketInboxItem"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "ticket_01",
+                      "type": "REPAIR",
+                      "title": "แอร์ไม่เย็น",
+                      "detail": "เปิดแล้วมีแต่ลม",
+                      "status": "ACKNOWLEDGED",
+                      "isAnonymous": false,
+                      "createdAt": "2026-07-28T09:00:00.000Z",
+                      "updatedAt": "2026-07-28T09:30:00.000Z",
+                      "lastActivityAt": "2026-07-28T11:00:00.000Z",
+                      "roomNumber": "A101",
+                      "tenantName": "สมชาย ใจดี",
+                      "lastMessage": {
+                        "body": "ช่างเข้าได้กี่โมงครับ",
+                        "fromSelf": false,
+                        "hasAttachment": false
+                      },
+                      "hasUnread": true,
+                      "attachments": [
+                        {
+                          "id": "attachment_01",
+                          "fileName": "air.jpg",
+                          "mimeType": "image/jpeg"
+                        }
+                      ],
+                      "statusEvents": [
+                        {
+                          "id": "event_01",
+                          "toValue": "ACKNOWLEDGED",
+                          "createdAt": "2026-07-28T09:30:00.000Z"
+                        }
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -16826,6 +17015,168 @@
                 "type": "null"
               }
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "TicketInboxItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "detail",
+          "status",
+          "isAnonymous",
+          "createdAt",
+          "updatedAt",
+          "lastActivityAt",
+          "roomNumber",
+          "tenantName",
+          "lastMessage",
+          "hasUnread",
+          "attachments",
+          "statusEvents"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "enum": [
+              "REPAIR",
+              "COMPLAINT"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "IN_PROGRESS",
+              "RESOLVED",
+              "CANCELLED"
+            ]
+          },
+          "isAnonymous": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "roomNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tenantName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastMessage": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "body",
+                  "fromSelf",
+                  "hasAttachment"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  },
+                  "fromSelf": {
+                    "type": "boolean"
+                  },
+                  "hasAttachment": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hasUnread": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "fileName",
+                "mimeType"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fileName": {
+                  "type": "string"
+                },
+                "mimeType": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "statusEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "toValue",
+                "createdAt"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "toValue": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false
