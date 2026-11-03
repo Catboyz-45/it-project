@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDatabase } from "@/lib/server/db";
-import { createLease, getLease, getSignedLeaseKey, listLeases } from "@/lib/server/leases";
+import { createLease, listLeaseRoomOptions, getLease, getSignedLeaseKey, listLeases } from "@/lib/server/leases";
 import { cleanupIntegrationFixture, createIntegrationFixture } from "./helpers";
 
 let fixture: Awaited<ReturnType<typeof createIntegrationFixture>> | undefined;
@@ -82,7 +82,29 @@ describe("lease service", () => {
       ...leaseInput(),
       templateId: ownTemplateId,
     });
-    expect(lease.leaseNumber).toContain(fixture!.room.number);
+    // เลขสัญญาเรียงตามปี พ.ศ. ของวันเริ่มสัญญา อ่านง่ายกว่าเลขสุ่ม
+    const buddhistYear = new Date(lease.startDate).getUTCFullYear() + 543;
+    expect(lease.leaseNumber).toBe(`CTR-${buddhistYear}-0001`);
+  });
+
+  // ฉบับถัดไปของปีเดียวกันต้องได้เลขต่อกัน และช่องเลือกห้องต้องบอกได้ว่าห้องไหนมีฉบับร่างหรือสัญญาค้างอยู่
+  it("numbers leases in sequence and reports each room's lease state", async () => {
+    const second = await createLease(fixture!.property.id, fixture!.owner.id, leaseInput());
+    const buddhistYear = new Date(second.startDate).getUTCFullYear() + 543;
+    expect(second.leaseNumber).toBe(`CTR-${buddhistYear}-0002`);
+
+    const [option] = (await listLeaseRoomOptions(fixture!.property.id)).filter((item) => item.roomId === fixture!.room.id);
+    expect(option).toMatchObject({ roomNumber: fixture!.room.number, liveLease: null });
+    expect(option.tenantName).toBeTruthy();
+    expect(option.draftLeaseNumber).toMatch(/^CTR-\d{4}-\d{4}$/);
+
+    await getDatabase().lease.update({ where: { id: second.id }, data: { status: "PENDING_SIGNATURE" } });
+    const [blocked] = (await listLeaseRoomOptions(fixture!.property.id)).filter((item) => item.roomId === fixture!.room.id);
+    expect(blocked.liveLease).toMatchObject({ leaseNumber: second.leaseNumber, status: "PENDING_SIGNATURE" });
+    // ห้องของอีกหอต้องไม่โผล่มาในรายการ
+    const otherRooms = await listLeaseRoomOptions(fixture!.otherProperty.id);
+    expect(otherRooms.some((item) => item.roomId === fixture!.room.id)).toBe(false);
+    await getDatabase().lease.delete({ where: { id: second.id } });
   });
 
   // ห้องหนึ่งมีสัญญาที่ใช้งานอยู่ได้ฉบับเดียว ต้องปิดของเดิมก่อนหรือใช้การต่ออายุแทน

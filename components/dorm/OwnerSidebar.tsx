@@ -138,8 +138,14 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
     setIsOpen(false);
     // สลับหอพักต้องโหลดใหม่ทั้งหน้าโดยตั้งใจ เพื่อทิ้ง state และแคชข้อมูลของหอเดิมให้หมด
     // ไม่ใช้ router.push() ที่จะพาข้อมูลข้ามหอพักติดไปด้วย
+    // อยู่หน้าไหนก็ไปหน้าเดียวกันของหอใหม่ เช่นหน้าสัญญาไปหน้าสัญญา ไม่เด้งกลับแดชบอร์ดทุกครั้ง
+    // เก็บแค่ชื่อหน้า ไม่เอา id ของรายการลึกกว่านั้นติดไป เพราะเป็นของหอเดิม (มิเตอร์มีสองระดับ เช่น meters/water)
+    if (id === propertyId) return;
+    const prefix = `/admin/properties/${propertyId}/`;
+    const segments = window.location.pathname.startsWith(prefix) ? window.location.pathname.slice(prefix.length).split("/") : [];
+    const section = segments[0] === "meters" ? segments.slice(0, 2).join("/") : segments[0] ?? "";
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    if (id !== propertyId) window.location.assign(`/admin/properties/${id}`);
+    window.location.assign(`/admin/properties/${id}${section ? `/${section}` : ""}`);
   };
 
   return <div className="sidebar-property">

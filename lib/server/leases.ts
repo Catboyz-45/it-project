@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { leaseStatusTransitions } from "@/lib/domain/enums";
 import type { CreateLeaseInput, RenewLeaseInput, TransitionLeaseInput, UpdateLeaseInput } from "@/lib/domain/leases";
@@ -27,6 +26,56 @@ const serialize = <T extends { monthlyRent: { toString(): string }; depositAmoun
   monthlyRent: lease.monthlyRent.toString(),
   depositAmount: lease.depositAmount.toString(),
 });
+
+// สถานะที่ถือว่าห้องมีสัญญาค้างอยู่ ห้องหนึ่งมีสัญญาที่มีผลหรือรอลงนามได้ทีละฉบับ
+const liveLeaseStatuses = ["PENDING_SIGNATURE", "ACTIVE", "EXPIRING"] as const;
+
+// เลขสัญญาเรียงต่อกันในแต่ละปี พ.ศ. ของวันเริ่มสัญญา เช่น CTR-2569-0001 อ่านออกเสียงและอ้างถึงได้ง่าย
+// แทนเลขสุ่มยาว ๆ แบบเดิม เรียกภายใน transaction แบบ Serializable และมี unique (propertyId, leaseNumber) กันเลขชนอีกชั้น
+async function nextLeaseNumber(database: Prisma.TransactionClient, propertyId: string, startDate: Date) {
+  const prefix = `CTR-${startDate.getUTCFullYear() + 543}-`;
+  const latest = await database.lease.findFirst({
+    where: { propertyId, leaseNumber: { startsWith: prefix } },
+    orderBy: { leaseNumber: "desc" },
+    select: { leaseNumber: true },
+  });
+  const latestSequence = Number(latest?.leaseNumber.slice(prefix.length));
+  const sequence = Number.isInteger(latestSequence) ? latestSequence + 1 : 1;
+  return `${prefix}${String(sequence).padStart(4, "0")}`;
+}
+
+// ห้องที่มีผู้เช่าหลักอยู่ พร้อมชื่อผู้เช่าและสัญญาที่ค้างอยู่ ใช้เติมช่องเลือกห้องในฟอร์มสร้างสัญญา
+// ผู้ใช้จะเห็นก่อนกรอกว่าห้องไหนทำสัญญาใหม่ได้ แทนที่จะกรอกครบแล้วค่อยโดนปฏิเสธ
+export async function listLeaseRoomOptions(propertyId: string) {
+  const occupancies = await getDatabase().roomOccupancy.findMany({
+    where: { propertyId, role: "PRIMARY", status: "ACTIVE" },
+    orderBy: { room: { number: "asc" } },
+    select: {
+      room: {
+        select: {
+          id: true,
+          number: true,
+          leases: {
+            where: { status: { in: ["DRAFT", ...liveLeaseStatuses] } },
+            orderBy: { startDate: "asc" },
+            select: { leaseNumber: true, status: true, endDate: true },
+          },
+        },
+      },
+      tenantProfile: { select: { user: { select: { displayName: true } } } },
+    },
+  });
+  return occupancies.map(({ room, tenantProfile }) => {
+    const live = room.leases.find((lease) => (liveLeaseStatuses as readonly string[]).includes(lease.status));
+    return {
+      roomId: room.id,
+      roomNumber: room.number,
+      tenantName: tenantProfile.user.displayName,
+      liveLease: live ? { leaseNumber: live.leaseNumber, status: live.status, endDate: live.endDate } : null,
+      draftLeaseNumber: room.leases.find((lease) => lease.status === "DRAFT")?.leaseNumber ?? null,
+    };
+  });
+}
 
 export async function listLeases(propertyId: string, pagination: PaginationInput, query?: string) {
   const normalizedQuery = query?.trim();
@@ -72,7 +121,7 @@ export async function createLease(propertyId: string, userId: string, input: Cre
     // ต้องมีผู้เช่าหลักก่อน เพราะสัญญาต้องมีชื่อคนเซ็น
     if (!occupancy) throw new ApiError(409, "ห้องต้องมีผู้เช่าหลักที่อนุมัติแล้ว");
     const live = await database.lease.count({
-      where: { roomId: input.roomId, status: { in: ["PENDING_SIGNATURE", "ACTIVE", "EXPIRING"] } },
+      where: { roomId: input.roomId, status: { in: [...liveLeaseStatuses] } },
     });
     // ห้องหนึ่งมีสัญญาที่ใช้งานอยู่ได้ฉบับเดียว ต้องปิดของเดิมก่อนหรือใช้การต่ออายุแทน
     if (live > 0) throw new ApiError(409, "ห้องนี้มีสัญญาที่ใช้งานอยู่");
@@ -80,7 +129,7 @@ export async function createLease(propertyId: string, userId: string, input: Cre
       const template = await database.documentTemplate.count({ where: { id: input.templateId, propertyId, kind: "CONTRACT" } });
       if (!template) throw new ApiError(400, "Template สัญญาไม่ถูกต้อง");
     }
-    const leaseNumber = `CTR-${new Date().getFullYear()}-${occupancy.room.number}-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const leaseNumber = await nextLeaseNumber(database, propertyId, input.startDate);
     const snapshot = {
       leaseNumber, roomNumber: occupancy.room.number,
       tenantProfileId: occupancy.tenantProfile.id,
@@ -139,7 +188,7 @@ export async function renewLease(propertyId: string, sourceLeaseId: string, user
     });
     // เช็คซ้อนทับกับทุกสัญญาของห้อง ไม่ใช่แค่ฉบับที่กำลังต่อ เผื่อมีฉบับอื่นค้างอยู่
     if (overlapping > 0) throw new ApiError(409, "ช่วงวันที่นี้ซ้อนกับสัญญาอื่นของห้อง");
-    const leaseNumber = `CTR-${input.startDate.getFullYear()}-${source.room.number}-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const leaseNumber = await nextLeaseNumber(database, propertyId, input.startDate);
     const snapshot = {
       leaseNumber,
       renewedFromLeaseId: source.id,

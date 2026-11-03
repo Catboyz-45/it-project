@@ -62,12 +62,10 @@ test("switching property shows the other property without refetching", async ({ 
 
   await page.locator(".sidebar-property > button").first().click();
   await page.getByRole("menuitem", { name: /E2E ฮาเฮ/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.secondPropertyId}$`));
-  await page.waitForLoadState("networkidle");
-  expect(calls).toHaveLength(0);
+  // สลับหอแล้วยังอยู่หน้าห้องพักเหมือนเดิม ไม่เด้งกลับไปแดชบอร์ด
+  await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.secondPropertyId}/rooms$`));
 
   // ห้องที่เห็นต้องเป็นของหอใหม่ล้วน ๆ ไม่มีของหอเดิมค้างมาจาก state ชุดเก่า
-  await page.goto(`/admin/properties/${e2e.secondPropertyId}/rooms`);
   await expect(page.getByRole("button", { name: /F201/ }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /E101/ })).toHaveCount(0);
   await page.waitForLoadState("networkidle");

@@ -16,7 +16,7 @@ const ownerTables = [
   // หน้าผังห้องเปิดมาเป็นการ์ด ต้องสลับไปมุมมองตารางก่อน
   { columns: 8, needsTableView: true, path: "/rooms", title: "ผังห้องพัก" },
   { columns: 7, path: "/tenants", title: "ผู้เช่า" },
-  { columns: 8, path: "/contracts", title: "สัญญาเช่า" },
+  { columns: 7, path: "/contracts", title: "สัญญาเช่า" },
   { columns: 9, path: "/invoices", title: "บิล" },
   { columns: 6, path: "/parcels", title: "พัสดุ" },
   { columns: 8, path: "/meters/water", title: "มิเตอร์น้ำ" },

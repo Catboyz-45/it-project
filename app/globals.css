@@ -625,6 +625,8 @@
   .topbar { @apply mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-[#e4e4e7] px-6 pt-7 pb-5; }
   /* ช่องที่หน้าย่อยฝากปุ่มของตัวเองขึ้นมา ยุบหายไปเลยเมื่อหน้านั้นไม่มีปุ่ม */
   .page-header-slot { @apply flex flex-wrap items-center gap-2; }
+  /* ปุ่มในหัวหน้าถูกวางลงมาหลังหน้าโหลดเสร็จ ค่อย ๆ จางเข้ามาแทนการโผล่พรวด */
+  .page-header-slot > * { animation: page-header-slot-enter 180ms ease-out both; }
   .page-header-slot:empty { @apply hidden; }
   /* ข้อความอธิบายปุ่มที่กดไม่ได้ ต้องไม่ดันความสูงของแถบหัวเรื่อง */
   .page-header-slot .disabled-action { @apply items-end; }
@@ -843,11 +845,30 @@
   .muted-cell { @apply flex items-center gap-2 text-[#62646c]; }
   .tenant-table .figma-table-head > :last-child,
   .tenant-table .figma-table-row > :last-child { @apply flex items-center justify-center text-center; }
+  .contract-table { --contract-actions-width: 56px; }
+  .contract-table.has-next-steps { --contract-actions-width: 216px; }
   .contract-table .figma-table-head, .contract-table .figma-table-row {
-    grid-template-columns: minmax(194px,1.15fr) minmax(70px,.5fr) minmax(130px,.9fr) minmax(95px,.65fr) minmax(180px,1.2fr) minmax(75px,.5fr) minmax(110px,.75fr) minmax(150px,1fr);
-    min-width: 1160px;
+    grid-template-columns: minmax(150px,1fr) minmax(56px,.4fr) minmax(120px,.9fr) minmax(88px,.6fr) minmax(190px,1.1fr) minmax(112px,.6fr) var(--contract-actions-width);
+    min-width: calc(836px + var(--contract-actions-width));
   }
-  .contract-table .contract-actions { @apply flex-nowrap justify-center; }
+  /* ปุ่มชิดซ้ายตรงหัวคอลัมน์ "จัดการ" และคอลัมน์กว้างคงที่ ปุ่มจะได้อยู่ใกล้ข้อมูลในแถว ไม่ลอยไปขอบขวา */
+  .contract-table .contract-actions { @apply flex-nowrap justify-start gap-2; }
+  /* ป้ายสถานะกับบรรทัด "มีไฟล์ลงนาม" ซ้อนกันในช่องเดียว */
+  .contract-table .figma-table-row > td:nth-child(6) { @apply flex flex-col items-start justify-center gap-1; }
+  .contract-table .contract-number-cell { @apply flex flex-col items-start justify-center gap-0.5; }
+  .contract-number-cell small { @apply text-xs font-normal text-[#62646c]; }
+  .contract-signed-note { @apply inline-flex items-center gap-1 text-xs font-medium text-emerald-700; }
+  .contract-step-button { @apply min-h-11 whitespace-nowrap px-3 py-2 text-sm lg:min-h-9; }
+  /* แถบบอกขั้นต่อไปหลังสร้างสัญญา */
+  .contract-next-notice { @apply mb-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950; }
+  .contract-next-notice > svg { @apply mt-0.5 shrink-0 text-emerald-700; }
+  .contract-next-notice > div { @apply min-w-0 flex-1; }
+  .contract-next-notice strong { @apply block font-semibold; }
+  .contract-next-notice ol { @apply mt-1 mb-0 list-decimal space-y-0.5 pl-5 text-emerald-900; }
+  .contract-next-notice > .secondary-button { @apply shrink-0 bg-[#fff]; }
+  .contract-next-notice > .icon-button { @apply size-9 shrink-0 border-0 bg-transparent text-emerald-900 shadow-none hover:bg-emerald-100; }
+  /* ฟอร์มสัญญาสั้น บนจอใหญ่ให้ปฏิทินล้นออกนอกกล่องได้ ไม่ต้องเลื่อนกล่องจนหัวฟอร์มหาย บนมือถือยังเลื่อนตามปกติ */
+  .modal.lease-form-modal { @apply lg:overflow-visible; }
   /* ต้องคง 44px ไว้ต่ำกว่า 1024px ตามสัญญา touch target ของเดิมตั้ง min-h-10 (40px)
      ทับค่าของ .primary-button จนเตี้ยกว่าเกณฑ์ */
   .contract-renew-button { @apply min-h-11 whitespace-nowrap px-3 py-2 text-sm lg:min-h-9; }
@@ -2251,6 +2272,7 @@ select:disabled {
   to { opacity: 1; transform: none; }
 }
 
+@keyframes page-header-slot-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-backdrop-enter {
   from { opacity: 0; backdrop-filter: blur(0); }
   to { opacity: 1; backdrop-filter: blur(2px); }

@@ -136,6 +136,11 @@ export const responseSchemas = {
     monthlyRent: money, depositAmount: money, currentVersion: nullableRef("LeaseVersion"),
     versions: arrayOf("LeaseVersion"), room: nullableRef("Room"), tenants: arrayOf("Tenant"),
   }),
+  LeaseRoomOption: entity(["roomId", "roomNumber", "tenantName", "liveLease", "draftLeaseNumber"], {
+    roomId: id, roomNumber: text, tenantName: text,
+    liveLease: { anyOf: [entity(["leaseNumber", "status", "endDate"], { leaseNumber: text, status: text, endDate: dateTime }), { type: "null" }] },
+    draftLeaseNumber: { anyOf: [text, { type: "null" }] },
+  }),
   LeaseVersion: entity(["id", "version"], {
     id, leaseId: id, version: { type: "integer" }, status: text, terms: text,
     createdAt: dateTime, approvedAt: { anyOf: [dateTime, { type: "null" }] },
@@ -539,6 +544,7 @@ const samples = {
   PropertyCatalogs: { roomTypes: [{ id: "standard", name: "ห้องมาตรฐาน", monthlyRent: "3500.00" }], serviceCharges: [{ id: "internet", name: "ค่าอินเทอร์เน็ต", amount: "300.00" }], furnitureOptions: [{ id: "bed", name: "เตียง" }] },
   Room: { id: "room_a101", propertyId: "prop_baan_sabai", buildingId: "bld_a", floorId: "floor_a_1", number: "A101", status: "OCCUPIED", monthlyRent: "3500.00", depositAmount: "7000.00", capacity: 2 },
   Tenant: { id: "tenant_01", firstName: "สุดา", lastName: "สุขใจ", phone: "0891234567", nationalId: "1100000000001", occupancies: [] },
+  LeaseRoomOption: { roomId: "room_a101", roomNumber: "A101", tenantName: "สุดา สุขใจ", liveLease: { leaseNumber: "CTR-2569-0001", status: "ACTIVE", endDate: "2027-07-31T00:00:00.000Z" }, draftLeaseNumber: null },
   OwnerTenantListItem: { id: "tenant_01", name: "สุดา สุขใจ", phone: "0891234567", email: "tenant@example.com", roomId: "A101", address: "", guardianName: "", guardianPhone: "", vehicleType: "", vehiclePlate: "", vehicleDetail: "", startDate: "2026-08-01", contractEnd: "2027-07-31", deposit: 7000, monthlyRent: 3500, leaseNumber: "LEASE-001", leaseStatus: "ACTIVE" },
   Invitation: { id: "invite_01", propertyId: "prop_baan_sabai", roomId: "room_a101", code: "JOIN-A101", status: "PENDING", expiresAt: "2026-08-31T16:59:59.000Z", createdAt: "2026-07-28T10:00:00.000Z" },
   Occupancy: { id: "occupancy_01", propertyId: "prop_baan_sabai", roomId: "room_a101", tenantProfileId: "tenant_01", role: "PRIMARY", status: "ACTIVE", approvedAt: "2026-07-28T10:00:00.000Z" },
@@ -870,6 +876,7 @@ const jsonSuccessRules = [
   [({ apiPath }) => apiPath.endsWith("/invoices/recalculate-overdue"), () => data("OverdueRecalculation")],
   [({ apiPath }) => apiPath.endsWith("/meter-readings/bulk"), () => data("MeterReading", true)],
   [({ apiPath }) => apiPath.endsWith("/meter-readings/{readingId}"), () => data("MeterReading")],
+  [({ apiPath }) => apiPath.endsWith("/leases/room-options"), () => data("LeaseRoomOption", true)],
   [({ apiPath }) => apiPath === "/api/v1/tenant/register", () => data("TenantRegistration")],
   [({ apiPath }) => apiPath === "/api/v1/tenant/invitations/accept", () => data("TenantInvitationAcceptance")],
   [({ apiPath }) => apiPath === "/api/v1/tenant/occupancy-selection", () => data("TenantOccupancySelection")],

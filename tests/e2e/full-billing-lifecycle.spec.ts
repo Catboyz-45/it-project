@@ -271,7 +271,8 @@ test("completes the critical tenant billing workflow through the owner and tenan
   const leaseDialog = page.getByRole("dialog", { name: "สร้างสัญญาใหม่" });
   // ช่องห้องเป็น dropdown ที่เขียนเอง ไม่ใช่ <select> ของเบราว์เซอร์ จึงต้องกดเปิดแล้วเลือก
   await leaseDialog.getByLabel("ห้อง").click();
-  await page.getByRole("option", { name: `ห้อง ${room.data.number}`, exact: true }).click();
+  // ตัวเลือกห้องบอกชื่อผู้เช่าหลักต่อท้าย ผู้ใช้จะได้รู้ว่ากำลังทำสัญญาให้ใคร
+  await page.getByRole("option", { name: new RegExp(`^ห้อง ${room.data.number} · `) }).click();
   // วันที่ในสัญญาใช้ปฏิทินที่เขียนเอง ไม่ใช่ช่องวันที่ของเบราว์เซอร์
   await pickDate(leaseDialog, page, "วันเริ่มสัญญา", leaseStart);
   await pickDate(leaseDialog, page, "วันสิ้นสุดสัญญา", leaseEnd);
