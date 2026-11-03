@@ -845,8 +845,9 @@
   }
   .figma-table-row strong { @apply font-semibold text-[#292a30]; }
   .tenant-table .figma-table-head, .tenant-table .figma-table-row {
-    grid-template-columns: minmax(184px,1.1fr) minmax(72px,.5fr) minmax(120px,.8fr) minmax(100px,.65fr) minmax(220px,1.45fr) minmax(110px,.75fr) 72px;
-    min-width: 1040px;
+    /* รวมช่องว่างและขอบแล้วต้องไม่เกิน 976px คือความกว้างการ์ดบนจอ 1280 คอลัมน์จัดการท้ายสุดจะไม่ถูกดันตกขอบ */
+    grid-template-columns: minmax(160px,1.1fr) minmax(56px,.5fr) minmax(112px,.8fr) minmax(84px,.65fr) minmax(184px,1.45fr) minmax(104px,.75fr) 80px;
+    min-width: 924px;
   }
   .tenant-table .figma-table-row { @apply w-full text-left; }
   .tenant-table .figma-table-head > :is(th, td),
@@ -857,11 +858,22 @@
   .muted-cell { @apply flex items-center gap-2 text-[#62646c]; }
   .tenant-table .figma-table-head > :last-child,
   .tenant-table .figma-table-row > :last-child { @apply flex items-center justify-center text-center; }
+  /* คอลัมน์จัดการท้ายตารางเจ้าของหอปักขอบขวา จอแท็บเล็ตที่ตารางยังล้นจะเห็นปุ่มเสมอ เหมือนคอลัมน์แรกที่ปักซ้าย */
+  :is(.tenant-table, .approval-table, .contract-table, .invoice-table) > :is(thead, tbody) > tr > :last-child {
+    @apply sticky right-0 z-[1];
+    background: inherit;
+  }
+  /* ตั้งแต่ 1280 ตารางพอดีการ์ดแล้ว ใส่เงาเฉพาะจอที่แคบกว่า ให้เห็นว่ามีเนื้อหาเลื่อนอยู่ใต้คอลัมน์ปุ่ม */
+  @media (max-width: 79.999rem) {
+    :is(.tenant-table, .approval-table, .contract-table, .invoice-table) > :is(thead, tbody) > tr > :last-child {
+      box-shadow: -8px 0 12px -10px rgba(15, 15, 15, .35);
+    }
+  }
   .contract-table { --contract-actions-width: 56px; }
   .contract-table.has-next-steps { --contract-actions-width: 216px; }
   .contract-table .figma-table-head, .contract-table .figma-table-row {
-    grid-template-columns: minmax(140px,1fr) minmax(48px,.4fr) minmax(110px,.9fr) minmax(80px,.6fr) minmax(190px,1.1fr) minmax(104px,.6fr) var(--contract-actions-width);
-    min-width: calc(792px + var(--contract-actions-width));
+    grid-template-columns: minmax(120px,1fr) minmax(48px,.4fr) minmax(100px,.9fr) minmax(76px,.6fr) minmax(168px,1.1fr) minmax(96px,.6fr) var(--contract-actions-width);
+    min-width: calc(752px + var(--contract-actions-width));
   }
   /* ปุ่มชิดซ้ายตรงหัวคอลัมน์ "จัดการ" และคอลัมน์กว้างคงที่ ปุ่มจะได้อยู่ใกล้ข้อมูลในแถว ไม่ลอยไปขอบขวา */
   .contract-table .contract-actions { @apply flex-nowrap justify-start gap-2; }
@@ -887,12 +899,12 @@
   /* ปุ่มท้ายแถวที่เปิดรายละเอียด ให้คนใช้คีย์บอร์ดมีเป้าหมายที่โฟกัสได้ ไม่ต้องกดทั้งแถว */
   .figma-row-action { @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold whitespace-nowrap text-brand transition-colors hover:bg-brand/[.08] lg:min-h-9; }
   .approval-table .figma-table-head, .approval-table .figma-table-row {
-    grid-template-columns: minmax(174px,1fr) minmax(70px,.5fr) minmax(90px,.65fr) minmax(180px,1.2fr) minmax(120px,.8fr) minmax(125px,.85fr) minmax(110px,.75fr) 110px;
-    min-width: 1120px;
+    grid-template-columns: minmax(140px,1fr) minmax(56px,.5fr) minmax(72px,.65fr) minmax(150px,1.2fr) minmax(100px,.8fr) minmax(96px,.85fr) minmax(92px,.75fr) 110px;
+    min-width: 976px;
   }
   .invoice-table .figma-table-head, .invoice-table .figma-table-row {
-    grid-template-columns: minmax(174px, 1.25fr) minmax(72px, .55fr) minmax(130px, 1fr) minmax(90px, .72fr) minmax(92px, .72fr) repeat(3, minmax(90px, .72fr)) 52px;
-    min-width: 1080px;
+    grid-template-columns: minmax(150px, 1.25fr) minmax(56px, .55fr) minmax(120px, 1fr) minmax(84px, .72fr) minmax(88px, .72fr) repeat(3, minmax(80px, .72fr)) 44px;
+    min-width: 958px;
   }
   .invoice-table .figma-table-head > :last-child,
   .invoice-table .figma-table-row > :last-child { @apply flex items-center justify-center; }
@@ -1216,20 +1228,17 @@
   .admin-resource .figma-table-wrap th,
   .admin-resource .figma-table-wrap td:first-child { @apply whitespace-nowrap; }
   .admin-resource:has([aria-expanded="true"]) { @apply overflow-visible; }
+  /* ปุ่มจัดการปักขอบขวาทุกขนาดจอ ชื่อยาวจนตารางล้นการ์ดก็ยังเห็นปุ่มโดยไม่ต้องปัดหา */
+  .admin-resource .figma-table-wrap :is(th, td):last-child { position: sticky; right: 0; z-index: 1; background: #fff; }
+  .admin-resource .figma-table-wrap th:last-child { background: #fafafa; }
   @media (max-width: 47.999rem) {
     .admin-table-search,
     .admin-table-filter,
     .admin-table-actions { flex: 1 1 100%; }
     .admin-table-actions { display: grid; gap: 0.5rem; margin-left: 0; justify-content: stretch; }
     .admin-table-export { width: 100%; }
-    /* ตารางกว้างกว่าจอต้องปัดดู ตรึงคอลัมน์สุดท้ายที่เป็นปุ่มจัดการไว้ขอบขวา ไม่ต้องปัดหาปุ่ม */
-    .admin-resource .figma-table-wrap :is(th, td):last-child {
-      position: sticky;
-      right: 0;
-      z-index: 1;
-      background: #fff;
-      box-shadow: -8px 0 12px -10px rgba(15, 15, 15, .35);
-    }
+    /* จอแคบตารางล้นแน่ ใส่เงาให้เห็นว่ามีเนื้อหาเลื่อนอยู่ใต้คอลัมน์ปุ่ม */
+    .admin-resource .figma-table-wrap :is(th, td):last-child { box-shadow: -8px 0 12px -10px rgba(15, 15, 15, .35); }
   }
 
   /* ป็อปอัพทั้งระบบใช้หน้าตาแบบ YouTube บนจอใหญ่: มุมโค้ง 12px ไม่มีเส้นขอบ ไม่มีแถบเทาท้ายกล่อง ปุ่มทรงแคปซูล

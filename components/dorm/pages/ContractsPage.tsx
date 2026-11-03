@@ -709,7 +709,8 @@ function LeaseRow({ lease, ...actions }: LeaseRowActions & Readonly<{ lease: Lea
     <td>{lease.room.number}</td>
     <td>{tenant?.displayName ?? "-"}</td>
     <td>{currency.format(Number(lease.monthlyRent))}</td>
-    <td className="muted-cell">{dateDisplay(lease.startDate)} – {dateDisplay(lease.endDate)}</td>
+    {/* ตัดบรรทัดได้แค่หลังขีด แต่ละวันที่อยู่ในบรรทัดเดียว ไม่แตกเป็น "31 ธ.ค." กับ "2569" */}
+    <td className="muted-cell flex-wrap gap-x-1 gap-y-0"><span className="whitespace-nowrap">{dateDisplay(lease.startDate)} –</span><span className="whitespace-nowrap">{dateDisplay(lease.endDate)}</span></td>
     <td>
       <em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{statusLabels[displayStatus]}</em>
       {/* บอกบนแถวเลยว่าแนบไฟล์ที่เซ็นแล้วหรือยัง ไม่ต้องเปิดเมนูเพื่อเช็ค */}

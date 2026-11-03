@@ -34,3 +34,23 @@ test("tenants page keeps export with the table and loads history without a green
   // แท็บนี้ไม่มีปุ่มส่งออก เพราะส่งออกได้เฉพาะรายชื่อผู้เช่า
   await expect(exportLink).toHaveCount(0);
 });
+
+// จอ 1280 ตารางหลักของเจ้าของหอต้องพอดีการ์ด คอลัมน์จัดการท้ายสุดต้องอยู่ในกรอบ ไม่ถูกดันตกขอบขวา
+test("owner tables fit a 1280px screen with the actions column in view", async ({ page }) => {
+  await openLoginForm(page);
+  await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
+  await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
+  await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
+  await expectLeftLoginPage(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const path of ["tenants", "tenants?tab=pending", "contracts", "invoices"]) {
+    await page.goto(`/admin/properties/${e2e.propertyId}/${path}`);
+    const wrap = page.locator(".figma-table-wrap").first();
+    await expect(wrap.locator("tbody tr").first()).toBeVisible();
+    const fit = await wrap.evaluate((element) => {
+      const last = element.querySelector("tbody tr > :last-child")!.getBoundingClientRect();
+      return { overflow: element.scrollWidth - element.clientWidth, actionsInside: last.right <= element.getBoundingClientRect().right + 1 };
+    });
+    expect(fit, path).toEqual({ overflow: 0, actionsInside: true });
+  }
+});
