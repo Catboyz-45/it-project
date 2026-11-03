@@ -111,8 +111,11 @@ export function PaymentReviewPanel({
       if (loadError instanceof DOMException && loadError.name === "AbortError") return;
       setError(formatClientError(loadError, "โหลดรายการชำระไม่สำเร็จ"));
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      // คำขอที่ถูกยกเลิกเพราะมีคำขอใหม่มาแทน ห้ามปิดสถานะโหลดของคำขอใหม่
+      if (!signal?.aborted) {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   }, [propertyId, status]);
 

@@ -89,7 +89,8 @@ export function SubscriptionAccessBanner({
 
   if (isSubscriptionExpiringSoon(aggregation)) {
     // block เพราะ output เป็น inline โดยค่าเริ่มต้น แต่แถบนี้ต้องกินความกว้างเต็มแถว
-    return <output className="form-alert block">
+    // สีเหลืองเพราะเป็นคำเตือนให้ทำอะไรสักอย่าง สีเขียวใช้กับผลที่สำเร็จแล้วเท่านั้น
+    return <output className="form-alert warning block">
       แพ็กเกจ {subscription.planName} ใกล้หมดอายุวันที่ {formatThaiDate(subscription.expiresAt)}
       {" · "}<Link href={ownerPagePath(propertyId, "subscription")}>ตรวจสอบและต่ออายุ</Link>
     </output>;

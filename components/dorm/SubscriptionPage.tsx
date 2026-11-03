@@ -196,10 +196,10 @@ function thaiDate(value: Date | string | null | undefined) {
 // ข้อความใต้เส้นเวลา บอกว่าตอนนี้อยู่ขั้นไหนและจะเกิดอะไรต่อ
 function TimelineNote({ subscription }: Readonly<{ subscription: NonNullable<Subscription> }>) {
   if (subscription.accessMode === "GRACE") {
-    return <p className="form-alert mt-3">ขณะนี้ยังแก้ไขข้อมูลได้ถึง {thaiDate(subscription.graceEndsAt)} หลังจากนั้นระบบจะเปลี่ยนเป็นโหมดอ่านอย่างเดียว</p>;
+    return <p className="form-alert warning mt-3">ขณะนี้ยังแก้ไขข้อมูลได้ถึง {thaiDate(subscription.graceEndsAt)} หลังจากนั้นระบบจะเปลี่ยนเป็นโหมดอ่านอย่างเดียว</p>;
   }
   if (subscription.accessMode === "READ_ONLY") {
-    return <p className="form-alert mt-3">ข้อมูลเดิมยังเปิดดูได้ เมื่อการต่ออายุได้รับอนุมัติ ระบบจะกลับมาใช้งานเต็มรูปแบบโดยอัตโนมัติ</p>;
+    return <p className="form-alert warning mt-3">ข้อมูลเดิมยังเปิดดูได้ เมื่อการต่ออายุได้รับอนุมัติ ระบบจะกลับมาใช้งานเต็มรูปแบบโดยอัตโนมัติ</p>;
   }
   return null;
 }

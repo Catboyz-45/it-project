@@ -265,7 +265,8 @@ export function InvoicesPage({
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(formatClientError(error, "โหลดบิลไม่สำเร็จ"));
     } finally {
-      setIsLoading(false);
+      // คำขอที่ถูกยกเลิกเพราะมีคำขอใหม่มาแทน ห้ามปิดสถานะโหลดของคำขอใหม่
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [propertyId, query, statusFilter]);
 

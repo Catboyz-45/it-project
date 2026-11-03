@@ -230,7 +230,8 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
       if (loadError instanceof DOMException && loadError.name === "AbortError") return;
       setError(formatClientError(loadError, "โหลดสัญญาไม่สำเร็จ"));
     } finally {
-      setIsLoading(false);
+      // คำขอที่ถูกยกเลิกเพราะมีคำขอใหม่มาแทน ห้ามปิดสถานะโหลดของคำขอใหม่
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [propertyId, query]);
 

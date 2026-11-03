@@ -10,7 +10,7 @@ import { ServerTablePagination, TablePagination, type ServerPageInfo, useTablePa
 import { createApiError, formatClientError } from "@/lib/client/api-error";
 import { PendingTenantApprovals } from "@/components/dorm/PendingTenantApprovals";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
-import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
 import { formatThaiDate, formatThaiPhone } from "@/lib/thai-format";
 
@@ -159,7 +159,8 @@ export function TenantsPage({
       if (error instanceof DOMException && error.name === "AbortError") return;
       setLoadError(formatClientError(error, "โหลดข้อมูลผู้เช่าไม่สำเร็จ"));
     } finally {
-      setIsLoading(false);
+      // คำขอที่ถูกยกเลิกเพราะมีคำขอใหม่มาแทน ห้ามปิดสถานะโหลดของคำขอใหม่
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [propertyId, query]);
 
@@ -219,12 +220,12 @@ export function TenantsPage({
       {view === "pending" ? <PendingTenantApprovals initialRequests={pendingSeed} onChanged={onChanged} propertyId={propertyId} readOnly={readOnly} /> : null}
       {view === "transitions" ? <TransitionHistory propertyId={propertyId} /> : null}
       {view === "active" ? <>
-      {/* ส่งปุ่มส่งออกขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
-      <PageHeaderActions><a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a></PageHeaderActions>
       <article className="figma-table-card">
         {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
         <div className="figma-table-toolbar">
           <div><Search size={16} /><input aria-label="ค้นหาผู้เช่า" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อ ห้อง หรือเบอร์โทร..." value={query} /></div>
+          {/* ส่งออกตามคำค้นที่กรองอยู่ จึงวางคู่กับช่องค้นหาแบบหน้าบิล ไม่ใช่บนหัวหน้าซึ่งไว้สำหรับงานหลักของหน้า */}
+          <a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/tenants?query=${encodeURIComponent(query.trim())}`}><Download size={16} /> ส่งออก CSV</a>
         </div>
         <TenantTable
           hasQuery={Boolean(query.trim())}
@@ -263,16 +264,20 @@ function TransitionHistory({ propertyId }: Readonly<{ propertyId: string }>) {
       })
       // ยกเลิกเองตอนออกจากแท็บ ไม่ใช่ข้อผิดพลาดจริง
       .catch((loadError) => { if (!(loadError instanceof DOMException && loadError.name === "AbortError")) setError(loadError instanceof Error ? loadError.message : "โหลดประวัติไม่สำเร็จ"); })
-      .finally(() => setLoading(false));
+      // คำขอที่ถูกยกเลิกห้ามปิดสถานะโหลด ไม่งั้นหน้าขึ้นว่า "ยังไม่มีประวัติ" แวบหนึ่งก่อนข้อมูลจริงมา
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [propertyId]);
   // แยกสามสถานะให้ชัด กำลังโหลด โหลดพลาด และมีข้อมูลแล้ว
-  if (loading) return <p className="form-alert">กำลังโหลดประวัติ...</p>;
-  if (error) return <p className="form-alert error" role="alert">{error}</p>;
+  // หัวการ์ดอยู่ตลอด ตอนโหลดเป็นโครงตารางสีเทา หน้าจะไม่กระพริบเป็นกล่องสีอื่นก่อนข้อมูลมา
   return <article className="figma-table-card">
     <div className="additional-card-head"><div><h2>ประวัติการเปลี่ยนห้องและย้ายออก</h2><p>ตรวจสอบวันที่ ยอดเงินประกัน และผู้ดำเนินการย้อนหลัง</p></div></div>
-    <TransitionRows rows={pageItems} />
-    <TablePagination page={page} setPage={setPage} totalItems={rows.length} totalPages={totalPages} />
+    {loading ? <LoadingSkeleton columns={6} count={3} label="กำลังโหลดประวัติการย้าย" variant="table" />
+      : error ? <p className="form-alert error m-4" role="alert">{error}</p>
+      : <>
+        <TransitionRows rows={pageItems} />
+        <TablePagination page={page} setPage={setPage} totalItems={rows.length} totalPages={totalPages} />
+      </>}
   </article>;
 }
 

@@ -196,8 +196,11 @@ function PaginatedTable<T>({
         if (cause instanceof DOMException && cause.name === "AbortError") return;
         setError(cause instanceof Error ? cause.message : "โหลดข้อมูลไม่สำเร็จ");
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        // คำขอที่ถูกยกเลิกเพราะมีคำขอใหม่มาแทน ห้ามปิดสถานะโหลดของคำขอใหม่
+        if (!signal?.aborted) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [debouncedQuery, endpoint, filter],

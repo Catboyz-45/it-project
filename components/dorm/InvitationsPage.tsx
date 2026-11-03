@@ -92,6 +92,8 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
   const [error, setError] = useState("");
   const { confirm, confirmationDialog } = useConfirmation();
   const [message, setMessage] = useState("");
+  // ส่งอีเมลไม่สำเร็จเป็นคำเตือน ไม่ใช่ผลสำเร็จ ต้องเป็นสีเหลืองให้รู้ว่าต้องส่งรหัสเอง
+  const [messageTone, setMessageTone] = useState<"success" | "warning">("success");
 
   // โหลดทั้งรายการห้องและประวัติคำเชิญ
   const load = useCallback(async (targetPage = 1, append = false) => {
@@ -142,6 +144,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
       ));
       setCreatedCode(result.invitationCode);
       setMessage(invitationCreatedMessage(result.emailStatus, inviteeEmail.trim()));
+      setMessageTone(result.emailStatus === "failed" ? "warning" : "success");
       setInviteeEmail("");
       await load();
     } catch (cause) {
@@ -157,6 +160,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
       await navigator.clipboard.writeText(createdCode);
       setCopied(true);
       setMessage("คัดลอกรหัสคำเชิญแล้ว");
+      setMessageTone("success");
     } catch {
       setError("คัดลอกอัตโนมัติไม่สำเร็จ กรุณาเลือกรหัสแล้วคัดลอกด้วยตนเอง");
     }
@@ -180,6 +184,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
         throw new Error(payload.error || "ยกเลิกคำเชิญไม่สำเร็จ");
       }
       setMessage("ยกเลิกคำเชิญแล้ว");
+      setMessageTone("success");
       await load();
     } catch (cause) {
       setError(formatClientError(cause, "ยกเลิกคำเชิญไม่สำเร็จ"));
@@ -191,7 +196,7 @@ export function InvitationsPage({ initialData = null, propertyId, readOnly = fal
   return (
     <div className="settings-section-stack grid gap-6">
       {error ? <p className="form-alert error" role="alert">{error}</p> : null}
-      {message ? <output className="form-alert block">{message}</output> : null}
+      {message ? <output className={`form-alert block${messageTone === "warning" ? " warning" : ""}`}>{message}</output> : null}
 
       {readOnly ? <ReadOnlyNotice>ดูและรีเฟรชประวัติคำเชิญได้ แต่ไม่สามารถสร้างหรือยกเลิกคำเชิญได้</ReadOnlyNotice> : <CreateInvitationSection
         copied={copied}
