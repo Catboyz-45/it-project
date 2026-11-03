@@ -28,9 +28,9 @@ const ownerTables = [
 ] as const;
 
 // ตารางประวัติของผู้เช่าอยู่หลังแท็บ "ประวัติ" และต้องมีข้อมูลใน seed ถึงจะ render
+// ประวัติพัสดุเปลี่ยนเป็นรายการแบบมีเส้นคั่นแล้ว ไม่ใช่ตาราง จึงไม่อยู่ในรายการนี้
 const tenantTables = [
   { columns: 6, path: "/tenant/invoices", title: "ประวัติบิล" },
-  { columns: 5, path: "/tenant/parcels", title: "ประวัติพัสดุ" },
   { columns: 5, path: "/tenant/tickets", title: "ประวัติเรื่องแจ้ง" },
 ] as const;
 

@@ -180,17 +180,17 @@ test.describe("tenant journey", () => {
 
     await page.getByRole("link", { name: "สัญญา", exact: true }).click();
     await expect(page).toHaveURL(/\/tenant\/lease$/);
-    await expect(page.getByRole("heading", { name: "สัญญาปัจจุบัน" })).toBeVisible();
+    await expect(page.getByText("สัญญาปัจจุบัน", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "CTR-E2E-E101" })).toBeVisible();
-    await expect(page.getByText("ฉบับแก้ไขที่", { exact: true })).toBeVisible();
+    await expect(page.getByText("ห้อง E101 · ฉบับแก้ไขที่ 1", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "ประกาศ", exact: true }).click();
     await expect(page.getByRole("heading", { name: "ประกาศ E2E" })).toBeVisible();
     await expect(page.getByText("แจ้งทดสอบระบบสำหรับผู้เช่า")).toBeVisible();
 
     await page.getByRole("link", { name: /^พัสดุ(?:\s|$)/ }).click();
-    await expect(page.getByRole("heading", { name: "รอรับพัสดุ" })).toBeVisible();
-    await expect(page.getByText("พัสดุ E2E ที่เคาน์เตอร์")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "มีพัสดุรอรับ 1 ชิ้น" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "พัสดุ E2E ที่เคาน์เตอร์" })).toBeVisible();
   });
 
   // สองงานที่ผู้เช่าทำบ่อยที่สุด แจ้งซ่อมและทักหาหอ

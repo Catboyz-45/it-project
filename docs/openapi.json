@@ -10349,6 +10349,8 @@
                       "id": "announcement_01",
                       "title": "แจ้งล้างถังน้ำ",
                       "content": "งดใช้น้ำวันที่ 1 สิงหาคม เวลา 09:00–12:00 น.",
+                      "audience": "ALL_TENANTS",
+                      "audienceLabel": "ทั้งหอ",
                       "publishedAt": "2026-07-28T10:00:00.000Z",
                       "publishAt": null,
                       "createdAt": "2026-07-28T09:30:00.000Z"
@@ -15394,6 +15396,8 @@
           "id",
           "title",
           "content",
+          "audience",
+          "audienceLabel",
           "publishedAt",
           "publishAt",
           "createdAt"
@@ -15407,6 +15411,18 @@
             "type": "string"
           },
           "content": {
+            "type": "string"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "ALL_TENANTS",
+              "BUILDING",
+              "FLOOR",
+              "ROOM"
+            ]
+          },
+          "audienceLabel": {
             "type": "string"
           },
           "publishedAt": {

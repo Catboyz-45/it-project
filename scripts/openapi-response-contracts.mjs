@@ -219,8 +219,9 @@ export const responseSchemas = {
     id, propertyId: id, title: text, content: text, status: text, audience: text,
     publishedAt: { anyOf: [dateTime, { type: "null" }] }, createdAt: dateTime,
   }),
-  TenantAnnouncement: entity(["id", "title", "content", "publishedAt", "publishAt", "createdAt"], {
+  TenantAnnouncement: entity(["id", "title", "content", "audience", "audienceLabel", "publishedAt", "publishAt", "createdAt"], {
     id, title: text, content: text,
+    audience: { type: "string", enum: ["ALL_TENANTS", "BUILDING", "FLOOR", "ROOM"] }, audienceLabel: text,
     publishedAt: { anyOf: [dateTime, { type: "null" }] },
     publishAt: { anyOf: [dateTime, { type: "null" }] },
     createdAt: dateTime,
@@ -583,7 +584,7 @@ const samples = {
   OverdueRecalculation: { updated: 3, asOf: "2026-08-06T00:00:00.000Z" },
   PaymentSubmission: { id: "payment_01", invoiceId: "invoice_01", tenantProfileId: "tenant_01", status: "PENDING_REVIEW", amount: "4325.00", submittedAt: "2026-08-03T09:30:00.000Z", reviewedAt: null, rejectionNote: null },
   Announcement: { id: "announcement_01", propertyId: "prop_baan_sabai", title: "แจ้งล้างถังน้ำ", content: "งดใช้น้ำวันที่ 1 สิงหาคม เวลา 09:00–12:00 น.", status: "PUBLISHED", audience: "ALL", publishedAt: "2026-07-28T10:00:00.000Z", createdAt: "2026-07-28T09:30:00.000Z" },
-  TenantAnnouncement: { id: "announcement_01", title: "แจ้งล้างถังน้ำ", content: "งดใช้น้ำวันที่ 1 สิงหาคม เวลา 09:00–12:00 น.", publishedAt: "2026-07-28T10:00:00.000Z", publishAt: null, createdAt: "2026-07-28T09:30:00.000Z" },
+  TenantAnnouncement: { id: "announcement_01", title: "แจ้งล้างถังน้ำ", content: "งดใช้น้ำวันที่ 1 สิงหาคม เวลา 09:00–12:00 น.", audience: "ALL_TENANTS", audienceLabel: "ทั้งหอ", publishedAt: "2026-07-28T10:00:00.000Z", publishAt: null, createdAt: "2026-07-28T09:30:00.000Z" },
   Parcel: { id: "parcel_01", propertyId: "prop_baan_sabai", roomId: "room_a101", status: "WAITING", note: "พัสดุกล่องเล็ก", registeredAt: "2026-07-28T10:00:00.000Z", receivedAt: null, imageUrl: null },
   TenantParcel: { id: "parcel_01", status: "WAITING", note: "พัสดุกล่องเล็ก", registeredAt: "2026-07-28T10:00:00.000Z", receivedAt: null, imageUrl: null },
   TicketAttachment: { id: "attachment_01", ticketId: "ticket_01", fileName: "leaking-pipe.jpg", mimeType: "image/jpeg", sizeBytes: 245760 },

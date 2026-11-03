@@ -1031,6 +1031,51 @@
   .empty-state > p { @apply max-w-[420px] text-sm leading-6 text-[#62646c]; }
   .empty-state > p:only-of-type { @apply text-base font-medium text-[#292a30]; }
 
+  /* หน้าประกาศ พัสดุ และสัญญาฝั่งผู้เช่า ใช้ชิ้นส่วนชุดเดียวกัน ไอคอนในกรอบมน ป้ายเล็ก และรายการแบบมีเส้นคั่น */
+  .tenant-icon-tile { @apply grid size-10 shrink-0 place-items-center rounded-lg bg-[#f4f4f5] text-[#555761]; }
+  .tenant-icon-tile[data-size="sm"] { @apply size-9; }
+  .tenant-icon-tile[data-size="lg"] { @apply size-11; }
+  .tenant-icon-tile[data-tone="brand"] { @apply bg-[#eef0ff] text-[#4651c7]; }
+  .tenant-icon-tile[data-tone="warning"] { @apply bg-[#fde68a] text-[#78350f]; }
+  .tenant-icon-tile[data-tone="success"] { @apply bg-emerald-50 text-[#047857]; }
+  .tenant-chip { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[#f4f4f5] px-2 py-0.5 text-xs font-medium text-[#555761]; }
+  .tenant-chip[data-tone="brand"] { @apply bg-[#eef0ff] text-[#3f48b0]; }
+  .tenant-chip[data-tone="success"] { @apply bg-emerald-50 text-[#065f46]; }
+  .tenant-chip[data-tone="warning"] { @apply bg-amber-50 text-[#92400e]; }
+  .tenant-chip[data-tone="danger"] { @apply bg-red-50 text-[#b91c1c]; }
+  .tenant-month-heading { @apply px-1 text-sm font-medium text-[#62646c]; }
+  .tenant-record-list { @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
+  .tenant-record-list > li + li { @apply border-t border-[#e4e4e7]; }
+  .tenant-record-row { @apply flex items-center gap-3 px-4 py-3; }
+
+  .tenant-featured-announcement { @apply flex gap-4 rounded-xl border-2 border-[#c7cbfb] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
+  .tenant-announcement-row > summary { @apply flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[#fafafa]; }
+  .tenant-announcement-row > summary::-webkit-details-marker { display: none; }
+  .tenant-announcement-excerpt { @apply mt-0.5 block truncate text-sm text-[#62646c]; }
+  .tenant-announcement-row[open] .tenant-announcement-excerpt { @apply hidden; }
+  .tenant-announcement-meta { @apply hidden shrink-0 flex-col items-end gap-1 text-xs text-[#62646c] sm:flex; }
+  .tenant-announcement-meta-inline { @apply mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[#62646c] sm:hidden; }
+  .tenant-announcement-chevron { @apply shrink-0 text-[#8b8d96] transition-transform duration-150; }
+  .tenant-announcement-row[open] .tenant-announcement-chevron { @apply rotate-180; }
+  .tenant-announcement-body { @apply border-t border-dashed border-[#e4e4e7] bg-[#fafafa] px-4 py-3 text-[#3f4048] sm:pl-17; }
+
+  .tenant-parcel-banner { @apply flex flex-wrap items-center gap-3 rounded-xl border border-[#fcd34d] bg-[#fffbeb] p-4; }
+  .tenant-parcel-grid { @apply grid gap-3 grid-cols-[repeat(auto-fill,minmax(240px,1fr))]; }
+  .tenant-parcel-card { @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
+  .tenant-parcel-photo { @apply block h-36 w-full bg-[#f4f4f5] object-cover; }
+  .tenant-parcel-photo.is-empty { @apply flex items-center justify-center gap-2 text-sm text-[#8b8d96]; }
+
+  .tenant-lease-progress { @apply h-2 overflow-hidden rounded-full bg-[#eceef2]; }
+  .tenant-lease-progress > span { @apply block h-full rounded-full bg-[#5865f2]; }
+  .tenant-lease-progress[data-tone="warning"] > span { @apply bg-[#f59e0b]; }
+  .tenant-lease-figures { @apply grid gap-2 grid-cols-[repeat(auto-fit,minmax(96px,1fr))] sm:gap-3; }
+  .tenant-lease-figures > div { @apply min-w-0 rounded-lg bg-[#fafafa] px-3 py-3 sm:px-4; }
+  .tenant-lease-figures dt { @apply text-sm text-[#62646c]; }
+  .tenant-lease-figures dd { @apply mt-1 text-lg font-semibold text-[#292a30] sm:text-xl; }
+  .tenant-lease-document { @apply flex flex-wrap items-center gap-3 rounded-lg border border-[#e4e4e7] px-4 py-3; }
+  .tenant-lease-document.is-missing { @apply border-dashed text-[#62646c]; }
+  .tenant-lease-notice { @apply flex flex-wrap items-center gap-3 rounded-xl border border-[#fcd34d] bg-[#fffbeb] p-4; }
+
   /* ตารางเทียบแพ็กเกจ: ทุกแพ็กเกจอยู่ในกรอบเดียวกันคั่นด้วยเส้น ไม่ใช่การ์ดแยกใบ
      เพื่อให้กวาดสายตาเทียบราคาและสิทธิ์ในแนวนอนได้ */
   /* จำนวนแพ็กเกจมาจากฐานข้อมูลจึงไม่ตรึงจำนวนคอลัมน์ ปล่อยให้เรียงเท่าที่กว้างพอ

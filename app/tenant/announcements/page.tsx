@@ -2,13 +2,14 @@
 // เหลือเป็น JavaScript เฉพาะปุ่มโหลดเพิ่ม ซึ่งผู้ใช้ส่วนใหญ่ไม่ได้กด
 import { cookies } from "next/headers";
 import { Bell } from "lucide-react";
-import { AnnouncementCard } from "@/components/tenant/AnnouncementCard";
+import { AnnouncementMonthList, FeaturedAnnouncement, announcementShownAt } from "@/components/tenant/AnnouncementCard";
 import { LoadMoreAnnouncements } from "@/components/tenant/LoadMoreList";
 import { Empty } from "@/components/tenant/primitives";
 import { requirePageAuth } from "@/lib/server/auth";
 import { getDatabase } from "@/lib/server/db";
 import { listTenantAnnouncements } from "@/lib/server/property-operations";
 import { findActiveOccupancyForPage, tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
+import { thaiMonthKey } from "@/lib/tenant-records";
 
 const pageSize = 20;
 
@@ -31,15 +32,19 @@ export default async function TenantAnnouncementsPage() {
     ? await listTenantAnnouncements(occupancy.propertyId, room.buildingId, room.floorId, occupancy.roomId, { page: 1, pageSize })
     : { data: [], pageInfo: { page: 1, pageSize, hasNextPage: false } };
 
-  if (!result.data.length) {
+  const [latest, ...older] = result.data;
+  if (!latest) {
     return <Empty description="ประกาศจากหอพักจะมาแสดงที่นี่" icon={<Bell />} text="ยังไม่มีประกาศ" />;
   }
+  const last = result.data.at(-1)!;
   return <div className="grid gap-5">
-    {result.data.map((item) => <AnnouncementCard key={item.id} {...item} />)}
+    <FeaturedAnnouncement item={latest} />
+    <AnnouncementMonthList items={older} />
     <LoadMoreAnnouncements
       initialCount={result.data.length}
       initialHasNextPage={result.pageInfo.hasNextPage}
       pageSize={pageSize}
+      previousMonthKey={thaiMonthKey(announcementShownAt(last))}
     />
   </div>;
 }

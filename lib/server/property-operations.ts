@@ -10,6 +10,7 @@ import type {
 import { ticketTransitions } from "@/lib/domain/property-operations";
 import { ApiError } from "@/lib/server/api";
 import type { TicketInboxItem } from "@/lib/ticket-inbox";
+import { announcementAudienceLabel } from "@/lib/tenant-records";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 import {
@@ -131,8 +132,17 @@ export async function listTenantAnnouncements(
     },
     orderBy: [{ publishedAt: "desc" }, { publishAt: "desc" }, { id: "desc" }],
     ...paginationQuery(pagination),
-    select: { id: true, title: true, content: true, publishedAt: true, publishAt: true, createdAt: true },
-  }).then((rows) => toPaginatedResult(rows, pagination));
+    select: {
+      id: true, title: true, content: true, audience: true, publishedAt: true, publishAt: true, createdAt: true,
+      building: { select: { name: true } }, floor: { select: { number: true, label: true } },
+    },
+  }).then((rows) => toPaginatedResult(rows.map(({ building, floor, ...row }) => ({
+    ...row,
+    // ส่งเป็นป้ายสำเร็จรูป ผู้เช่าจะได้รู้ว่าประกาศนี้ส่งถึงทั้งหอ อาคาร ชั้น หรือห้องตัวเอง
+    audienceLabel: announcementAudienceLabel({
+      audience: row.audience, buildingName: building?.name, floorLabel: floor?.label, floorNumber: floor?.number,
+    }),
+  })), pagination));
 }
 
 export async function createParcel(propertyId: string, userId: string, input: CreateParcelInput, imageStorageKey?: string) {

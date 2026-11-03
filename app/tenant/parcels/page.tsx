@@ -3,10 +3,13 @@
 import { cookies } from "next/headers";
 import { Package } from "lucide-react";
 import { LoadMoreParcels } from "@/components/tenant/LoadMoreList";
-import { ParcelCard, ParcelHistoryTable, type TenantParcel } from "@/components/tenant/ParcelViews";
+import {
+  ParcelGrid, ParcelHistoryEmpty, ParcelHistoryHeading, ParcelHistoryRows, ParcelSummaryBanner, type TenantParcel,
+} from "@/components/tenant/ParcelViews";
 import { RecordViewTabs } from "@/components/tenant/RecordViewTabs";
 import { Empty } from "@/components/tenant/primitives";
 import { requirePageAuth } from "@/lib/server/auth";
+import { getDatabase } from "@/lib/server/db";
 import { listTenantParcels } from "@/lib/server/property-operations";
 import { findActiveOccupancyForPage, tenantOccupancyCookieName } from "@/lib/server/tenant-auth";
 import { TENANT_RECORD_VIEW_IDS, type TenantRecordView } from "@/lib/tenant-record-view";
@@ -32,28 +35,32 @@ export default async function TenantParcelsPage({
   const view: TenantRecordView = TENANT_RECORD_VIEW_IDS.includes(requested as TenantRecordView)
     ? requested as TenantRecordView
     : "current";
-  const result = await listTenantParcels(auth.tenantProfileId, occupancy.roomId, { page: 1, pageSize }, view);
+  const [result, room] = await Promise.all([
+    listTenantParcels(auth.tenantProfileId, occupancy.roomId, { page: 1, pageSize }, view),
+    // เลขห้องไว้บอกผู้เช่าว่าต้องแจ้งอะไรตอนไปรับของ
+    getDatabase().room.findUnique({ where: { id: occupancy.roomId }, select: { number: true } }),
+  ]);
   const items = result.data as unknown as TenantParcel[];
+  const total = result.pageInfo.total ?? items.length;
 
   return <div className="grid gap-5">
     <RecordViewTabs currentLabel="พัสดุรอรับ" historyLabel="ประวัติการรับ" id="tenant-parcels" path="/tenant/parcels" view={view} />
-    <div aria-labelledby={`tenant-parcels-tab-${view}`} id="tenant-parcels-panel" role="tabpanel" tabIndex={0}>
+    <div aria-labelledby={`tenant-parcels-tab-${view}`} className="grid gap-4" id="tenant-parcels-panel" role="tabpanel" tabIndex={0}>
       {view === "history"
-        ? <div className="grid gap-5"><ParcelHistoryTable items={items} total={result.pageInfo.total ?? null} /></div>
-        : <ParcelWaitingList hasNextPage={result.pageInfo.hasNextPage} items={items} pageSize={pageSize} />}
+        ? items.length
+          ? <>
+            <ParcelHistoryHeading total={total} />
+            <ParcelHistoryRows items={items} />
+            <LoadMoreParcels initialCount={items.length} initialHasNextPage={result.pageInfo.hasNextPage} pageSize={pageSize} view="history" />
+          </>
+          : <ParcelHistoryEmpty />
+        : items.length
+          ? <>
+            <ParcelSummaryBanner count={total} roomNumber={room?.number ?? null} />
+            <ParcelGrid items={items} />
+            <LoadMoreParcels initialCount={items.length} initialHasNextPage={result.pageInfo.hasNextPage} pageSize={pageSize} view="current" />
+          </>
+          : <Empty description="พัสดุที่หอรับไว้ให้จะมาแสดงที่นี่" icon={<Package />} text="ไม่มีพัสดุรอรับ" />}
     </div>
-  </div>;
-}
-
-// รายการพัสดุที่ยังรอรับ ไม่มีเลยก็บอกว่ายังไม่มี ไม่ใช่โชว์กล่องเปล่า
-function ParcelWaitingList({ hasNextPage, items, pageSize }: Readonly<{
-  hasNextPage: boolean;
-  items: Array<Parameters<typeof ParcelCard>[0] & { id: string }>;
-  pageSize: number;
-}>) {
-  if (items.length === 0) return <Empty description="พัสดุที่หอรับไว้ให้จะมาแสดงที่นี่" icon={<Package />} text="ไม่มีพัสดุรอรับ" />;
-  return <div className="grid gap-5">
-    {items.map((item) => <ParcelCard key={item.id} {...item} />)}
-    <LoadMoreParcels initialCount={items.length} initialHasNextPage={hasNextPage} pageSize={pageSize} />
   </div>;
 }

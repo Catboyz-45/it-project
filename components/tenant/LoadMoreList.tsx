@@ -8,8 +8,9 @@
 import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
-import { AnnouncementCard, type TenantAnnouncement } from "@/components/tenant/AnnouncementCard";
-import { ParcelCard, type TenantParcel } from "@/components/tenant/ParcelViews";
+import { AnnouncementMonthList, type TenantAnnouncement } from "@/components/tenant/AnnouncementCard";
+import { ParcelGrid, ParcelHistoryRows, type TenantParcel } from "@/components/tenant/ParcelViews";
+import type { TenantRecordView } from "@/lib/tenant-record-view";
 
 function useLoadMore<T>(url: string, pageSize: number, initialHasNextPage: boolean) {
   const [items, setItems] = useState<T[]>([]);
@@ -60,22 +61,23 @@ function LoadMoreFooter({
   </>;
 }
 
-export function LoadMoreAnnouncements({ initialCount, initialHasNextPage, pageSize = 20 }: Readonly<{
-  initialCount: number; initialHasNextPage: boolean; pageSize?: number;
+export function LoadMoreAnnouncements({ initialCount, initialHasNextPage, pageSize = 20, previousMonthKey }: Readonly<{
+  initialCount: number; initialHasNextPage: boolean; pageSize?: number; previousMonthKey?: string;
 }>) {
   const state = useLoadMore<TenantAnnouncement>("/api/v1/tenant/announcements", pageSize, initialHasNextPage);
   return <>
-    {state.items.map((item) => <AnnouncementCard key={item.id} {...item} />)}
+    {state.items.length ? <AnnouncementMonthList items={state.items} previousMonthKey={previousMonthKey} /> : null}
     <LoadMoreFooter {...state} initialCount={initialCount} shownCount={state.items.length} />
   </>;
 }
 
-export function LoadMoreParcels({ initialCount, initialHasNextPage, pageSize = 20 }: Readonly<{
-  initialCount: number; initialHasNextPage: boolean; pageSize?: number;
+// มุมมองที่เปิดอยู่ต้องตรงกับที่เซิร์ฟเวอร์ render มา ไม่งั้นกดโหลดเพิ่มในประวัติจะได้พัสดุที่รอรับมาปน
+export function LoadMoreParcels({ initialCount, initialHasNextPage, pageSize = 20, view }: Readonly<{
+  initialCount: number; initialHasNextPage: boolean; pageSize?: number; view: TenantRecordView;
 }>) {
-  const state = useLoadMore<TenantParcel>("/api/v1/tenant/parcels?view=current", pageSize, initialHasNextPage);
+  const state = useLoadMore<TenantParcel>(`/api/v1/tenant/parcels?view=${view}`, pageSize, initialHasNextPage);
   return <>
-    {state.items.map((item) => <ParcelCard key={item.id} {...item} />)}
+    {state.items.length ? view === "history" ? <ParcelHistoryRows items={state.items} /> : <ParcelGrid items={state.items} /> : null}
     <LoadMoreFooter {...state} initialCount={initialCount} shownCount={state.items.length} />
   </>;
 }

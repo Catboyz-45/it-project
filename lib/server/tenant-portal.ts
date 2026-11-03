@@ -229,7 +229,8 @@ export async function getTenantLease(tenantProfileId: string, roomId: string, ro
     getDatabase().lease.findFirst({
       where: {
         roomId,
-        status: "PENDING_SIGNATURE",
+        // สัญญาที่เปิดใช้แล้วแต่ยังไม่ถึงวันเริ่มก็นับเป็นรอบถัดไป ไม่งั้นผู้เช่าที่นัดเข้าอยู่ล่วงหน้าจะไม่เห็นสัญญาเลย
+        status: { in: ["PENDING_SIGNATURE", "ACTIVE"] },
         startDate: { gt: today },
         tenants: tenantWhere,
       },

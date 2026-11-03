@@ -64,11 +64,11 @@ import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
+import { tenantChatOpenEvent } from "@/lib/tenant-chat";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { AccountCard, AccountFormCard, AccountProfileCard, AccountReadOnlyField } from "@/components/account/AccountLayout";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
 import { PageHeaderActions, PageHeaderSlotProvider, PageHeaderTarget } from "@/components/ui/PageHeaderSlot";
-import { listAnnouncement } from "@/components/tenant/LoadMoreList";
 import { PasswordRequirements } from "@/components/ui/PasswordRequirements";
 import { PHONE_INPUT_PATTERN } from "@/lib/domain/phone";
 
@@ -401,6 +401,17 @@ export function TenantPortal({
   const [selectedOccupancyId, setSelectedOccupancyId] = useState(initialSelectedOccupancyId);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isQuickChatOpen, setIsQuickChatOpen] = useState(false);
+  // ปุ่ม "ถามหอในแชท" ในหน้าพัสดุหรือสัญญาเปิดห้องแชทกับหอตรง ๆ ไม่ต้องผ่านรายการก่อน
+  // ตัวเลขเปลี่ยนทุกครั้งที่กด แชทเล็กจะได้เริ่มใหม่ที่ห้องแชทแม้เปิดค้างไว้ที่หน้าอื่น
+  const [quickChatRequest, setQuickChatRequest] = useState<{ nonce: number; view: "list" | "chat" }>({ nonce: 0, view: "list" });
+  useEffect(() => {
+    const open = () => {
+      setQuickChatRequest((current) => ({ nonce: current.nonce + 1, view: "chat" }));
+      setIsQuickChatOpen(true);
+    };
+    window.addEventListener(tenantChatOpenEvent, open);
+    return () => window.removeEventListener(tenantChatOpenEvent, open);
+  }, []);
   // ต้องเช็คสถานะด้วย ไม่ใช่เทียบแค่ id เพราะห้องที่เลือกไว้อาจย้ายออกไปแล้ว
   const active = account.occupancies.find((item) => item.id === selectedOccupancyId && item.status === "ACTIVE");
   const roomResource = useApiResource<RoomData>("/api/v1/tenant/room", Boolean(active));
@@ -558,7 +569,10 @@ export function TenantPortal({
           ? `เปิดแชทกับหอพัก มีข้อความใหม่ ${notificationResource.data?.unreadMessages ?? 0} ข้อความ`
           : "เปิดแชทกับหอพัก"}
         className="chat-launcher tenant-chat-launcher"
-        onClick={() => setIsQuickChatOpen(true)}
+        onClick={() => {
+          setQuickChatRequest((current) => ({ nonce: current.nonce + 1, view: "list" }));
+          setIsQuickChatOpen(true);
+        }}
         type="button"
       >
         <MessageSquare aria-hidden="true" size={25} />
@@ -569,6 +583,8 @@ export function TenantPortal({
     ) : null}
     {active && activeTab !== "chat" && isQuickChatOpen && !roomResource.isLoading && roomResource.data ? (
       <TenantQuickChat
+        initialView={quickChatRequest.view}
+        key={quickChatRequest.nonce}
         onClose={() => setIsQuickChatOpen(false)}
         onRead={notificationResource.reload}
         propertyId={roomResource.data.room.property.id}
@@ -615,11 +631,7 @@ export function TenantSectionPanel({
       <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} />
     </PrimaryOnly>;
   }
-  if (tab === "lease") {
-    return <PrimaryOnly isPrimary={isPrimary} message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูสัญญาได้"><LeasePanel /></PrimaryOnly>;
-  }
-  if (tab === "announcements") return <AnnouncementsPanel />;
-  if (tab === "parcels") return <ParcelsPanel />;
+  // สัญญา ประกาศ และพัสดุมีหน้าของตัวเองที่ render บนเซิร์ฟเวอร์ ไม่ผ่านตัวนี้
   if (tab === "tickets") return <TicketsPanel initialViews={initialTickets} onUnreadChanged={notificationResource.reload} readOnly={isReadOnly} />;
   if (tab === "chat") return <TenantChatSection isReadOnly={isReadOnly} onRead={notificationResource.reload} roomResource={roomResource} />;
   return null;
@@ -630,6 +642,8 @@ function PrimaryOnly({ children, isPrimary, message }: Readonly<{ children: Reac
   if (!isPrimary) return <RestrictedPanel message={message} />;
   return <>{children}</>;
 }
+
+type Parcel = { id: string; status: string; note: string | null; registeredAt: string; receivedAt: string | null; imageUrl: string | null };
 
 // แชทต้องรู้รหัสหอก่อนถึงเปิดห้องได้ จึงรอข้อมูลห้องให้มาก่อน
 function TenantChatSection({ isReadOnly, onRead, roomResource }: Readonly<{
@@ -1345,60 +1359,6 @@ function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
   </dl>;
 }
 
-type Lease = { id: string; leaseNumber: string; status: string; startDate: string; endDate: string; monthlyRent: string; depositAmount: string; currentVersion: number; activatedAt: string | null; hasSignedDocument: boolean; room: { number: string } };
-function LeasePanel() {
-  const resource = useApiResource<{ current: Lease | null; upcoming: Lease | null }>("/api/v1/tenant/lease");
-  if (resource.isLoading) return <Loading />;
-  if (resource.error) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  if (!resource.data?.current && !resource.data?.upcoming) return <Empty description="เมื่อเจ้าของหอออกสัญญาให้แล้ว เอกสารจะมาแสดงที่นี่" icon={<FileText />} text="ยังไม่มีสัญญาที่พร้อมแสดง" />;
-  return <div className="grid gap-5">
-    {resource.data.current ? <TenantLeaseCard lease={resource.data.current} title="สัญญาปัจจุบัน" /> : <Empty icon={<FileText />} description="สัญญาที่สิ้นสุดแล้วยังเปิดดูได้จากประวัติด้านล่าง" text="ไม่มีสัญญาที่กำลังใช้งานในขณะนี้" />}
-    {resource.data.upcoming ? <TenantLeaseCard lease={resource.data.upcoming} title="สัญญารอบถัดไป" /> : null}
-  </div>;
-}
-
-function TenantLeaseCard({ lease, title }: Readonly<{ lease: Lease; title: string }>) {
-  return <section aria-labelledby={`tenant-lease-${lease.id}`} className="grid gap-2">
-    <h2 className="text-base font-semibold text-[#292a30]" id={`tenant-lease-${lease.id}`}>{title}</h2>
-    <Panel title={lease.leaseNumber}>
-    <div className="grid gap-4 sm:grid-cols-2"><Info label="สถานะ" value={formatStatus(lease.status)} /><Info label="ฉบับแก้ไขที่" value={String(lease.currentVersion)} /><Info label="วันเริ่มต้น" value={formatThaiDate(lease.startDate)} /><Info label="วันสิ้นสุด" value={formatThaiDate(lease.endDate)} /><Info label="ค่าเช่า" value={currency.format(Number(lease.monthlyRent))} /><Info label="เงินประกัน" value={currency.format(Number(lease.depositAmount))} /></div>
-    {lease.hasSignedDocument
-      ? <a className="primary-button mt-5 inline-flex" href={`/api/v1/tenant/lease/signed-document?leaseId=${encodeURIComponent(lease.id)}`} rel="noreferrer" target="_blank"><FileText size={17} /> เปิดเอกสารลงนาม</a>
-      : <p className="mt-5 text-sm text-[#62646c]">เจ้าของหอยังไม่ได้อัปโหลดไฟล์สัญญาที่ลงนามแล้ว ขอสำเนาได้ที่สำนักงานหอพัก</p>}
-    </Panel>
-  </section>;
-}
-
-type Announcement = { id: string; title: string; content: string; publishedAt: string | null; publishAt: string | null; createdAt: string };
-function AnnouncementsPanel() {
-  const resource = usePaginatedResource<Announcement>("/api/v1/tenant/announcements");
-  return <ResourceList resource={resource} title="ประกาศจากหอพัก" subtitle="ข่าวสารที่ส่งถึงอาคาร ชั้น หรือห้องของคุณ" empty="ยังไม่มีประกาศ" emptyDescription="ประกาศจากหอพักจะมาแสดงที่นี่">{(item) => <Panel key={item.id} title={item.title}><p className="whitespace-pre-wrap">{item.content}</p><time className="mt-3 block text-sm text-[#62646c]">{formatThaiDateTime(item.publishedAt ?? item.publishAt ?? item.createdAt)}</time></Panel>}</ResourceList>;
-}
-
-type Parcel = { id: string; status: string; note: string | null; registeredAt: string; receivedAt: string | null; imageUrl: string | null };
-function ParcelsPanel() {
-  const [view, setView] = useState<TenantRecordView>("current");
-  const currentResource = usePaginatedResource<Parcel>("/api/v1/tenant/parcels?view=current");
-  const historyResource = usePaginatedResource<Parcel>("/api/v1/tenant/parcels?view=history");
-  const resource = view === "current" ? currentResource : historyResource;
-  return <div className="grid gap-5">
-    <TenantHistoryTabs currentLabel="พัสดุรอรับ" historyLabel="ประวัติการรับ" id="tenant-parcels" onChange={setView} view={view} />
-    <div aria-labelledby={`tenant-parcels-tab-${view}`} id="tenant-parcels-panel" role="tabpanel" tabIndex={0}>
-      {view === "history" && !resource.isLoading && !resource.error && resource.data.length ? <div className="grid gap-5"><TenantHistoryTable title="ประวัติการรับพัสดุ" total={historyResource.total}>
-        <table>
-          <thead><tr><th scope="col">พัสดุ</th><th scope="col">หมายเหตุ</th><th scope="col">วันที่รับเข้าระบบ</th><th scope="col">วันที่รับพัสดุ</th><th scope="col">สถานะ</th></tr></thead>
-          <tbody>{resource.data.map((item) => <tr key={item.id}>
-            <td>{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-14 rounded-xl object-cover" height={56} src={item.imageUrl} unoptimized width={56} /> : <span className="text-[#62646c]">ไม่มีรูป</span>}</td>
-            <td>{item.note || "ไม่มีหมายเหตุ"}</td>
-            <td>{formatThaiDateTime(item.registeredAt)}</td>
-            <td>{item.receivedAt ? formatThaiDateTime(item.receivedAt) : "—"}</td>
-            <td><Status value={item.status} /></td>
-          </tr>)}</tbody>
-        </table>
-      </TenantHistoryTable><PaginationActions resource={resource} /></div> : <ResourceList loadingColumns={5} loadingVariant={view === "history" ? "table" : "list"} resource={resource} title="พัสดุของห้อง" subtitle="ตรวจสอบพัสดุที่หอรับไว้ให้" empty={view === "current" ? "ไม่มีพัสดุรอรับ" : "ยังไม่มีประวัติการรับพัสดุ"}>{(item) => <Panel key={item.id} title={item.status === "WAITING" ? "รอรับพัสดุ" : "รับแล้ว"}><div className="flex gap-4">{item.imageUrl ? <Image alt="รูปพัสดุ" className="size-24 rounded-xl object-cover" height={96} src={item.imageUrl} unoptimized width={96} /> : null}<div><p>{item.note || "ไม่มีหมายเหตุ"}</p><time className="text-sm text-[#62646c]">รับเข้าระบบ {formatThaiDateTime(item.registeredAt)}</time>{item.receivedAt ? <time className="mt-1 block text-sm text-[#62646c]">รับพัสดุแล้ว {formatThaiDateTime(item.receivedAt)}</time> : null}</div></div></Panel>}</ResourceList>}
-    </div>
-  </div>;
-}
 
 type Ticket = {
   id: string; type: "REPAIR" | "COMPLAINT"; status: string; priority: string;
@@ -1594,7 +1554,8 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
 type ChatMessage = { id: string; body: string; senderRole: "ADMIN" | "TENANT" | "SUPER_ADMIN"; senderName: string; createdAt: string; attachment: { name: string; mimeType: string; size: number; url: string } | null };
 // หน้าต่างแชทเล็กของผู้เช่า หน้าแรกเป็นรายการ แชทกับหอปักไว้บนสุด ตามด้วยเรื่องที่ตัวเองแจ้งไว้
 // กดเรื่องไหนก็คุยในเรื่องนั้นได้เลย ข้อความยังผูกกับเรื่องนั้นเหมือนคุยจากหน้าแจ้งเรื่อง
-function TenantQuickChat({ onClose, onRead, propertyId, propertyName, readOnly, unreadMessages }: Readonly<{
+function TenantQuickChat({ initialView, onClose, onRead, propertyId, propertyName, readOnly, unreadMessages }: Readonly<{
+  initialView: "list" | "chat";
   onClose: () => void;
   onRead: () => unknown;
   propertyId: string;
@@ -1602,7 +1563,7 @@ function TenantQuickChat({ onClose, onRead, propertyId, propertyName, readOnly, 
   readOnly: boolean;
   unreadMessages: number;
 }>) {
-  const [view, setView] = useState<"list" | "chat" | "ticket">("list");
+  const [view, setView] = useState<"list" | "chat" | "ticket">(initialView);
   const [tickets, setTickets] = useState<TicketInboxItem[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(true);
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -1789,11 +1750,6 @@ function TenantChat({
   </div>;
 }
 
-function ResourceList<T extends { id: string }>({ children, empty, emptyDescription, loadingColumns, loadingVariant, resource }: Readonly<{ children: (item: T) => ReactNode; empty: string; emptyDescription?: string; loadingColumns?: number; loadingVariant?: "list" | "table"; resource: PaginatedResource<T>; subtitle: string; title: string }>) {
-  if (resource.isLoading) return <Loading columns={loadingColumns} variant={loadingVariant} />;
-  if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
-  return <div className="grid gap-5"><LiveAnnouncement message={listAnnouncement({ hasNextPage: resource.hasNextPage, isLoading: resource.isLoadingMore, total: resource.data.length })} />{resource.data.length ? resource.data.map(children) : <Empty description={emptyDescription} icon={<Bell />} text={empty} />}{resource.error ? <p className="form-alert error" role="alert">{resource.error}</p> : null}<PaginationActions resource={resource} /></div>;
-}
 function PaginationActions<T>({ resource }: Readonly<{ resource: PaginatedResource<T> }>) {
   if (!resource.hasNextPage) return null;
   return <button className="secondary-button mx-auto" disabled={resource.isLoadingMore} onClick={() => void resource.loadMore()} type="button">
