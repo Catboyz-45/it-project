@@ -50,7 +50,7 @@ import { OwnerGlobalSearch } from "@/components/dorm/OwnerGlobalSearch";
 import { NavShell, NavToggle } from "@/components/ui/NavShell";
 
 const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
-  overview: { title: "แดชบอร์ด", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
+  overview: { title: "หน้าหลัก", subtitle: "ภาพรวมการดำเนินงาน รายได้ ห้องพัก และรายการที่ต้องดำเนินการ" },
   rooms: { title: "ผังห้องพัก", subtitle: "ผังห้องแยกตามชั้น พร้อมสถานะและข้อมูลผู้เช่า" },
   tenants: { title: "ผู้เช่า", subtitle: "จัดการข้อมูลผู้เช่าทั้งหมดในหอพัก" },
   contracts: { title: "สัญญาเช่า", subtitle: "จัดการสัญญา ตรวจเอกสาร และต่อสัญญารายห้อง" },
@@ -369,7 +369,7 @@ export function DormDashboard({
             <div className="top-actions repair-top-actions">
               <PageHeaderTarget />
               <OwnerGlobalSearch propertyId={propertyId} />
-              <NotificationCenter footerLink={{ href: ownerPagePath(propertyId, "overview"), label: "ดูทั้งหมดในแดชบอร์ด" }} isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadCounts()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
+              <NotificationCenter footerLink={{ href: ownerPagePath(propertyId, "overview"), label: "ดูทั้งหมดในหน้าหลัก" }} isLoading={isRefreshing} items={ownerNotifications} onRefresh={async () => { await Promise.all([refreshDashboard(), refreshUnreadCounts()]); }} readOnly={accessState === "read-only"} storageKey={`owner-notifications:${propertyId}`} />
             </div>
           </header>
         ) : null}

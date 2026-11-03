@@ -24,7 +24,7 @@ test("bell groups urgent items first and links to the dashboard", async ({ page 
   // ไม่มีปุ่มรีเฟรชในแผงแล้ว เปิดแผงเมื่อไหร่ระบบโหลดใหม่เอง
   await expect(panel.getByRole("button", { name: "อัปเดตการแจ้งเตือน" })).toHaveCount(0);
 
-  await panel.getByRole("link", { name: "ดูทั้งหมดในแดชบอร์ด" }).click();
+  await panel.getByRole("link", { name: "ดูทั้งหมดในหน้าหลัก" }).click();
   await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.propertyId}$`));
   await expect(panel).toBeHidden();
 });

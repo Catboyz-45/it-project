@@ -18,7 +18,7 @@ import type { SuperAdminNotificationCounts } from "@/lib/server/super-admin-noti
 // เก็บเป็นข้อมูล จะได้วนสร้างเมนูได้เลย และเพิ่มหน้าใหม่โดยไม่ต้องแก้ JSX
 // exact: true เฉพาะแดชบอร์ด เพราะ /super-admin เป็นคำนำหน้าของทุกหน้าที่เหลือ
 const items = [
-  { href: "/super-admin", label: "แดชบอร์ด", icon: LayoutDashboard, exact: true },
+  { href: "/super-admin", label: "หน้าหลัก", icon: LayoutDashboard, exact: true },
   { href: "/super-admin/accounts", label: "บัญชีเจ้าของหอ", icon: UsersRound, exact: false, countKey: "pendingAccounts" },
   { href: "/super-admin/properties", label: "หอพัก", icon: Building2, exact: false },
   { href: "/super-admin/plans", label: "แพ็กเกจ", icon: Crown, exact: false },

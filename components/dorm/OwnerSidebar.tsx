@@ -40,7 +40,7 @@ type MenuPageKey = Exclude<PageKey, "repairHistory" | "waterMeter" | "electricMe
 type MenuItem = { key: MenuPageKey; label: string; icon: ComponentType<{ size?: number }> };
 
 const menuItems: MenuItem[] = [
-  { key: "overview", label: "แดชบอร์ด", icon: Home },
+  { key: "overview", label: "หน้าหลัก", icon: Home },
   { key: "rooms", label: "ผังห้องพัก", icon: Building2 },
   { key: "tenants", label: "ผู้เช่า", icon: UserRound },
   { key: "contracts", label: "สัญญาเช่า", icon: FileText },

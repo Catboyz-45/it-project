@@ -34,7 +34,7 @@ async function expectNoPageOverflow(page: Page) {
 test("owner workspace remains usable on a mobile viewport", async ({ page }) => {
   await login(page, e2e.ownerEmail, e2e.password);
   await expect(page).toHaveURL(/\/admin/);
-  await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "หน้าหลัก", exact: true })).toBeVisible();
   await expectNoPageOverflow(page);
 
   // บนมือถือเมนูหลักอยู่ในลิ้นชัก ต้องกดปุ่มแฮมเบอร์เกอร์ก่อนถึงจะเห็นลิงก์
@@ -48,7 +48,7 @@ test("owner workspace remains usable on a mobile viewport", async ({ page }) => 
 
 test("mobile menu drawer opens, traps the page scroll and closes with Escape", async ({ page }) => {
   await login(page, e2e.ownerEmail, e2e.password);
-  await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "หน้าหลัก", exact: true })).toBeVisible();
   // ตอนลิ้นชักปิด ลิงก์ในเมนูต้องมองไม่เห็นและกด Tab เข้าไม่ถึง
   await expect(page.getByLabel("เมนูหลัก").getByRole("link", { name: /ผังห้องพัก/ })).toBeHidden();
 

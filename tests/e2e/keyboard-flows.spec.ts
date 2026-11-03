@@ -38,7 +38,7 @@ async function expectKeyboardFocus(page: Page) {
 test.describe.serial("keyboard coverage for critical flows", () => {
   test("Login and Owner Dashboard are operable without a pointer", async ({ page }) => {
     await keyboardLogin(page, e2e.ownerEmail);
-    await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "หน้าหลัก" })).toBeVisible();
 
     const roomsLink = page.getByLabel("เมนูหลัก").getByRole("link", { name: /ผังห้องพัก/ });
     await activate(roomsLink);
@@ -217,7 +217,7 @@ test.describe.serial("keyboard coverage for critical flows", () => {
   test("Super Admin navigation is covered with a seeded test account", async ({ page }) => {
     await keyboardLogin(page, e2e.superAdminEmail);
     await expect(page).toHaveURL(/\/super-admin\/?$/);
-    await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "หน้าหลัก", exact: true })).toBeVisible();
 
     const navigation = page.getByRole("navigation", { name: "เมนู Super Admin" });
     const accounts = navigation.getByRole("link", { name: /^บัญชีเจ้าของหอ(?:\s|$)/ });

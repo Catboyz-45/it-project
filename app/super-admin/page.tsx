@@ -32,7 +32,7 @@ export default async function SuperAdminPage() {
   ].filter((item) => item.count > 0);
 
   return <>
-    <SuperAdminPageHeader description="ติดตามสุขภาพของแพลตฟอร์ม สมาชิก รายได้ และงานที่ต้องดำเนินการ" title="แดชบอร์ด" />
+    <SuperAdminPageHeader description="ติดตามสุขภาพของแพลตฟอร์ม สมาชิก รายได้ และงานที่ต้องดำเนินการ" title="หน้าหลัก" />
 
     <div className="overview">
       <section aria-label="ตัวเลขแพลตฟอร์ม" className="overview-kpis">

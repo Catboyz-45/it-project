@@ -10,7 +10,7 @@ test("desktop hamburger collapses the sidebar to icons and remembers it", async 
   await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
-  await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "หน้าหลัก", exact: true })).toBeVisible();
 
   const sidebar = page.locator("#app-sidebar");
   const collapse = sidebar.getByRole("button", { name: "ย่อเมนู", exact: true });

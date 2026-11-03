@@ -104,7 +104,7 @@ test.describe("owner journey", () => {
     await login(page, e2e.ownerEmail);
     await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.propertyId}`));
     await expect(page.getByText("E2E อยู่สบาย", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "หน้าหลัก" })).toBeVisible();
 
     await page.getByLabel("เมนูหลัก").getByRole("link", { name: /^ผู้เช่า(?:\s|$)/ }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/properties/${e2e.propertyId}/tenants$`));

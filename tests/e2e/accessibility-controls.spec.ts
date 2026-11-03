@@ -260,7 +260,7 @@ test.describe("Owner accessibility controls", () => {
   test("focus indicators are consistent for links, fields, cards and tabs", async ({ page }) => {
     await login(page, e2e.ownerEmail);
 
-    await expectVisibleFocusIndicator(page.getByRole("link", { name: "แดชบอร์ด" }));
+    await expectVisibleFocusIndicator(page.getByRole("link", { name: "หน้าหลัก" }));
     await page.goto(`/admin/properties/${e2e.propertyId}/announcements`);
     await page.getByRole("button", { name: "สร้างประกาศ" }).click();
     const dialog = page.getByRole("dialog", { name: "สร้างประกาศใหม่" });

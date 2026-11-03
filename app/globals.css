@@ -490,7 +490,7 @@
   .tenant-room-copy small { @apply block truncate text-xs text-[#62646c]; }
   .tenant-room-switch-icon { @apply shrink-0 text-[#9a9ba3]; }
   .tenant-room-chip-slot { @apply md:hidden; }
-  .tenant-room-chip { @apply inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#e4e4e7] bg-[#fff] px-3 text-sm font-medium whitespace-nowrap text-[#292a30]; }
+  .tenant-room-chip { @apply inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#e4e4e7] bg-[#fff] px-3 text-sm font-medium whitespace-nowrap text-[#292a30]; }
   .tenant-room-chip-menu { @apply top-[calc(100%+8px)] right-auto left-0 w-64; }
   .tenant-sidebar-footer > button,
   .super-admin-sidebar .sidebar-footer > button { @apply w-full justify-center; }

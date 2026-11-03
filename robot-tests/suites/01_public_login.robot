@@ -17,7 +17,7 @@ TC-PUB-001 ผู้ดูแลระบบเข้าสู่ระบบส
     ...    Type: P
     ...    Data: email : robot.super@nestly.test\npassword : รหัสผ่านทดสอบที่ถูกต้อง
     ...    Steps: 1. กรอกอีเมล\n2. กรอกรหัสผ่าน\n3. กด "เข้าสู่ระบบ"
-    ...    Expected: เข้าหน้า /super-admin และเห็นหัวข้อ "แดชบอร์ด"
+    ...    Expected: เข้าหน้า /super-admin และเห็นหัวข้อ "หน้าหลัก"
     Login As Super Admin
     Location Should Contain    /super-admin
     Wait Until Page Contains    ภาพรวมแพลตฟอร์ม

@@ -23,7 +23,7 @@ test("super admin can open the aggregated SaaS dashboard", async ({ page }) => {
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(password!);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
   await expect(page).toHaveURL(/\/super-admin/);
-  await expect(page.getByRole("heading", { name: "แดชบอร์ด", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "หน้าหลัก", exact: true })).toBeVisible();
   await expect(page.getByText("MRR")).toBeVisible();
 
   // รายชื่อเมนูกับ URL ที่คู่กัน วนเช็คทีละอันแทนการเขียนซ้ำห้ารอบ
