@@ -10,10 +10,12 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useToast } from "@/components/ui/ToastProvider";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
-import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currentThaiMonth, formatThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
 import { isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE } from "@/lib/domain/billing";
+
+// ห้องต่อหน้าของตาราง ใช้คำนวณว่าห้องที่ต้องตรวจอยู่หน้าไหน
+const meterPageSize = 10;
 
 // หนึ่งแถวของใบจดมิเตอร์ ห้องหนึ่งห้องในรอบเดือนหนึ่ง
 type MeterWorksheetRow = {
@@ -176,22 +178,32 @@ function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor
   </div>;
 }
 
-// ปุ่มบันทึกทั้งชุด กดไม่ได้จนกว่าจะกรอกอย่างน้อยหนึ่งห้อง และต้องบอกเหตุผลด้วย
-function MeterSaveAction({ isLoading, isSaving, onSave, readOnly, touchedCount }: Readonly<{
-  isLoading: boolean;
+// แถบบันทึกลอยติดขอบล่าง โผล่เมื่อกรอกเลขไปแล้วอย่างน้อยหนึ่งห้อง แบบแถบ "ยังไม่บันทึก" ของ Discord
+// อยู่ใกล้ตารางที่กำลังกรอกเสมอ หอใหญ่กรอกห้องสุดท้ายเสร็จก็กดบันทึกได้เลย ไม่ต้องเลื่อนกลับขึ้นไปหาปุ่มบนหัวหน้า
+function MeterSaveBar({ isSaving, onClear, onReviewRoom, onSave, touchedCount, warningRooms }: Readonly<{
   isSaving: boolean;
+  onClear: () => void;
+  onReviewRoom: (roomId: string) => void;
   onSave: () => void;
-  readOnly: boolean;
   touchedCount: number;
+  warningRooms: { id: string; number: string }[];
 }>) {
-  if (readOnly) return <ReadOnlyNotice compact />;
-  const nothingToSave = !isLoading && !isSaving && touchedCount === 0;
-  return <div className="disabled-action">
-    <button aria-describedby={nothingToSave ? "meter-save-disabled-reason" : undefined} className="primary-button" disabled={isLoading || isSaving || touchedCount === 0} onClick={onSave} type="button">
+  if (touchedCount === 0 && !isSaving) return null;
+  const firstWarning = warningRooms[0];
+  return <div aria-label="บันทึกมิเตอร์" className="meter-save-bar" role="region">
+    <span aria-hidden="true" className="meter-save-bar-dot" />
+    <div className="meter-save-bar-text">
+      <strong>กรอกแล้ว {touchedCount} ห้อง ยังไม่ได้บันทึก</strong>
+      {firstWarning ? <button className="meter-save-bar-warning" onClick={() => onReviewRoom(firstWarning.id)} type="button">
+        <AlertTriangle aria-hidden="true" size={13} />
+        ห้อง {warningRooms.map((room) => room.number).join(", ")} ควรตรวจเลขอีกครั้ง · ไปดู
+      </button> : <small>ระบบเก็บฉบับร่างในเครื่องไว้ให้แล้ว ปิดหน้าแล้วกลับมากรอกต่อได้</small>}
+    </div>
+    <button className="secondary-button" disabled={isSaving} onClick={onClear} type="button">ล้างที่กรอก</button>
+    <button className="primary-button" disabled={isSaving} onClick={onSave} type="button">
       {isSaving ? <LoaderCircle className="animate-spin" size={16} /> : <Save size={16} />}
       {isSaving ? "กำลังบันทึกทั้งชุด..." : `ตรวจสอบและบันทึก ${touchedCount} ห้อง`}
     </button>
-    {nothingToSave ? <p className="disabled-reason" id="meter-save-disabled-reason">กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อนบันทึก</p> : null}
   </div>;
 }
 
@@ -219,6 +231,7 @@ export function MetersPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   // เลขที่กำลังแก้ของแถวที่บันทึกไปแล้ว แยกจากร่างปกติเพราะส่งทีละห้องและไม่เก็บลงเครื่อง
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({});
   const [savingEditRoomId, setSavingEditRoomId] = useState<string | null>(null);
@@ -291,7 +304,7 @@ export function MetersPage({
       && (!normalized || `${room.number} ${tenantName ?? ""}`.toLocaleLowerCase("th").includes(normalized))
     ));
   }, [building, floor, query, rows]);
-  const { page, pageItems, setPage, totalPages } = useTablePagination(visibleRows);
+  const { page, pageItems, setPage, totalPages } = useTablePagination(visibleRows, meterPageSize);
 
   // แถวที่ผู้ใช้แตะแล้วและยังไม่เคยบันทึก มีเฉพาะแถวเหล่านี้ที่จะถูกส่งขึ้นเซิร์ฟเวอร์
   const touchedRows = rows.filter((row) => (
@@ -374,6 +387,32 @@ export function MetersPage({
     .filter((row) => meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts).abnormal)
     .map((row) => row.room.number);
   const rowFigures = rows.map((row) => meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts));
+  // ห้องที่กรอกแล้วแต่เลขดูผิด ทั้งสูงผิดปกติและเกินเพดาน แถบบันทึกจะชี้ให้ไปดูก่อนกดบันทึก
+  const warningRooms = touchedRows
+    .filter((row) => {
+      const figures = meterRowFigures(row, currentDrafts, previousDrafts, editingDrafts);
+      return figures.abnormal || figures.overLimit;
+    })
+    .map((row) => ({ id: row.room.id, number: row.room.number }));
+
+  // พาไปห้องที่ต้องตรวจ ห้องนั้นอาจอยู่หน้าอื่นหรือถูกตัวกรองซ่อนอยู่ จึงล้างตัวกรองก่อนถ้าจำเป็น แล้วโฟกัสช่องเลขล่าสุด
+  function reviewRoom(roomId: string) {
+    let list = visibleRows;
+    if (!visibleRows.some((row) => row.room.id === roomId)) {
+      setQuery("");
+      setBuilding("all");
+      setFloor("all");
+      list = rows;
+    }
+    const index = list.findIndex((row) => row.room.id === roomId);
+    if (index < 0) return;
+    setPage(Math.floor(index / meterPageSize) + 1);
+    window.requestAnimationFrame(() => {
+      const input = document.querySelector<HTMLInputElement>(`tr[data-room-id="${roomId}"] input[data-meter-field="latest"]`);
+      input?.scrollIntoView({ block: "center" });
+      input?.focus({ preventScroll: true });
+    });
+  }
 
   return (
     <section className="meter-figma-page">
@@ -402,16 +441,7 @@ export function MetersPage({
 
       <article className="meter-table-card">
         <div className="additional-card-head">
-          <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>ระบบเก็บฉบับร่างในเครื่องอัตโนมัติ · กด Enter เพื่อไปห้องถัดไป</p></div>
-          <PageHeaderActions>
-            <MeterSaveAction
-              isLoading={isLoading}
-              isSaving={isSaving}
-              onSave={requestConfirmation}
-              readOnly={readOnly}
-              touchedCount={touchedRows.length}
-            />
-          </PageHeaderActions>
+          <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>กด Enter เพื่อไปห้องถัดไป · ระบบเก็บฉบับร่างในเครื่องให้อัตโนมัติ</p></div>
         </div>
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
         {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
@@ -439,6 +469,27 @@ export function MetersPage({
           totalPages={totalPages}
         />
       </article>
+      {readOnly ? null : <MeterSaveBar
+        isSaving={isSaving}
+        onClear={() => setIsConfirmingClear(true)}
+        onReviewRoom={reviewRoom}
+        onSave={requestConfirmation}
+        touchedCount={touchedRows.length}
+        warningRooms={warningRooms}
+      />}
+      {isConfirmingClear ? <ConfirmationDialog
+        confirmLabel="ล้างที่กรอก"
+        description={`เลขที่กรอกไว้ ${touchedRows.length} ห้องจะหายไป ห้องที่บันทึกแล้วไม่ได้รับผลกระทบ`}
+        onCancel={() => setIsConfirmingClear(false)}
+        onConfirm={() => {
+          setCurrentDrafts({});
+          setPreviousDrafts({});
+          setLoadError("");
+          setIsConfirmingClear(false);
+        }}
+        title="ล้างเลขที่กรอกไว้?"
+        variant="danger"
+      /> : null}
       {isConfirming ? <ConfirmationDialog
         confirmDisabled={isSaving}
         confirmLabel={isSaving ? "กำลังบันทึก..." : `ยืนยันบันทึก ${touchedRows.length} ห้อง`}
@@ -588,7 +639,7 @@ function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, onCancelEd
     if (next) onFocusRoom(next.room.id);
   };
 
-  return <tr>
+  return <tr data-room-id={row.room.id}>
     <td>
       <strong>{row.room.number}</strong>
       <small className="block">{row.room.building.code} · ชั้น {row.room.floor.number}</small>
@@ -603,6 +654,7 @@ function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, onCancelEd
         ? <>{row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")}</>
         : <input
           aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
+          data-meter-field="latest"
           disabled={Boolean(row.readingId) && !isEditing}
           // มือถือเด้งแป้นตัวเลขขึ้นมาเลย เจ้าของหอมักเดินจดมิเตอร์หน้าห้องด้วยมือถือ
           inputMode="decimal"

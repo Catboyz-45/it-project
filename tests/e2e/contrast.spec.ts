@@ -44,9 +44,10 @@ test.describe("computed WCAG contrast", () => {
     const primary = page.getByRole("button", { name: "สร้างประกาศ" });
     await checkInteractiveStates(primary, "primary action");
 
-    await page.goto(`/admin/properties/${e2e.propertyId}/meters/water`);
+    // ปุ่มอัปเดตชื่อในหน้าบัญชีกดไม่ได้จนกว่าชื่อจะเปลี่ยน ใช้วัดสีของปุ่มหลักตอนปิดอยู่
+    await page.goto(`/admin/properties/${e2e.propertyId}/account`);
     // ปุ่มที่กดไม่ได้ใช้เกณฑ์ 3 ตามสเปก เพราะตั้งใจให้ดูจางกว่าเพื่อบอกว่ากดไม่ได้
-    const disabled = page.locator('button[aria-describedby="meter-save-disabled-reason"]');
+    const disabled = page.getByRole("button", { exact: true, name: "อัปเดต" });
     await expect(disabled).toBeDisabled();
     await expectContrast(disabled, { minimum: 3, name: "disabled primary action", state: "disabled" });
   });

@@ -727,6 +727,22 @@
   .figma-inline-tabs button.active, .meter-mode-tabs button.active, .repair-filters button.active, .repair-section-tabs button.active, .repair-section-tabs a.active {
     @apply bg-[#fff] font-semibold text-[#292a30] shadow-[0_1px_2px_rgba(0,0,0,.08)] ring-0;
   }
+  /* แถบบันทึกมิเตอร์ ลอยติดขอบล่างของพื้นที่เนื้อหาตอนมีเลขที่ยังไม่บันทึก */
+  .meter-save-bar {
+    @apply sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-[#e4e4e7] bg-[#fff] px-4 py-3 shadow-[0_8px_28px_rgba(30,31,36,.14),0_1px_3px_rgba(30,31,36,.08)];
+    margin-bottom: max(.75rem, env(safe-area-inset-bottom));
+    animation: meter-save-bar-enter 160ms ease-out;
+  }
+  .meter-save-bar-dot { @apply size-2 shrink-0 rounded-full bg-amber-500; }
+  .meter-save-bar-text { @apply grid min-w-0 flex-1 gap-0.5; }
+  .meter-save-bar-text > strong { @apply text-sm font-semibold text-[#292a30]; }
+  .meter-save-bar-text > small { @apply text-xs text-[#62646c]; }
+  .meter-save-bar-warning { @apply inline-flex min-h-0 w-fit items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-semibold text-amber-700 underline-offset-2 shadow-none hover:underline; }
+  .meter-save-bar > button { @apply shrink-0; }
+  @keyframes meter-save-bar-enter { from { opacity: 0; transform: translateY(8px); } }
+  /* ตอนแถบบันทึกโผล่ ยกปุ่มแชตขึ้นไปเหนือแถบ ไม่งั้นปุ่มแชตทับปุ่มบันทึกพอดี */
+  body:has(.meter-save-bar) .chat-launcher { bottom: 6.5rem; }
+  @media (prefers-reduced-motion: reduce) { .meter-save-bar { animation: none; } }
   .figma-table-card, .meter-table-card, .figma-floor-card, .settings-card {
     @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
@@ -2089,6 +2105,11 @@
     .toast button { @apply min-h-11 min-w-11; }
     .settings-editable-list article { @apply items-start; }
     .account-row { @apply flex-wrap; }
+    .meter-save-bar { @apply bottom-2 gap-2; }
+    .meter-save-bar-text { @apply basis-[calc(100%-1.5rem)]; }
+    .meter-save-bar > button { @apply flex-1 justify-center; }
+    .meter-save-bar-text > small { @apply hidden; }
+    body:has(.meter-save-bar) .chat-launcher { bottom: 9rem; }
     /* จอแคบให้ป้ายสถานะลงไปอยู่บรรทัดล่าง ชื่อจะได้มีที่พอ ไม่ตัดกลางคำ */
     .account-profile-text { @apply basis-[calc(100%-4rem)]; }
     .account-status-badge { @apply ml-16; }

@@ -135,16 +135,16 @@ TC-OWN-008 รายการสัญญาเช่า
 TC-OWN-009 บันทึกมิเตอร์โดยยังไม่กรอกเลข
     [Documentation]    Section: ค่าน้ำและค่าไฟ
     ...    Function: บันทึกมิเตอร์น้ำ
-    ...    Desc: ยังไม่กรอกเลขมิเตอร์ห้องไหนเลย ต้องกดบันทึกไม่ได้
+    ...    Desc: ยังไม่กรอกเลขมิเตอร์ห้องไหนเลย ต้องยังไม่มีแถบบันทึกให้กด
     ...    Type: N
     ...    Data: ไม่กรอกเลขมิเตอร์
-    ...    Steps: 1. เปิด "มิเตอร์น้ำ"\n2. ดูปุ่มบันทึก
-    ...    Expected: ปุ่ม "ตรวจสอบและบันทึก 0 ห้อง" กดไม่ได้ และบอกให้กรอกเลขก่อน
+    ...    Steps: 1. เปิด "มิเตอร์น้ำ"\n2. ดูด้านล่างของตาราง
+    ...    Expected: ไม่มีแถบบันทึกและไม่มีปุ่ม "ตรวจสอบและบันทึก" จนกว่าจะกรอกเลขอย่างน้อย 1 ห้อง
     Go To Page    ${OWNER_HOME}/meters/water
-    Wait Until Page Contains Element    xpath://button[contains(normalize-space(.),"ตรวจสอบและบันทึก 0 ห้อง")]
-    Element Should Be Disabled    xpath://button[contains(normalize-space(.),"ตรวจสอบและบันทึก 0 ห้อง")]
-    Page Should Contain    กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อน
-    Record Actual    ปุ่มบันทึกกดไม่ได้ และแจ้ง "กรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้องก่อน"
+    Wait Until Page Contains    รายการมิเตอร์น้ำ
+    Page Should Not Contain Element    xpath://*[@role="region" and @aria-label="บันทึกมิเตอร์"]
+    Page Should Not Contain Element    xpath://button[contains(normalize-space(.),"ตรวจสอบและบันทึก")]
+    Record Actual    ยังไม่มีแถบบันทึกและไม่มีปุ่มบันทึกก่อนกรอกเลข
 
 TC-OWN-010 กรอกเลขมิเตอร์แล้วปุ่มบันทึกนับห้อง
     [Documentation]    Section: ค่าน้ำและค่าไฟ
