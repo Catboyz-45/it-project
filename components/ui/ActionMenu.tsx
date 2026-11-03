@@ -10,6 +10,8 @@ import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
 export type ActionMenuItem = {
   disabled?: boolean;
+  // คีย์ลัดหรือคำอธิบายสั้น ๆ ชิดขวาของรายการ
+  hint?: string;
   icon?: ReactNode;
   // ต้องไม่ซ้ำกันในเมนูเดียว เพราะใช้เป็น key ของ React
   id: string;
@@ -229,6 +231,7 @@ export function ActionMenu({
             >
               {item.icon}
               <span>{item.label}</span>
+              {item.hint ? <kbd className="action-menu-hint">{item.hint}</kbd> : null}
             </button>
           ))}
         </div>,

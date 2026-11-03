@@ -186,6 +186,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       overflowingBlock.before(automaticBreak);
       fillPageBreaks();
     }
+    // ยืดกระดาษให้หน้าสุดท้ายเต็มแผ่น A4 เหมือนหน้าอื่น ไม่ใช่จบสั้น ๆ แค่บรรทัดสุดท้าย
+    editor.style.removeProperty("min-height");
+    const lastPageIndex = Math.max(0, Math.ceil((editor.offsetHeight - pageHeight - 1) / (pageHeight + pageGap)));
+    editor.style.minHeight = `${lastPageIndex * (pageHeight + pageGap) + pageHeight}px`;
     // คืนตำแหน่งเคอร์เซอร์ เพราะการแทรกตัวคั่นทำให้การเลือกข้อความหลุด
     if (previousRange && editor.contains(previousRange.commonAncestorContainer)) {
       selection?.removeAllRanges();
@@ -866,6 +870,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       stepHistory(key === "y" || event.shiftKey ? "redo" : "undo");
       return;
     }
+    // คีย์ลัดเดียวกับ Word และ Google Docs
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      insertPageBreak();
+      return;
+    }
     if (!autocomplete || autocompleteOptions.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -977,15 +987,17 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
   const keepEditorSelection = (event: React.MouseEvent) => event.preventDefault();
 
+  const pageBreakShortcut = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ Enter" : "Ctrl Enter";
   const insertItems = [
     { id: "table", icon: <Table2 size={16} />, label: "ตาราง...", onSelect: () => setIsTableDialogOpen(true) },
     { id: "image", icon: <ImagePlus size={16} />, label: "รูปภาพ (ไม่เกิน 1 MB)", onSelect: () => imageInputRef.current?.click() },
-    { id: "page-break", icon: <FilePlus2 size={16} />, label: "ขึ้นหน้าใหม่", onSelect: insertPageBreak },
+    { hint: pageBreakShortcut, id: "page-break", icon: <FilePlus2 size={16} />, label: "ขึ้นหน้าใหม่", onSelect: insertPageBreak },
     ...(kind === "contract" ? [{ id: "clauses", icon: <ScrollText size={16} />, label: "ข้อสัญญาสำเร็จรูป...", onSelect: () => setIsClauseDialogOpen(true) }] : []),
     { id: "signature", icon: <PenLine size={16} />, label: "บล็อกลายเซ็น", onSelect: () => insertBlock(snippetFragment(signatureBlockHtml(kind), labels)) },
   ];
 
   const pageItems = [
+    { hint: pageBreakShortcut, id: "page-break", icon: <FilePlus2 size={16} />, label: "ขึ้นหน้าใหม่หลังย่อหน้านี้", onSelect: insertPageBreak },
     { id: "merge", icon: <Minus size={16} />, label: "รวมกับหน้าก่อน", onSelect: mergeWithPreviousPage },
     { id: "delete", icon: <Trash2 size={16} />, label: "ลบหน้าปัจจุบัน", onSelect: deleteCurrentPage, variant: "danger" as const },
   ];

@@ -984,6 +984,7 @@
   .action-menu-popover button {
     @apply flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors duration-100 hover:bg-[#f4f4f5] lg:min-h-9;
   }
+  .action-menu-popover .action-menu-hint { @apply ml-auto pl-4 font-sans text-xs font-normal text-[#8a8c94]; }
   .action-menu-popover .action-menu-danger { @apply text-red-700 hover:bg-red-50; }
   .empty-state { @apply grid min-h-48 place-items-center gap-1 rounded-lg border border-dashed border-[#d4d4d8] p-10 text-center text-[#62646c]; }
   .empty-state > svg { @apply mb-4 box-content size-5 rounded-lg border border-[#e4e4e7] bg-[#fff] p-2.5 text-[#62646c]; }
