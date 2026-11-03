@@ -6,8 +6,11 @@ import type { ChatConversationType, ChatSenderRole } from "@/generated/prisma/cl
 // บัญชีคนส่งถูกลบไปแล้วก็ยังแสดงบทบาทได้ ข้อความจะได้ไม่กลายเป็นของคนไม่มีชื่อ
 const senderRoleLabels: Record<string, string> = {
   TENANT: "ผู้เช่า",
-  SUPER_ADMIN: "Super Admin",
 };
+
+// ชื่อที่เจ้าของหอเห็นเมื่อคุยกับฝั่งแพลตฟอร์ม เป็นชื่อทีม ไม่ใช่ชื่อแอดมินแต่ละคน
+// ใครในทีมตอบก็ขึ้นชื่อเดียวกัน และไม่เปิดเผยชื่อส่วนตัวของแอดมิน
+export const SUPPORT_TEAM_NAME = "ทีมช่วยเหลือ Nestly";
 
 // แต่ละบทบาทมีช่องเก็บเวลาอ่านล่าสุดของตัวเอง จะได้นับข้อความใหม่แยกกันได้
 function readFieldFor(role: string) {
@@ -58,7 +61,9 @@ export function toChatMessageDto(message: SelectedMessage): ChatMessageDto {
     body: message.body,
     senderRole: message.senderRole,
     // บัญชีคนส่งถูกลบไปแล้วก็ยังแสดงบทบาทได้ ข้อความจะได้ไม่กลายเป็นของคนไม่มีชื่อ
-    senderName: message.senderUser?.displayName ?? senderRoleLabels[message.senderRole] ?? "ผู้ดูแล",
+    senderName: message.senderRole === "SUPER_ADMIN"
+      ? SUPPORT_TEAM_NAME
+      : message.senderUser?.displayName ?? senderRoleLabels[message.senderRole] ?? "ผู้ดูแล",
     createdAt: message.createdAt.toISOString(),
     attachment: message.attachmentName && message.attachmentMime && message.attachmentSize !== null
       ? {

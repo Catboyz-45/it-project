@@ -22,6 +22,9 @@ type ChatMessage = {
   createdAt: string;
   attachment: { name: string; mimeType: string; size: number; url: string } | null;
 };
+// ชื่อห้องสนทนากับฝั่งแพลตฟอร์ม ตรงกับชื่อผู้ส่งที่เซิร์ฟเวอร์ใส่ให้ข้อความจากแอดมินใหญ่
+const supportTeamName = "ทีมช่วยเหลือ Nestly";
+
 // isSupport แยกแอดมินใหญ่ออกจากผู้เช่า เพราะใช้คนละ API และแสดงผลต่างกัน
 type ChatContact = { id: string; isSupport?: boolean; name: string; roomId: string };
 // สรุปห้องสนทนาของผู้เช่าแต่ละคน ใช้บอกเวลาและข้อความล่าสุดในรายชื่อ
@@ -116,7 +119,7 @@ export function ChatWidget({
   // ผู้เช่าเรียงตามที่คุยล่าสุด คนที่ยังไม่เคยคุยต่อท้ายเรียงตามเลขห้อง
   const contacts = useMemo<ChatContact[]>(
     () => [
-      { id: "super-admin", isSupport: true, name: "แอดมินใหญ่", roomId: "SUPPORT" },
+      { id: "super-admin", isSupport: true, name: supportTeamName, roomId: "SUPPORT" },
       ...tenants
         .map((tenant) => ({ id: tenant.id, name: tenant.name, roomId: tenant.roomId }))
         .sort((left, right) => {
@@ -182,7 +185,7 @@ export function ChatWidget({
             description={selectedContact.isSupport ? "ถามเรื่องการใช้งานระบบหรือแพ็กเกจได้ที่นี่" : `ข้อความจะส่งถึง ${selectedContact.name} ห้อง ${selectedContact.roomId}`}
             onSuggest={(text) => { setMessage(text); composerInputRef.current?.focus(); }}
             suggestions={selectedContact.isSupport ? ["สอบถามการใช้งาน", "ต่ออายุแพ็กเกจ"] : ["แจ้งบิลเดือนนี้", "มีพัสดุมาถึง"]}
-            title={selectedContact.isSupport ? "เริ่มคุยกับแอดมินใหญ่" : "เริ่มคุยกับผู้เช่า"}
+            title={selectedContact.isSupport ? "เริ่มคุยกับทีมช่วยเหลือ" : "เริ่มคุยกับผู้เช่า"}
           />}
           endRef={endRef}
           hasOlderMessages={hasOlderMessages}
@@ -219,7 +222,7 @@ export function ChatWidget({
 
 // ชื่อที่แสดงของคู่สนทนา แอดมินใหญ่ไม่มีเลขห้อง
 function contactTitle(contact: ChatContact) {
-  return contact.isSupport ? "แอดมินใหญ่" : `ห้อง ${contact.roomId}`;
+  return contact.isSupport ? supportTeamName : `ห้อง ${contact.roomId}`;
 }
 
 // วงกลมรูปโปรไฟล์ แอดมินใหญ่เป็นไอคอน ผู้เช่าเป็นเลขห้องแบบสั้น
@@ -251,7 +254,7 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
     <div className="chat-conversation-brand">
       <ContactAvatar contact={contact} size="sm" />
       <span className="min-w-0">
-        <strong className="block truncate">{contact.isSupport ? "แอดมินใหญ่" : contact.name}</strong>
+        <strong className="block truncate">{contact.isSupport ? supportTeamName : contact.name}</strong>
         <small className="block truncate">{contact.isSupport ? "ช่วยเหลือการใช้งานระบบ" : `ห้อง ${contact.roomId}`}</small>
       </span>
     </div>
@@ -289,7 +292,7 @@ function ContactList({ contacts, onOpen, onQueryChange, query, summaryFor, unrea
           <ContactAvatar contact={contact} />
           <span className="chat-contact-text">
             <span className="chat-contact-line">
-              <strong>{contact.isSupport ? "แอดมินใหญ่" : `ห้อง ${contact.roomId} · ${contact.name}`}</strong>
+              <strong>{contact.isSupport ? supportTeamName : `ห้อง ${contact.roomId} · ${contact.name}`}</strong>
               <small>{contact.isSupport ? "ปักหมุด" : summary?.lastMessageAt ? chatListTime(summary.lastMessageAt) : ""}</small>
             </span>
             <span className="chat-contact-line">

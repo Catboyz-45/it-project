@@ -348,7 +348,8 @@ export function DormDashboard({
           propertyId={propertyId}
         />
         <WorkspaceDataError message={dataError} onRetry={() => void refreshDashboard()} />
-        {isRefreshing ? <output aria-atomic="true" className="document-editor-state">กำลังอัปเดตข้อมูล...</output> : null}
+        {/* แถบบาง ๆ บนสุดของหน้า ไม่กินที่ในหน้า เนื้อหาจะได้ไม่กระโดดทุกครั้งที่โหลดข้อมูลใหม่ เช่นตอนเปิดกระดิ่ง */}
+        {isRefreshing ? <output aria-atomic="true" className="workspace-refresh-bar"><span className="sr-only">กำลังอัปเดตข้อมูล...</span></output> : null}
         {!inSettingsArea ? (
           <header className="topbar">
             <div className="topbar-heading">

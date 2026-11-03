@@ -50,3 +50,37 @@ test("chat list previews the latest message and the thread shows day dividers", 
   await chat.getByRole("button", { name: "ย้อนกลับไปยังรายชื่อผู้เช่า" }).click();
   await expect(chat.getByRole("button", { name: /ห้อง E101/ })).toContainText(`คุณ: ${text}`);
 });
+
+// เปิดกระดิ่งแล้วระบบโหลดข้อมูลใหม่ ระหว่างนั้นหน้าต้องไม่กระโดด หัวหน้าต้องอยู่ที่เดิมตลอด
+test("opening the bell refreshes without pushing the page down", async ({ page }) => {
+  await loginAsOwner(page);
+  await page.goto(`/admin/properties/${e2e.propertyId}`);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.evaluate(() => {
+    const heading = document.querySelector("h1")!;
+    const start = heading.getBoundingClientRect().top;
+    const record = window as unknown as { maxShift: number };
+    record.maxShift = 0;
+    const observer = new MutationObserver(() => {
+      record.maxShift = Math.max(record.maxShift, Math.abs(heading.getBoundingClientRect().top - start));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+  await page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ }).click();
+  await expect(page.getByRole("dialog", { name: "ศูนย์การแจ้งเตือน" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(await page.evaluate(() => (window as unknown as { maxShift: number }).maxShift)).toBeLessThan(2);
+});
+
+// ห้องสนทนากับฝั่งแพลตฟอร์มใช้ชื่อทีม ไม่ใช่ชื่อบทบาทภายใน
+test("owner chat shows the support team as a pinned conversation", async ({ page }) => {
+  await loginAsOwner(page);
+  await page.goto(`/admin/properties/${e2e.propertyId}/parcels`);
+  await page.locator(".chat-launcher").click();
+  const chat = page.getByRole("complementary", { name: "ข้อความผู้เช่า" });
+  const support = chat.locator(".chat-support-contact");
+  await expect(support).toContainText("ทีมช่วยเหลือ Nestly");
+  await expect(support).toContainText("ปักหมุด");
+  await support.click();
+  await expect(chat.locator(".chat-conversation-brand")).toContainText("ทีมช่วยเหลือ Nestly");
+});

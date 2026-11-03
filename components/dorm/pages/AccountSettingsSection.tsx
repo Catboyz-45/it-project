@@ -95,7 +95,7 @@ export function AccountSettingsSection({
       title="ข้อมูลบัญชี"
     >
       <label className="account-field"><span>ชื่อที่แสดง</span><input autoComplete="name" maxLength={120} minLength={2} onChange={(event) => { setDraftName(event.target.value); setProfileState(null); }} required value={draftName} /></label>
-      <AccountReadOnlyField hint="เปลี่ยนได้โดยแอดมินใหญ่" label="อีเมลสำหรับเข้าสู่ระบบ" value={accountEmail} />
+      <AccountReadOnlyField hint="ต้องการเปลี่ยน ติดต่อทีมช่วยเหลือทางแชท" label="อีเมลสำหรับเข้าสู่ระบบ" value={accountEmail} />
       <FormMessage state={profileState} />
     </AccountFormCard>
 

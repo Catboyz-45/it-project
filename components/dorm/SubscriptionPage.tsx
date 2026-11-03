@@ -255,7 +255,7 @@ function PlanGrid({ billingInterval, createDisabledReason, hasError, isLoading, 
     if (hasError) return null;
     return <div className="rounded-2xl bg-amber-50 p-4 text-amber-800">
       <strong>ยังไม่มีแพ็กเกจเปิดขายในขณะนี้</strong>
-      <p className="mt-1 text-sm">กรุณาติดต่อแอดมินใหญ่หรือกลับมาลองใหม่ภายหลัง</p>
+      <p className="mt-1 text-sm">กรุณาติดต่อทีมช่วยเหลือทางแชท หรือกลับมาลองใหม่ภายหลัง</p>
     </div>;
   }
   return <div className="plan-grid">
