@@ -8,6 +8,7 @@ import {
   parcelWaitBadge,
   relativeThaiTime,
   thaiMonthKey,
+  ticketProgress,
 } from "@/lib/tenant-records";
 
 // 3 พ.ย. 2569 เวลา 10:00 น. ตามเวลาไทย
@@ -79,5 +80,23 @@ describe("leaseTerm", () => {
     const term = leaseTerm("2026-12-01", "2027-11-30", now);
     expect(term.percent).toBe(0);
     expect(term.remainingLabel).toBe("เริ่มในอีก 28 วัน");
+  });
+});
+
+describe("ticketProgress", () => {
+  const states = (status: string) => ticketProgress(status).steps.map(({ state }) => state);
+
+  it("moves through reported, acknowledged and done", () => {
+    expect(states("OPEN")).toEqual(["current", "todo", "todo"]);
+    expect(states("ACKNOWLEDGED")).toEqual(["done", "current", "todo"]);
+    expect(states("RESOLVED")).toEqual(["done", "done", "done"]);
+  });
+
+  it("uses the same words as the status badge", () => {
+    expect(ticketProgress("IN_PROGRESS").steps.map(({ label }) => label)).toEqual(["รับเรื่องแล้ว", "กำลังตรวจสอบ", "เสร็จแล้ว"]);
+  });
+
+  it("flags cancelled tickets", () => {
+    expect(ticketProgress("CANCELLED").cancelled).toBe(true);
   });
 });

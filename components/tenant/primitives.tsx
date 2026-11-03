@@ -16,8 +16,9 @@ export function Info({ label, value }: Readonly<{ label: string; value: string }
   return <div><dt className="text-sm text-[#62646c]">{label}</dt><dd className="font-bold">{value}</dd></div>;
 }
 
-export function Empty({ description, icon, text }: Readonly<{ description?: string; icon: ReactNode; text: string }>) {
-  return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}</div>;
+// action คือปุ่มชวนให้ทำต่อ เช่นแจ้งเรื่องแรก ไม่ใช่แค่บอกว่ายังไม่มีอะไร
+export function Empty({ action, description, icon, text }: Readonly<{ action?: ReactNode; description?: string; icon: ReactNode; text: string }>) {
+  return <div className="empty-state">{icon}<strong>{text}</strong>{description ? <p>{description}</p> : null}{action ? <div className="mt-4">{action}</div> : null}</div>;
 }
 
 // สีบอกความหมายก่อนอ่าน ใช้ชุดเดียวกับฝั่งเจ้าของหอ เขียวคือเสร็จแล้ว เหลืองคือรอทำ แดงคือเลยกำหนดหรือถูกปฏิเสธ

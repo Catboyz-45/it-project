@@ -1047,6 +1047,16 @@
   .tenant-record-list { @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
   .tenant-record-list > li + li { @apply border-t border-[#e4e4e7]; }
   .tenant-record-row { @apply flex items-center gap-3 px-4 py-3; }
+  .tenant-record-toggle { @apply w-full text-left transition-colors duration-150 hover:bg-[#fafafa]; }
+  .tenant-pay-pending { @apply mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-[#fcd34d] bg-[#fffbeb] p-4; }
+  .tenant-steps { @apply grid grid-cols-3 gap-2; }
+  .tenant-steps > li { @apply flex flex-col gap-1.5 text-xs font-medium text-[#8b8d96]; }
+  .tenant-steps > li > span { @apply h-1.5 rounded-full bg-[#eceef2]; }
+  .tenant-steps > li[data-state="done"] { @apply text-[#047857]; }
+  .tenant-steps > li[data-state="done"] > span { @apply bg-[#10b981]; }
+  .tenant-steps > li[data-state="current"] { @apply text-[#3f48b0]; }
+  .tenant-steps > li[data-state="current"] > span { @apply bg-[#5865f2]; }
+  .tenant-ticket-events > summary { @apply w-fit cursor-pointer text-sm text-[#62646c] hover:text-[#292a30]; }
 
   .tenant-featured-announcement { @apply flex gap-4 rounded-xl border-2 border-[#c7cbfb] bg-[#fff] p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
   .tenant-announcement-row > summary { @apply flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[#fafafa]; }

@@ -16,6 +16,7 @@ import {
   ImagePlus,
   Bell,
   Clock3,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -43,7 +44,7 @@ import { RetryButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatEmptyState, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
-import type { TicketInboxItem } from "@/lib/ticket-inbox";
+import type { TicketInboxItem, TicketInboxStatus } from "@/lib/ticket-inbox";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
@@ -65,6 +66,7 @@ import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primit
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
 import { tenantChatOpenEvent } from "@/lib/tenant-chat";
+import { ticketProgress } from "@/lib/tenant-records";
 import type { TenantRecordView } from "@/lib/tenant-record-view";
 import { AccountCard, AccountFormCard, AccountProfileCard, AccountReadOnlyField } from "@/components/account/AccountLayout";
 import { PrivacyPreferencesPanel } from "@/components/legal/PrivacyPreferencesPanel";
@@ -1048,15 +1050,6 @@ function TenantHistoryTabs({
   </div>;
 }
 
-function TenantHistoryTable({ children, title, total }: Readonly<{ children: ReactNode; title: string; total: number | null }>) {
-  return <section className="figma-table-card">
-    <header className="additional-card-head">
-      <div><h2>{title}</h2><p>{total === null ? "กำลังนับรายการ..." : `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`}</p></div>
-    </header>
-    <div className="figma-table-wrap">{children}</div>
-  </section>;
-}
-
 function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }>) {
   const [view, setView] = useState<TenantRecordView>("current");
   const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current", 20, initialViews?.current ?? null);
@@ -1115,40 +1108,44 @@ type InvoiceListProps = Readonly<{
 // เลือกว่าจะแสดงอะไรในแผงบิล กำลังโหลด พัง ว่าง ประวัติ หรือรายการปัจจุบัน
 function InvoicesBody(props: InvoiceListProps) {
   const { resource, view } = props;
-  if (resource.isLoading && !resource.data.length) return <Loading columns={6} variant={view === "history" ? "table" : "list"} />;
+  if (resource.isLoading && !resource.data.length) return <Loading />;
   if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
   if (resource.data.length === 0) {
     return view === "current"
       ? <Empty description="เมื่อถึงรอบบิลถัดไป รายการจะมาแสดงที่นี่" icon={<ReceiptText />} text="ไม่มีบิลที่ต้องดำเนินการ" />
       : <Empty description="บิลที่ชำระเสร็จแล้วจะย้ายมาเก็บไว้ที่นี่" icon={<ReceiptText />} text="ยังไม่มีประวัติบิล" />;
   }
-  if (view === "history") return <InvoiceHistoryTable {...props} />;
+  if (view === "history") return <InvoiceHistoryList {...props} />;
   return <InvoiceCards {...props} />;
 }
 
-// มุมมองประวัติเป็นตาราง กดแถวแล้วกางรายละเอียดออกมาเป็นแถวถัดไป
-function InvoiceHistoryTable({ expandedInvoiceId, historyTotal, onChanged, onToggle, readOnly, resource }: InvoiceListProps) {
-  return <TenantHistoryTable title="ประวัติบิล" total={historyTotal}>
-    <table>
-      <thead><tr><th scope="col">เลขที่บิล</th><th scope="col">รอบบิล</th><th scope="col">ยอดรวม</th><th scope="col">สถานะ</th><th scope="col">วันที่ดำเนินการ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
-      <tbody>{resource.data.map((invoice) => {
-        const isExpanded = expandedInvoiceId === invoice.id;
-        const panelId = `tenant-invoice-details-${invoice.id}`;
-        const completedAt = invoice.paidAt ?? invoice.cancelledAt;
-        return <Fragment key={invoice.id}>
-          <tr>
-            <th className="px-6 py-4 text-sm font-bold" scope="row">{invoice.invoiceNumber}</th>
-            <td>{formatThaiMonth(invoice.billingMonth.slice(0, 7))}</td>
-            <td><strong>{currency.format(Number(invoice.total))}</strong></td>
-            <td><Status kind="invoice" value={invoice.status} /></td>
-            <td>{completedAt ? formatThaiDate(completedAt) : "—"}</td>
-            <td><button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggle(invoice.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
-          </tr>
-          {isExpanded ? <tr><td className="p-0!" colSpan={6}><InvoiceDetails id={panelId} invoice={invoice} onChanged={onChanged} readOnly={readOnly} /></td></tr> : null}
-        </Fragment>;
-      })}</tbody>
-    </table>
-  </TenantHistoryTable>;
+// มุมมองประวัติเป็นรายการแบบมีเส้นคั่น กดแถวแล้วกางรายละเอียดอยู่ในแถวเดิม
+// เคยเป็นตารางหกคอลัมน์ ซึ่งบนมือถือดันหน้าให้กว้างจนต้องเลื่อนข้าง
+function InvoiceHistoryList({ expandedInvoiceId, historyTotal, onChanged, onToggle, readOnly, resource }: InvoiceListProps) {
+  return <div className="grid gap-3">
+    <p className="tenant-month-heading">{historyTotal === null ? "ประวัติบิล" : `ทั้งหมด ${historyTotal.toLocaleString("th-TH")} บิล`}</p>
+    <ul aria-label="ประวัติบิล" className="tenant-record-list">{resource.data.map((invoice) => {
+      const isExpanded = expandedInvoiceId === invoice.id;
+      const panelId = `tenant-invoice-details-${invoice.id}`;
+      const isPaid = invoice.status === "PAID";
+      const completedAt = invoice.paidAt ?? invoice.cancelledAt;
+      return <li key={invoice.id}>
+        <button aria-controls={panelId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียดบิล ${invoice.invoiceNumber}`} className="tenant-record-row tenant-record-toggle" onClick={() => onToggle(invoice.id)} type="button">
+          <span aria-hidden="true" className="tenant-icon-tile" data-size="sm" data-tone={isPaid ? "success" : undefined}>{isPaid ? <Check size={17} /> : <X size={17} />}</span>
+          <span className="min-w-0 flex-1">
+            <strong className="block text-[#292a30]">{formatThaiMonth(invoice.billingMonth.slice(0, 7))}</strong>
+            <span className="block break-words text-sm text-[#62646c]">{invoice.invoiceNumber}{completedAt ? ` · ${isPaid ? "ชำระ" : "ยกเลิก"} ${formatThaiDate(completedAt)}` : ""}</span>
+          </span>
+          <span className="grid shrink-0 justify-items-end gap-1">
+            <strong className="text-[#292a30]">{currency.format(Number(invoice.total))}</strong>
+            <Status kind="invoice" value={invoice.status} />
+          </span>
+          <ChevronDown aria-hidden="true" className={`shrink-0 text-[#8b8d96] transition-transform ${isExpanded ? "rotate-180" : ""}`} size={18} />
+        </button>
+        {isExpanded ? <InvoiceDetails id={panelId} invoice={invoice} onChanged={onChanged} readOnly={readOnly} /> : null}
+      </li>;
+    })}</ul>
+  </div>;
 }
 
 // มุมมองปัจจุบันเป็นการ์ด กดแล้วกางรายละเอียดอยู่ในการ์ดเดิม
@@ -1182,6 +1179,8 @@ function InvoiceStatus({ invoice }: Readonly<{ invoice: Invoice }>) {
 // บิลที่ยังค้างบอกเป็นจำนวนวัน เลยกำหนดแล้วเป็นสีแดง บิลที่จ่ายหรือยกเลิกแล้วบอกแค่วันครบกำหนด
 function InvoiceDueText({ invoice }: Readonly<{ invoice: Invoice }>) {
   if (!["PENDING", "OVERDUE"].includes(invoice.status)) return <>ครบกำหนด {formatThaiDate(invoice.dueDate)}</>;
+  // ส่งสลิปแล้ว ส่วนของผู้เช่าจบแล้ว ไม่ต้องเร่งด้วยตัวแดงว่าเลยกำหนดอีก ป้ายข้าง ๆ บอกว่ารอตรวจอยู่แล้ว
+  if (invoice.hasPendingSubmission) return <>ครบกำหนด {formatThaiDate(invoice.dueDate)}</>;
   const due = describeInvoiceDue(invoice.dueDate);
   return <span className={due.isLate ? "font-semibold text-[#dc2626]" : undefined}>{due.text}</span>;
 }
@@ -1238,12 +1237,25 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isResubmitting, setIsResubmitting] = useState(false);
 
   // คืนหน่วยความจำของรูปตัวอย่างเมื่อเปลี่ยนรูปหรือออกจากหน้า
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   if (!payable) return null;
   if (readOnly) return <ReadOnlyNotice className="mt-5">ตรวจสอบรายละเอียดและประวัติหลักฐานได้ แต่ไม่สามารถชำระหรือส่งสลิปใหม่ได้</ReadOnlyNotice>;
+  // ส่งสลิปไปแล้ว ไม่ต้องโชว์ QR กับช่องแนบสลิปเต็ม ๆ ให้ดูเหมือนยังไม่ได้จ่าย
+  // แต่ยังเปิดส่งใหม่ได้ เผื่อแนบผิดใบหรือโอนเพิ่ม
+  if (invoice.hasPendingSubmission && !isResubmitting) {
+    return <div className="tenant-pay-pending">
+      <Clock3 aria-hidden="true" className="shrink-0 text-[#92400e]" size={20} />
+      <div className="min-w-48 flex-1">
+        <strong className="block text-[#78350f]">ส่งสลิปแล้ว รอหอตรวจสอบ</strong>
+        <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบส่งใหม่ได้</span>
+      </div>
+      <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><Upload aria-hidden="true" size={17} /> ส่งสลิปใหม่</button>
+    </div>;
+  }
 
   const submit = async () => {
     if (!file) return;
@@ -1256,6 +1268,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
       await apiData(response);
       setFile(null);
       setPreviewUrl(null);
+      setIsResubmitting(false);
       await onSubmitted();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "ส่งสลิปไม่สำเร็จ");
@@ -1361,7 +1374,7 @@ function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
 
 
 type Ticket = {
-  id: string; type: "REPAIR" | "COMPLAINT"; status: string; priority: string;
+  id: string; type: "REPAIR" | "COMPLAINT"; status: TicketInboxStatus; priority: string;
   title: string; detail: string; createdAt: string; updatedAt: string;
   hasUnreadReply: boolean;
   attachments: Array<{ id: string; fileName: string; mimeType: string; sizeBytes: number }>;
@@ -1408,6 +1421,7 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: Readonly<{ in
     <div aria-labelledby={`tenant-tickets-tab-${view}`} id="tenant-tickets-panel" role="tabpanel" tabIndex={0}>
       <TicketsBody
         historyTotal={historyResource.total}
+        onCreate={readOnly ? undefined : () => setIsOpen(true)}
         onRead={markRead}
         onToggleReply={toggleReply}
         openReplyTicketId={openReplyTicketId}
@@ -1424,6 +1438,7 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: Readonly<{ in
 
 type TicketListProps = Readonly<{
   historyTotal: number | null;
+  onCreate?: () => void;
   onRead: () => void;
   onToggleReply: (ticketId: string) => void;
   openReplyTicketId: string | null;
@@ -1435,54 +1450,85 @@ type TicketListProps = Readonly<{
 // เลือกว่าจะแสดงอะไรในแผงเรื่องแจ้ง กำลังโหลด พัง ว่าง ประวัติ หรือรายการปัจจุบัน
 function TicketsBody(props: TicketListProps) {
   const { resource, view } = props;
-  if (resource.isLoading && !resource.data.length) return <Loading columns={5} variant={view === "history" ? "table" : "list"} />;
+  if (resource.isLoading && !resource.data.length) return <Loading />;
   if (resource.error && !resource.data.length) return <ErrorState error={resource.error} retry={() => void resource.reload()} />;
   if (resource.data.length === 0) {
-    return <Empty icon={<Wrench />} text={view === "current" ? "ไม่มีเรื่องที่กำลังดำเนินการ" : "ยังไม่มีประวัติเรื่อง"} />;
+    if (view === "history") return <Empty description="เรื่องที่เสร็จหรือยกเลิกแล้วจะย้ายมาเก็บไว้ที่นี่" icon={<Wrench />} text="ยังไม่มีประวัติเรื่อง" />;
+    return <Empty
+      action={props.onCreate ? <button className="secondary-button" onClick={props.onCreate} type="button"><Plus aria-hidden="true" size={17} /> แจ้งเรื่องใหม่</button> : null}
+      description="แจ้งซ่อมของในห้อง หรือร้องเรียนเรื่องเสียงดังและความสะอาด เลือกไม่ระบุชื่อได้"
+      icon={<Wrench />}
+      text="ไม่มีเรื่องที่กำลังดำเนินการ"
+    />;
   }
-  if (view === "history") return <TicketHistoryTable {...props} />;
+  if (view === "history") return <TicketHistoryList {...props} />;
   return <TicketCards {...props} />;
 }
 
-// มุมมองประวัติเป็นตาราง กดแถวแล้วกางรายละเอียดออกมาเป็นแถวถัดไป
-function TicketHistoryTable({ historyTotal, onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
-  return <TenantHistoryTable title="ประวัติเรื่องแจ้ง" total={historyTotal}>
-    <table>
-      <thead><tr><th scope="col">หัวข้อ</th><th scope="col">ประเภท</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th aria-label="จัดการ" scope="col" /></tr></thead>
-      <tbody>{resource.data.map((ticket) => {
-        const isExpanded = openReplyTicketId === ticket.id;
-        const detailsId = `tenant-ticket-history-${ticket.id}`;
-        return <Fragment key={ticket.id}>
-          <tr>
-            <th className="px-6 py-4 text-sm font-bold" scope="row">{ticket.title}</th>
-            <td>{ticketTypeLabel(ticket.type)}</td>
-            <td>{formatThaiDateTime(ticket.createdAt)}</td>
-            <td><Status kind="ticket" value={ticket.status} /></td>
-            <td><button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="grid size-10 place-items-center rounded-xl bg-[#f1f1f3] text-[#555761]" onClick={() => onToggleReply(ticket.id)} type="button"><ChevronDown aria-hidden="true" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} /></button></td>
-          </tr>
-          {isExpanded ? <tr><td className="p-0!" colSpan={5}><div className="p-5" id={detailsId}>
-            <TicketDetailsContent onRead={onRead} readOnly={readOnly} showReplyThread ticket={ticket} />
-          </div></td></tr> : null}
-        </Fragment>;
-      })}</tbody>
-    </table>
-  </TenantHistoryTable>;
+// มุมมองประวัติเป็นรายการแบบมีเส้นคั่น กดแถวแล้วกางรายละเอียดกับการตอบกลับอยู่ในแถวเดิม
+function TicketHistoryList({ historyTotal, onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
+  return <div className="grid gap-3">
+    <p className="tenant-month-heading">{historyTotal === null ? "ประวัติเรื่องแจ้ง" : `ทั้งหมด ${historyTotal.toLocaleString("th-TH")} เรื่อง`}</p>
+    <ul aria-label="ประวัติเรื่องแจ้ง" className="tenant-record-list">{resource.data.map((ticket) => {
+      const isExpanded = openReplyTicketId === ticket.id;
+      const detailsId = `tenant-ticket-history-${ticket.id}`;
+      return <li key={ticket.id}>
+        <button aria-controls={detailsId} aria-expanded={isExpanded} aria-label={`${isExpanded ? "ยุบ" : "ขยาย"}รายละเอียด ${ticket.title}`} className="tenant-record-row tenant-record-toggle" onClick={() => onToggleReply(ticket.id)} type="button">
+          <span aria-hidden="true" className="chat-ticket-icon" data-size="sm" data-tone={ticketStatusTone(ticket.status)}><TicketIcon size={16} type={ticket.type} /></span>
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-[#292a30]">{ticket.title}</strong>
+            <span className="block text-sm text-[#62646c]">{ticketTypeLabel(ticket.type)} · แจ้ง {formatThaiDate(ticket.createdAt)}</span>
+          </span>
+          <Status kind="ticket" value={ticket.status} />
+          <ChevronDown aria-hidden="true" className={`shrink-0 text-[#8b8d96] transition-transform ${isExpanded ? "rotate-180" : ""}`} size={18} />
+        </button>
+        {isExpanded ? <div className="border-t border-dashed border-[#e4e4e7] bg-[#fcfcfe] px-4 py-4" id={detailsId}>
+          <TicketBody onRead={onRead} readOnly={readOnly} showReplyThread ticket={ticket} />
+        </div> : null}
+      </li>;
+    })}</ul>
+  </div>;
 }
 
-// มุมมองปัจจุบันเป็นการ์ด เปิดการตอบกลับได้ทีละเรื่อง
+// มุมมองปัจจุบันเป็นการ์ด บอกขั้นที่เรื่องไปถึงแล้ว เปิดการตอบกลับได้ทีละเรื่อง
 function TicketCards({ onRead, onToggleReply, openReplyTicketId, readOnly, resource }: TicketListProps) {
-  // เว้นระยะระหว่างการ์ดแบบเดียวกับรายการบิล ไม่ให้การ์ดชนกันเป็นก้อนเดียว
   return <div className="grid gap-3">
-    {resource.data.map((ticket) => <Panel key={ticket.id} title={ticket.title}>
-      <TicketDetailsContent
+    {resource.data.map((ticket) => <article aria-labelledby={`tenant-ticket-${ticket.id}`} className="panel grid gap-4" key={ticket.id}>
+      <header className="flex flex-wrap items-start gap-3">
+        <span aria-hidden="true" className="chat-ticket-icon" data-tone={ticketStatusTone(ticket.status)}><TicketIcon type={ticket.type} /></span>
+        {/* จอแคบให้ป้ายสถานะลงไปอยู่บรรทัดใหม่ ไม่ไปบีบหัวข้อจนเหลือคำละบรรทัด */}
+        <div className="min-w-48 flex-1">
+          <h2 className="break-words text-base font-semibold text-[#292a30]" id={`tenant-ticket-${ticket.id}`}>{ticket.title}</h2>
+          <p className="text-sm text-[#62646c]">{ticketTypeLabel(ticket.type)} · แจ้ง {formatThaiDateTime(ticket.createdAt)}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+          {ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}
+          {/* ความเร่งด่วนปกติไม่ต้องบอก ป้ายจะได้ไม่รก บอกเฉพาะเรื่องที่ด่วน */}
+          {ticket.priority === "URGENT" ? <span className="badge badge-overdue">{formatStatus(ticket.priority)}</span> : null}
+          <Status kind="ticket" value={ticket.status} />
+        </div>
+      </header>
+      <TicketSteps status={ticket.status} />
+      <TicketBody
         onRead={onRead}
         readOnly={readOnly}
         showReplyThread={openReplyTicketId === ticket.id}
         ticket={ticket}
         toggleReply={() => onToggleReply(ticket.id)}
       />
-    </Panel>)}
+    </article>)}
   </div>;
+}
+
+function TicketSteps({ status }: Readonly<{ status: string }>) {
+  const progress = ticketProgress(status);
+  if (progress.cancelled) return null;
+  return <ol aria-label="ขั้นตอนของเรื่องนี้" className="tenant-steps">
+    {progress.steps.map((step) => <li aria-current={step.state === "current" ? "step" : undefined} data-state={step.state} key={step.label}>
+      <span aria-hidden="true" />
+      {step.label}
+    </li>)}
+  </ol>;
 }
 
 // เรื่องแจ้งมีสองประเภท แจ้งซ่อมกับร้องเรียน
@@ -1496,21 +1542,24 @@ function ticketEventLabel(event: Ticket["events"][number]) {
   return "แนบไฟล์";
 }
 
-function TicketDetailsContent({ onRead, readOnly, showReplyThread, ticket, toggleReply }: Readonly<{
+// รายละเอียด ไฟล์แนบ ประวัติการดำเนินการ และการตอบกลับ ใช้ทั้งในการ์ดและในแถวประวัติ
+function TicketBody({ onRead, readOnly, showReplyThread, ticket, toggleReply }: Readonly<{
   onRead: () => void;
   readOnly: boolean;
   showReplyThread: boolean;
   ticket: Ticket;
   toggleReply?: () => void;
 }>) {
-  return <>
-    <div className="flex flex-wrap gap-2"><Status kind="ticket" value={ticket.status} /><span className="badge">{ticketTypeLabel(ticket.type)}</span><span className="badge">{formatStatus(ticket.priority)}</span>{ticket.hasUnreadReply ? <span className="badge bg-red-600 text-white">มีข้อความใหม่</span> : null}</div>
-    <p className="mt-3 whitespace-pre-wrap">{ticket.detail}</p>
-    {ticket.attachments.map((file) => <a className="mt-3 flex items-center gap-2 text-brand underline" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip size={15} />{file.fileName}</a>)}
-    <ol className="mt-4 grid gap-2 border-t border-[#e4e4e7] pt-4">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{formatThaiDateTime(event.createdAt)}</time> · {ticketEventLabel(event)}</li>)}</ol>
-    {toggleReply ? <button className="secondary-button mt-4" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button> : null}
+  return <div className="grid gap-3">
+    <p className="whitespace-pre-wrap text-[#3f4048]">{ticket.detail}</p>
+    {ticket.attachments.length ? <div className="flex flex-wrap gap-2">{ticket.attachments.map((file) => <a className="tenant-chip" href={`/api/v1/tenant/tickets/${ticket.id}/attachments/${file.id}`} key={file.id} rel="noreferrer" target="_blank"><Paperclip aria-hidden="true" size={13} />{file.fileName}</a>)}</div> : null}
+    <details className="tenant-ticket-events">
+      <summary>ประวัติการดำเนินการ ({ticket.events.length.toLocaleString("th-TH")})</summary>
+      <ol className="mt-2 grid gap-1.5">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{formatThaiDateTime(event.createdAt)}</time> · {ticketEventLabel(event)}</li>)}</ol>
+    </details>
+    {toggleReply ? <div><button className="secondary-button" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button></div> : null}
     {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
-  </>;
+  </div>;
 }
 
 function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; onCreated: () => Promise<void> }>) {

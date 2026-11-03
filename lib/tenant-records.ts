@@ -1,6 +1,7 @@
 // ป้ายและตัวเลขที่ช่วยให้หน้าประกาศ พัสดุ และสัญญาฝั่งผู้เช่าอ่านง่ายขึ้น
 // เป็นฟังก์ชันล้วน ใช้ได้ทั้งบนเซิร์ฟเวอร์และในเบราว์เซอร์ เทียบวันตามเวลาไทยเสมอ
 import { chatDayKey } from "@/lib/chat-time";
+import { formatTicketStatus } from "@/lib/ui-labels";
 
 const timeZone = "Asia/Bangkok";
 const dayMs = 86_400_000;
@@ -100,4 +101,19 @@ function leaseRemainingLabel(daysLeft: number, daysUntilStart: number) {
   if (daysLeft === 0) return "สิ้นสุดวันนี้";
   if (daysLeft <= leaseEndingSoonDays) return `เหลืออีก ${daysLeft} วัน`;
   return `เหลืออีกประมาณ ${Math.round(daysLeft / 30)} เดือน`;
+}
+
+export type TicketProgressStep = { label: string; state: "done" | "current" | "todo" };
+
+// เส้นสถานะของเรื่องแจ้งสามขั้น ใช้คำเดียวกับป้ายสถานะ ผู้เช่าจะได้ไม่เห็นสองคำสำหรับขั้นเดียวกัน
+// รับเรื่องกับกำลังดำเนินการนับเป็นขั้นกลางเหมือนกัน เพราะป้ายก็เรียกว่ากำลังตรวจสอบทั้งคู่
+export function ticketProgress(status: string): { cancelled: boolean; steps: TicketProgressStep[] } {
+  const reached = { OPEN: 0, ACKNOWLEDGED: 1, IN_PROGRESS: 1, RESOLVED: 3 }[status] ?? 0;
+  return {
+    cancelled: status === "CANCELLED",
+    steps: ["OPEN", "ACKNOWLEDGED", "RESOLVED"].map((stepStatus, index) => ({
+      label: formatTicketStatus(stepStatus),
+      state: index < reached ? "done" : index === reached ? "current" : "todo",
+    })),
+  };
 }

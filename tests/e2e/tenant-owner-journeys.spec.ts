@@ -172,6 +172,9 @@ test.describe("tenant journey", () => {
     await expect(page.getByRole("heading", { name: "บิลและชำระเงิน" })).toBeVisible();
     // รายละเอียดบิลกางออกในหน้าเลย ไม่ใช่กล่องซ้อน บิลที่ยังไม่จ่ายเปิดไว้ให้เอง กดปุ่มเดิมคือปิด
     const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
+    // บิลนี้ส่งสลิปไว้แล้ว จึงขึ้นว่ารอหอตรวจ QR ซ่อนไว้จนกว่าจะกดส่งสลิปใหม่
+    await expect(invoiceDetails.getByText("ส่งสลิปแล้ว รอหอตรวจสอบ")).toBeVisible();
+    await invoiceDetails.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
     await expect(invoiceDetails.getByText("สแกน PromptPay")).toBeVisible();
     // QR PromptPay ต้องถูกสร้างขึ้นจริง ไม่ใช่รูปเปล่าหรือรูปแตก
     await expect(invoiceDetails.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
@@ -199,6 +202,8 @@ test.describe("tenant journey", () => {
     await expect(page).toHaveURL(/\/tenant/);
 
     await page.getByLabel("เมนูผู้เช่า").getByRole("link", { name: "แจ้งเรื่อง", exact: true }).click();
+    // ยังไม่มีเรื่องค้าง หน้าว่างต้องชวนแจ้งเรื่องแรก ไม่ใช่แค่บอกว่าไม่มี
+    await expect(page.getByRole("button", { name: "แจ้งเรื่องใหม่" })).toBeVisible();
     await page.locator("section").getByRole("button", { name: "แจ้งเรื่อง", exact: true }).click();
     const ticketDialog = page.getByRole("dialog");
     await ticketDialog.getByLabel("หัวข้อ").fill("ก๊อกน้ำ E2E รั่ว");
@@ -209,6 +214,9 @@ test.describe("tenant journey", () => {
     await expect(ticketDialog).toBeHidden();
     await expect(page.getByRole("heading", { name: "ก๊อกน้ำ E2E รั่ว" }).first()).toBeVisible();
     await expect(page.getByText("ด่วน", { exact: true }).first()).toBeVisible();
+    // เรื่องที่เพิ่งแจ้งอยู่ขั้นแรกของเส้นสถานะ
+    const newTicket = page.getByRole("article", { name: "ก๊อกน้ำ E2E รั่ว" }).first();
+    await expect(newTicket.getByRole("list", { name: "ขั้นตอนของเรื่องนี้" }).locator('[aria-current="step"]')).toHaveText("รับเรื่องแล้ว");
 
     // การติดต่อหอเป็นกล่องแชทลอยมุมจอ ไม่ใช่หน้าในเมนู
     await page.getByRole("button", { name: /เปิดแชทกับหอพัก/ }).click();

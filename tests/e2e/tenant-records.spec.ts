@@ -46,3 +46,35 @@ test("lease shows how far through the term it is and the signed document", async
   await expect(page.getByText("12 เดือน", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "เปิดเอกสารลงนาม" })).toBeVisible();
 });
+
+// บิลที่ส่งสลิปแล้วต้องบอกว่ารอหอตรวจ ไม่ใช่ยังเร่งด้วยตัวแดงว่าเลยกำหนด และยังกดส่งใหม่ได้
+test("a bill with a slip under review says so and can still take a new slip", async ({ page }) => {
+  await page.goto("/tenant/invoices");
+  const invoiceButton = page.getByRole("button", { name: /E2E-202607-E101/ });
+  await expect(invoiceButton).toContainText("รอตรวจสอบสลิป");
+  await expect(invoiceButton).not.toContainText("เลยกำหนด");
+  const details = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
+  await expect(details.getByText("ส่งสลิปแล้ว รอหอตรวจสอบ")).toBeVisible();
+  await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toHaveCount(0);
+  await details.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
+  await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
+  await expect(details.getByRole("button", { name: "ส่งหลักฐาน" })).toBeDisabled();
+});
+
+// ประวัติบิลและเรื่องแจ้งเคยเป็นตารางกว้างที่ดันหน้ามือถือให้เลื่อนข้างได้
+test("bill and ticket history fit a phone screen and expand in place", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/tenant/invoices");
+  await page.getByRole("tab", { name: "ประวัติบิล" }).click();
+  const history = page.getByRole("list", { name: "ประวัติบิล" });
+  const row = history.getByRole("button", { name: /E2E-202606-E101/ });
+  await expect(row).toContainText("มิถุนายน 2569");
+  await row.click();
+  await expect(page.getByLabel("รายละเอียดบิล E2E-202606-E101", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+  await page.goto("/tenant/tickets");
+  await page.getByRole("tab", { name: "ประวัติเรื่อง" }).click();
+  await expect(page.locator(".loading-skeleton")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

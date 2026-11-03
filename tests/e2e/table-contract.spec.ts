@@ -27,12 +27,8 @@ const ownerTables = [
   { columns: 6, path: "/tenants?tab=transitions", title: "ประวัติย้ายออก/ย้ายห้อง" },
 ] as const;
 
-// ตารางประวัติของผู้เช่าอยู่หลังแท็บ "ประวัติ" และต้องมีข้อมูลใน seed ถึงจะ render
-// ประวัติพัสดุเปลี่ยนเป็นรายการแบบมีเส้นคั่นแล้ว ไม่ใช่ตาราง จึงไม่อยู่ในรายการนี้
-const tenantTables = [
-  { columns: 6, path: "/tenant/invoices", title: "ประวัติบิล" },
-  { columns: 5, path: "/tenant/tickets", title: "ประวัติเรื่องแจ้ง" },
-] as const;
+// ประวัติฝั่งผู้เช่า (บิล พัสดุ เรื่องแจ้ง) เป็นรายการแบบมีเส้นคั่นแล้ว ไม่ใช่ตาราง จึงไม่อยู่ในไฟล์นี้
+// ตารางหกคอลัมน์เคยดันหน้าบนมือถือให้กว้างจนต้องเลื่อนข้าง tenant-records.spec.ts ตรวจเรื่องนี้แทน
 
 const superAdminTables = [
   { columns: 6, path: "/super-admin/accounts", title: "บัญชีผู้ดูแล" },
@@ -102,22 +98,6 @@ test.describe("สัญญาของตารางทุกโรล", () =>
       if ("needsTableView" in entry && entry.needsTableView) {
         await page.getByRole("tab", { name: /ตาราง/ }).first().click();
       }
-      // รอให้โครงหลอกหายไปก่อน ไม่งั้นจะไปวัดโครงหลอกแทนตารางจริง
-      await expect(page.locator(".loading-skeleton")).toHaveCount(0, { timeout: 10_000 });
-      const table = page.locator("table").first();
-      await expect(table, `${entry.title}: ต้องมีตารางในหน้านี้`).toBeVisible({ timeout: 10_000 });
-      await expectTableContract(page, table, entry);
-    }
-  });
-
-  test("ตารางประวัติฝั่งผู้เช่า", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await login(page, e2e.tenantEmail);
-    for (const entry of tenantTables) {
-      await page.goto(entry.path);
-      await page.waitForLoadState("networkidle");
-      // แท็บเป็น role="tab" ไม่ใช่ปุ่มธรรมดา
-      await page.getByRole("tab", { name: /ประวัติ/ }).first().click();
       // รอให้โครงหลอกหายไปก่อน ไม่งั้นจะไปวัดโครงหลอกแทนตารางจริง
       await expect(page.locator(".loading-skeleton")).toHaveCount(0, { timeout: 10_000 });
       const table = page.locator("table").first();
