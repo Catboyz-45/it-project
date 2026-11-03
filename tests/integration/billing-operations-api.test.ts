@@ -312,14 +312,25 @@ describe("repair tickets", () => {
   });
 
   it("exchanges replies between owner and tenant", async () => {
-    const ownerReplies = `${base}/tickets/${ticketId}/replies`;
-    const tenantReplies = `/api/v1/tenant/tickets/${ticketId}/replies`;
+    // เรื่องข้างบนเสร็จไปแล้ว คุยกันต้องใช้เรื่องที่ยังเปิดอยู่
+    const open = await callApi("POST", "/api/v1/tenant/tickets", {
+      ...tenant(), body: { type: "REPAIR", title: "ไฟทางเดินดับ", detail: "หน้าห้อง", priority: "NORMAL" },
+    });
+    const ownerReplies = `${base}/tickets/${open.json.data.id}/replies`;
+    const tenantReplies = `/api/v1/tenant/tickets/${open.json.data.id}/replies`;
     expect((await callApi("POST", ownerReplies, { ...owner(), body: { body: "ช่างจะเข้าไปพรุ่งนี้" } })).status).toBe(201);
     expect((await callApi("POST", tenantReplies, { ...tenant(), body: { body: "ขอบคุณครับ" } })).status).toBe(201);
     expect((await callApi("POST", tenantReplies, { ...tenant(), body: { body: "  " } })).status).toBe(400);
     const thread = await callApi("GET", ownerReplies, owner());
     expect(thread.json.data).toHaveLength(2);
     expect((await callApi("GET", tenantReplies, tenant())).status).toBe(200);
+  });
+
+  // เรื่องที่เสร็จแล้วผู้เช่าตอบต่อไม่ได้ ต้องแจ้งเรื่องใหม่ หอยังตามงานต่อได้
+  it("refuses tenant replies on a finished ticket", async () => {
+    const closed = await callApi("POST", `/api/v1/tenant/tickets/${ticketId}/replies`, { ...tenant(), body: { body: "ยังรั่วอยู่" } });
+    expect(closed.status).toBe(409);
+    expect((await callApi("POST", `${base}/tickets/${ticketId}/replies`, { ...owner(), body: { body: "จะให้ช่างไปดูอีกรอบ" } })).status).toBe(201);
   });
 });
 

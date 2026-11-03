@@ -9,7 +9,7 @@ import type {
 } from "@/lib/domain/property-operations";
 import { ticketTransitions } from "@/lib/domain/property-operations";
 import { ApiError } from "@/lib/server/api";
-import type { TicketInboxItem } from "@/lib/ticket-inbox";
+import { closedTicketNotice, ticketAcceptsReplies, type TicketInboxItem } from "@/lib/ticket-inbox";
 import { announcementAudienceLabel } from "@/lib/tenant-records";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
@@ -524,7 +524,10 @@ export async function createTicketReply(input: {
       select: { id: true, status: true },
     });
     if (!ticket) throw new ApiError(404, "ไม่พบรายการแจ้งเรื่อง");
-    if (ticket.status === "CANCELLED") throw new ApiError(409, "รายการนี้ถูกยกเลิกแล้ว");
+    // ผู้เช่าส่ง tenantProfileId มาเสมอ ฝั่งหอส่ง propertyId
+    if (!ticketAcceptsReplies(ticket.status, input.tenantProfileId ? "TENANT" : "ADMIN")) {
+      throw new ApiError(409, closedTicketNotice(ticket.status));
+    }
 
     const reply = await database.ticketReply.create({
       data: { ticketId: ticket.id, authorUserId: input.actorUserId, body: input.data.body },

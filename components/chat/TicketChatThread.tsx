@@ -8,7 +8,7 @@ import { ChatComposer, ChatEmptyState, ChatMessageList } from "@/components/chat
 import type { ChatThreadMessage } from "@/components/chat/use-chat-thread";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { chatDayLabel, chatListTime, chatTime } from "@/lib/chat-time";
-import type { TicketInboxItem } from "@/lib/ticket-inbox";
+import { closedTicketNotice, ticketAcceptsReplies, type TicketInboxItem } from "@/lib/ticket-inbox";
 import { formatTicketStatus } from "@/lib/ui-labels";
 
 
@@ -178,7 +178,7 @@ export function TicketChatThread({
       setIsChangingStatus(false);
     }
   };
-  const isClosed = ticket.status === "CANCELLED";
+  const isClosed = !ticketAcceptsReplies(ticket.status, viewer);
 
   return <>
     <div className="chat-widget-body">
@@ -203,7 +203,7 @@ export function TicketChatThread({
       <button disabled={isChangingStatus} onClick={() => void changeStatus()} type="button">{isChangingStatus ? "กำลังบันทึก..." : action.label}</button>
     </div> : null}
     {readOnly || isClosed
-      ? <ReadOnlyNotice className="m-3">{isClosed ? "เรื่องนี้ถูกยกเลิกแล้ว อ่านข้อความเดิมได้ แต่ส่งข้อความใหม่ไม่ได้" : "อ่านประวัติการตอบกลับได้ แต่ไม่สามารถส่งข้อความใหม่ได้"}</ReadOnlyNotice>
+      ? <ReadOnlyNotice className="m-3">{isClosed ? closedTicketNotice(ticket.status) : "อ่านประวัติการตอบกลับได้ แต่ไม่สามารถส่งข้อความใหม่ได้"}</ReadOnlyNotice>
       : <ChatComposer
         attachment={null}
         canAttach={false}

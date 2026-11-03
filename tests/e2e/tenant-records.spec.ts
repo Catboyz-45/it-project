@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import pg from "pg";
 import { e2e } from "./fixtures";
 import { expectLeftLoginPage, openLoginForm } from "./helpers/login";
 
@@ -56,7 +57,7 @@ test("a bill with a slip under review says so and can still take a new slip", as
   const details = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
   await expect(details.getByText("ส่งสลิปแล้ว รอหอตรวจสอบ")).toBeVisible();
   await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toHaveCount(0);
-  await details.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
+  await details.getByRole("button", { name: "ดู QR และส่งสลิปใหม่" }).click();
   await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
   await expect(details.getByRole("button", { name: "ส่งหลักฐาน" })).toBeDisabled();
 });
@@ -77,4 +78,38 @@ test("bill and ticket history fit a phone screen and expand in place", async ({ 
   await page.getByRole("tab", { name: "ประวัติเรื่อง" }).click();
   await expect(page.locator(".loading-skeleton")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+// หอที่ยังไม่ตั้ง PromptPay ผู้เช่าต้องเห็นช่องทางอื่นแทน ไม่ใช่ข้อความเตือนที่เขียนไว้ให้เจ้าของหออ่าน
+test("a bill without PromptPay falls back to the bank account, then to asking the dorm", async ({ page }) => {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const saved = (await pool.query(`SELECT "promptPayId","bankName","bankAccountNumber","bankAccountName" FROM "PropertySettings" WHERE "propertyId"=$1`, [e2e.propertyId])).rows[0];
+  const setChannels = (promptPayId: string | null, bankAccountNumber: string | null) => pool.query(
+    `UPDATE "PropertySettings" SET "promptPayId"=$2, "bankName"=$3, "bankAccountNumber"=$4, "bankAccountName"=$5 WHERE "propertyId"=$1`,
+    [e2e.propertyId, promptPayId, bankAccountNumber ? "ธนาคารทดสอบ" : null, bankAccountNumber, bankAccountNumber ? "หอ E2E" : null],
+  );
+  const openPayment = async () => {
+    await page.goto("/tenant/invoices");
+    const details = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
+    await details.getByRole("button", { name: "ดู QR และส่งสลิปใหม่" }).click();
+    return details;
+  };
+  try {
+    await setChannels(null, "1234567890");
+    let details = await openPayment();
+    await expect(details.getByTestId("tenant-bank-account")).toContainText("โอน ฿4,200 เข้าบัญชีของหอ");
+    await expect(details.getByText("PromptPay", { exact: false })).toHaveCount(0);
+
+    await setChannels(null, null);
+    details = await openPayment();
+    await expect(details.getByText("หอยังไม่ได้ตั้งช่องทางรับเงินในระบบ")).toBeVisible();
+    await details.getByRole("button", { name: "ถามหอในแชท" }).click();
+    await expect(page.getByRole("textbox", { name: "ข้อความถึงหอพัก" })).toBeVisible();
+  } finally {
+    await pool.query(
+      `UPDATE "PropertySettings" SET "promptPayId"=$2, "bankName"=$3, "bankAccountNumber"=$4, "bankAccountName"=$5 WHERE "propertyId"=$1`,
+      [e2e.propertyId, saved.promptPayId, saved.bankName, saved.bankAccountNumber, saved.bankAccountName],
+    );
+    await pool.end();
+  }
 });

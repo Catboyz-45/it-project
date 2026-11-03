@@ -174,7 +174,7 @@ test.describe("tenant journey", () => {
     const invoiceDetails = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
     // บิลนี้ส่งสลิปไว้แล้ว จึงขึ้นว่ารอหอตรวจ QR ซ่อนไว้จนกว่าจะกดส่งสลิปใหม่
     await expect(invoiceDetails.getByText("ส่งสลิปแล้ว รอหอตรวจสอบ")).toBeVisible();
-    await invoiceDetails.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
+    await invoiceDetails.getByRole("button", { name: "ดู QR และส่งสลิปใหม่" }).click();
     await expect(invoiceDetails.getByText("สแกน PromptPay")).toBeVisible();
     // QR PromptPay ต้องถูกสร้างขึ้นจริง ไม่ใช่รูปเปล่าหรือรูปแตก
     await expect(invoiceDetails.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();

@@ -44,7 +44,7 @@ import { RetryButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatEmptyState, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
-import type { TicketInboxItem, TicketInboxStatus } from "@/lib/ticket-inbox";
+import { closedTicketNotice, ticketAcceptsReplies, type TicketInboxItem, type TicketInboxStatus } from "@/lib/ticket-inbox";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
@@ -62,6 +62,7 @@ import { describeInvoiceDue } from "@/lib/domain/invoice-due";
 import { formatBankAccount, formatThaiDate, formatThaiDateTime, formatThaiMonth, formatThaiPhone } from "@/lib/thai-format";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-labels";
+import { AskDormButton } from "@/components/tenant/AskDormButton";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
@@ -1251,9 +1252,9 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
       <Clock3 aria-hidden="true" className="shrink-0 text-[#92400e]" size={20} />
       <div className="min-w-48 flex-1">
         <strong className="block text-[#78350f]">ส่งสลิปแล้ว รอหอตรวจสอบ</strong>
-        <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบส่งใหม่ได้</span>
+        <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบหรือต้องโอนเพิ่ม เปิด QR และส่งสลิปใหม่ได้</span>
       </div>
-      <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><Upload aria-hidden="true" size={17} /> ส่งสลิปใหม่</button>
+      <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><QrCode aria-hidden="true" size={17} /> ดู QR และส่งสลิปใหม่</button>
     </div>;
   }
 
@@ -1295,8 +1296,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
   return <div className="pay-steps">
     <section aria-labelledby={`pay-step-transfer-${invoice.id}`} className="pay-step">
       <h3 id={`pay-step-transfer-${invoice.id}`}><span aria-hidden="true">1</span>โอนเงิน</h3>
-      <PromptPayQr invoice={invoice} />
-      <BankTransferAccount invoice={invoice} />
+      <PaymentChannels invoice={invoice} />
     </section>
     <section aria-labelledby={`pay-step-slip-${invoice.id}`} className="pay-step">
     <h3 id={`pay-step-slip-${invoice.id}`}><span aria-hidden="true">2</span>แนบสลิป</h3>
@@ -1339,39 +1339,47 @@ function SubmissionHistory({ submissions }: Readonly<{ submissions: Submission[]
 // ขนาดเดียวกับที่เซิร์ฟเวอร์รับ เช็กก่อนส่งเพื่อบอกผู้เช่าได้เร็วขึ้น
 const slipMaxBytes = 5 * 1024 * 1024;
 
-function PromptPayQr({ invoice }: Readonly<{ invoice: Invoice }>) {
+// ช่องทางโอนเงินของบิลหนึ่งใบ QR ก่อน ไม่มี QR ใช้บัญชีธนาคาร ไม่มีทั้งคู่บอกให้ถามหอ
+// ข้อความผิดพลาดจากการสร้าง QR เขียนไว้ให้เจ้าของหออ่าน (เช่นแพ็กเกจไม่รองรับ) จึงไม่ส่งต่อให้ผู้เช่าเห็นตรง ๆ
+function PaymentChannels({ invoice }: Readonly<{ invoice: Invoice }>) {
   const promptPay = useApiResource<{ invoiceNumber: string; amount: string; payload: string }>(`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr?format=json`);
-  if (promptPay.isLoading) return <Loading />;
-  // สร้าง QR ไม่ได้ไม่ได้แปลว่าจ่ายไม่ได้ ยังโอนเองแล้วแนบสลิปได้ จึงใช้กล่องเตือนสีเหลือง ไม่ใช่สีแดง
-  if (promptPay.error || !promptPay.data) return <div className="form-alert warning">{promptPay.error || "ไม่สามารถสร้าง PromptPay QR ได้"}</div>;
-  return <div className="text-center">
-    <strong className="block text-lg">สแกน PromptPay</strong>
-    <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
-    <p className="mt-2 text-sm text-[#55575f]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
-    {/* สแกน QR บนจอมือถือเครื่องเดียวกันไม่ได้ ต้องบันทึกรูปแล้วเปิดในแอปธนาคาร ปุ่มนี้จึงสำคัญกับคนจ่ายผ่านมือถือ */}
-    <a className="secondary-button mt-3 inline-flex" download={`promptpay-${invoice.invoiceNumber}.png`} href={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`}>
-      <Download aria-hidden="true" size={17} /> บันทึกรูป QR
-    </a>
-    <p className="mt-2 text-xs text-[#55575f]">บันทึกรูปแล้วเปิดในแอปธนาคาร เลือก “สแกนจากรูปภาพ”</p>
+  const account = useApiResource<{ bankName: string | null; bankAccountNumber: string | null; bankAccountName: string | null }>(`/api/v1/tenant/invoices/${invoice.id}/payment-account`);
+  if (promptPay.isLoading || account.isLoading) return <Loading />;
+  const bank = account.data?.bankAccountNumber ? account.data : null;
+  if (!promptPay.data && !bank) {
+    return <div className="tenant-pay-pending mt-0">
+      <AlertCircle aria-hidden="true" className="shrink-0 text-[#92400e]" size={20} />
+      <div className="min-w-48 flex-1">
+        <strong className="block text-[#78350f]">หอยังไม่ได้ตั้งช่องทางรับเงินในระบบ</strong>
+        <span className="block text-sm text-[#92400e]">ถามหอว่าให้โอนทางไหน ยอดที่ต้องโอนคือ {currency.format(Number(invoice.total))} โอนแล้วแนบสลิปในขั้นถัดไป</span>
+      </div>
+      <AskDormButton label="ถามหอในแชท" />
+    </div>;
+  }
+  return <div className="grid gap-4">
+    {promptPay.data ? <div className="text-center">
+      <strong className="block text-lg">สแกน PromptPay</strong>
+      <Image alt={`PromptPay QR ${invoice.invoiceNumber}`} className="mx-auto mt-3 rounded-xl" height={240} src={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`} unoptimized width={240} />
+      <p className="mt-2 text-sm text-[#55575f]">ยอด {currency.format(Number(promptPay.data.amount))}</p>
+      {/* สแกน QR บนจอมือถือเครื่องเดียวกันไม่ได้ ต้องบันทึกรูปแล้วเปิดในแอปธนาคาร ปุ่มนี้จึงสำคัญกับคนจ่ายผ่านมือถือ */}
+      <a className="secondary-button mt-3 inline-flex" download={`promptpay-${invoice.invoiceNumber}.png`} href={`/api/v1/tenant/invoices/${invoice.id}/promptpay-qr`}>
+        <Download aria-hidden="true" size={17} /> บันทึกรูป QR
+      </a>
+      <p className="mt-2 text-xs text-[#55575f]">บันทึกรูปแล้วเปิดในแอปธนาคาร เลือก “สแกนจากรูปภาพ”</p>
+    </div> : null}
+    {bank ? <dl className="grid gap-1 rounded-xl bg-[#f3f3f5] p-3 text-center text-sm" data-testid="tenant-bank-account">
+      {/* ไม่มี QR บัญชีธนาคารคือช่องทางหลัก จึงบอกยอดที่ต้องโอนไว้ตรงนี้ด้วย */}
+      <dt className="text-[#55575f]">{promptPay.data ? "หรือโอนเข้าบัญชี" : `โอน ${currency.format(Number(invoice.total))} เข้าบัญชีของหอ`}</dt>
+      <dd className="font-bold">{bank.bankName}</dd>
+      {/* โชว์แบบมีขีดคั่นให้อ่านตรวจง่าย แต่คัดลอกเฉพาะตัวเลข วางในแอปธนาคารได้ทันที */}
+      <dd className="flex flex-wrap items-center justify-center gap-2">
+        <span className="font-mono text-lg tracking-wide">{formatBankAccount(bank.bankAccountNumber)}</span>
+        <CopyButton label="เลขบัญชี" value={(bank.bankAccountNumber ?? "").replace(/\D/g, "")} />
+      </dd>
+      <dd>{bank.bankAccountName}</dd>
+    </dl> : null}
   </div>;
 }
-
-// บัญชีธนาคารของหอ สำหรับคนที่โอนผ่านแอปธนาคารแทนการสแกน QR หอที่ยังไม่ตั้งบัญชีก็ไม่ต้องแสดงอะไร
-function BankTransferAccount({ invoice }: Readonly<{ invoice: Invoice }>) {
-  const account = useApiResource<{ bankName: string | null; bankAccountNumber: string | null; bankAccountName: string | null }>(`/api/v1/tenant/invoices/${invoice.id}/payment-account`);
-  if (account.isLoading || account.error || !account.data?.bankAccountNumber) return null;
-  return <dl className="grid gap-1 rounded-xl bg-[#f3f3f5] p-3 text-center text-sm" data-testid="tenant-bank-account">
-    <dt className="text-[#55575f]">หรือโอนเข้าบัญชี</dt>
-    <dd className="font-bold">{account.data.bankName}</dd>
-    {/* โชว์แบบมีขีดคั่นให้อ่านตรวจง่าย แต่คัดลอกเฉพาะตัวเลข วางในแอปธนาคารได้ทันที */}
-    <dd className="flex flex-wrap items-center justify-center gap-2">
-      <span className="font-mono text-lg tracking-wide">{formatBankAccount(account.data.bankAccountNumber)}</span>
-      <CopyButton label="เลขบัญชี" value={account.data.bankAccountNumber.replace(/\D/g, "")} />
-    </dd>
-    <dd>{account.data.bankAccountName}</dd>
-  </dl>;
-}
-
 
 type Ticket = {
   id: string; type: "REPAIR" | "COMPLAINT"; status: TicketInboxStatus; priority: string;
@@ -1558,7 +1566,8 @@ function TicketBody({ onRead, readOnly, showReplyThread, ticket, toggleReply }: 
       <ol className="mt-2 grid gap-1.5">{ticket.events.map((event) => <li className="text-sm text-[#62646c]" key={event.id}><time>{formatThaiDateTime(event.createdAt)}</time> · {ticketEventLabel(event)}</li>)}</ol>
     </details>
     {toggleReply ? <div><button className="secondary-button" onClick={toggleReply} type="button"><MessageSquare size={16} /> {showReplyThread ? "ปิดการตอบกลับ" : "เปิดการตอบกลับ"}</button></div> : null}
-    {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly} viewerRole="TENANT" /> : null}
+    {showReplyThread && !ticketAcceptsReplies(ticket.status, "TENANT") ? <p className="text-sm text-[#62646c]">{closedTicketNotice(ticket.status)}</p> : null}
+    {showReplyThread ? <TicketReplyThread endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`} onRead={onRead} readOnly={readOnly || !ticketAcceptsReplies(ticket.status, "TENANT")} viewerRole="TENANT" /> : null}
   </div>;
 }
 

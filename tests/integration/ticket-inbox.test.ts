@@ -76,4 +76,15 @@ describe("ticket inbox", () => {
     const ownerInbox = await listTicketInbox({ viewerUserId: w.owner.id, propertyId: w.property.id, includeTicketId: otherTicket.id });
     expect(ownerInbox.some((item) => item.id === otherTicket.id)).toBe(false);
   });
+
+  // เรื่องที่เสร็จแล้วผู้เช่าตอบไม่ได้ ต้องแจ้งเรื่องใหม่ แต่หอยังตามงานต่อได้ เรื่องที่ยกเลิกตอบไม่ได้ทั้งคู่
+  it("closes replies on finished tickets for the tenant but not for the dorm", async () => {
+    const ticket = await newTicket(false, "ประตูห้องน้ำปิดไม่สนิท");
+    await updateTicket(w.property.id, ticket.id, w.owner.id, { status: "ACKNOWLEDGED" });
+    await updateTicket(w.property.id, ticket.id, w.owner.id, { status: "RESOLVED" });
+    await expect(createTicketReply({ ticketId: ticket.id, actorUserId: w.tenantUserId, tenantProfileId: w.tenantProfileId, data: { body: "ยังปิดไม่สนิท" } }))
+      .rejects.toMatchObject({ status: 409 });
+    await expect(createTicketReply({ ticketId: ticket.id, actorUserId: w.owner.id, propertyId: w.property.id, data: { body: "ช่างจะไปดูอีกรอบนะครับ" } }))
+      .resolves.toMatchObject({ body: "ช่างจะไปดูอีกรอบนะครับ" });
+  });
 });
