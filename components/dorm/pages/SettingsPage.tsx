@@ -46,6 +46,19 @@ const settingSections: Array<{ key: SettingsSection; label: string; icon: Compon
   { key: "account", label: "บัญชีและความปลอดภัย", icon: UserRound },
 ];
 // แยก account ออก เพราะเป็นเรื่องของบัญชีผู้ใช้ ไม่ใช่การตั้งค่าหอ และมีหน้าตาคนละแบบ
+// คำอธิบายใต้หัวข้อของแต่ละหมวด บอกว่าหมวดนี้ตั้งค่าอะไร ไม่ใช้ประโยคเดียวกันทุกหมวด
+const sectionDescriptions: Record<SettingsSection, string> = {
+  general: "ชื่อ ที่อยู่ และช่องทางติดต่อของหอ ใช้บนสัญญาและใบแจ้งหนี้",
+  billing: "ประเภทห้อง ค่าเช่า เงินประกัน และอัตราค่าน้ำค่าไฟ",
+  cycles: "วันจดมิเตอร์ วันครบกำหนดชำระ ค่าปรับ และช่องทางรับเงิน",
+  rooms: "ชั้นและห้องพักที่แสดงในผังห้อง",
+  assets: "รายการเฟอร์นิเจอร์และทรัพย์สินที่ใช้ตั้งค่าห้อง",
+  documents: "เลขที่เอกสาร และแบบฟอร์มสัญญา บิล และใบเสร็จ",
+  invitations: "สร้างรหัสเชิญผู้เช่าเข้าห้อง และติดตามคำเชิญที่ส่งไป",
+  subscription: "แพ็กเกจที่ใช้อยู่ วันหมดอายุ และการต่ออายุ",
+  account: "ข้อมูลบัญชี รหัสผ่าน และความเป็นส่วนตัวของคุณ",
+};
+
 const systemSettingSections = settingSections.filter((section) => section.key !== "account");
 // เมนูตั้งค่าเป็น tablist ต้องเลื่อนด้วยลูกศรได้ตามมาตรฐาน ARIA จึงต้องมีรายการคีย์ตามลำดับ
 const systemSettingSectionKeys = systemSettingSections.map(({ key }) => key);
@@ -187,7 +200,7 @@ export function SettingsPage({
         {readOnly && !ownAccountSections.has(activeSection) ? <ReadOnlyNotice>ตรวจสอบค่าปัจจุบันและดูตัวอย่างเอกสารได้ แต่ไม่สามารถแก้ไขหรือบันทึกการตั้งค่าหอได้</ReadOnlyNotice> : null}
         {activeSection !== "account" ? <div className="settings-heading">
           <h2>{settingSections.find((section) => section.key === activeSection)?.label}</h2>
-          <p>ตั้งค่าข้อมูลที่ใช้กับห้องพัก รอบบิล มิเตอร์ เอกสาร และการคำนวณค่าใช้จ่ายของหอ</p>
+          <p>{sectionDescriptions[activeSection]}</p>
           {saveState ? <p className={`account-settings-message ${saveState.tone}`}>{saveState.message}</p> : null}
         </div> : null}
 
@@ -236,7 +249,8 @@ function SettingsPanel({ activeSection, children, readOnly }: Readonly<{
   children: ReactNode;
   readOnly: boolean;
 }>) {
-  const className = "settings-content view-transition min-w-0 border-0 p-0";
+  // ไม่ใส่ p-0 เพราะ utility ชนะ CSS ของหน้าตั้งค่า ระยะขอบซ้ายขวาจะหายจนการ์ดชิดขอบจอ
+  const className = "settings-content view-transition min-w-0 border-0";
   const disabled = readOnly && !editableWhileReadOnly.has(activeSection);
   if (activeSection === "account") return <fieldset className={className} disabled={disabled}>{children}</fieldset>;
   return <fieldset

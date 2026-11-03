@@ -1546,7 +1546,8 @@
   .settings-nav button.active { @apply bg-brand/[.10] font-semibold text-[#4651c7]; }
   .settings-content { @apply min-w-0 space-y-4; }
   .settings-page .settings-content { @apply mx-auto w-full max-w-4xl space-y-4 px-6 pb-8; }
-  .settings-page .settings-heading { @apply px-6 pt-6 pb-2; }
+  /* หัวข้อใช้ระยะขอบเดียวกับการ์ดจาก settings-content ขอบซ้ายของหัวข้อกับการ์ดจะตรงกัน */
+  .settings-page .settings-heading { @apply px-0 pt-6 pb-2; }
   .settings-page .settings-heading h2 { @apply mb-1 text-xl font-semibold tracking-[-.01em] text-[#292a30]; }
   .settings-page .settings-heading p { @apply mt-1 text-sm text-[#62646c]; }
   :is(.settings-page, .platform-settings) .settings-section-stack { @apply gap-4; }
@@ -1594,9 +1595,13 @@
   .settings-room-actions button { @apply shrink-0 whitespace-nowrap; }
   .settings-floor-list { @apply grid gap-3 pb-5; }
   .settings-floor-list > section { @apply overflow-hidden rounded-2xl border border-[#e4e4e7]; }
-  .settings-floor-list > section > header { @apply flex items-center justify-between bg-[#f1f2f7] px-4 py-3 text-[#292a30]; }
-  .settings-floor-list > section > header button { @apply ml-3 rounded-lg px-2 py-1 text-xs font-bold text-[#b91c1c] hover:bg-red-50 disabled:cursor-not-allowed disabled:bg-[#e4e4e7] disabled:text-[#62646c] disabled:hover:bg-[#e4e4e7]; }
-  .settings-floor-list > section > div { @apply grid grid-cols-3 gap-2 p-3; }
+  .settings-floor-list > section > header { @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-[#f1f2f7] px-4 py-3 text-[#292a30]; }
+  .settings-floor-list > section > header > span { @apply flex flex-wrap items-center justify-end gap-x-2 gap-y-1; }
+  .settings-floor-list > section > header .disabled-reason { @apply basis-full text-right; }
+  .settings-floor-list > section > header button { @apply rounded-lg px-2 py-1 text-xs font-bold text-[#b91c1c] hover:bg-red-50 disabled:cursor-not-allowed disabled:bg-[#e4e4e7] disabled:text-[#62646c] disabled:hover:bg-[#e4e4e7]; }
+  /* ห้องละการ์ด กว้างอย่างน้อย 220px จอแคบลงก็ลดจำนวนคอลัมน์เอง ปุ่มปิดใช้งานไม่ต้องตกเป็นสองบรรทัด */
+  .settings-floor-list > section > div { @apply grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2 p-3; }
+  .settings-floor-list article > button { @apply shrink-0 whitespace-nowrap; }
   .settings-floor-list article { @apply flex items-center justify-between gap-2 rounded-xl border border-[#e2e3e7] p-3; }
   .settings-floor-list article span { @apply min-w-0; }
   .settings-floor-list article strong, .settings-floor-list article small { @apply block; }
@@ -2160,8 +2165,10 @@
     .room-editor-actions,
     .tenant-config-actions { @apply flex-wrap; }
     .settings-page { @apply block px-4; }
-    .settings-page .settings-content { @apply px-0; }
-    .settings-page .settings-heading { @apply px-4 pt-4; }
+    /* จอมือถือเว้นขอบซ้ายขวา 16px เท่ากันทั้งหัวข้อและการ์ด และเว้นท้ายหน้าไว้ให้เลื่อนปุ่มบันทึกพ้นปุ่มแชท */
+    .settings-page .settings-content { @apply px-4 pb-24; }
+    .settings-page .settings-heading { @apply px-0 pt-2; }
+    .settings-page[data-mobile-view="section"] > .settings-back-to-list { @apply mx-2 mt-2; }
     :is(.settings-page, .platform-settings) .settings-card-body { @apply px-4; }
     .settings-page .settings-card-actions { @apply px-4; }
     .settings-nav { @apply static mb-4; }

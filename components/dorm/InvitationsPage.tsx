@@ -11,6 +11,7 @@ import {
   Send,
   XCircle,
 } from "lucide-react";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
@@ -406,7 +407,7 @@ function InvitationList({ invitations, loading, onRevoke, readOnly, submitting }
   readOnly: boolean;
   submitting: boolean;
 }>) {
-  if (loading && invitations.length === 0) return <p className="py-10 text-center text-[#73757d]">กำลังโหลดรายการคำเชิญ...</p>;
+  if (loading && invitations.length === 0) return <LoadingSkeleton count={3} label="กำลังโหลดรายการคำเชิญ" />;
   if (invitations.length === 0) return <p className="py-10 text-center text-[#73757d]">ยังไม่มีคำเชิญ</p>;
   return <div className="mt-4 grid gap-3">
     {invitations.map((invitation) => <article className="rounded-2xl border border-[#e3e4e8] p-4" key={invitation.id}>
