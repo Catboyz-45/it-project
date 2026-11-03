@@ -9,6 +9,7 @@ import type {
 } from "@/lib/domain/property-operations";
 import { ticketTransitions } from "@/lib/domain/property-operations";
 import { ApiError } from "@/lib/server/api";
+import type { TicketInboxItem } from "@/lib/ticket-inbox";
 import { getDatabase } from "@/lib/server/db";
 import { paginationQuery, toPaginatedResult, type PaginationInput } from "@/lib/server/pagination";
 import {
@@ -455,9 +456,11 @@ export async function listTicketReplies(input: {
       ...(input.propertyId ? { propertyId: input.propertyId } : {}),
       ...(input.tenantProfileId ? { tenantProfileId: input.tenantProfileId } : {}),
     },
-    select: { id: true },
+    select: { id: true, isAnonymous: true },
   });
   if (!ticket) throw new ApiError(404, "ไม่พบรายการแจ้งเรื่อง");
+  // ร้องเรียนแบบไม่ระบุชื่อ ฝั่งหอต้องไม่เห็นชื่อผู้แจ้งจากข้อความที่ผู้แจ้งตอบมาด้วย
+  const hideTenantAuthor = ticket.isAnonymous && !input.tenantProfileId;
 
   const rows = await database.ticketReply.findMany({
     where: { ticketId: ticket.id },
@@ -485,7 +488,12 @@ export async function listTicketReplies(input: {
     },
     update: { lastReadAt: new Date(), lastReadReplyId: latestReply?.id },
   });
-  const page = toPaginatedResult(rows, input.pagination);
+  const visibleRows = hideTenantAuthor
+    ? rows.map((row) => row.authorUser?.role === "TENANT"
+      ? { ...row, authorUser: { id: "anonymous", displayName: "ผู้แจ้งไม่ระบุชื่อ", role: row.authorUser.role } }
+      : row)
+    : rows;
+  const page = toPaginatedResult(visibleRows, input.pagination);
   return { ...page, data: [...page.data].reverse() };
 }
 
@@ -537,6 +545,85 @@ export async function createTicketReply(input: {
     });
     return reply;
   });
+}
+
+// เรื่องแจ้งที่ขึ้นในกล่องข้อความรวมของแชทเล็ก เรื่องที่ยังไม่ปิด กับเรื่องที่มีคนตอบภายใน 30 วัน
+// เรียงตามความเคลื่อนไหวล่าสุด ข้อความล่าสุดย่อไว้บรรทัดเดียวเหมือนรายชื่อแชท
+
+const inboxWindowMs = 30 * 86_400_000;
+const inboxLimit = 100;
+
+export async function listTicketInbox(input: {
+  viewerUserId: string;
+  // เจ้าของหอส่ง propertyId ผู้เช่าส่ง tenantProfileId กับหอที่กำลังใช้งาน
+  propertyId: string;
+  tenantProfileId?: string;
+  // เรื่องที่ขอให้ติดมาด้วยเสมอ เช่นกดคุยจากหน้าแจ้งซ่อมในเรื่องที่ปิดไปนานแล้ว
+  includeTicketId?: string;
+}) {
+  const viewerIsTenant = Boolean(input.tenantProfileId);
+  const incomingRoles: Array<"SUPER_ADMIN" | "PROPERTY_ADMIN" | "TENANT"> = viewerIsTenant ? ["PROPERTY_ADMIN", "SUPER_ADMIN"] : ["TENANT"];
+  const rows = await getDatabase().serviceTicket.findMany({
+    where: {
+      propertyId: input.propertyId,
+      ...(input.tenantProfileId ? { tenantProfileId: input.tenantProfileId } : {}),
+      OR: [
+        { status: { in: ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] } },
+        { replies: { some: { createdAt: { gte: new Date(Date.now() - inboxWindowMs) } } } },
+        ...(input.includeTicketId ? [{ id: input.includeTicketId }] : []),
+      ],
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: inboxLimit,
+    select: {
+      id: true, type: true, title: true, detail: true, status: true, isAnonymous: true, createdAt: true, updatedAt: true,
+      room: { select: { number: true } },
+      tenantProfile: { select: { user: { select: { displayName: true } } } },
+      attachments: { orderBy: { createdAt: "asc" }, select: { id: true, fileName: true, mimeType: true } },
+      replies: {
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+        select: { body: true, createdAt: true, authorUser: { select: { id: true, role: true } } },
+      },
+      events: {
+        where: { type: "STATUS_CHANGED" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, toValue: true, createdAt: true },
+      },
+      readStates: { where: { userId: input.viewerUserId }, take: 1, select: { lastReadAt: true } },
+    },
+  });
+  const items: TicketInboxItem[] = rows.map((row) => {
+    const last = row.replies[0];
+    const readAt = row.readStates[0]?.lastReadAt;
+    const lastIsIncoming = Boolean(last?.authorUser && incomingRoles.includes(last.authorUser.role));
+    const hideIdentity = row.isAnonymous && !viewerIsTenant;
+    const body = last ? last.body.replace(/\s+/g, " ").trim() : "";
+    return {
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      detail: row.detail,
+      status: row.status,
+      isAnonymous: row.isAnonymous,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+      lastActivityAt: (last && last.createdAt > row.createdAt ? last.createdAt : row.createdAt).toISOString(),
+      roomNumber: hideIdentity ? null : row.room?.number ?? null,
+      tenantName: hideIdentity ? null : row.tenantProfile?.user.displayName ?? null,
+      lastMessage: last ? {
+        body: body.length > 80 ? `${body.slice(0, 80)}…` : body,
+        fromSelf: last.authorUser?.id === input.viewerUserId,
+        hasAttachment: false,
+      } : null,
+      hasUnread: lastIsIncoming && (!readAt || last!.createdAt > readAt),
+      attachments: row.attachments,
+      statusEvents: row.events
+        .filter((event): event is typeof event & { toValue: string } => Boolean(event.toValue))
+        .map((event) => ({ id: event.id, toValue: event.toValue, createdAt: event.createdAt.toISOString() })),
+    };
+  });
+  return items.sort((left, right) => right.lastActivityAt.localeCompare(left.lastActivityAt));
 }
 
 // นับคำตอบที่ยังไม่ได้อ่านในเรื่องแจ้ง แยกจากข้อความแชทซึ่งนับคนละที่

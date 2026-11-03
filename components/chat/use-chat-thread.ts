@@ -12,6 +12,8 @@ export type ChatThreadMessage = {
   senderName: string;
   createdAt: string;
   attachment: { name: string; mimeType: string; size: number; url: string } | null;
+  // บรรทัดเหตุการณ์ในห้องสนทนา เช่นเปลี่ยนสถานะเรื่องแจ้ง แสดงเป็นข้อความเล็กกลางจอ ไม่ใช่ฟองข้อความ
+  isEvent?: boolean;
 };
 
 type LoadResult<T> = { conversationId?: string; error?: string; hasMore?: boolean; messages?: T[] };

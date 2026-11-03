@@ -13,7 +13,7 @@ import {
   HelpPage,
   PropertiesPage,
 } from "@/components/dorm/pages/AdditionalPages";
-import { ChatWidget } from "@/components/dorm/ChatWidget";
+import { ChatWidget, type ChatOpenRequest } from "@/components/dorm/ChatWidget";
 import { InvoicesPage } from "@/components/dorm/pages/InvoicesPage";
 import { MetersPage } from "@/components/dorm/pages/MetersPage";
 import { OverviewPage } from "@/components/dorm/pages/OverviewPage";
@@ -85,6 +85,7 @@ type OwnerWorkspaceValue = {
   navigateTo: (page: PageKey) => void;
   onAccountNameChange: (name: string) => void;
   onOpenChat: () => void;
+  onOpenTicketChat: (ticketId: string) => void;
   onOpenTenantDetail: (tenant: Tenant) => void;
   onEditRoom: () => void;
   onUnreadChanged: () => Promise<void>;
@@ -147,7 +148,11 @@ export function DormDashboard({
     refreshDashboard, repairTickets, rooms, setDataError, setTenants, tenants,
   } = useOwnerWorkspaceData({ initialAggregation, initialData, propertyId });
   const [unreadCounts, setUnreadCounts] = useState<OwnerUnreadCounts | null>(null);
-  const [openChatSignal, setOpenChatSignal] = useState(0);
+  // คำสั่งเปิดแชทเล็กจากที่อื่นในหน้า nonce เพิ่มทุกครั้งเพื่อสั่งเปิดซ้ำได้ ticketId บอกให้เปิดที่เรื่องแจ้งนั้นเลย
+  const [openChatRequest, setOpenChatRequest] = useState<ChatOpenRequest>({ nonce: 0 });
+  const openChat = useCallback((target: Omit<ChatOpenRequest, "nonce"> = {}) => {
+    setOpenChatRequest((current) => ({ nonce: current.nonce + 1, ...target }));
+  }, []);
   const [selectedRoomId, setSelectedRoomId] = useState(initialData.rooms[0]?.id ?? "");
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
@@ -234,7 +239,8 @@ export function DormDashboard({
     accessState,
     aggregation,
     isReadOnly,
-    onOpenChat: () => setOpenChatSignal((current) => current + 1),
+    onOpenChat: () => openChat(),
+    onOpenTicketChats: () => openChat({ filter: "tickets" }),
     propertyId,
     unread: unreadCounts,
   });
@@ -298,7 +304,8 @@ export function DormDashboard({
     isRefreshing,
     navigateTo,
     onAccountNameChange: setCurrentUser,
-    onOpenChat: () => setOpenChatSignal((current) => current + 1),
+    onOpenChat: () => openChat(),
+    onOpenTicketChat: (ticketId) => openChat({ ticketId }),
     onOpenTenantDetail: (tenant) => {
       setTenants((current) => current.some((item) => item.id === tenant.id) ? current : [...current, tenant]);
       setDetailTenantId(tenant.id);
@@ -423,7 +430,7 @@ export function DormDashboard({
         onUnreadChanged={refreshUnreadCounts}
         supportUnreadCount={unreadCounts?.supportMessages ?? 0}
         unreadCount={(unreadCounts?.tenantMessages ?? aggregation?.operations.unreadTenantMessages ?? 0) + (unreadCounts?.supportMessages ?? 0)}
-        openSignal={openChatSignal}
+        openRequest={openChatRequest}
       />
     </NavShell>
     </PageHeaderSlotProvider>
@@ -542,7 +549,7 @@ const sectionRenderers: Partial<Record<PageKey, (context: SectionContext) => Rea
     initialLoaded={initialComplaints !== null}
     onAddRequestHandled={workspace.onAddComplaintHandled}
     onChanged={workspace.refreshDashboard}
-    onUnreadChanged={workspace.onUnreadChanged}
+    onOpenTicketChat={workspace.onOpenTicketChat}
     openAddOnMount={workspace.openAddComplaint}
     propertyId={workspace.propertyId}
     readOnly={workspace.isReadOnly}

@@ -18,6 +18,7 @@ import {
   Clock3,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   FileText,
   Home,
   LoaderCircle,
@@ -26,6 +27,7 @@ import {
   LogOut,
   MoreHorizontal,
   Package,
+  Plus,
   Paperclip,
   QrCode,
   ReceiptText,
@@ -40,6 +42,8 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { RetryButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatEmptyState, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
+import type { TicketInboxItem } from "@/lib/ticket-inbox";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlatformBrand } from "@/components/ui/PlatformBrand";
 import { NotificationCenter, type NotificationCenterItem } from "@/components/ui/NotificationCenter";
@@ -564,13 +568,13 @@ export function TenantPortal({
       </button>
     ) : null}
     {active && activeTab !== "chat" && isQuickChatOpen && !roomResource.isLoading && roomResource.data ? (
-      <TenantChat
+      <TenantQuickChat
         onClose={() => setIsQuickChatOpen(false)}
         onRead={notificationResource.reload}
         propertyId={roomResource.data.room.property.id}
         propertyName={roomResource.data.room.property.name}
         readOnly={isReadOnly}
-        variant="widget"
+        unreadMessages={notificationResource.data?.unreadMessages ?? 0}
       />
     ) : null}
   </NavShell>
@@ -1522,9 +1526,6 @@ function TicketCards({ onRead, onToggleReply, openReplyTicketId, readOnly, resou
 }
 
 // เรื่องแจ้งมีสองประเภท แจ้งซ่อมกับร้องเรียน
-function ticketTypeLabel(type: Ticket["type"]) {
-  return type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน";
-}
 
 // คำบรรยายของเหตุการณ์หนึ่งบรรทัดในไทม์ไลน์ของเรื่องแจ้ง
 function ticketEventLabel(event: Ticket["events"][number]) {
@@ -1591,10 +1592,98 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
 }
 
 type ChatMessage = { id: string; body: string; senderRole: "ADMIN" | "TENANT" | "SUPER_ADMIN"; senderName: string; createdAt: string; attachment: { name: string; mimeType: string; size: number; url: string } | null };
+// หน้าต่างแชทเล็กของผู้เช่า หน้าแรกเป็นรายการ แชทกับหอปักไว้บนสุด ตามด้วยเรื่องที่ตัวเองแจ้งไว้
+// กดเรื่องไหนก็คุยในเรื่องนั้นได้เลย ข้อความยังผูกกับเรื่องนั้นเหมือนคุยจากหน้าแจ้งเรื่อง
+function TenantQuickChat({ onClose, onRead, propertyId, propertyName, readOnly, unreadMessages }: Readonly<{
+  onClose: () => void;
+  onRead: () => unknown;
+  propertyId: string;
+  propertyName: string;
+  readOnly: boolean;
+  unreadMessages: number;
+}>) {
+  const [view, setView] = useState<"list" | "chat" | "ticket">("list");
+  const [tickets, setTickets] = useState<TicketInboxItem[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+  const [ticketId, setTicketId] = useState<string | null>(null);
+
+  const loadTickets = useCallback(async () => {
+    try {
+      const response = await fetch("/api/v1/tenant/ticket-inbox", { cache: "no-store", credentials: "same-origin" });
+      const payload = await response.json() as { data?: TicketInboxItem[] };
+      if (response.ok && payload.data) setTickets(payload.data);
+    } catch {
+      // โหลดเรื่องแจ้งไม่ได้ แชทกับหอยังใช้ได้ปกติ
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  }, []);
+
+  // กลับมาที่รายการเมื่อไหร่ก็โหลดใหม่ จะได้เห็นคำตอบที่เพิ่งเข้ามา
+  useEffect(() => {
+    if (view === "list") void loadTickets();
+  }, [loadTickets, view]);
+
+  if (view === "chat") {
+    return <TenantChat onBack={() => setView("list")} onClose={onClose} onRead={onRead} propertyId={propertyId} propertyName={propertyName} readOnly={readOnly} variant="widget" />;
+  }
+
+  const ticket = view === "ticket" ? tickets.find((item) => item.id === ticketId) : undefined;
+  return <dialog aria-label="แชทกับหอพัก" className="chat-widget tenant-chat-widget" open>
+    {ticket ? <>
+      <header className="chat-widget-header chat-conversation-header">
+        <IconButton label="ย้อนกลับไปยังรายการข้อความ" onClick={() => setView("list")}><ChevronLeft aria-hidden="true" size={20} /></IconButton>
+        <div className="chat-conversation-brand">
+          <span aria-hidden="true" className="chat-ticket-icon" data-size="sm" data-tone={ticketStatusTone(ticket.status)}><TicketIcon size={15} type={ticket.type} /></span>
+          <span className="min-w-0">
+            <strong className="block truncate">{ticket.title}</strong>
+            <small className="block truncate">{ticketTypeLabel(ticket.type)} · <span className="chat-ticket-status" data-tone={ticketStatusTone(ticket.status)}>{formatTicketStatus(ticket.status)}</span></small>
+          </span>
+        </div>
+        <div className="chat-header-actions">
+          <IconButton label="ปิดช่องแชท" onClick={onClose}><X aria-hidden="true" size={20} /></IconButton>
+        </div>
+      </header>
+      <TicketChatThread
+        attachmentBase={`/api/v1/tenant/tickets/${ticket.id}/attachments`}
+        endpoint={`/api/v1/tenant/tickets/${ticket.id}/replies`}
+        key={ticket.id}
+        onRead={onRead}
+        readOnly={readOnly}
+        ticket={ticket}
+        viewer="TENANT"
+      />
+    </> : <>
+      <header className="chat-widget-header">
+        <div className="chat-widget-brand"><strong>ข้อความ</strong></div>
+        <IconButton label="ปิดช่องแชท" onClick={onClose}><X aria-hidden="true" size={20} /></IconButton>
+      </header>
+      <div className="chat-widget-body">
+        <div className="chat-tenant-list">
+          <button className="chat-support-contact" data-unread={unreadMessages > 0 || undefined} onClick={() => setView("chat")} type="button">
+            <span aria-hidden="true" className="chat-list-avatar support"><Building2 size={17} /></span>
+            <span className="chat-contact-text">
+              <span className="chat-contact-line"><strong>{propertyName}</strong><small>ปักหมุด</small></span>
+              <span className="chat-contact-line">
+                <small className="chat-contact-preview">ข้อความถึงผู้ดูแลหอพัก</small>
+                {unreadMessages > 0 ? <span aria-label={`${unreadMessages} ข้อความที่ยังไม่ได้อ่าน`} className="chat-unread-badge">{unreadMessages > 99 ? "99+" : unreadMessages}</span> : null}
+              </span>
+            </span>
+          </button>
+          {isLoadingTickets ? <p className="chat-conversation-prompt py-6"><LoaderCircle aria-hidden="true" className="animate-spin" size={16} /> กำลังโหลดเรื่องที่แจ้ง...</p> : null}
+          {tickets.map((item) => <TicketInboxRow key={item.id} onOpen={(id) => { setTicketId(id); setView("ticket"); }} otherPrefix="หอ: " place="" ticket={item} />)}
+        </div>
+        {!readOnly ? <Link className="chat-new-ticket-link" href={tenantPagePath("tickets")} onClick={onClose}><Plus aria-hidden="true" size={15} /> แจ้งเรื่องใหม่</Link> : null}
+      </div>
+    </>}
+  </dialog>;
+}
+
 // ปุ่มลัดในหน้าว่าง เรื่องที่ผู้เช่าทักหอบ่อยที่สุด กดแล้วเติมข้อความให้พิมพ์ต่อ
 const tenantChatSuggestions = ["สอบถามเรื่องบิล", "แจ้งซ่อม", "สอบถามเรื่องพัสดุ"];
 
 function TenantChat({
+  onBack,
   onClose,
   onRead,
   propertyId,
@@ -1602,6 +1691,8 @@ function TenantChat({
   readOnly,
   variant = "page",
 }: Readonly<{
+  // หน้าต่างแชทเล็กมีรายการข้อความก่อน ปุ่มนี้พากลับไปที่รายการ
+  onBack?: () => void;
   onClose?: () => void;
   // เปิดอ่านแล้วให้เปลือกโหลดตัวเลขบนป้ายแชทและกระดิ่งใหม่
   onRead?: () => unknown;
@@ -1665,6 +1756,7 @@ function TenantChat({
     // dialog แบบเปิดค้างไม่บังหน้า (non-modal) ผู้เช่ายังใช้หน้าข้างหลังได้ระหว่างแชท
     return <dialog aria-label="แชทกับหอพัก" className={`chat-widget tenant-chat-widget${isExpanded ? " expanded" : ""}`} open>
       <header className="chat-widget-header">
+        {onBack ? <IconButton label="ย้อนกลับไปยังรายการข้อความ" onClick={onBack}><ChevronLeft aria-hidden="true" size={20} /></IconButton> : null}
         <div className="chat-conversation-brand">
           <span aria-hidden="true" className="chat-list-avatar support" data-size="sm"><Building2 size={15} /></span>
           <span className="min-w-0">

@@ -90,6 +90,7 @@ export function ChatEmptyState({ description, onSuggest, suggestions = [], title
 export function ChatMessageList<T extends ChatThreadMessage>({
   className = "chat-conversation",
   emptyState,
+  leading,
   endRef,
   hasOlderMessages,
   isLoading,
@@ -101,6 +102,8 @@ export function ChatMessageList<T extends ChatThreadMessage>({
 }: Readonly<{
   className?: string;
   emptyState: ReactNode;
+  // ของที่อยู่บนสุดก่อนข้อความแรก เช่นการ์ดสรุปเรื่องแจ้ง
+  leading?: ReactNode;
   endRef: React.RefObject<HTMLDivElement | null>;
   hasOlderMessages: boolean;
   isLoading: boolean;
@@ -113,15 +116,18 @@ export function ChatMessageList<T extends ChatThreadMessage>({
   return <div className={className} ref={scrollRef}>
     {isLoading ? <p className="chat-conversation-prompt"><LoaderCircle aria-hidden="true" className="animate-spin" size={16} /> กำลังโหลดข้อความ...</p> : null}
     {!isLoading && hasOlderMessages ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={isLoadingOlder} label="โหลดข้อความก่อนหน้า" onClick={onLoadOlder} /> : null}
+    {leading}
     {!isLoading && messages.length === 0 ? emptyState : null}
     {messages.map((item, index) => {
       const previous = messages[index - 1];
       // ข้อความแรกของแต่ละวันมีป้ายคั่นวัน ดูย้อนหลังแล้วรู้ทันทีว่าคุยกันวันไหน
       const startsDay = !previous || chatDayKey(previous.createdAt) !== chatDayKey(item.createdAt);
-      const showSender = startsDay || previous.senderRole !== item.senderRole;
+      const showSender = startsDay || previous.isEvent || previous.senderRole !== item.senderRole;
       return <Fragment key={item.id}>
         {startsDay ? <p className="chat-day-divider"><span>{chatDayLabel(item.createdAt)}</span></p> : null}
-        <ChatMessageItem isOwn={item.senderRole === ownRole} message={item} showSender={showSender} />
+        {item.isEvent
+          ? <p className="chat-event">{item.body} · <time dateTime={item.createdAt}>{chatTime(item.createdAt)}</time></p>
+          : <ChatMessageItem isOwn={item.senderRole === ownRole} message={item} showSender={showSender} />}
       </Fragment>;
     })}
     {/* กล่องเปล่าไว้เป็นหมุดให้เลื่อนไปหา ง่ายกว่าคำนวณความสูงเอง */}
@@ -138,6 +144,7 @@ export function ChatComposer({
   inputLabel = "ข้อความ",
   inputRef,
   isReady,
+  placeholder = "พิมพ์ข้อความ...",
   isSending,
   message,
   onSubmit,
@@ -152,6 +159,7 @@ export function ChatComposer({
   inputLabel?: string;
   // ให้คนนอกโฟกัสช่องพิมพ์ได้ เช่นกดปุ่มลัดในหน้าว่างแล้วพิมพ์ต่อได้ทันที
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  placeholder?: string;
   isReady: boolean;
   isSending: boolean;
   message: string;
@@ -198,7 +206,7 @@ export function ChatComposer({
       <input accept="image/png,image/jpeg,image/webp,application/pdf" className="chat-file-input" onChange={pickFile} ref={fileInputRef} type="file" />
       <div className="chat-composer-field">
         {canAttach ? <IconButton className="chat-attach-button" disabled={isSending || !isReady} label="แนบรูปหรือไฟล์" onClick={() => fileInputRef.current?.click()}><Paperclip aria-hidden="true" size={18} /></IconButton> : null}
-        <input aria-label={inputLabel} disabled={isSending} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="พิมพ์ข้อความ..." ref={messageInputRef} value={message} />
+        <input aria-label={inputLabel} disabled={isSending} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={placeholder} ref={messageInputRef} value={message} />
       </div>
       <IconButton className="chat-send-button" disabled={(!message.trim() && !attachment) || isSending || !isReady} label={isSending ? "กำลังส่งข้อความ" : "ส่งข้อความ"} type="submit" variant="primary">
         {isSending ? <LoaderCircle aria-hidden="true" className="animate-spin" size={17} /> : <Send aria-hidden="true" size={17} />}

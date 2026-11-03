@@ -24,7 +24,7 @@ import { DatePickerField } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { TablePagination, useTablePagination } from "@/components/dorm/TablePagination";
-import { TicketReplyThread } from "@/components/dorm/TicketReplyThread";
+import { ticketsChangedEvent } from "@/lib/ticket-inbox";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
@@ -542,8 +542,8 @@ export function ComplaintsPage({
   initialLoaded = false,
   onChanged,
   onAddRequestHandled,
+  onOpenTicketChat,
   openAddOnMount,
-  onUnreadChanged,
   propertyId,
   readOnly = false,
 }: Readonly<{
@@ -552,8 +552,9 @@ export function ComplaintsPage({
   complaints: Complaint[];
   onChanged: () => Promise<void>;
   onAddRequestHandled: () => void;
+  // คุยในเรื่องแจ้งผ่านแชทเล็กมุมจอ ที่เดียวกับแชทกับผู้เช่า
+  onOpenTicketChat: (ticketId: string) => void;
   openAddOnMount: boolean;
-  onUnreadChanged: () => Promise<void>;
   propertyId: string;
   readOnly?: boolean;
 }>) {
@@ -562,14 +563,12 @@ export function ComplaintsPage({
   const [serverPage, setServerPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
   const [editingComplaint, setEditingComplaint] = useState<Complaint | null>(null);
   const [editForm, setEditForm] = useState({ title: "", detail: "", priority: "NORMAL" as "NORMAL" | "URGENT" });
   const [isSaving, setIsSaving] = useState(false);
   const { confirm, confirmationDialog } = useConfirmation();
   const notify = useToast();
   const { page, pageItems, setPage, totalPages } = useTablePagination(complaints);
-  const replyTicket = complaints.find((item) => item.id === replyTicketId);
 
   const loadComplaints = useCallback(async (targetPage = 1, append = false) => {
     if (append) setIsLoadingMore(true);
@@ -616,6 +615,13 @@ export function ComplaintsPage({
     void loadComplaints();
     if (openAddOnMount) onAddRequestHandled();
   }, [loadComplaints, onAddRequestHandled, openAddOnMount]);
+
+  // ตอบหรือเลื่อนสถานะจากแชทเล็กแล้ว โหลดรายการใหม่ ป้ายข้อความใหม่กับสถานะจะได้ตรง
+  useEffect(() => {
+    const reload = () => void loadComplaints();
+    window.addEventListener(ticketsChangedEvent, reload);
+    return () => window.removeEventListener(ticketsChangedEvent, reload);
+  }, [loadComplaints]);
 
   // เลื่อนไปสถานะถัดไปทีละขั้น ปุ่มเดียวไม่ต้องให้ผู้ใช้เลือกเองว่าจะไปสถานะไหน
   const advanceStatus = async (complaint: Complaint) => {
@@ -676,25 +682,20 @@ export function ComplaintsPage({
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><ActionMenu
+            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><div className="ticket-row-actions"><IconButton className="ticket-chat-button" label={item.hasUnreadReply ? `คุยเรื่อง ${item.title} ในแชท มีข้อความใหม่` : `คุยเรื่อง ${item.title} ในแชท`} onClick={() => onOpenTicketChat(item.id)}>
+              <MessageSquare aria-hidden="true" size={16} />
+              {item.hasUnreadReply ? <span aria-hidden="true" className="ticket-chat-dot" /> : null}
+            </IconButton><ActionMenu
               items={[
-                { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: replyTicketId === item.id ? "ปิดข้อความ" : "เปิดข้อความ", onSelect: () => setReplyTicketId((current) => current === item.id ? null : item.id) },
+                { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: "เปิดข้อความ", onSelect: () => onOpenTicketChat(item.id) },
                 ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
                 ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
                 ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
               ]}
               label={`จัดการเรื่อง ${item.title} ${ticketReference(item.id)}`}
-            /></td></tr>)}</tbody>
+            /></div></td></tr>)}</tbody>
           </table>
         </div>
-        {replyTicketId ? <div className="p-4"><TicketReplyThread
-          endpoint={`/api/v1/admin/properties/${propertyId}/tickets/${replyTicketId}/replies`}
-          onClose={() => setReplyTicketId(null)}
-          onRead={() => { void loadComplaints(); void onUnreadChanged(); }}
-          title={replyTicket ? `${ticketReference(replyTicket.id)} ${replyTicket.title}` : undefined}
-          readOnly={readOnly}
-          viewerRole="PROPERTY_ADMIN"
-        /></div> : null}
         <TablePagination page={page} setPage={setPage} totalItems={complaints.length} totalPages={totalPages} />
         {hasNextPage ? <button className="secondary-button" disabled={isLoadingMore} onClick={() => void loadComplaints(serverPage + 1, true)} type="button">
           {isLoadingMore ? "กำลังโหลด..." : "โหลดรายการเพิ่มเติม"}

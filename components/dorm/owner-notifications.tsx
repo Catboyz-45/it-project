@@ -78,6 +78,7 @@ export function buildOwnerNotifications({
   aggregation,
   isReadOnly,
   onOpenChat,
+  onOpenTicketChats,
   propertyId,
   unread,
 }: {
@@ -85,6 +86,7 @@ export function buildOwnerNotifications({
   aggregation: OwnerDashboardAggregation | null;
   isReadOnly: boolean;
   onOpenChat: () => void;
+  onOpenTicketChats: () => void;
   propertyId: string;
   unread: OwnerUnreadCounts | null;
 }): NotificationCenterItem[] {
@@ -95,7 +97,7 @@ export function buildOwnerNotifications({
     { id: "pending-payments", tone: "attention", count: aggregation.finance.pendingPayments, title: "หลักฐานชำระเงินที่ยังรอตรวจสอบ", description: describe(isReadOnly, "เปิดดูหลักฐานได้ การยืนยันรับชำระจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "ตรวจสอบสลิปและยืนยันการรับชำระ"), href: `${ownerPagePath(propertyId, "invoices")}?tab=payments`, icon: <Banknote size={19} /> },
     { id: "overdue-invoices", tone: "urgent", count: aggregation.finance.overdueInvoices, title: "บิลค้างชำระ", description: describe(isReadOnly, "เปิดดูรายการและยอดค้างชำระได้ในโหมดอ่านอย่างเดียว", "ติดตามบิลที่ยังไม่ได้รับชำระ"), href: ownerPagePath(propertyId, "invoices"), icon: <AlertTriangle size={19} /> },
     { id: "open-tickets", count: aggregation.operations.openTickets, title: "เรื่องแจ้งที่ยังไม่เสร็จ", description: describe(isReadOnly, "เปิดดูสถานะและประวัติได้ การอัปเดตจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "ติดตามงานซ่อมและเรื่องร้องเรียนจากผู้เช่า"), href: ownerPagePath(propertyId, "complaints"), icon: <Wrench size={19} /> },
-    { id: "ticket-replies", tone: "attention", count: unreadTicketReplies, title: "ข้อความตอบกลับเรื่องแจ้ง", description: describe(isReadOnly, "เปิดอ่านข้อความและประวัติเดิมได้ในโหมดอ่านอย่างเดียว", "มีข้อความใหม่จากผู้เช่าที่ยังไม่ได้อ่าน"), href: ownerPagePath(propertyId, "complaints"), icon: <MessageSquare size={19} /> },
+    { id: "ticket-replies", tone: "attention", count: unreadTicketReplies, title: "ข้อความตอบกลับเรื่องแจ้ง", description: describe(isReadOnly, "เปิดอ่านข้อความและประวัติเดิมได้ในโหมดอ่านอย่างเดียว", "เปิดแชทเพื่ออ่านและตอบในเรื่องที่แจ้ง"), onSelect: onOpenTicketChats, icon: <MessageSquare size={19} /> },
     { id: "waiting-parcels", count: aggregation.operations.waitingParcels, title: "พัสดุที่ยังรอผู้เช่ารับ", description: describe(isReadOnly, "เปิดดูรายการได้ การบันทึกรับพัสดุจะกลับมาใช้ได้หลังต่ออายุแพ็กเกจ", "รายการพัสดุที่ยังไม่ได้ส่งมอบ"), href: ownerPagePath(propertyId, "parcels"), icon: <PackageCheck size={19} /> },
     { id: "tenant-messages", tone: "attention", count: unreadTenantMessages(aggregation, unread), title: "ข้อความใหม่จากผู้เช่า", description: describe(isReadOnly, "เปิดอ่านประวัติข้อความได้ แต่ยังตอบกลับไม่ได้", "เปิดกล่องข้อความเพื่อตอบกลับผู้เช่า"), onSelect: onOpenChat, icon: <MessageSquare size={19} /> },
     { id: "support-messages", tone: "attention", count: unread?.supportMessages ?? 0, title: "ข้อความใหม่จากทีมช่วยเหลือ", description: "เปิดกล่องข้อความเพื่ออ่านคำตอบเรื่องการใช้งานระบบ", onSelect: onOpenChat, icon: <MessageSquare size={19} /> },

@@ -35,6 +35,9 @@ test("tenant chat badge clears once the tenant opens the conversation", async ({
   // ผู้เช่าเปิดแชทจากปุ่มลอยมุมจอ ป้ายจำนวนอยู่ในชื่อปุ่มด้วย โปรแกรมอ่านหน้าจอจะได้รู้
   await page.getByRole("button", { name: /^เปิดแชทกับหอพัก มีข้อความใหม่/ }).click();
   const chat = page.getByRole("dialog", { name: "แชทกับหอพัก" });
+  // หน้าแรกของหน้าต่างเป็นรายการ แชทกับหอปักไว้บนสุดพร้อมป้ายจำนวนที่ยังไม่อ่าน
+  await expect(chat.locator(".chat-support-contact .chat-unread-badge")).toBeVisible();
+  await chat.locator(".chat-support-contact").click();
   await expect(chat.getByText("ทดสอบป้ายแจ้งเตือนผู้เช่า").first()).toBeVisible({ timeout: 15_000 });
   await chat.getByRole("button", { name: "ปิดช่องแชท" }).click();
   // เปิดอ่านแล้วป้ายบนปุ่มต้องหายเอง โดยไม่ต้องรีเฟรชหน้า

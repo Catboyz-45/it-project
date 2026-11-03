@@ -187,12 +187,15 @@ TC-TEN-012 ส่งข้อความหาหอพัก
     ...    Desc: ผู้เช่าเปิดแชทกับหอพักแล้วส่งข้อความได้
     ...    Type: P
     ...    Data: ข้อความ : สวัสดีครับ ทดสอบแชท (โรบอท <เลขรอบ>)
-    ...    Steps: 1. กด "เปิดแชทกับหอพัก"\n2. พิมพ์ข้อความ\n3. กดส่ง
+    ...    Steps: 1. กด "เปิดแชทกับหอพัก"\n2. เลือกแชทกับหอ\n3. พิมพ์ข้อความ\n4. กดส่ง
     ...    Expected: ข้อความที่ส่งขึ้นในหน้าต่างแชท
     ${suffix}=    Unique Suffix
     ${text}=    Set Variable    สวัสดีครับ ทดสอบแชท (โรบอท ${suffix})
     Go To Page    /tenant
     Click Button With Text    เปิดแชทกับหอพัก
+    # หน้าแรกของหน้าต่างแชทเป็นรายการข้อความ แชทกับหอปักไว้บนสุด
+    Wait Until Element Is Visible    css:.chat-support-contact
+    Click Element    css:.chat-support-contact
     Wait Until Element Is Visible    ${CHAT_INPUT}
     # รอให้ห้องสนทนาโหลดเสร็จก่อน ปุ่มส่งจะกดได้เมื่อพร้อม
     Wait Until Element Is Enabled    ${CHAT_INPUT}

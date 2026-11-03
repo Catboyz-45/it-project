@@ -169,7 +169,7 @@
   /* ช่องพิมพ์แชทอยู่ในแคปซูลที่มีกรอบของตัวเองแล้ว ตัวช่องจึงไม่ต้องมีกรอบซ้อน วงโฟกัสย้ายไปอยู่ที่แคปซูลแทน
      ใช้วิธีเดียวกับช่องค้นหาของตัวเลือกห้องด้านบน */
   .chat-composer-field > input,
-  .chat-composer-field > input:is(:hover, :focus, :focus-visible) {
+  .chat-composer .chat-composer-field > input:is(:hover, :focus, :focus-visible) {
     height: 2.5rem !important;
     min-height: 2.5rem !important;
     border: 0 !important;
@@ -1686,6 +1686,39 @@
   .chat-tenant-list > button[data-unread] .chat-contact-line > strong { @apply font-bold; }
   .chat-tenant-list > button[data-unread] .chat-contact-preview { @apply font-semibold text-[#292a30]; }
   .chat-unread-badge { @apply inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-bold leading-5 text-[#fff]; }
+  /* กล่องข้อความรวม: ปุ่มกรอง แชทเป็นวงกลม เรื่องแจ้งเป็นสี่เหลี่ยมมนตามสถานะ */
+  .chat-filter { @apply flex gap-1.5 border-b border-[#e4e4e7] px-3 py-2; }
+  .chat-filter button { @apply inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[#d7d8df] bg-[#fff] px-3 text-xs font-semibold text-[#52525b] shadow-none hover:bg-[#f4f4f5]; }
+  .chat-filter button[aria-pressed="true"] { @apply border-[#292a30] bg-[#292a30] text-[#fff] hover:bg-[#292a30]; }
+  .chat-filter-count { @apply inline-flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] leading-4 text-[#fff]; }
+  .chat-ticket-icon { @apply grid size-10 shrink-0 place-items-center rounded-[10px] bg-[#f4f4f5] text-[#52525b]; }
+  .chat-ticket-icon[data-size="sm"] { @apply size-8 rounded-lg; }
+  .chat-ticket-icon[data-tone="pending"] { @apply bg-amber-50 text-[#b45309]; }
+  .chat-ticket-icon[data-tone="done"] { @apply bg-emerald-50 text-[#047857]; }
+  .chat-ticket-tags { @apply mt-1 flex flex-wrap gap-1; }
+  .chat-ticket-tags > span { @apply rounded-full bg-[#f4f4f5] px-2 text-[11px] font-semibold leading-5 text-[#52525b]; }
+  .chat-ticket-status[data-tone="pending"] { @apply text-[#b45309]; }
+  .chat-ticket-status[data-tone="done"] { @apply text-[#047857]; }
+  .chat-ticket-tags > .chat-ticket-status[data-tone="pending"] { @apply bg-amber-50; }
+  .chat-ticket-tags > .chat-ticket-status[data-tone="done"] { @apply bg-emerald-50; }
+  .chat-unread-dot { @apply size-2 shrink-0 rounded-full bg-brand; }
+  .chat-tenant-list > button { @apply items-start; }
+  .chat-tenant-list > button > :first-child { @apply mt-0.5; }
+  .chat-new-ticket-link { @apply flex min-h-11 items-center gap-1.5 px-4 text-[13px] font-semibold text-[#3d47b8] no-underline hover:bg-[#f7f7f8]; }
+  /* ห้องสนทนาของเรื่องแจ้ง: การ์ดสรุปบนสุด บรรทัดเหตุการณ์กลางจอ ปุ่มเลื่อนสถานะเหนือช่องพิมพ์ */
+  .chat-ticket-summary { @apply mb-1 grid gap-1 rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-3 py-2.5 text-[13px] leading-5 text-[#52525b]; }
+  .chat-ticket-summary strong { @apply font-semibold text-[#292a30]; }
+  .chat-ticket-files { @apply mt-1 flex flex-wrap gap-1.5; }
+  .chat-ticket-files a { @apply inline-flex max-w-full items-center gap-1 truncate rounded-md border border-[#e4e4e7] bg-[#fff] px-2 py-1 text-xs text-[#3d47b8] no-underline hover:bg-[#f4f4f5]; }
+  .chat-event { @apply my-1 text-center text-[11px] text-[#62646c]; }
+  .chat-ticket-actions { @apply flex border-t border-[#e4e4e7] px-3 pt-2.5; }
+  .chat-ticket-actions button { @apply min-h-9 rounded-full border border-[#d7d8df] bg-[#fff] px-3 text-[13px] font-semibold text-[#292a30] shadow-none hover:border-brand/40 hover:bg-brand/[.04] disabled:opacity-60; }
+  .chat-ticket-actions + .chat-composer { @apply border-t-0; }
+  .chat-ticket-detail-link { @apply px-1.5 text-xs font-semibold whitespace-nowrap text-[#3d47b8] no-underline hover:underline; }
+  /* ปุ่มคุยในหน้าแจ้งซ่อม อยู่ข้างเมนูจัดการ มีจุดเมื่อมีข้อความใหม่ */
+  .ticket-row-actions { @apply flex items-center justify-end gap-1.5; }
+  .ticket-chat-button { @apply relative; }
+  .ticket-chat-dot { @apply absolute -top-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[#fff] bg-brand; }
   /* ห้องสนทนา: ของเราชิดขวาสีม่วง ของอีกฝั่งชิดซ้ายสีเทา มีป้ายคั่นวัน */
   .chat-conversation { @apply flex min-h-full flex-col gap-1.5 p-3; }
   .chat-conversation-prompt { @apply m-auto flex max-w-64 items-center justify-center gap-2 text-center text-sm text-[#62646c]; }
@@ -1709,7 +1742,8 @@
   .chat-composer { @apply grid gap-2 border-t border-[#e4e4e7] p-3; }
   .chat-composer .chat-file-input { @apply hidden; }
   .chat-composer-row { @apply flex items-center gap-2; }
-  .chat-composer-field { @apply flex min-w-0 flex-1 items-center gap-1 rounded-full border border-[#d7d8df] bg-[#fff] py-0.5 pr-3 pl-1 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15; }
+  /* วงโฟกัสย้ายจากตัวช่องมาอยู่ที่แคปซูล หนาและสีเดียวกับวงโฟกัสทั้งระบบ คนใช้คีย์บอร์ดยังเห็นชัดว่าอยู่ตรงไหน */
+  .chat-composer-field { @apply flex min-w-0 flex-1 items-center gap-1 rounded-full border border-[#d7d8df] bg-[#fff] py-0.5 pr-3 pl-1 focus-within:border-[#4651c7] focus-within:ring-[3px] focus-within:ring-[#4651c7]/25; }
   .chat-composer-field > input { @apply min-w-0 flex-1 text-sm; }
   .chat-composer-field .chat-attach-button { @apply grid size-9 shrink-0 place-items-center rounded-full border-0 bg-transparent text-[#62646c] shadow-none hover:bg-[#f4f4f5]; }
   .chat-composer .chat-send-button { @apply grid size-11 shrink-0 place-items-center rounded-full bg-brand text-[#fff] disabled:bg-[#e4e4e7] disabled:text-[#71717a] disabled:opacity-100; }

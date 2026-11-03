@@ -1,6 +1,7 @@
 "use client";
 // ต่อสตรีมข้อความ จัดการการเลื่อน และอัปโหลดไฟล์จากเบราว์เซอร์
 
+import Link from "next/link";
 import { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, Headset, Search, X } from "lucide-react";
 import type { Tenant } from "@/types/dorm";
@@ -8,10 +9,14 @@ import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useChatThread } from "@/components/chat/use-chat-thread";
 import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
 import { IconButton } from "@/components/ui/IconButton";
+import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
 import { chatListTime, chatRoomBadge } from "@/lib/chat-time";
+import { ownerPagePath } from "@/lib/navigation-routes";
+import { type TicketInboxItem, ticketsChangedEvent } from "@/lib/ticket-inbox";
+import { formatTicketStatus } from "@/lib/ui-labels";
 
-// หน้าต่างแชทมีสองหน้า รายชื่อคู่สนทนา กับห้องสนทนา
-type ChatView = "tenants" | "chat";
+// หน้าต่างแชทมีสามหน้า รายการข้อความ ห้องแชท และห้องสนทนาของเรื่องแจ้ง
+type ChatView = "tenants" | "chat" | "ticket";
 // ข้อความหนึ่งข้อความ ส่งเป็นข้อความอย่างเดียว ไฟล์อย่างเดียว หรือทั้งสองอย่างก็ได้
 type ChatMessage = {
   id: string;
@@ -61,7 +66,20 @@ function previewText(contact: ChatContact, summary: ConversationSummary | undefi
   return last.fromSelf ? `คุณ: ${body}` : body;
 }
 
-// หน้าต่างแชทมุมจอฝั่งเจ้าของหอ คุยกับผู้เช่าและกับแอดมินใหญ่
+// สั่งเปิดแชทจากที่อื่นในหน้า เช่นกดคุยในหน้าแจ้งซ่อม หรือกดรายการในกระดิ่ง
+export type ChatOpenRequest = { nonce: number; ticketId?: string; filter?: ChatFilter };
+type ChatFilter = "all" | "chat" | "tickets";
+
+// เรื่องแจ้งในกล่องข้อความรวม ส่ง ticketId มาเพื่อให้เรื่องนั้นติดมาด้วยแม้ปิดไปนานแล้ว
+async function loadTicketInbox(propertyId: string, ticketId?: string): Promise<TicketInboxItem[]> {
+  const query = ticketId ? `?ticketId=${encodeURIComponent(ticketId)}` : "";
+  const response = await fetch(`/api/v1/admin/properties/${propertyId}/ticket-inbox${query}`, { cache: "no-store" });
+  const result = await response.json() as { data?: TicketInboxItem[] };
+  if (!response.ok || !result.data) return [];
+  return result.data;
+}
+
+// หน้าต่างแชทมุมจอฝั่งเจ้าของหอ คุยกับผู้เช่า ทีมช่วยเหลือ และในเรื่องแจ้งซ่อมหรือร้องเรียน
 export function ChatWidget({
   onUnreadChanged,
   propertyId,
@@ -69,8 +87,7 @@ export function ChatWidget({
   supportUnreadCount = 0,
   tenants,
   unreadCount = 0,
-  // ตัวเลขที่เพิ่มขึ้นจากหน้าแม่เพื่อสั่งเปิดแชท ใช้ตัวเลขเพราะสั่งเปิดซ้ำได้เรื่อย ๆ
-  openSignal = 0,
+  openRequest,
 }: Readonly<{
   // อ่านข้อความแล้ว ให้หน้าแม่โหลดตัวเลขบนกระดิ่ง เมนู และปุ่มแชทใหม่
   onUnreadChanged?: () => unknown;
@@ -79,14 +96,17 @@ export function ChatWidget({
   supportUnreadCount?: number;
   tenants: Tenant[];
   unreadCount?: number;
-  openSignal?: number;
+  openRequest?: ChatOpenRequest;
 }>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [view, setView] = useState<ChatView>("tenants");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<Record<string, ConversationSummary>>({});
+  const [tickets, setTickets] = useState<TicketInboxItem[]>([]);
+  const [filter, setFilter] = useState<ChatFilter>("all");
   const [contactQuery, setContactQuery] = useState("");
   const composerInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,24 +118,50 @@ export function ChatWidget({
     }
   }, [propertyId]);
 
+  const refreshTickets = useCallback(async (includeTicketId?: string) => {
+    try {
+      setTickets(await loadTicketInbox(propertyId, includeTicketId));
+    } catch {
+      // โหลดเรื่องแจ้งไม่ได้ แชทกับผู้เช่ายังใช้ได้ปกติ
+    }
+  }, [propertyId]);
+
   // โหลดใหม่ทุกครั้งที่กลับมาหน้ารายชื่อ จะได้เห็นว่าใครส่งมาใหม่ระหว่างที่ปิดหน้าต่างอยู่
   useEffect(() => {
     if (!isOpen || view !== "tenants") return;
     void refreshTenantUnread();
-  }, [isOpen, refreshTenantUnread, view]);
+    void refreshTickets();
+  }, [isOpen, refreshTenantUnread, refreshTickets, view]);
 
   const handleRead = useCallback(() => {
     void refreshTenantUnread();
     return onUnreadChanged?.();
   }, [onUnreadChanged, refreshTenantUnread]);
-  // ข้าม 0 ซึ่งเป็นค่าเริ่มต้น ไม่งั้นแชทจะเด้งเปิดเองตั้งแต่เข้าหน้า
-  useEffect(() => {
-    if (openSignal <= 0) return;
-    setView("tenants");
-    setIsOpen(true);
-  }, [openSignal]);
 
-  // ปักแอดมินใหญ่ไว้บนสุดเสมอ เพราะเป็นช่องทางขอความช่วยเหลือเรื่องระบบ
+  // อ่านหรือเปลี่ยนเรื่องแจ้งแล้ว บอกหน้าแจ้งซ่อมที่เปิดอยู่ให้โหลดใหม่ด้วย
+  const handleTicketChanged = useCallback(() => {
+    window.dispatchEvent(new Event(ticketsChangedEvent));
+    return onUnreadChanged?.();
+  }, [onUnreadChanged]);
+
+  // ข้าม nonce 0 ซึ่งเป็นค่าเริ่มต้น ไม่งั้นแชทจะเด้งเปิดเองตั้งแต่เข้าหน้า
+  useEffect(() => {
+    if (!openRequest || openRequest.nonce <= 0) return;
+    setIsOpen(true);
+    setIsOptionsOpen(false);
+    if (openRequest.ticketId) {
+      const ticketId = openRequest.ticketId;
+      void refreshTickets(ticketId).then(() => {
+        setSelectedTicketId(ticketId);
+        setView("ticket");
+      });
+      return;
+    }
+    setFilter(openRequest.filter ?? "all");
+    setView("tenants");
+  }, [openRequest, refreshTickets]);
+
+  // ปักทีมช่วยเหลือไว้บนสุดเสมอ เพราะเป็นช่องทางขอความช่วยเหลือเรื่องระบบ
   // ผู้เช่าเรียงตามที่คุยล่าสุด คนที่ยังไม่เคยคุยต่อท้ายเรียงตามเลขห้อง
   const contacts = useMemo<ChatContact[]>(
     () => [
@@ -135,8 +181,9 @@ export function ChatWidget({
     () => contacts.find((contact) => contact.id === selectedTenantId) ?? contacts[0],
     [contacts, selectedTenantId],
   );
+  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId);
 
-  // null แปลว่ายังอยู่หน้ารายชื่อ ยังไม่ต้องโหลดข้อความ
+  // null แปลว่าไม่ได้อยู่ในห้องแชท ยังไม่ต้องโหลดข้อความ
   const endpoint = view === "chat" && selectedTenantId
     ? contactEndpoint(propertyId, selectedTenantId, selectedContact?.isSupport)
     : null;
@@ -152,6 +199,25 @@ export function ChatWidget({
     setView("chat");
     setIsOptionsOpen(false);
   };
+  const openTicket = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    setView("ticket");
+    setIsOptionsOpen(false);
+  };
+  const backToList = () => { setIsOptionsOpen(false); setView("tenants"); };
+  const close = () => { setIsOptionsOpen(false); setIsOpen(false); };
+
+  // เลื่อนสถานะเรื่องจากในแชท ใช้ API เดียวกับหน้าแจ้งซ่อม ส่งเวลาที่แก้ล่าสุดไปกันการบันทึกทับกัน
+  const changeTicketStatus = async (ticket: TicketInboxItem, status: "ACKNOWLEDGED" | "RESOLVED") => {
+    const response = await fetch(`/api/v1/admin/properties/${propertyId}/tickets/${ticket.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, expectedUpdatedAt: ticket.updatedAt }),
+    });
+    if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error || "เปลี่ยนสถานะไม่สำเร็จ");
+    await refreshTickets(ticket.id);
+    void handleTicketChanged();
+  };
 
   // ปิดอยู่ก็เหลือแค่ปุ่มลอยมุมจอ พร้อมป้ายจำนวนข้อความที่ยังไม่ได้อ่าน
   if (!isOpen) {
@@ -159,65 +225,113 @@ export function ChatWidget({
   }
 
   return <>
-    <aside className={`${view === "chat" ? "chat-widget chat-mode" : "chat-widget"}${isExpanded ? " expanded" : ""}`} aria-label="ข้อความผู้เช่า">
-      <ChatWidgetHeader
-        contact={view === "chat" ? selectedContact : undefined}
-        isExpanded={isExpanded}
-        isMenuOpen={isOptionsOpen}
-        onBackToList={() => { setIsOptionsOpen(false); setView("tenants"); }}
-        onClose={() => { setIsOptionsOpen(false); setIsOpen(false); }}
-        onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
-        onToggleMenu={() => setIsOptionsOpen((current) => !current)}
-      />
+    <aside className={`${view === "tenants" ? "chat-widget" : "chat-widget chat-mode"}${isExpanded ? " expanded" : ""}`} aria-label="ข้อความผู้เช่า">
+      {view === "ticket" && selectedTicket ? <>
+        <TicketHeader onBack={backToList} onClose={close} propertyId={propertyId} ticket={selectedTicket} />
+        <TicketChatThread
+          attachmentBase={`/api/v1/admin/properties/${propertyId}/tickets/${selectedTicket.id}/attachments`}
+          endpoint={`/api/v1/admin/properties/${propertyId}/tickets/${selectedTicket.id}/replies`}
+          inputRef={composerInputRef}
+          key={selectedTicket.id}
+          onRead={handleTicketChanged}
+          onStatusChange={(status) => changeTicketStatus(selectedTicket, status)}
+          readOnly={readOnly}
+          ticket={selectedTicket}
+          viewer="ADMIN"
+        />
+      </> : <>
+        <ChatWidgetHeader
+          contact={view === "chat" ? selectedContact : undefined}
+          isExpanded={isExpanded}
+          isMenuOpen={isOptionsOpen}
+          onBackToList={backToList}
+          onClose={close}
+          onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
+          onToggleMenu={() => setIsOptionsOpen((current) => !current)}
+        />
 
-      <div className="chat-widget-body">
-        {view === "tenants" ? <ContactList
-          contacts={contacts}
-          onOpen={openTenantChat}
-          onQueryChange={setContactQuery}
-          query={contactQuery}
-          summaryFor={(contact) => summaries[contact.id]}
-          unreadFor={(contact) => contact.isSupport ? supportUnreadCount : summaries[contact.id]?.unreadCount ?? 0}
-        /> : null}
+        <div className="chat-widget-body">
+          {view !== "chat" ? <ContactList
+            contacts={contacts}
+            filter={filter}
+            onFilterChange={setFilter}
+            onOpen={openTenantChat}
+            onOpenTicket={openTicket}
+            onQueryChange={setContactQuery}
+            query={contactQuery}
+            summaryFor={(contact) => summaries[contact.id]}
+            tickets={tickets}
+            unreadFor={(contact) => contact.isSupport ? supportUnreadCount : summaries[contact.id]?.unreadCount ?? 0}
+          /> : null}
 
-        {view === "chat" && selectedContact ? <ChatMessageList
-          emptyState={<ChatEmptyState
-            description={selectedContact.isSupport ? "ถามเรื่องการใช้งานระบบหรือแพ็กเกจได้ที่นี่" : `ข้อความจะส่งถึง ${selectedContact.name} ห้อง ${selectedContact.roomId}`}
-            onSuggest={(text) => { setMessage(text); composerInputRef.current?.focus(); }}
-            suggestions={selectedContact.isSupport ? ["สอบถามการใช้งาน", "ต่ออายุแพ็กเกจ"] : ["แจ้งบิลเดือนนี้", "มีพัสดุมาถึง"]}
-            title={selectedContact.isSupport ? "เริ่มคุยกับทีมช่วยเหลือ" : "เริ่มคุยกับผู้เช่า"}
-          />}
-          endRef={endRef}
-          hasOlderMessages={hasOlderMessages}
-          isLoading={isLoading}
-          isLoadingOlder={isLoadingOlder}
-          messages={messages}
-          onLoadOlder={() => void loadOlderMessages()}
-          ownRole="ADMIN"
-          scrollRef={scrollRef}
-        /> : null}
-      </div>
+          {view === "chat" && selectedContact ? <ChatMessageList
+            emptyState={<ChatEmptyState
+              description={selectedContact.isSupport ? "ถามเรื่องการใช้งานระบบหรือแพ็กเกจได้ที่นี่" : `ข้อความจะส่งถึง ${selectedContact.name} ห้อง ${selectedContact.roomId}`}
+              onSuggest={(text) => { setMessage(text); composerInputRef.current?.focus(); }}
+              suggestions={selectedContact.isSupport ? ["สอบถามการใช้งาน", "ต่ออายุแพ็กเกจ"] : ["แจ้งบิลเดือนนี้", "มีพัสดุมาถึง"]}
+              title={selectedContact.isSupport ? "เริ่มคุยกับทีมช่วยเหลือ" : "เริ่มคุยกับผู้เช่า"}
+            />}
+            endRef={endRef}
+            hasOlderMessages={hasOlderMessages}
+            isLoading={isLoading}
+            isLoadingOlder={isLoadingOlder}
+            messages={messages}
+            onLoadOlder={() => void loadOlderMessages()}
+            ownRole="ADMIN"
+            scrollRef={scrollRef}
+          /> : null}
+        </div>
 
-      {/* โหมดอ่านอย่างเดียวยังคุยกับแอดมินใหญ่ได้ เพราะต้องใช้ติดต่อขอต่ออายุแพ็กเกจ */}
-      <ChatFooter
-        attachment={attachment}
-        canSend={!readOnly || Boolean(selectedContact?.isSupport)}
-        error={error}
-        fileInputRef={fileInputRef}
-        inputRef={composerInputRef}
-        isReady={isReady}
-        isSending={isSending}
-        message={message}
-        onSubmit={sendMessage}
-        setAttachment={setAttachment}
-        setError={setError}
-        setMessage={setMessage}
-        show={view === "chat"}
-        showReadOnlyNotice={readOnly}
-      />
+        {/* โหมดอ่านอย่างเดียวยังคุยกับทีมช่วยเหลือได้ เพราะต้องใช้ติดต่อขอต่ออายุแพ็กเกจ */}
+        <ChatFooter
+          attachment={attachment}
+          canSend={!readOnly || Boolean(selectedContact?.isSupport)}
+          error={error}
+          fileInputRef={fileInputRef}
+          inputRef={composerInputRef}
+          isReady={isReady}
+          isSending={isSending}
+          message={message}
+          onSubmit={sendMessage}
+          setAttachment={setAttachment}
+          setError={setError}
+          setMessage={setMessage}
+          show={view === "chat"}
+          showReadOnlyNotice={readOnly}
+        />
+      </>}
     </aside>
-    <IconButton className="chat-minimize-button" label="ย่อหน้าต่างแชท" onClick={() => { setIsOptionsOpen(false); setIsOpen(false); }} size="lg" variant="primary"><ChevronDown size={28} /></IconButton>
+    <IconButton className="chat-minimize-button" label="ย่อหน้าต่างแชท" onClick={close} size="lg" variant="primary"><ChevronDown size={28} /></IconButton>
   </>;
+}
+
+// หัวห้องสนทนาของเรื่องแจ้ง บอกชื่อเรื่อง ห้อง และสถานะ พร้อมลิงก์ไปหน้าเรื่องเต็ม
+function TicketHeader({ onBack, onClose, propertyId, ticket }: Readonly<{
+  onBack: () => void;
+  onClose: () => void;
+  propertyId: string;
+  ticket: TicketInboxItem;
+}>) {
+  return <header className="chat-widget-header chat-conversation-header">
+    <IconButton label="ย้อนกลับไปยังรายการข้อความ" onClick={onBack}><ChevronLeft size={20} /></IconButton>
+    <div className="chat-conversation-brand">
+      <span aria-hidden="true" className="chat-ticket-icon" data-size="sm" data-tone={ticketStatusTone(ticket.status)}><TicketIcon size={15} type={ticket.type} /></span>
+      <span className="min-w-0">
+        <strong className="block truncate">{ticket.title}</strong>
+        <small className="block truncate">{ticketPlace(ticket)} · <span className="chat-ticket-status" data-tone={ticketStatusTone(ticket.status)}>{formatTicketStatus(ticket.status)}</span></small>
+      </span>
+    </div>
+    <div className="chat-header-actions">
+      <Link className="chat-ticket-detail-link" href={ownerPagePath(propertyId, "complaints")}>รายละเอียด</Link>
+      <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={20} /></IconButton>
+    </div>
+  </header>;
+}
+
+// บอกที่มาของเรื่อง ร้องเรียนแบบไม่ระบุชื่อไม่บอกห้องและชื่อ
+function ticketPlace(ticket: TicketInboxItem) {
+  if (!ticket.roomNumber) return ticket.isAnonymous ? "ผู้แจ้งไม่ระบุชื่อ" : "พื้นที่ส่วนกลาง";
+  return `ห้อง ${ticket.roomNumber}`;
 }
 
 // ชื่อที่แสดงของคู่สนทนา แอดมินใหญ่ไม่มีเลขห้อง
@@ -265,45 +379,74 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
   </header>;
 }
 
-// รายชื่อคู่สนทนา แอดมินใหญ่ถูกปักไว้บนสุดเสมอ ค้นหาด้วยเลขห้องหรือชื่อได้
-function ContactList({ contacts, onOpen, onQueryChange, query, summaryFor, unreadFor }: Readonly<{
+// กล่องข้อความรวม ทีมช่วยเหลือปักไว้บนสุด ที่เหลือคือแชทกับห้องและเรื่องแจ้ง เรียงรวมกันตามความเคลื่อนไหวล่าสุด
+// ค้นหาด้วยเลขห้อง ชื่อ หรือชื่อเรื่องได้ กรองดูเฉพาะแชทหรือเฉพาะเรื่องแจ้งได้
+function ContactList({ contacts, filter, onFilterChange, onOpen, onOpenTicket, onQueryChange, query, summaryFor, tickets, unreadFor }: Readonly<{
   contacts: ChatContact[];
+  filter: ChatFilter;
+  onFilterChange: (filter: ChatFilter) => void;
   onOpen: (contactId: string) => void;
+  onOpenTicket: (ticketId: string) => void;
   onQueryChange: (value: string) => void;
   query: string;
   summaryFor: (contact: ChatContact) => ConversationSummary | undefined;
+  tickets: TicketInboxItem[];
   unreadFor: (contact: ChatContact) => number;
 }>) {
   const normalized = query.trim().toLocaleLowerCase("th");
-  const visible = normalized
-    ? contacts.filter((contact) => `${contact.roomId} ${contact.name} ${contactTitle(contact)}`.toLocaleLowerCase("th").includes(normalized))
-    : contacts;
+  const matches = (text: string) => !normalized || text.toLocaleLowerCase("th").includes(normalized);
+  const [support, ...tenantContacts] = contacts;
+  type Row = { at: string; contact?: ChatContact; key: string; ticket?: TicketInboxItem };
+  const rows: Row[] = [
+    ...(filter === "tickets" ? [] : tenantContacts
+      .filter((contact) => matches(`${contact.roomId} ${contact.name} ${contactTitle(contact)}`))
+      .map((contact) => ({ at: summaryFor(contact)?.lastMessageAt ?? "", contact, key: `chat-${contact.id}` }))),
+    ...(filter === "chat" ? [] : tickets
+      .filter((ticket) => matches(`${ticket.title} ${ticket.roomNumber ?? ""} ${ticket.tenantName ?? ""} ${ticketTypeLabel(ticket.type)}`))
+      .map((ticket) => ({ at: ticket.lastActivityAt, key: `ticket-${ticket.id}`, ticket }))),
+  ].sort((left, right) => right.at.localeCompare(left.at));
+  const showSupport = filter !== "tickets" && matches(`${support.name} ช่วยเหลือ`);
+  const unreadTickets = tickets.filter((ticket) => ticket.hasUnread).length;
+
   return <>
     <label className="chat-search">
       <Search aria-hidden="true" size={15} />
-      <input aria-label="ค้นหาห้องหรือชื่อผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือชื่อ" type="search" value={query} />
+      <input aria-label="ค้นหาห้องหรือชื่อผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้อง ชื่อ หรือเรื่องแจ้ง" type="search" value={query} />
     </label>
+    <div aria-label="กรองข้อความ" className="chat-filter" role="group">
+      {([["all", "ทั้งหมด"], ["chat", "แชท"], ["tickets", "เรื่องแจ้ง"]] as const).map(([value, label]) => <button aria-pressed={filter === value} key={value} onClick={() => onFilterChange(value)} type="button">
+        {label}{value === "tickets" && unreadTickets > 0 ? <span className="chat-filter-count">{unreadTickets}</span> : null}
+      </button>)}
+    </div>
     <div className="chat-tenant-list">
-      {visible.length === 0 ? <p className="chat-conversation-prompt py-6">ไม่พบห้องหรือชื่อนี้</p> : null}
-      {visible.map((contact) => {
-        const summary = summaryFor(contact);
-        const unread = unreadFor(contact);
-        return <button className={contact.isSupport ? "chat-support-contact" : ""} data-unread={unread > 0 || undefined} key={contact.id} onClick={() => onOpen(contact.id)} type="button">
-          <ContactAvatar contact={contact} />
-          <span className="chat-contact-text">
-            <span className="chat-contact-line">
-              <strong>{contact.isSupport ? supportTeamName : `ห้อง ${contact.roomId} · ${contact.name}`}</strong>
-              <small>{contact.isSupport ? "ปักหมุด" : summary?.lastMessageAt ? chatListTime(summary.lastMessageAt) : ""}</small>
-            </span>
-            <span className="chat-contact-line">
-              <small className="chat-contact-preview">{previewText(contact, summary)}</small>
-              <UnreadBadge className="chat-unread-badge" count={unread} />
-            </span>
-          </span>
-        </button>;
-      })}
+      {showSupport ? <ContactRow contact={support} onOpen={onOpen} summary={summaryFor(support)} unread={unreadFor(support)} /> : null}
+      {rows.length === 0 && !showSupport ? <p className="chat-conversation-prompt py-6">{normalized ? "ไม่พบห้อง ชื่อ หรือเรื่องนี้" : filter === "tickets" ? "ยังไม่มีเรื่องแจ้งที่ต้องติดตาม" : "ยังไม่มีผู้เช่าในหอนี้"}</p> : null}
+      {rows.map((row) => row.ticket
+        ? <TicketInboxRow key={row.key} onOpen={onOpenTicket} place={ticketPlace(row.ticket)} ticket={row.ticket} />
+        : <ContactRow contact={row.contact!} key={row.key} onOpen={onOpen} summary={summaryFor(row.contact!)} unread={unreadFor(row.contact!)} />)}
     </div>
   </>;
+}
+
+function ContactRow({ contact, onOpen, summary, unread }: Readonly<{
+  contact: ChatContact;
+  onOpen: (contactId: string) => void;
+  summary: ConversationSummary | undefined;
+  unread: number;
+}>) {
+  return <button className={contact.isSupport ? "chat-support-contact" : ""} data-unread={unread > 0 || undefined} onClick={() => onOpen(contact.id)} type="button">
+    <ContactAvatar contact={contact} />
+    <span className="chat-contact-text">
+      <span className="chat-contact-line">
+        <strong>{contact.isSupport ? supportTeamName : `ห้อง ${contact.roomId} · ${contact.name}`}</strong>
+        <small>{contact.isSupport ? "ปักหมุด" : summary?.lastMessageAt ? chatListTime(summary.lastMessageAt) : ""}</small>
+      </span>
+      <span className="chat-contact-line">
+        <small className="chat-contact-preview">{previewText(contact, summary)}</small>
+        <UnreadBadge className="chat-unread-badge" count={unread} />
+      </span>
+    </span>
+  </button>;
 }
 
 // ท้ายหน้าต่าง ช่องพิมพ์ข้อความ หรือป้ายบอกว่าอ่านอย่างเดียวเมื่อส่งไม่ได้

@@ -214,6 +214,9 @@ test.describe("tenant journey", () => {
     await page.getByRole("button", { name: /เปิดแชทกับหอพัก/ }).click();
     const chatWidget = page.getByRole("dialog", { name: "แชทกับหอพัก" });
     await expect(chatWidget).toBeVisible();
+    // เรื่องที่เพิ่งแจ้งขึ้นในรายการของแชทเล็กด้วย ส่วนแชทกับหอปักไว้บนสุด
+    await expect(chatWidget.getByRole("button", { name: /ก๊อกน้ำ E2E รั่ว/ }).first()).toBeVisible();
+    await chatWidget.locator(".chat-support-contact").click();
     // เติมเวลาลงในข้อความ รันซ้ำจะได้ไม่ไปเจอข้อความเดิมจากรอบก่อนแล้วผ่านทั้งที่ส่งไม่สำเร็จ
     const message = `ข้อความ E2E ${Date.now()}`;
     await chatWidget.getByPlaceholder("พิมพ์ข้อความ...").fill(message);
