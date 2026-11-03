@@ -158,7 +158,7 @@ test.describe("tenant journey", () => {
   test("views room, bill, PromptPay, lease, announcements and parcels", async ({ page }) => {
     await login(page, e2e.tenantEmail);
     await expect(page).toHaveURL(/\/tenant/);
-    // หน้าแรกไม่มีแบนเนอร์ทักทายแล้ว หอกับห้องที่กำลังดูอยู่ดูได้จากตัวเลือกการเข้าพักมุมบนขวา
+    // หน้าแรกไม่มีแบนเนอร์ทักทายแล้ว หอกับห้องที่กำลังดูอยู่ดูได้จากการ์ดห้องบนแถบข้าง
     await expect(page.getByRole("heading", { name: "ภาพรวมที่ต้องรู้" })).toBeVisible();
     await expect(page.getByText("ยอดที่ต้องชำระ", { exact: true })).toBeVisible();
     await expect(page.getByText("พัสดุรอรับ", { exact: true }).first()).toBeVisible();

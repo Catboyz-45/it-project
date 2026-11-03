@@ -63,6 +63,7 @@ import { formatBankAccount, formatThaiDate, formatThaiDateTime, formatThaiMonth,
 import { CopyButton } from "@/components/ui/CopyButton";
 import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-labels";
 import { AskDormButton } from "@/components/tenant/AskDormButton";
+import { RoomSwitcher } from "@/components/tenant/RoomSwitcher";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
@@ -417,6 +418,7 @@ export function TenantPortal({
   }, []);
   // ต้องเช็คสถานะด้วย ไม่ใช่เทียบแค่ id เพราะห้องที่เลือกไว้อาจย้ายออกไปแล้ว
   const active = account.occupancies.find((item) => item.id === selectedOccupancyId && item.status === "ACTIVE");
+  const activeRooms = account.occupancies.filter(({ status }) => status === "ACTIVE");
   const roomResource = useApiResource<RoomData>("/api/v1/tenant/room", Boolean(active));
   const notificationResource = useApiResource<TenantNotificationSummary>(
     "/api/v1/tenant/notifications/summary",
@@ -485,7 +487,9 @@ export function TenantPortal({
         </div>
         <NavToggle />
       </div>
-      <p className="tenant-sidebar-property">{active?.property.name ?? "พื้นที่ผู้เช่า"}</p>
+      {active
+        ? <div className="tenant-sidebar-room"><RoomSwitcher activeId={active.id} disabled={isSwitching} onSwitch={(id) => void switchOccupancy(id)} rooms={activeRooms} variant="sidebar" /></div>
+        : <p className="tenant-sidebar-property">พื้นที่ผู้เช่า</p>}
       <nav aria-label="เมนูผู้เช่า">
         {/* ผู้พักร่วมไม่เห็นบิลและสัญญา ซ่อนเมนูไปเลย ดีกว่าให้กดเข้าไปเจอแค่ข้อความว่าไม่มีสิทธิ์ */}
         {navigationTabs.filter(({ id }) => primary || !primaryOnlyTabs.has(id)).map(({ id, icon: Icon, label }) => (
@@ -493,9 +497,7 @@ export function TenantPortal({
         ))}
       </nav>
       <SidebarAccountMenu
-        // ป้ายใต้ชื่อบอกหอและห้องที่กำลังใช้งาน ผู้เช่าที่พักหลายที่จะได้ไม่สับสน
-        // เลขห้องขึ้นก่อน ชื่อหอยาวจนโดนตัดก็ยังเห็นเลขห้อง
-        contextLabel={active ? `ห้อง ${active.room.number} · ${active.property.shortName}` : "พื้นที่ผู้เช่า"}
+        // หอกับห้องอยู่ในการ์ดบนสุดของแถบข้างแล้ว ป้ายใต้ชื่อจึงเหลือแค่บทบาท ไม่ซ้ำชื่อหออีกรอบ
         avatarUrl={account.user.avatarUrl}
         displayName={account.user.displayName}
         email={account.user.email}
@@ -515,13 +517,8 @@ export function TenantPortal({
         <div className="tenant-header-actions flex items-center gap-3">
           <PageHeaderTarget />
           {active ? <NotificationCenter footerLink={{ href: tenantPagePath("home"), label: "ดูภาพรวมทั้งหมด" }} isLoading={notificationResource.isLoading} items={tenantNotifications} onRefresh={notificationResource.reload} readOnly={accessState === "read-only"} storageKey={`tenant-notifications:${active.id}`} /> : null}
-          {account.occupancies.some(({ status }) => status === "ACTIVE") ? <DropdownField
-            ariaLabel="เลือกการเข้าพัก"
-            disabled={isSwitching}
-            onChange={(value) => void switchOccupancy(value)}
-            options={account.occupancies.filter(({ status }) => status === "ACTIVE").map((occupancy) => ({ label: `${occupancy.property.shortName} · ห้อง ${occupancy.room.number}`, value: occupancy.id }))}
-            value={active?.id ?? ""}
-          /> : null}
+          {/* จอแคบไม่มีแถบข้าง ห้องที่กำลังดูย่อเป็นป้ายเล็กข้างกระดิ่ง */}
+          {active ? <div className="tenant-room-chip-slot"><RoomSwitcher activeId={active.id} disabled={isSwitching} onSwitch={(id) => void switchOccupancy(id)} rooms={activeRooms} variant="chip" /></div> : null}
         </div>
       </header>
     <TenantAccessBanner accessState={accessState} onRetry={() => void notificationResource.reload()} />

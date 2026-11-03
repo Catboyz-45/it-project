@@ -19,13 +19,20 @@ export default async function TenantLayout({ children }: Readonly<{ children: Re
   // ผู้เช่าหนึ่งคนอาจมีหลายห้อง คุกกี้จำไว้ว่าดูห้องไหนอยู่
   const selectedId = (await cookies()).get(tenantOccupancyCookieName)?.value;
   // ต้องเช็คสถานะด้วย ไม่ใช่เชื่อคุกกี้อย่างเดียว เพราะห้องนั้นอาจย้ายออกไปแล้ว
-  // หาไม่เจอก็ตกไปที่ห้องที่ยังใช้งานอยู่ห้องแรก
-  const selected = profile.occupancies.find(({ id, status }) => id === selectedId && status === "ACTIVE")
-    ?? profile.occupancies.find(({ status }) => status === "ACTIVE");
+  // หาไม่เจอก็ตกไปที่ห้องที่เข้าพักล่าสุด กติกาเดียวกับ findActiveOccupancyForPage ที่หน้าลูกใช้
+  // ถ้าเลือกคนละแบบ แถบข้างจะบอกห้องหนึ่ง แต่เนื้อหาในหน้าเป็นของอีกห้อง
+  const active = profile.occupancies.filter(({ status }) => status === "ACTIVE");
+  const selected = active.find(({ id }) => id === selectedId)
+    ?? active.toSorted((a, b) => startedTime(b.startedAt) - startedTime(a.startedAt))[0];
 
   return (
     <TenantPortal initialAccount={profile} initialSelectedOccupancyId={selected?.id ?? null}>
       {children}
     </TenantPortal>
   );
+}
+
+// ห้องที่ยังไม่มีวันเข้าพักขึ้นก่อน ตรงกับ orderBy startedAt desc ของ PostgreSQL ที่วาง null ไว้หน้าสุด
+function startedTime(value: Date | string | null) {
+  return value ? new Date(value).getTime() : Number.POSITIVE_INFINITY;
 }

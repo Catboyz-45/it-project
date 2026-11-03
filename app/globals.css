@@ -480,6 +480,18 @@
   .tenant-mobile-navigation { @apply hidden; }
   .tenant-brand { @apply mb-2 cursor-default hover:bg-brand/[.07]; }
   .tenant-sidebar-property { @apply mb-4 truncate px-3 text-xs font-semibold text-[#73757d]; }
+  /* การ์ดห้องบนสุดของแถบข้าง หน้าตาเดียวกับตัวเลือกหอของเจ้าของหอ ห้องเดียวเป็นป้าย หลายห้องกดสลับได้ */
+  .tenant-sidebar-room { @apply mb-4; }
+  .tenant-room-card { @apply flex w-full items-center gap-2.5 rounded-xl border border-[#e4e4e7] bg-[#fff] p-2 text-left; }
+  button.tenant-room-card { @apply transition-colors duration-150 hover:bg-[#fafafa] disabled:opacity-60; }
+  .tenant-room-icon { @apply grid size-9 shrink-0 place-items-center rounded-lg bg-[#eef0ff] text-[#4651c7]; }
+  .tenant-room-copy { @apply min-w-0 flex-1; }
+  .tenant-room-copy strong { @apply block truncate text-sm font-semibold text-[#292a30]; }
+  .tenant-room-copy small { @apply block truncate text-xs text-[#62646c]; }
+  .tenant-room-switch-icon { @apply shrink-0 text-[#9a9ba3]; }
+  .tenant-room-chip-slot { @apply md:hidden; }
+  .tenant-room-chip { @apply inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#e4e4e7] bg-[#fff] px-3 text-sm font-medium whitespace-nowrap text-[#292a30]; }
+  .tenant-room-chip-menu { @apply top-[calc(100%+8px)] right-auto left-0 w-64; }
   .tenant-sidebar-footer > button,
   .super-admin-sidebar .sidebar-footer > button { @apply w-full justify-center; }
   .tenant-content .tenant-page-title { @apply hidden; }
@@ -589,6 +601,8 @@
     .shell[data-nav-collapsed] > .sidebar .brand { @apply justify-center px-0; }
     .shell[data-nav-collapsed] > .sidebar .brand :is(.brand-copy, .brand-switch-icon, img + div) { @apply hidden; }
     .shell[data-nav-collapsed] > .sidebar .tenant-sidebar-property { @apply invisible h-0 mb-2; }
+    .shell[data-nav-collapsed] > .sidebar .tenant-room-card { @apply justify-center border-0 p-1; }
+    .shell[data-nav-collapsed] > .sidebar :is(.tenant-room-copy, .tenant-room-switch-icon) { @apply hidden; }
     .shell[data-nav-collapsed] > .sidebar :is(.sidebar-property-menu, .account-menu) { @apply w-64; }
   }
   .sidebar-account-footer > button { @apply justify-start!; }
@@ -2083,14 +2097,13 @@
     .tenant-navigation { @apply hidden; }
     .tenant-topbar { @apply mb-4 items-start px-4 pt-5 pb-4; }
     .tenant-topbar h1 { @apply text-2xl; }
-    /* แถวใต้หัวเรื่อง: ตัวเลือกห้องยืดเต็มแถว กระดิ่งชิดขวา ไม่ปล่อยช่องโหว่ตรงกลาง */
+    /* แถวใต้หัวเรื่อง: ป้ายห้องชิดซ้าย กระดิ่งชิดขวา */
     .tenant-header-actions { @apply w-full flex-wrap; }
-    .tenant-header-actions > .dropdown-field { @apply order-first min-w-0 flex-1; }
+    .tenant-header-actions > .tenant-room-chip-slot { @apply order-first mr-auto; }
     .tenant-header-actions > .page-header-slot:empty { @apply hidden; }
     /* ปุ่มของหน้า เช่น "แจ้งเรื่อง" ลงไปอยู่แถวถัดไปเต็มความกว้าง ไม่เบียดตัวเลือกห้องจนชื่อหอโดนตัด */
     .tenant-header-actions > .page-header-slot:not(:empty) { @apply order-last basis-full; }
     .tenant-header-actions > .page-header-slot :is(button, a) { @apply w-full justify-center; }
-    .tenant-header-actions select { @apply w-full; }
     /* การ์ดสรุปในแต่ละส่วนไม่ต้องเว้นขอบซ้อนกับขอบของส่วน จอแคบจะได้เหลือที่ให้เนื้อหา */
     .tenant-content .app-section :is(.figma-summary-grid, .stats) { @apply p-0; }
     .tenant-home { @apply rounded-xl; }

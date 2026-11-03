@@ -113,3 +113,30 @@ test("a bill without PromptPay falls back to the bank account, then to asking th
     await pool.end();
   }
 });
+
+// ห้องที่กำลังดูอยู่เป็นการ์ดบนแถบข้าง มีห้องเดียวเป็นแค่ป้าย มีหลายห้องกดสลับได้
+test("the room card shows the current room and switches between rooms", async ({ page }) => {
+  await page.goto("/tenant/invoices");
+  const card = page.locator(".tenant-sidebar-room");
+  await expect(card).toContainText("ห้อง E101");
+  await expect(card.getByRole("button")).toHaveCount(0);
+
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const occupancyId = "czzroomswitch000000000001";
+  try {
+    await pool.query(
+      `INSERT INTO "RoomOccupancy" ("id","propertyId","roomId","tenantProfileId","role","status","startedAt","createdAt","updatedAt") VALUES ($1,$2,$3,$4,'CO_OCCUPANT','ACTIVE',NOW() - interval '400 days',NOW(),NOW())`,
+      [occupancyId, e2e.secondPropertyId, e2e.secondPropertyRoomId, e2e.tenantProfileId],
+    );
+    await page.reload();
+    await card.getByRole("button", { name: /สลับห้อง/ }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitemradio", { checked: true })).toContainText("E101");
+    await menu.getByRole("menuitemradio", { name: /F201/ }).click();
+    await expect(page).toHaveURL(/\/tenant$/);
+    await expect(card).toContainText("ห้อง F201");
+  } finally {
+    await pool.query(`DELETE FROM "RoomOccupancy" WHERE "id"=$1`, [occupancyId]);
+    await pool.end();
+  }
+});
