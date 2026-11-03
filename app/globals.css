@@ -739,6 +739,10 @@
   .meter-save-bar-text > small { @apply text-xs text-[#62646c]; }
   .meter-save-bar-warning { @apply inline-flex min-h-0 w-fit items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-semibold text-amber-700 underline-offset-2 shadow-none hover:underline; }
   .meter-save-bar > button { @apply shrink-0; }
+  .meter-save-bar[data-state="error"] .meter-save-bar-dot { @apply bg-[#dc2626]; }
+  .meter-save-bar-error { @apply inline-flex min-h-0 w-fit items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-semibold text-[#b91c1c] underline-offset-2 shadow-none; }
+  button.meter-save-bar-error:hover { @apply underline; }
+  .meter-figma-table input[aria-invalid="true"] { @apply border-[#dc2626] ring-2 ring-red-100; }
   @keyframes meter-save-bar-enter { from { opacity: 0; transform: translateY(8px); } }
   /* ตอนแถบบันทึกโผล่ ยกปุ่มแชตขึ้นไปเหนือแถบ ไม่งั้นปุ่มแชตทับปุ่มบันทึกพอดี */
   body:has(.meter-save-bar) .chat-launcher { bottom: 6.5rem; }
@@ -2108,7 +2112,7 @@
     .meter-save-bar { @apply bottom-2 gap-2; }
     .meter-save-bar-text { @apply basis-[calc(100%-1.5rem)]; }
     .meter-save-bar > button { @apply flex-1 justify-center; }
-    .meter-save-bar-text > small { @apply hidden; }
+    .meter-save-bar-text > small:not(.meter-save-bar-error) { @apply hidden; }
     body:has(.meter-save-bar) .chat-launcher { bottom: 9rem; }
     /* จอแคบให้ป้ายสถานะลงไปอยู่บรรทัดล่าง ชื่อจะได้มีที่พอ ไม่ตัดกลางคำ */
     .account-profile-text { @apply basis-[calc(100%-4rem)]; }

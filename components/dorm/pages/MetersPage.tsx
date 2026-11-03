@@ -13,6 +13,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currentThaiMonth, formatThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
 import { isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE } from "@/lib/domain/billing";
+import { type MeterDraftField, meterDraftProblem } from "@/lib/domain/meter-draft";
 
 // ห้องต่อหน้าของตาราง ใช้คำนวณว่าห้องที่ต้องตรวจอยู่หน้าไหน
 const meterPageSize = 10;
@@ -103,12 +104,9 @@ function meterTypeOf(mode: "water" | "electric") {
   return mode === "water" ? "WATER" : "ELECTRICITY";
 }
 
-// เลขที่กรอกต้องเป็นตัวเลขไม่ติดลบ และเลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน
-// เพราะมิเตอร์เดินหน้าอย่างเดียว
-function isValidPair(current: number, currentText: string, previous: number | undefined) {
-  if (currentText === "" || !Number.isFinite(current) || current < 0) return false;
-  if (previous === undefined) return true;
-  return Number.isFinite(previous) && previous >= 0 && current >= previous && isMeterUsageWithinLimit(previous, current);
+// ปัญหาของร่างห้องหนึ่ง ใช้ทั้งตอนตรวจก่อนบันทึกและตอนชี้ช่องที่ผิดในตาราง
+function draftProblemOf(row: MeterWorksheetRow, currentDrafts: Record<string, string>, previousDrafts: Record<string, string>) {
+  return meterDraftProblem(row.previousReading ?? previousDrafts[row.room.id] ?? "", currentDrafts[row.room.id] ?? "");
 }
 
 function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row }: {
@@ -120,11 +118,10 @@ function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row
 }): MeterReadingDraft {
   const previousText = row.previousReading ?? previousDrafts[row.room.id] ?? "";
   const currentText = currentDrafts[row.room.id] ?? "";
-  const previous = previousText === "" ? undefined : Number(previousText);
+  const previous = previousText.trim() === "" ? undefined : Number(previousText);
   const current = Number(currentText);
-  if (!isValidPair(current, currentText, previous)) {
-    throw new Error(`ห้อง ${row.room.number}: กรุณาระบุเลขมิเตอร์ให้ถูกต้อง เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน และใช้ไม่เกิน ${MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วย`);
-  }
+  const problem = meterDraftProblem(previousText, currentText);
+  if (problem) throw new Error(`ห้อง ${row.room.number}: ${problem.message}`);
   return {
     roomId: row.room.id,
     type: meterTypeOf(mode),
@@ -180,9 +177,13 @@ function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor
 
 // แถบบันทึกลอยติดขอบล่าง โผล่เมื่อกรอกเลขไปแล้วอย่างน้อยหนึ่งห้อง แบบแถบ "ยังไม่บันทึก" ของ Discord
 // อยู่ใกล้ตารางที่กำลังกรอกเสมอ หอใหญ่กรอกห้องสุดท้ายเสร็จก็กดบันทึกได้เลย ไม่ต้องเลื่อนกลับขึ้นไปหาปุ่มบนหัวหน้า
-function MeterSaveBar({ isSaving, onClear, onReviewRoom, onSave, touchedCount, warningRooms }: Readonly<{
+// ถ้ากดบันทึกแล้วติด ข้อความจะขึ้นในแถบนี้เลยพร้อมปุ่มพาไปช่องที่ต้องแก้ ไม่ไปโผล่เป็นกล่องใหญ่บนหัวตาราง
+function MeterSaveBar({ error, isSaving, issue, onClear, onFixIssue, onReviewRoom, onSave, touchedCount, warningRooms }: Readonly<{
+  error: string;
   isSaving: boolean;
+  issue: string | null;
   onClear: () => void;
+  onFixIssue: () => void;
   onReviewRoom: (roomId: string) => void;
   onSave: () => void;
   touchedCount: number;
@@ -190,11 +191,14 @@ function MeterSaveBar({ isSaving, onClear, onReviewRoom, onSave, touchedCount, w
 }>) {
   if (touchedCount === 0 && !isSaving) return null;
   const firstWarning = warningRooms[0];
-  return <div aria-label="บันทึกมิเตอร์" className="meter-save-bar" role="region">
+  return <div aria-label="บันทึกมิเตอร์" className="meter-save-bar" data-state={issue || error ? "error" : undefined} role="region">
     <span aria-hidden="true" className="meter-save-bar-dot" />
     <div className="meter-save-bar-text">
       <strong>กรอกแล้ว {touchedCount} ห้อง ยังไม่ได้บันทึก</strong>
-      {firstWarning ? <button className="meter-save-bar-warning" onClick={() => onReviewRoom(firstWarning.id)} type="button">
+      {issue ? <button className="meter-save-bar-error" onClick={onFixIssue} role="alert" type="button">
+        <AlertTriangle aria-hidden="true" size={13} />
+        {issue} · ไปแก้
+      </button> : error ? <small className="meter-save-bar-error" role="alert">{error}</small> : firstWarning ? <button className="meter-save-bar-warning" onClick={() => onReviewRoom(firstWarning.id)} type="button">
         <AlertTriangle aria-hidden="true" size={13} />
         ห้อง {warningRooms.map((room) => room.number).join(", ")} ควรตรวจเลขอีกครั้ง · ไปดู
       </button> : <small>ระบบเก็บฉบับร่างในเครื่องไว้ให้แล้ว ปิดหน้าแล้วกลับมากรอกต่อได้</small>}
@@ -232,6 +236,9 @@ export function MetersPage({
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+  // ห้องที่ติดตอนกดบันทึกล่าสุด ข้อความคำนวณใหม่จากร่างทุกครั้ง แก้ถูกแล้วแถบเตือนหายเองไม่ต้องกดบันทึกซ้ำ
+  const [problemRoomId, setProblemRoomId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
   // เลขที่กำลังแก้ของแถวที่บันทึกไปแล้ว แยกจากร่างปกติเพราะส่งทีละห้องและไม่เก็บลงเครื่อง
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({});
   const [savingEditRoomId, setSavingEditRoomId] = useState<string | null>(null);
@@ -318,23 +325,24 @@ export function MetersPage({
   }
 
   // ตรวจให้ครบก่อนเปิดกล่องยืนยัน ผู้ใช้จะได้ไม่กดยืนยันแล้วเจอปฏิเสธทีหลัง
+  // เจอห้องที่ยังผิดก็พาไปที่ช่องนั้นเลย
   function requestConfirmation() {
-    setLoadError("");
-    if (touchedRows.length === 0) {
-      setLoadError("กรุณากรอกเลขมิเตอร์ล่าสุดอย่างน้อย 1 ห้อง");
+    setSaveError("");
+    const firstProblem = touchedRows
+      .map((row) => ({ row, problem: draftProblemOf(row, currentDrafts, previousDrafts) }))
+      .find(({ problem }) => problem);
+    if (firstProblem?.problem) {
+      setProblemRoomId(firstProblem.row.room.id);
+      reviewRoom(firstProblem.row.room.id, firstProblem.problem.field);
       return;
     }
-    try {
-      collectReadings();
-      setIsConfirming(true);
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "ข้อมูลมิเตอร์ไม่ถูกต้อง");
-    }
+    setProblemRoomId(null);
+    setIsConfirming(true);
   }
 
   async function saveAll() {
     setIsSaving(true);
-    setLoadError("");
+    setSaveError("");
     try {
       await onSaveMeters(collectReadings());
       // บันทึกขึ้นเซิร์ฟเวอร์แล้วจึงลบร่างทิ้ง ถ้าพลาดร่างจะยังอยู่ให้กดบันทึกใหม่ได้
@@ -347,7 +355,7 @@ export function MetersPage({
       notify({ message: `บันทึกมิเตอร์${mode === "water" ? "น้ำ" : "ไฟ"} ${touchedRows.length} ห้องแล้ว` });
     } catch (error) {
       setIsConfirming(false);
-      setLoadError(error instanceof Error ? error.message : "บันทึกมิเตอร์ไม่สำเร็จ");
+      setSaveError(error instanceof Error ? error.message : "บันทึกมิเตอร์ไม่สำเร็จ");
     } finally {
       setIsSaving(false);
     }
@@ -357,9 +365,10 @@ export function MetersPage({
   async function submitEdit(row: MeterWorksheetRow) {
     const text = editingDrafts[row.room.id] ?? "";
     const current = Number(text);
-    const previous = row.previousReading === null ? undefined : Number(row.previousReading);
-    if (!row.readingId || !isValidPair(current, text, previous)) {
-      setLoadError(`ห้อง ${row.room.number}: เลขล่าสุดต้องไม่น้อยกว่าเลขครั้งก่อน และใช้ไม่เกิน ${MAX_MONTHLY_METER_USAGE.toLocaleString("th-TH")} หน่วย`);
+    const problem = meterDraftProblem(row.previousReading ?? "", text);
+    if (!row.readingId) return;
+    if (problem) {
+      setLoadError(`ห้อง ${row.room.number}: ${problem.message}`);
       return;
     }
     setSavingEditRoomId(row.room.id);
@@ -395,8 +404,12 @@ export function MetersPage({
     })
     .map((row) => ({ id: row.room.id, number: row.room.number }));
 
-  // พาไปห้องที่ต้องตรวจ ห้องนั้นอาจอยู่หน้าอื่นหรือถูกตัวกรองซ่อนอยู่ จึงล้างตัวกรองก่อนถ้าจำเป็น แล้วโฟกัสช่องเลขล่าสุด
-  function reviewRoom(roomId: string) {
+  const problemRow = problemRoomId ? touchedRows.find((row) => row.room.id === problemRoomId) : undefined;
+  const problem = problemRow ? draftProblemOf(problemRow, currentDrafts, previousDrafts) : null;
+  const invalidField = problemRow && problem ? { field: problem.field, roomId: problemRow.room.id } : null;
+
+  // พาไปห้องที่ต้องตรวจ ห้องนั้นอาจอยู่หน้าอื่นหรือถูกตัวกรองซ่อนอยู่ จึงล้างตัวกรองก่อนถ้าจำเป็น แล้วโฟกัสช่องที่ต้องแก้
+  function reviewRoom(roomId: string, field: MeterDraftField = "latest") {
     let list = visibleRows;
     if (!visibleRows.some((row) => row.room.id === roomId)) {
       setQuery("");
@@ -408,7 +421,7 @@ export function MetersPage({
     if (index < 0) return;
     setPage(Math.floor(index / meterPageSize) + 1);
     window.requestAnimationFrame(() => {
-      const input = document.querySelector<HTMLInputElement>(`tr[data-room-id="${roomId}"] input[data-meter-field="latest"]`);
+      const input = document.querySelector<HTMLInputElement>(`tr[data-room-id="${roomId}"] input[data-meter-field="${field}"]`);
       input?.scrollIntoView({ block: "center" });
       input?.focus({ preventScroll: true });
     });
@@ -444,7 +457,7 @@ export function MetersPage({
           <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>กด Enter เพื่อไปห้องถัดไป · ระบบเก็บฉบับร่างในเครื่องให้อัตโนมัติ</p></div>
         </div>
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
-        {loadError ? <div className="dashboard-empty-state" role="alert">{loadError}</div> : null}
+        {loadError ? <p className="form-alert error mx-6 my-3" role="alert">{loadError}</p> : null}
         <MeterWorksheetTable
           currentDrafts={currentDrafts}
           editingDrafts={editingDrafts}
@@ -454,6 +467,7 @@ export function MetersPage({
           onSubmitEdit={(row) => void submitEdit(row)}
           savingEditRoomId={savingEditRoomId}
           hasFilter={Boolean(query.trim()) || building !== "all" || floor !== "all"}
+          invalidField={invalidField}
           isLoading={isLoading}
           pageItems={pageItems}
           previousDrafts={previousDrafts}
@@ -470,9 +484,12 @@ export function MetersPage({
         />
       </article>
       {readOnly ? null : <MeterSaveBar
+        error={saveError}
         isSaving={isSaving}
+        issue={problemRow && problem ? `ห้อง ${problemRow.room.number}: ${problem.message}` : null}
         onClear={() => setIsConfirmingClear(true)}
-        onReviewRoom={reviewRoom}
+        onFixIssue={() => { if (invalidField) reviewRoom(invalidField.roomId, invalidField.field); }}
+        onReviewRoom={(roomId) => reviewRoom(roomId)}
         onSave={requestConfirmation}
         touchedCount={touchedRows.length}
         warningRooms={warningRooms}
@@ -484,7 +501,8 @@ export function MetersPage({
         onConfirm={() => {
           setCurrentDrafts({});
           setPreviousDrafts({});
-          setLoadError("");
+          setProblemRoomId(null);
+          setSaveError("");
           setIsConfirmingClear(false);
         }}
         title="ล้างเลขที่กรอกไว้?"
@@ -555,6 +573,8 @@ type MeterTableProps = Readonly<{
   onSubmitEdit: (row: MeterWorksheetRow) => void;
   savingEditRoomId: string | null;
   hasFilter: boolean;
+  // ช่องที่ติดตอนกดบันทึก ขอบแดงให้เห็นว่าต้องแก้ตรงไหน
+  invalidField: { field: MeterDraftField; roomId: string } | null;
   isLoading: boolean;
   pageItems: MeterWorksheetRow[];
   previousDrafts: Record<string, string>;
@@ -600,7 +620,8 @@ function MeterWorksheetTable({ hasFilter, isLoading, visibleCount, ...rowProps }
 }
 
 // ช่องกรอกเลขตั้งต้น มีเฉพาะห้องที่ยังไม่เคยมีเลขครั้งก่อนในระบบ
-function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts, value }: Readonly<{
+function PreviousReadingCell({ invalid, previousDrafts, readOnly, row, setPreviousDrafts, value }: Readonly<{
+  invalid: boolean;
   previousDrafts: Record<string, string>;
   readOnly: boolean;
   row: MeterWorksheetRow;
@@ -610,7 +631,9 @@ function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts,
   if (row.previousReading !== null) return <>{value.toLocaleString("th-TH")}</>;
   if (readOnly) return <>-</>;
   return <input
+    aria-invalid={invalid || undefined}
     aria-label={`เลขมิเตอร์ตั้งต้นห้อง ${row.room.number}`}
+    data-meter-field="previous"
     // ล็อกแถวที่บันทึกไปแล้ว ต้องไปแก้ที่หน้าประวัติแทน
     disabled={Boolean(row.readingId)}
     min={0}
@@ -622,7 +645,7 @@ function PreviousReadingCell({ previousDrafts, readOnly, row, setPreviousDrafts,
   />;
 }
 
-function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, onCancelEdit, onEditChange, onFocusRoom, onRegisterInput, onStartEdit, onSubmitEdit, pageItems, previousDrafts, readOnly, row, savingEditRoomId, setCurrentDrafts, setPreviousDrafts }: Omit<MeterTableProps, "hasFilter" | "isLoading" | "visibleCount"> & Readonly<{
+function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, invalidField, onCancelEdit, onEditChange, onFocusRoom, onRegisterInput, onStartEdit, onSubmitEdit, pageItems, previousDrafts, readOnly, row, savingEditRoomId, setCurrentDrafts, setPreviousDrafts }: Omit<MeterTableProps, "hasFilter" | "isLoading" | "visibleCount"> & Readonly<{
   index: number;
   onFocusRoom: (roomId: string) => void;
   onRegisterInput: (roomId: string, element: HTMLInputElement | null) => void;
@@ -647,12 +670,13 @@ function MeterWorksheetRowView({ currentDrafts, editingDrafts, index, onCancelEd
     {/* data-label ใช้ตอนจอเล็ก แถวกลายเป็นการ์ดทีละห้อง หัวตารางถูกซ่อน จึงต้องมีชื่อช่องติดไปกับค่า */}
     <td data-label="ผู้เช่า">{row.tenantName ?? "-"}</td>
     <td data-label="เลขครั้งก่อน">
-      <PreviousReadingCell previousDrafts={previousDrafts} readOnly={readOnly} row={row} setPreviousDrafts={setPreviousDrafts} value={previous} />
+      <PreviousReadingCell invalid={invalidField?.roomId === row.room.id && invalidField.field === "previous"} previousDrafts={previousDrafts} readOnly={readOnly} row={row} setPreviousDrafts={setPreviousDrafts} value={previous} />
     </td>
     <td data-label="เลขล่าสุด">
       {readOnly
         ? <>{row.currentReading === null ? "-" : Number(row.currentReading).toLocaleString("th-TH")}</>
         : <input
+          aria-invalid={(invalidField?.roomId === row.room.id && invalidField.field === "latest") || undefined}
           aria-label={`เลขมิเตอร์ล่าสุดห้อง ${row.room.number}`}
           data-meter-field="latest"
           disabled={Boolean(row.readingId) && !isEditing}
