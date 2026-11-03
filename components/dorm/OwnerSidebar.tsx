@@ -58,6 +58,7 @@ function isActiveMenu(activePage: PageKey, key: MenuPageKey) {
 }
 
 export function OwnerSidebar({
+  accountAvatarUrl,
   accountEmail,
   accountName,
   activePage,
@@ -69,6 +70,7 @@ export function OwnerSidebar({
   propertyId,
   urgentPages,
 }: Readonly<{
+  accountAvatarUrl?: string | null;
   accountEmail: string;
   accountName: string;
   activePage: PageKey;
@@ -102,6 +104,7 @@ export function OwnerSidebar({
       </Link>
     </div>
     <AccountMenu
+      accountAvatarUrl={accountAvatarUrl}
       accountEmail={accountEmail}
       accountName={accountName}
       activePage={activePage}
@@ -197,7 +200,8 @@ function MetersMenu({ activePage, propertyId }: Readonly<{ activePage: PageKey; 
   </div>;
 }
 
-function AccountMenu({ accountEmail, accountName, activePage, activeProperty, navigateTo }: Readonly<{
+function AccountMenu({ accountAvatarUrl, accountEmail, accountName, activePage, activeProperty, navigateTo }: Readonly<{
+  accountAvatarUrl?: string | null;
   accountEmail: string;
   accountName: string;
   activePage: PageKey;
@@ -257,7 +261,7 @@ function AccountMenu({ accountEmail, accountName, activePage, activeProperty, na
       onClick={() => setIsOpen((current) => !current)}
       type="button"
     >
-      <AccountChip context={activeProperty.shortName} name={accountName} roleLabel="เจ้าของหอ" tone="owner" />
+      <AccountChip avatarUrl={accountAvatarUrl} context={activeProperty.shortName} name={accountName} roleLabel="เจ้าของหอ" tone="owner" />
     </button>
   </div>;
 }

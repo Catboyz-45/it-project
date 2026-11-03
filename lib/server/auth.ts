@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@/generated/prisma/client";
+import { ownAvatarUrl } from "@/lib/avatar";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
 import { requireSubscriptionWriteAccess } from "@/lib/server/subscription-guard";
@@ -18,6 +19,8 @@ export type AuthContext = {
   userId: string;
   email: string;
   displayName: string;
+  // ที่อยู่รูปโปรไฟล์ของตัวเอง null คือยังไม่มีรูป ใช้ตัวอักษรแรกของชื่อแทน
+  avatarUrl?: string | null;
   role: UserRole;
   mustChangePassword?: boolean;
   // หอที่บัญชีนี้ดูแลได้ ว่างเปล่าสำหรับผู้เช่าและผู้ดูแลระบบ
@@ -50,6 +53,7 @@ async function resolveSession(token: string | undefined): Promise<AuthContext | 
           id: true,
           email: true,
           displayName: true,
+          avatarKey: true,
           role: true,
           isActive: true,
           approvalStatus: true,
@@ -80,6 +84,7 @@ async function resolveSession(token: string | undefined): Promise<AuthContext | 
     userId: session.user.id,
     email: session.user.email,
     displayName: session.user.displayName,
+    avatarUrl: ownAvatarUrl(session.user.avatarKey),
     role: session.user.role,
     mustChangePassword: session.user.mustChangePassword,
     propertyIds: session.user.memberships.map(({ propertyId }) => propertyId),

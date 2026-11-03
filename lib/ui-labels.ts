@@ -32,6 +32,8 @@ const statusLabels: Record<string, string> = {
 
 // แปลงชื่อเหตุการณ์ใน audit log เป็นคำไทย เพื่อให้ผู้ดูแลระบบอ่านรู้เรื่องโดยไม่ต้องรู้ชื่อภายใน
 const auditActionLabels: Record<string, string> = {
+  ACCOUNT_AVATAR_REMOVE: "ลบรูปโปรไฟล์",
+  ACCOUNT_AVATAR_UPDATE: "เปลี่ยนรูปโปรไฟล์",
   ACCOUNT_PASSWORD_CHANGE: "เปลี่ยนรหัสผ่านบัญชี",
   ACCOUNT_PROFILE_UPDATE: "แก้ไขข้อมูลบัญชี",
   ANNOUNCEMENT_CREATE: "สร้างประกาศ",

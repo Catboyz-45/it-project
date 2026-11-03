@@ -14,10 +14,12 @@ type PasswordDraft = { confirmPassword: string; currentPassword: string; newPass
 const emptyPasswords: PasswordDraft = { confirmPassword: "", currentPassword: "", newPassword: "" };
 
 export function AccountSettingsSection({
+  accountAvatarUrl,
   accountEmail,
   accountName,
   onAccountNameChange,
 }: Readonly<{
+  accountAvatarUrl?: string | null;
   accountEmail: string;
   accountName: string;
   onAccountNameChange: (name: string) => void;
@@ -84,7 +86,7 @@ export function AccountSettingsSection({
   };
 
   return <div className="account-content">
-    <AccountProfileCard email={accountEmail} name={savedName} roleLabel="เจ้าของหอ" />
+    <AccountProfileCard avatarUrl={accountAvatarUrl} email={accountEmail} name={savedName} roleLabel="เจ้าของหอ" />
 
     <AccountFormCard
       action={<button className="primary-button" disabled={isSavingProfile || !isNameChanged} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}

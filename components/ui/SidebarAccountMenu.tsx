@@ -37,6 +37,7 @@ const roleConfig: Record<SidebarAccountRole, {
 
 // ปุ่มบัญชีท้ายแถบข้าง กดแล้วเด้งเมนูขึ้นมาให้ไปหน้าบัญชีหรือออกจากระบบ
 export function SidebarAccountMenu({
+  avatarUrl,
   // ส่งมาแทน context เริ่มต้นได้ เช่นอยากโชว์ชื่อหอพักที่กำลังดูอยู่
   contextLabel,
   displayName,
@@ -44,6 +45,7 @@ export function SidebarAccountMenu({
   role,
   roleLabel,
 }: Readonly<{
+  avatarUrl?: string | null;
   contextLabel?: string;
   displayName: string;
   email: string;
@@ -109,7 +111,7 @@ export function SidebarAccountMenu({
       onClick={() => setIsOpen((current) => !current)}
       type="button"
     >
-      <AccountChip context={role === "TENANT" ? contextLabel : undefined} name={displayName} roleLabel={config.roleLabel} tone={config.tone} />
+      <AccountChip avatarUrl={avatarUrl} context={role === "TENANT" ? contextLabel : undefined} name={displayName} roleLabel={config.roleLabel} tone={config.tone} />
     </button>
   </div>;
 }

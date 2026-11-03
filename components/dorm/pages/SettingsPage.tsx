@@ -52,6 +52,7 @@ const systemSettingSectionKeys = systemSettingSections.map(({ key }) => key);
 
 // หน้าตั้งค่าของหอพัก เมนูซ้ายกับเนื้อหาขวา บนมือถือสลับกันทีละอย่าง
 export function SettingsPage({
+  accountAvatarUrl,
   accountEmail,
   accountName,
   initialInvitations = null,
@@ -65,6 +66,7 @@ export function SettingsPage({
   rooms,
   subscription,
 }: Readonly<{
+  accountAvatarUrl?: string | null;
   accountEmail: string;
   accountName: string;
   // ส่งต่อให้หัวข้อคำเชิญ ซึ่ง Server Component ของหน้าดึงมาให้แล้ว
@@ -190,6 +192,7 @@ export function SettingsPage({
         </div> : null}
 
         <SettingsSectionBody
+          accountAvatarUrl={accountAvatarUrl}
           accountEmail={accountEmail}
           accountName={accountName}
           activeSection={activeSection}
@@ -318,6 +321,7 @@ function AssetsSection({ isSaving, onSave, structure }: Readonly<{
 
 // เนื้อของหมวดที่เปิดอยู่ แยกออกจากโครงหน้าเพราะโครงหน้าไม่ควรต้องรู้จักทุกหมวด
 function SettingsSectionBody({
+  accountAvatarUrl,
   accountEmail,
   accountName,
   activeSection,
@@ -334,6 +338,7 @@ function SettingsSectionBody({
   subscription,
   updateSetting,
 }: Readonly<{
+  accountAvatarUrl?: string | null;
   accountEmail: string;
   accountName: string;
   activeSection: SettingsSection;
@@ -446,6 +451,6 @@ function SettingsSectionBody({
 
   if (activeSection === "subscription") return <SubscriptionPage initialData={initialSubscriptionData} propertyId={propertyId} subscription={subscription} />;
 
-  if (activeSection === "account") return <AccountSettingsSection accountEmail={accountEmail} accountName={accountName} onAccountNameChange={onAccountNameChange} />;
+  if (activeSection === "account") return <AccountSettingsSection accountAvatarUrl={accountAvatarUrl} accountEmail={accountEmail} accountName={accountName} onAccountNameChange={onAccountNameChange} />;
   return null;
 }

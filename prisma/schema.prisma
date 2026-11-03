@@ -286,6 +286,8 @@ model User {
   passwordHash                  String                @db.VarChar(255)
   mustChangePassword            Boolean               @default(false)
   displayName                   String                @db.VarChar(120)
+  // ที่เก็บรูปโปรไฟล์ในคลังไฟล์ ไม่มีคือใช้วงกลมตัวอักษรแรกของชื่อแทน
+  avatarKey                     String?               @db.VarChar(255)
   role                          UserRole
   isActive                      Boolean               @default(true)
   approvalStatus                AccountApprovalStatus @default(PENDING)

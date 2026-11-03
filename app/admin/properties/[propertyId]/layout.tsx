@@ -47,6 +47,7 @@ export default async function PropertyWorkspaceLayout({
 
   return (
     <DormDashboard
+      authenticatedAvatarUrl={auth.avatarUrl}
       authenticatedEmail={auth.email}
       authenticatedUser={auth.displayName}
       availableProperties={availableProperties}

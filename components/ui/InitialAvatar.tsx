@@ -11,7 +11,11 @@ function toneOf(name: string) {
   return hash % toneCount;
 }
 
-export function InitialAvatar({ name, size = "md" }: Readonly<{ name: string; size?: "sm" | "md" | "lg" }>) {
+// มีรูปโปรไฟล์ก็แสดงรูปแทนตัวอักษร
+export function InitialAvatar({ imageUrl, name, size = "md" }: Readonly<{ imageUrl?: string | null; name: string; size?: "sm" | "md" | "lg" }>) {
   const initial = firstInitial(name);
-  return <span aria-hidden="true" className="initial-avatar" data-size={size} data-tone={toneOf(name)}>{initial}</span>;
+  return <span aria-hidden="true" className="initial-avatar" data-size={size} data-tone={toneOf(name)}>
+    {/* eslint-disable-next-line @next/next/no-img-element -- รูปส่วนตัวที่ต้องส่งคุกกี้ไปด้วย next/image ปรับขนาดผ่านเซิร์ฟเวอร์ให้ไม่ได้ */}
+    {imageUrl ? <img alt="" src={imageUrl} /> : initial}
+  </span>;
 }

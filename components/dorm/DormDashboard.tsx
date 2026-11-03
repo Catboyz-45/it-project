@@ -72,6 +72,7 @@ const pageTitles: Record<PageKey, { title: string; subtitle: string }> = {
 // สิ่งที่หน้าต่าง ๆ ต้องใช้ร่วมกัน ส่งผ่าน context เพราะเปลือกอยู่ใน layout ส่วนหน้ามาทาง children
 // จึงเป็นพี่น้องกันในต้นไม้ React ส่งเป็น prop ตรง ๆ ไม่ได้
 type OwnerWorkspaceValue = {
+  accountAvatarUrl: string | null;
   accountEmail: string;
   accountName: string;
   activeProperty: DashboardProperty;
@@ -113,6 +114,7 @@ function useOwnerWorkspace() {
 // ข้อมูลตั้งต้นของหอจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
 // เพราะหลายหน้าใช้ข้อมูลชุดเดียวกัน และการแก้จากหน้าหนึ่งต้องสะท้อนไปอีกหน้าทันที
 export function DormDashboard({
+  authenticatedAvatarUrl,
   authenticatedEmail,
   authenticatedUser,
   availableProperties,
@@ -121,6 +123,7 @@ export function DormDashboard({
   initialData,
   propertyId,
 }: Readonly<{
+  authenticatedAvatarUrl?: string | null;
   authenticatedEmail?: string;
   authenticatedUser?: string;
   availableProperties: DashboardProperty[];
@@ -283,6 +286,7 @@ export function DormDashboard({
 
   // PageHeaderSlotProvider เปิดช่องให้หน้าย่อยส่งปุ่มของตัวเองขึ้นมาแสดงบนแถบหัวเรื่อง
   const workspaceValue: OwnerWorkspaceValue = {
+    accountAvatarUrl: authenticatedAvatarUrl ?? null,
     accountEmail: authenticatedEmail ?? "",
     accountName: currentUser,
     activeProperty,
@@ -320,6 +324,7 @@ export function DormDashboard({
     <PageHeaderSlotProvider>
     <NavShell className={inSettingsArea ? "shell shell-settings" : "shell"}>
       <OwnerSidebar
+        accountAvatarUrl={authenticatedAvatarUrl}
         accountEmail={authenticatedEmail ?? ""}
         accountName={currentUser}
         activePage={activePage}
@@ -566,6 +571,7 @@ const sectionRenderers: Partial<Record<PageKey, (context: SectionContext) => Rea
   // หน้าบัญชีกับหน้าตั้งค่าใช้คอมโพเนนต์เดียวกัน ต่างกันที่เปิดมาที่หัวข้อไหนและแก้ได้แค่ไหน
   // บัญชีเป็นข้อมูลของตัวผู้ใช้เอง จึงแก้ได้แม้หอจะอยู่ในโหมดอ่านอย่างเดียว
   account: ({ initialInvitations, initialSubscriptionData, page, workspace }) => <SettingsPage
+    accountAvatarUrl={workspace.accountAvatarUrl}
     accountEmail={workspace.accountEmail}
     accountName={workspace.accountName}
     initialInvitations={initialInvitations}

@@ -13,7 +13,7 @@ import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 type Message = { message: string; tone: "error" | "success" } | null;
 
 // หน้าบัญชีแบบย่อ ใช้กับผู้เช่าและผู้ดูแลระบบ ที่ไม่มีหน้าตั้งค่าหอพักเต็มรูปแบบ
-export function BasicAccountPanel({ displayName: initialDisplayName, email, roleLabel }: Readonly<{ displayName: string; email: string; roleLabel: string }>) {
+export function BasicAccountPanel({ avatarUrl, displayName: initialDisplayName, email, roleLabel }: Readonly<{ avatarUrl?: string | null; displayName: string; email: string; roleLabel: string }>) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
   // แก้บนสำเนา ชื่อจริงบนหน้าจะเปลี่ยนเมื่อบันทึกสำเร็จเท่านั้น
   const [draftName, setDraftName] = useState(initialDisplayName);
@@ -82,7 +82,7 @@ export function BasicAccountPanel({ displayName: initialDisplayName, email, role
   };
 
   return <div className="account-content">
-    <AccountProfileCard email={email} name={displayName} roleLabel={roleLabel} />
+    <AccountProfileCard avatarUrl={avatarUrl} email={email} name={displayName} roleLabel={roleLabel} />
 
     <AccountFormCard
       action={<button className="primary-button" disabled={isSavingProfile || draftName.trim() === displayName} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}

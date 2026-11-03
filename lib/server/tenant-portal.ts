@@ -1,3 +1,4 @@
+import { ownAvatarUrl } from "@/lib/avatar";
 import type { UpdateOwnTenantProfileInput } from "@/lib/domain/tenant-account";
 import { ApiError } from "@/lib/server/api";
 import { getDatabase } from "@/lib/server/db";
@@ -14,7 +15,7 @@ export async function getTenantAccount(tenantProfileId: string) {
     where: { id: tenantProfileId },
     select: {
       id: true, phone: true, address: true, emergencyName: true, emergencyPhone: true,
-      user: { select: { displayName: true, email: true } },
+      user: { select: { displayName: true, email: true, avatarKey: true } },
       occupancies: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -26,7 +27,9 @@ export async function getTenantAccount(tenantProfileId: string) {
     },
   });
   if (!profile) throw new ApiError(404, "ไม่พบข้อมูลบัญชี");
-  return profile;
+  // ส่งออกเป็นที่อยู่รูป ไม่ส่งที่เก็บไฟล์ภายในออกไปให้เบราว์เซอร์เห็น
+  const { avatarKey, ...user } = profile.user;
+  return { ...profile, user: { ...user, avatarUrl: ownAvatarUrl(avatarKey) } };
 }
 
 export async function updateTenantAccount(

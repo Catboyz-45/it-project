@@ -32,7 +32,7 @@ export default async function SuperAdminLayout({
       </div>
       {/* เมนูเป็น Client Component เพราะต้องรู้ว่าตอนนี้อยู่หน้าไหนเพื่อไฮไลต์ */}
       <SuperAdminNavigation />
-      <SidebarAccountMenu displayName={auth.displayName} email={auth.email} role="SUPER_ADMIN" />
+      <SidebarAccountMenu avatarUrl={auth.avatarUrl} displayName={auth.displayName} email={auth.email} role="SUPER_ADMIN" />
     </aside>
     <section className="workspace super-admin-workspace">
       <div className="super-admin-content mx-auto max-w-[1500px] space-y-6 px-6 py-7">

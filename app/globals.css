@@ -1385,7 +1385,15 @@
   /* หน้าบัญชี: การ์ดโปรไฟล์บนสุด ตามด้วยการ์ดหมวดละใบ ทุกบทบาทใช้ชุดเดียวกัน */
   .account-content { @apply grid gap-4 py-4; }
   .account-profile-card { @apply flex flex-wrap items-center gap-4 rounded-xl border border-[#e4e4e7] bg-[#fff] px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,.04)]; }
-  .account-profile-card .initial-avatar { @apply size-12 text-lg; }
+  .account-profile-card .initial-avatar[data-size] { @apply size-14 text-xl; }
+  /* รูปโปรไฟล์กดเปลี่ยนได้ ป้ายกล้องมุมล่างขวาบอกว่าเป็นปุ่ม แบบหน้าโปรไฟล์ของ Discord */
+  .account-avatar-button { @apply relative min-h-0 shrink-0 rounded-full border-0 bg-transparent p-0 shadow-none; }
+  .account-avatar-button:hover .initial-avatar { @apply brightness-90; }
+  .account-avatar-button:focus-visible { @apply outline-2 outline-offset-2 outline-brand; }
+  .account-avatar-badge { @apply absolute -right-0.5 -bottom-0.5 grid size-[22px] place-items-center rounded-full border-2 border-[#fff] bg-[#292a30] text-[#fff]; }
+  .account-avatar-actions { @apply mt-1.5 flex flex-wrap gap-3; }
+  .account-avatar-actions > button { @apply min-h-0 border-0 bg-transparent p-0 text-sm font-semibold text-[#3d47b8] shadow-none hover:underline disabled:text-[#9a9ba1] disabled:no-underline; }
+  .account-avatar-error { @apply mt-1 text-sm font-semibold text-[#b91c1c]; }
   .account-profile-text { @apply min-w-0 flex-1; }
   .account-profile-text > div { @apply flex flex-wrap items-center gap-2; }
   .account-profile-text strong { @apply min-w-0 text-base font-semibold break-words text-[#292a30]; }
@@ -2115,8 +2123,8 @@
     .meter-save-bar-text > small:not(.meter-save-bar-error) { @apply hidden; }
     body:has(.meter-save-bar) .chat-launcher { bottom: 9rem; }
     /* จอแคบให้ป้ายสถานะลงไปอยู่บรรทัดล่าง ชื่อจะได้มีที่พอ ไม่ตัดกลางคำ */
-    .account-profile-text { @apply basis-[calc(100%-4rem)]; }
-    .account-status-badge { @apply ml-16; }
+    .account-profile-text { @apply basis-[calc(100%-4.5rem)]; }
+    .account-status-badge { @apply ml-18; }
     .help-center-hero { @apply mx-4 min-h-56 px-5; }
     .help-center-hero h2 { @apply text-3xl; }
     .help-catalog { @apply px-4 py-10; }
@@ -2687,6 +2695,8 @@ select:disabled {
   /* วงกลมตัวอักษรแรกของชื่อ สีคงที่ตามชื่อ เข้มพอให้ตัวอักษรขาวอ่านได้ */
   .initial-avatar { @apply inline-grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white; }
   .initial-avatar[data-size="sm"] { @apply size-6 text-[11px]; }
+  :is(.initial-avatar, .account-avatar) { @apply overflow-hidden; }
+  :is(.initial-avatar, .account-avatar) > img { @apply size-full object-cover; }
   .initial-avatar[data-size="lg"] { @apply size-10 text-base; }
   .initial-avatar[data-tone="0"] { background: #5865f2; }
   .initial-avatar[data-tone="1"] { background: #c03b84; }

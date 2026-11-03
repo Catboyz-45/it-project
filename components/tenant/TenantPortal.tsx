@@ -75,7 +75,7 @@ type Account = {
   address: string | null;
   emergencyName: string | null;
   emergencyPhone: string | null;
-  user: { displayName: string; email: string };
+  user: { avatarUrl?: string | null; displayName: string; email: string };
   // เก็บทุกสถานะ ไม่ใช่แค่ที่ยังใช้งานอยู่ เพราะต้องใช้บอกว่ากำลังรออนุมัติหรือถูกปฏิเสธ
   occupancies: Array<{
     id: string;
@@ -478,6 +478,7 @@ export function TenantPortal({
         // ป้ายใต้ชื่อบอกหอและห้องที่กำลังใช้งาน ผู้เช่าที่พักหลายที่จะได้ไม่สับสน
         // เลขห้องขึ้นก่อน ชื่อหอยาวจนโดนตัดก็ยังเห็นเลขห้อง
         contextLabel={active ? `ห้อง ${active.room.number} · ${active.property.shortName}` : "พื้นที่ผู้เช่า"}
+        avatarUrl={account.user.avatarUrl}
         displayName={account.user.displayName}
         email={account.user.email}
         role="TENANT"
@@ -731,7 +732,7 @@ function AccountPanel({
 
   return <div className="tenant-account-page">
     <div className="account-content">
-      <AccountProfileCard email={account.user.email} name={account.user.displayName} roleLabel="ผู้เช่า" />
+      <AccountProfileCard avatarUrl={account.user.avatarUrl} email={account.user.email} name={account.user.displayName} roleLabel="ผู้เช่า" />
 
       <AccountFormCard
         action={<button className="primary-button" disabled={isSavingProfile || !isProfileDirty} type="submit">{isSavingProfile ? "กำลังบันทึก..." : "อัปเดต"}</button>}
