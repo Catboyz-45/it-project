@@ -124,3 +124,112 @@ test("Tab moves between table cells and adds a row from the last cell", async ({
   await page.keyboard.press("Tab");
   await expect(table.locator("tr")).toHaveCount(4);
 });
+
+// เลือกทั้งคำในย่อหน้ายาว ใช้แทนการลากเมาส์ เพราะตำแหน่งบนกระดาษที่ย่อพอดีจอไม่แน่นอน
+async function selectFirstWordOfLongParagraph(page: Page) {
+  await page.evaluate(() => {
+    const paragraph = document.querySelector<HTMLElement>("[data-test-paragraph]");
+    const text = paragraph && document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT).nextNode();
+    if (!paragraph || !text) throw new Error("Long paragraph is missing");
+    const range = document.createRange();
+    range.setStart(text, 0);
+    range.setEnd(text, 6);
+    document.querySelector<HTMLElement>(".document-editor-paper")?.focus();
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+  });
+}
+
+test("text colour updates one span while dragging and saves as hex", async ({ page }) => {
+  await openStandardTemplate(page);
+  await placeCaret(page, "middle-of-long-paragraph");
+  await selectFirstWordOfLongParagraph(page);
+  const colour = page.getByLabel("สีตัวอักษร");
+  // ลากในตัวเลือกสีส่ง input หลายครั้งติดกัน ต้องได้ span เดียว ไม่ซ้อนกันเป็นชั้น ๆ
+  for (const value of ["#aa0000", "#bb0000", "#cc0000"]) await colour.fill(value);
+  const paragraph = page.locator("[data-test-paragraph]").first();
+  await expect(paragraph.locator("span[style]")).toHaveCount(1);
+  await expect(colour).toHaveValue("#cc0000");
+
+  // ดักคำขอบันทึกไว้ดูอย่างเดียว ไม่ให้ถึงเซิร์ฟเวอร์ แบบฟอร์มของหอทดสอบจะได้ไม่เปลี่ยน
+  let savedHtml = "";
+  await page.route("**/api/document-templates/contract**", async (route) => {
+    if (route.request().method() !== "PUT") return route.continue();
+    savedHtml = (route.request().postDataJSON() as { html: string }).html;
+    await route.abort();
+  });
+  await page.getByRole("button", { exact: true, name: "บันทึก" }).click();
+  await expect.poll(() => savedHtml).toContain("color: #cc0000");
+  expect(savedHtml).not.toContain("rgb(");
+  expect(savedHtml).not.toContain("page-break-remove");
+});
+
+test("bullet lists show bullets, indent with Tab and end on an empty item", async ({ page }) => {
+  await openStandardTemplate(page);
+  const toolbar = page.getByRole("toolbar", { name: "เครื่องมือจัดรูปแบบ" });
+  await placeCaret(page, "middle-of-long-paragraph");
+  await page.keyboard.press("End");
+  await toolbar.getByRole("button", { name: "รายการแบบจุด" }).click();
+  const list = page.locator(".document-editor-paper ul").first();
+  await expect(list).toHaveCSS("list-style-type", "disc");
+
+  await page.evaluate(() => {
+    const item = document.querySelector(".document-editor-paper li");
+    if (!item) throw new Error("List item is missing");
+    const range = document.createRange();
+    range.selectNodeContents(item);
+    range.collapse(false);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("ข้อย่อย");
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".document-editor-paper li li", { hasText: "ข้อย่อย" })).toHaveCount(1);
+  await expect(page.getByRole("textbox", { name: "เนื้อหาแบบฟอร์ม" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.locator(".document-editor-paper li li")).toHaveCount(0);
+
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("พ้นรายการ");
+  await expect(page.locator(".document-editor-paper p", { hasText: "พ้นรายการ" })).toHaveCount(1);
+  await expect(page.locator(".document-editor-paper li", { hasText: "พ้นรายการ" })).toHaveCount(0);
+});
+
+test("images can be selected, resized and deleted, and typing after inserts starts a new line", async ({ page }) => {
+  await openStandardTemplate(page);
+  const toolbar = page.getByRole("toolbar", { name: "เครื่องมือจัดรูปแบบ" });
+  await placeCaret(page, "middle-of-long-paragraph");
+  await toolbar.getByRole("button", { name: /แทรก/ }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: /รูปภาพ/ }).click();
+  // PNG 1x1 จุด พอให้ตัวแก้ไขรับไฟล์ได้จริง
+  await (await chooser).setFiles({
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64"),
+    mimeType: "image/png",
+    name: "logo.png",
+  });
+  const image = page.locator(".document-editor-paper img");
+  await expect(image).toHaveCount(1);
+
+  await image.click();
+  const imageBar = page.getByRole("group", { name: "แก้ไขรูปภาพ" });
+  await imageBar.getByRole("button", { name: "กลาง" }).click();
+  await expect(imageBar.getByRole("button", { name: "กลาง" })).toHaveAttribute("aria-pressed", "true");
+  await expect(image).toHaveAttribute("width", /^\d+$/);
+  await image.click();
+  await page.keyboard.press("Backspace");
+  await expect(image).toHaveCount(0);
+  await expect(imageBar).toBeHidden();
+
+  // แทรกบล็อกลายเซ็นแล้วพิมพ์ต่อ ต้องได้ย่อหน้าใหม่ ไม่ไปติดหัวย่อหน้าถัดไป
+  await placeCaret(page, "middle-of-long-paragraph");
+  await toolbar.getByRole("button", { name: /แทรก/ }).click();
+  await page.getByRole("menuitem", { name: /ลายเซ็น/ }).click();
+  await page.keyboard.type("หลังลายเซ็น");
+  const typed = page.locator(".document-editor-paper p", { hasText: "หลังลายเซ็น" });
+  await expect(typed).toHaveText("หลังลายเซ็น");
+  await expect(typed.locator("xpath=preceding-sibling::*[1]")).toHaveClass(/signature-grid/);
+});

@@ -44,5 +44,10 @@ export function getDocumentContentCss(scope = "") {
     rule("table", "border-collapse:collapse;margin:14px 0;width:100%"),
     rule("th,td", "border:1px solid #bbb;padding:8px;vertical-align:top"),
     rule("ul,ol", "padding-left:24px"),
+    // หน้าเว็บล้างจุดของรายการทิ้งทั้งหมด ต้องใส่กลับเอง ไม่งั้นในตัวแก้ไขรายการแบบจุดไม่มีจุด
+    rule("ul", "list-style:disc"),
+    rule("ol", "list-style:decimal"),
+    rule("ul ul", "list-style:circle"),
+    rule("ul ul ul", "list-style:square"),
   ].join("");
 }

@@ -44,8 +44,10 @@ function isBlank(element: HTMLElement) {
 }
 
 // ย่อหน้าว่างต้องมี <br> ไม่งั้นเบราว์เซอร์ยุบความสูงเหลือศูนย์และวางเคอร์เซอร์ไม่ได้
+// ตัดย่อหน้าตรงท้ายข้อความจะได้โหนดข้อความเปล่าติดมา ซึ่งไม่ช่วยให้ย่อหน้ามีความสูง ต้องเช็คจากเนื้อหาจริง
 function keepEditable(element: HTMLElement) {
-  if (!element.firstChild) element.append(document.createElement("br"));
+  if (element.textContent || element.querySelector("br,img,table,[data-placeholder]")) return;
+  element.replaceChildren(document.createElement("br"));
 }
 
 // ตัดย่อหน้าออกเป็นสองท่อนตรงเคอร์เซอร์ ท่อนหลังเป็นแท็กเดียวกันและคลาสเดียวกัน
@@ -78,6 +80,8 @@ export function decoratePageBreak(pageBreak: HTMLElement) {
   const button = document.createElement("button");
   button.className = removeButtonClass;
   button.type = "button";
+  // ไม่ให้ Tab จากในเอกสารกระโดดมาหยุดที่ป้ายนี้ เอาตัวแบ่งออกด้วยแป้นพิมพ์ใช้ Backspace ต้นหน้าแทน
+  button.tabIndex = -1;
   button.title = "เอาตัวแบ่งหน้าออก แล้วรวมเนื้อหากับหน้าก่อน";
   button.setAttribute("aria-label", "เอาตัวแบ่งหน้าออก");
   button.textContent = "ตัวแบ่งหน้า ✕";
@@ -217,6 +221,64 @@ export function toggleList(root: HTMLElement, range: Range) {
   return true;
 }
 
+// Tab ในรายการเลื่อนข้อนั้นเข้าไปเป็นข้อย่อยของข้อก่อนหน้า เหมือน Word
+export function indentListItem(item: HTMLLIElement) {
+  const previous = item.previousElementSibling;
+  if (!(previous instanceof HTMLLIElement)) return false;
+  let sublist = previous.lastElementChild;
+  if (!(sublist instanceof HTMLUListElement || sublist instanceof HTMLOListElement)) {
+    sublist = document.createElement(item.parentElement?.tagName === "OL" ? "ol" : "ul");
+    previous.append(sublist);
+  }
+  sublist.append(item);
+  return true;
+}
+
+// Shift+Tab เลื่อนข้อย่อยออกมาหนึ่งชั้น ข้อที่อยู่ถัดลงไปในชั้นเดิมกลายเป็นข้อย่อยของข้อนี้ ลำดับจะไม่สลับ
+export function outdentListItem(item: HTMLLIElement) {
+  const list = item.parentElement;
+  const parentItem = list?.parentElement;
+  if (!list || !(parentItem instanceof HTMLLIElement)) return false;
+  const following: Element[] = [];
+  for (let next = item.nextElementSibling; next; next = next.nextElementSibling) following.push(next);
+  if (following.length) {
+    const sublist = list.cloneNode(false) as HTMLElement;
+    sublist.append(...following);
+    item.append(sublist);
+  }
+  parentItem.after(item);
+  if (!list.children.length) list.remove();
+  return true;
+}
+
+// ---- สีตัวอักษร ----
+// แปลง rgb(...) ที่เบราว์เซอร์คืนมาเป็น #rrggbb ให้ช่องเลือกสีใช้ได้
+export function cssColorToHex(value: string, fallback: string) {
+  const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(value.trim());
+  if (!match || match[4] === "0") return fallback;
+  return `#${match.slice(1, 4).map((part) => Number(part).toString(16).padStart(2, "0")).join("")}`;
+}
+
+// span ที่ช่วงเลือกคลุมข้อความทั้งหมดของมันพอดี เช่นคำที่เพิ่งเปลี่ยนสีไป
+// เจอแล้วให้แก้สีของ span เดิม ไม่ครอบซ้อนเพิ่มทุกครั้งที่ลากในตัวเลือกสี
+export function spanCoveringRange(range: Range) {
+  const common = range.commonAncestorContainer;
+  const element = common instanceof Element ? common : common.parentElement;
+  const span = element?.closest<HTMLSpanElement>("span[style]:not([data-placeholder])");
+  if (!span || range.toString() !== span.textContent || !span.textContent) return null;
+  return span;
+}
+
+// เอาสไตล์ชนิดเดียวกันออกจากข้างใน ไม่งั้นสีเก่าของคำข้างในทับสีใหม่ที่เพิ่งเลือก
+export function clearInnerStyles(element: HTMLElement, properties: string[]) {
+  element.querySelectorAll<HTMLElement>("span[style]").forEach((inner) => {
+    properties.forEach((property) => inner.style.removeProperty(property));
+    if (inner.getAttribute("style")) return;
+    inner.removeAttribute("style");
+    if (!inner.className && !inner.dataset.placeholder) inner.replaceWith(...Array.from(inner.childNodes));
+  });
+}
+
 // ---- วางข้อความจากที่อื่น ----
 // เก็บไว้แค่โครงสร้างกับตัวหนา เอียง ขีดเส้นใต้ สไตล์อื่นจาก Word หรือเว็บทิ้งหมด
 // ไม่งั้นสีหรือฟอนต์แปลก ๆ จะโผล่ในตัวแก้ไขแต่หายไปตอนบันทึก เพราะเซิร์ฟเวอร์กรองออก
@@ -316,3 +378,4 @@ export function insertBlocksAtCaret(root: HTMLElement, range: Range, fragment: D
 }
 
 export { isBlank as isBlankBlock };
+export type { SavedRange };

@@ -1661,6 +1661,9 @@
   .template-table-actions { @apply flex flex-wrap items-center gap-1.5 border-t border-[#f0f0f2] bg-[#fafafa] px-4 py-2; }
   .template-table-actions > span { @apply mr-1 text-xs font-semibold text-[#62646c]; }
   .template-table-actions button { @apply inline-flex min-h-8 items-center gap-1 rounded-lg border border-[#e4e4e7] bg-[#fff] px-2.5 text-xs font-semibold text-[#3f4048] shadow-none hover:bg-[#f4f4f5]; }
+  .template-table-actions button[aria-pressed="true"] { @apply border-brand/40 bg-brand/[.10] text-[#3d47b8]; }
+  .document-editor-paper img { cursor: pointer; }
+  .document-editor-paper img.is-selected { outline: 2px solid #5865f2; outline-offset: 2px; }
   .template-table-actions button.destructive-action { @apply text-red-700 hover:bg-red-50; }
   .document-editor-error { @apply flex items-center gap-2 border-t border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-800; }
   .document-editor-error > span { @apply flex-1; }

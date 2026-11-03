@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
-import { cleanPastedHtml, createPageBreak, decoratePageBreaks, hasBlockContent, insertBlocksAtCaret, isAtBlockEnd, isAtBlockStart, isBlankBlock, isManualPageBreak, isPageBreak, mergeBlocks, placeCaretAtStart, plainTextFragment, splitBlockAtCaret, stripPageBreakDecorations, toggleHeading, toggleList, topLevelBlock } from "@/components/dorm/document-editor/block-tools";
+import { type SavedRange, clearInnerStyles, cssColorToHex, cleanPastedHtml, createPageBreak, indentListItem, outdentListItem, restoreRange, saveRange, spanCoveringRange, decoratePageBreaks, hasBlockContent, insertBlocksAtCaret, isAtBlockEnd, isAtBlockStart, isBlankBlock, isManualPageBreak, isPageBreak, mergeBlocks, placeCaretAtStart, plainTextFragment, splitBlockAtCaret, stripPageBreakDecorations, toggleHeading, toggleList, topLevelBlock } from "@/components/dorm/document-editor/block-tools";
 import { chipifyPlaceholders, createPlaceholderChip, renderPlaceholderChip, serializePlaceholders, showPlaceholderValues, snippetFragment, usedPlaceholderKeys } from "@/components/dorm/document-editor/placeholder-chips";
 import { defaultTemplates } from "@/lib/documents/default-templates";
 import { documentFontFaceCss, documentFontOptions } from "@/lib/documents/document-fonts";
@@ -35,7 +35,10 @@ const editorFontCss = documentFontFaceCss((file) => `/fonts/sarabun/${file}`);
 type Alignment = "text-left" | "text-center" | "text-right";
 type PreviewValues = { status: "idle" | "loading" | "ready" | "failed"; label: string; values: Record<string, string> | null; error: string };
 type Autocomplete = { index: number; left: number; node: Text; offset: number; query: string; top: number };
-type EditKind = "insert" | "delete" | "other";
+type EditKind = "insert" | "delete" | "style" | "other";
+type ImageSize = "small" | "medium" | "full";
+// ความกว้างรูปเทียบกับพื้นที่เนื้อหา A4 (กว้าง 174 มม. หลังหักขอบ 18 มม. สองข้าง)
+const imageSizeRatio: Record<ImageSize, number> = { small: 0.3, medium: 0.6, full: 1 };
 
 // การจัดวางของย่อหน้าที่เคอร์เซอร์อยู่ ไม่ได้ใส่คลาสไว้ก็ถือว่าชิดซ้ายตามค่าเริ่มต้น
 function blockAlignment(block: Element | null): Alignment {
@@ -112,9 +115,14 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const [preview, setPreview] = useState<PreviewValues>({ status: "idle", label: "", values: null, error: "" });
   const [showValues, setShowValues] = useState(false);
   const [autocomplete, setAutocomplete] = useState<Autocomplete | null>(null);
+  // รูปที่คลิกเลือกอยู่ ใช้โชว์แถบปรับขนาดและลบรูป เก็บใน ref ด้วยให้ตัวฟังการเลือกข้อความเห็นค่าล่าสุด
+  // ขนาดที่ตั้งไว้คำนวณตอนเลือกรูป ไม่ใช่ตอนเรนเดอร์ เพราะต้องวัดความกว้างกระดาษจาก DOM
+  const [selectedImage, setSelectedImage] = useState<{ size: ImageSize | null } | null>(null);
+  const selectedImageRef = useRef<HTMLImageElement | null>(null);
   const [activeFormats, setActiveFormats] = useState({
     alignment: "text-left" as Alignment,
     bold: false,
+    color: "#171717",
     fontFamily: "Sarabun",
     fontSize: "14",
     heading: false,
@@ -244,6 +252,12 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     // ป้ายกลับเป็น {{key}} ตัวคั่นกับค่าความสูงที่ระบบใส่ไว้ก็ตัดออก เพราะเป็นของสำหรับแสดงผลเท่านั้น
     serializePlaceholders(clone);
     stripPageBreakDecorations(clone);
+    clone.querySelectorAll("img.is-selected").forEach((image) => image.classList.remove("is-selected"));
+    // เบราว์เซอร์เก็บสีใน style เป็น rgb(...) แต่เซิร์ฟเวอร์รับแค่ #rrggbb แปลงก่อนส่ง ไม่งั้นสีตัวอักษรกับไฮไลต์หายหมดตอนบันทึก
+    clone.querySelectorAll<HTMLElement>("[style]").forEach((element) => {
+      const style = element.getAttribute("style") ?? "";
+      if (style.includes("rgb")) element.setAttribute("style", style.replaceAll(/rgba?\([^)]*\)/g, (value) => cssColorToHex(value, value)));
+    });
     clone.querySelectorAll(".editor-auto-page-break").forEach((pageBreak) => pageBreak.remove());
     clone.querySelectorAll<HTMLElement>(".page-break").forEach((pageBreak) => {
       pageBreak.style.removeProperty("--editor-page-fill");
@@ -447,6 +461,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     setActiveFormats({
       alignment: blockAlignment(block),
       bold: Boolean(element.closest("strong,b")),
+      color: cssColorToHex(style.color, "#171717"),
       fontFamily,
       fontSize: String(Math.round(Number.parseFloat(style.fontSize))),
       heading: Boolean(element.closest("h1,h2,h3")),
@@ -461,6 +476,14 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     // ฟังการเลือกข้อความที่ระดับ document เพราะ selection ไม่ได้ส่ง event ที่ตัว element
     const onSelectionChange = () => {
       const selection = window.getSelection();
+      const image = selectedImageRef.current;
+      // เลือกอย่างอื่นหรือรูปถูกลบไปแล้ว เลิกไฮไลต์รูปและซ่อนแถบรูป
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      if (image && (!image.isConnected || !range || range.collapsed || !range.intersectsNode(image))) {
+        image.classList.remove("is-selected");
+        selectedImageRef.current = null;
+        setSelectedImage(null);
+      }
       if (selection?.rangeCount && editorRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) {
         lastRangeRef.current = selection.getRangeAt(0).cloneRange();
         updateActiveFormats();
@@ -514,11 +537,22 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
   const wrapSelection = (tagName: "strong" | "em" | "u" | "span", className?: string, style?: Partial<CSSStyleDeclaration>) => {
     const range = formattedRange();
     if (!range) return;
-    pushHistory();
+    // เปลี่ยนสี ฟอนต์ หรือขนาดรัว ๆ (เช่นลากในตัวเลือกสี) นับเป็นขั้นเดียวในประวัติ
+    if (style) pushTypingHistory("style");
+    else pushHistory();
+    const properties = style ? Object.keys(style).map((key) => key.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)) : [];
+    const existing = tagName === "span" && style ? spanCoveringRange(range) : null;
+    if (existing) {
+      Object.assign(existing.style, style);
+      clearInnerStyles(existing, properties);
+      selectNodes(existing, existing, true);
+      return;
+    }
     const element = document.createElement(tagName);
     if (className) element.className = className;
     if (style) Object.assign(element.style, style);
     element.append(range.extractContents());
+    if (style) clearInnerStyles(element, properties);
     range.insertNode(element);
     selectNodes(element, element, true);
   };
@@ -603,7 +637,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
   // บล็อกใหญ่อย่างข้อสัญญาหรือลายเซ็นต้องอยู่เป็นย่อหน้าของตัวเอง จึงวางต่อจากย่อหน้าที่เคอร์เซอร์อยู่
   // ไม่ใช่แทรกกลางประโยค ถ้ายังไม่ได้คลิกในเอกสารก็ต่อท้ายเอกสาร
-  const insertBlock = (fragment: DocumentFragment) => {
+  const insertBlock = (fragment: DocumentFragment, caret: "new-line" | "next-block" = "new-line") => {
     const editor = editorRef.current;
     if (!editor) return;
     pushHistory();
@@ -613,15 +647,25 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const element = container?.nodeType === Node.ELEMENT_NODE ? container as Element : container?.parentElement;
     let block = element && documentRoot.contains(element) ? element : null;
     while (block && block.parentElement !== documentRoot) block = block.parentElement;
-    const lastInserted = fragment.lastChild;
+    const lastInserted = fragment.lastElementChild;
     if (block && block !== documentRoot) block.after(fragment);
     else documentRoot.append(fragment);
     // ป้ายในข้อความสำเร็จรูปต้องแสดงแบบเดียวกับป้ายอื่น ตอนเปิดโหมดข้อมูลจริงอยู่ก็ต้องเป็นค่าจริงด้วย
     showPlaceholderValues(documentRoot, labels, displayValuesRef.current);
-    if (lastInserted) {
+    if (lastInserted instanceof HTMLElement) {
       editor.focus({ preventScroll: true });
-      placeCaretAfter(lastInserted);
-      (lastInserted as HTMLElement).scrollIntoView?.({ block: "nearest" });
+      // แทรกตาราง ลายเซ็น หรือข้อสัญญาแล้วเว้นบรรทัดว่างให้พิมพ์ต่อแบบ Word ไม่งั้นเคอร์เซอร์ลอยอยู่นอกย่อหน้า
+      // หรือไปติดหัวย่อหน้าถัดไปจนตัวอักษรที่พิมพ์กลายเป็นตัวหนาตามคำแรกของย่อหน้านั้น
+      // ขึ้นหน้าใหม่ไม่ต้องเว้น เคอร์เซอร์ไปต้นย่อหน้าแรกของหน้าใหม่เลย
+      let next = lastInserted.nextElementSibling;
+      const reuseNext = caret === "next-block" ? next?.matches("p,h1,h2,h3") : next?.matches("p") && isBlankBlock(next as HTMLElement);
+      if (!next || !reuseNext) {
+        next = document.createElement("p");
+        next.append(document.createElement("br"));
+        lastInserted.after(next);
+      }
+      lastRangeRef.current = placeCaretAtStart(next).cloneRange();
+      lastInserted.scrollIntoView?.({ block: "nearest" });
     }
     window.requestAnimationFrame(paginateEditor);
   };
@@ -642,28 +686,53 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
 
   const documentRootOf = (editor: HTMLElement) => editor.querySelector<HTMLElement>(".document") ?? editor;
 
+  // ลองแก้ก่อน แล้วค่อยเก็บภาพก่อนแก้ลงประวัติเมื่อแก้ได้จริง กดไม่ติดจะได้ไม่มีขั้นว่างในประวัติ
+  const commitChange = (change: () => boolean, saved?: SavedRange) => {
+    const snapshot = { html: editorHtml(), name };
+    if (!change()) return false;
+    const history = historyRef.current;
+    history.undo = [...history.undo.slice(-99), snapshot];
+    history.redo = [];
+    history.typingAt = 0;
+    syncHistorySize();
+    if (saved) restoreRange(saved, new Map());
+    rememberSelection();
+    updateActiveFormats();
+    window.requestAnimationFrame(paginateEditor);
+    return true;
+  };
+
   // หัวข้อกับรายการเปลี่ยนทั้งย่อหน้าที่เคอร์เซอร์อยู่ กดซ้ำเพื่อกลับเป็นย่อหน้าธรรมดา เหมือนสไตล์ใน Word
   const toggleBlockStyle = (toggle: typeof toggleHeading, hint: string) => {
     const editor = editorRef.current;
     const range = selectedRange();
-    if (!editor || !range) {
-      setError(hint);
-      return;
-    }
-    const snapshot = { html: editorHtml(), name };
-    if (!toggle(documentRootOf(editor), range)) {
+    if (!editor || !range || !commitChange(() => toggle(documentRootOf(editor), range))) {
       setError(hint);
       return;
     }
     setError("");
-    // เก็บภาพก่อนแก้ลงประวัติหลังรู้แล้วว่าแก้ได้จริง กดไม่ติดจะได้ไม่มีขั้นว่างในประวัติ
-    const history = historyRef.current;
-    history.undo = [...history.undo.slice(-99), snapshot];
-    history.redo = [];
-    syncHistorySize();
-    rememberSelection();
-    updateActiveFormats();
-    window.requestAnimationFrame(paginateEditor);
+  };
+
+  // ในรายการ Tab ย่อหน้าเข้า Shift+Tab ถอยออก และ Enter ที่ข้อว่างออกจากรายการ เหมือน Word
+  // ข้อชั้นนอกสุดถอยออกแล้วกลับเป็นย่อหน้าธรรมดา
+  const handleListKeys = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (!editor || !range) return false;
+    const element = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement;
+    const item = element?.closest("li");
+    if (!(item instanceof HTMLLIElement) || !editor.contains(item)) return false;
+    if (event.key === "Enter" && (event.shiftKey || !range.collapsed || !isBlankBlock(item))) return false;
+    if (event.key !== "Enter" && event.key !== "Tab") return false;
+    event.preventDefault();
+    const isNested = item.parentElement?.parentElement instanceof HTMLLIElement;
+    commitChange(() => {
+      if (event.key === "Tab" && !event.shiftKey) return indentListItem(item);
+      if (isNested) return outdentListItem(item);
+      return toggleList(documentRootOf(editor), range);
+    }, saveRange(range));
+    return true;
   };
   const insertHeading = () => toggleBlockStyle(toggleHeading, "คลิกในย่อหน้าที่ต้องการทำเป็นหัวข้อก่อน");
   const insertList = () => toggleBlockStyle(toggleList, "คลิกในย่อหน้าที่ต้องการทำเป็นรายการก่อน");
@@ -699,9 +768,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       const pageBreak = createPageBreak();
       const fragment = document.createDocumentFragment();
       fragment.append(pageBreak);
-      insertBlock(fragment);
-      const next = pageBreak.nextElementSibling;
-      if (next) placeCaretAtStart(next);
+      insertBlock(fragment, "next-block");
       return;
     }
     pushHistory();
@@ -765,6 +832,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const history = historyRef.current;
     history.undo = [...history.undo.slice(-99), snapshot];
     history.redo = [];
+    history.typingAt = 0;
     syncHistorySize();
     neighbour.remove();
     selection?.removeAllRanges();
@@ -848,6 +916,55 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
       variant: "danger",
     })) return;
     editTable(action);
+  };
+
+  // คลิกรูปแล้วเลือกทั้งรูปเหมือน Word กด Delete ลบได้ และมีแถบปรับขนาดขึ้นมา
+  const selectImage = (image: HTMLImageElement) => {
+    selectedImageRef.current?.classList.remove("is-selected");
+    image.classList.add("is-selected");
+    const range = document.createRange();
+    range.selectNode(image);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    lastRangeRef.current = range.cloneRange();
+    selectedImageRef.current = image;
+    setSelectedImage({ size: imageSize(image) });
+  };
+
+  const imageSize = (image: HTMLImageElement): ImageSize | null => {
+    const editor = editorRef.current;
+    if (!editor || !image.getAttribute("width")) return null;
+    const contentWidth = (editor.offsetWidth * 174) / 210;
+    const ratio = Number(image.getAttribute("width")) / contentWidth;
+    return (Object.entries(imageSizeRatio) as [ImageSize, number][]).find(([, value]) => Math.abs(value - ratio) < 0.05)?.[0] ?? null;
+  };
+
+  const resizeImage = (size: ImageSize) => {
+    const editor = editorRef.current;
+    const image = selectedImageRef.current;
+    if (!editor || !image) return;
+    // ใส่เป็น attribute width เพราะเซิร์ฟเวอร์รับ width ของรูป แต่ตัดสไตล์ width ทิ้ง
+    const width = String(Math.round(((editor.offsetWidth * 174) / 210) * imageSizeRatio[size]));
+    commitChange(() => {
+      image.setAttribute("width", width);
+      image.removeAttribute("height");
+      return true;
+    });
+    selectImage(image);
+  };
+
+  const deleteSelectedImage = () => {
+    const image = selectedImageRef.current;
+    if (!image) return;
+    const next = image.parentElement;
+    commitChange(() => {
+      image.remove();
+      return true;
+    });
+    selectedImageRef.current = null;
+    setSelectedImage(null);
+    if (next?.isConnected) lastRangeRef.current = placeCaretAtStart(next).cloneRange();
   };
 
   const insertImage = (file: File) => {
@@ -1024,6 +1141,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
     const isAutocompleteOpen = Boolean(autocomplete && autocompleteOptions.length > 0);
     if ((event.key === "Backspace" || event.key === "Delete") && !isAutocompleteOpen && handleBoundaryDelete(event)) return;
     if (event.key === "Tab" && !isAutocompleteOpen && moveBetweenTableCells(event)) return;
+    if ((event.key === "Tab" || event.key === "Enter") && !isAutocompleteOpen && handleListKeys(event)) return;
     if (!autocomplete || autocompleteOptions.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -1166,7 +1284,7 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
           options={fontSizes.map((size) => ({ value: String(size), label: String(size) }))}
           value={fontSizes.includes(Number(activeFormats.fontSize)) ? activeFormats.fontSize : "14"}
         />
-        <label className="template-color-control" title="สีตัวอักษร"><span aria-hidden="true">A</span><input aria-label="สีตัวอักษร" defaultValue="#171717" onMouseDown={rememberSelection} onChange={(event) => wrapSelection("span", undefined, { color: event.target.value })} type="color" /></label>
+        <label className="template-color-control" title="สีตัวอักษร"><span aria-hidden="true">A</span><input aria-label="สีตัวอักษร" value={activeFormats.color} onMouseDown={rememberSelection} onChange={(event) => wrapSelection("span", undefined, { color: event.target.value })} type="color" /></label>
         <label className="template-color-control highlight" title="สีไฮไลต์"><span aria-hidden="true">ไฮไลต์</span><input aria-label="สีไฮไลต์ข้อความ" defaultValue="#fff2a8" onMouseDown={rememberSelection} onChange={(event) => wrapSelection("span", undefined, { backgroundColor: event.target.value })} type="color" /></label>
       </div>
       <div className="template-toolbar-group">
@@ -1206,6 +1324,13 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
           <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-row")} onMouseDown={keepEditorSelection} type="button"><Minus size={14} /> ลบแถว</button>
           <button onClick={() => editTable("add-column")} onMouseDown={keepEditorSelection} type="button"><Plus size={14} /> เพิ่มคอลัมน์</button>
           <button className="destructive-action" onClick={() => void confirmTableDeletion("remove-column")} onMouseDown={keepEditorSelection} type="button"><Minus size={14} /> ลบคอลัมน์</button>
+        </div> : null}
+        {selectedImage ? <div aria-label="แก้ไขรูปภาพ" className="template-table-actions" role="group">
+          <span>รูปภาพ</span>
+          {([["small", "เล็ก"], ["medium", "กลาง"], ["full", "เต็มความกว้าง"]] as const).map(([size, label]) => (
+            <button aria-pressed={selectedImage.size === size} key={size} onClick={() => resizeImage(size)} onMouseDown={keepEditorSelection} type="button">{label}</button>
+          ))}
+          <button className="destructive-action" onClick={deleteSelectedImage} onMouseDown={keepEditorSelection} type="button"><Minus size={14} /> ลบรูป</button>
         </div> : null}
         {error ? <div className="document-editor-error" role="alert"><TriangleAlert aria-hidden="true" size={16} /><span>{error}</span><IconButton label="ปิดข้อความ" onClick={() => setError("")}><X size={14} /></IconButton></div> : null}
       </div>
@@ -1253,6 +1378,10 @@ export function TemplateEditor({ kind, onClose, onSaved, propertyId, template }:
                 window.requestAnimationFrame(paginateEditor);
               }}
               onClick={(event) => {
+                if (event.target instanceof HTMLImageElement) {
+                  selectImage(event.target);
+                  return;
+                }
                 const removeButton = (event.target as Element).closest?.(".page-break-remove");
                 const pageBreak = removeButton?.closest(".page-break");
                 if (pageBreak instanceof HTMLElement) removePageBreak(pageBreak);
