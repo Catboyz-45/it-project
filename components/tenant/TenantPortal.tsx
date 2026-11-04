@@ -18,6 +18,7 @@ import {
   Clock3,
   Check,
   CheckCircle2,
+  CircleHelp,
   ChevronDown,
   ChevronLeft,
   FileText,
@@ -64,6 +65,7 @@ import { CopyButton } from "@/components/ui/CopyButton";
 import { formatInvoiceStatus, formatStatus, formatTicketStatus } from "@/lib/ui-labels";
 import { AskDormButton } from "@/components/tenant/AskDormButton";
 import { RoomSwitcher } from "@/components/tenant/RoomSwitcher";
+import { TenantHelp } from "@/components/tenant/TenantHelp";
 import { Empty, Info, InfoCard, Panel, Status } from "@/components/tenant/primitives";
 import { tenantPagePath, tenantTabFromSegments, type TenantTab } from "@/lib/navigation-routes";
 import { blocksSubscriptionMutations, resolveSubscriptionUiAccessState, type SubscriptionUiAccessState } from "@/lib/client/subscription-access-state";
@@ -137,6 +139,7 @@ const tabs: Array<{ id: TenantTab; label: string; icon: typeof Home }> = [
   { id: "tickets", label: "แจ้งเรื่อง", icon: Wrench },
   { id: "chat", label: "ติดต่อหอ", icon: MessageSquare },
   { id: "account", label: "บัญชีของฉัน", icon: UserRound },
+  { id: "help", label: "ช่วยเหลือ", icon: CircleHelp },
 ];
 
 // Record บังคับให้ทุกหน้ามีคำอธิบายตั้งแต่ตอนคอมไพล์ เพิ่มหน้าใหม่แล้วลืมจะคอมไพล์ไม่ผ่าน
@@ -149,15 +152,17 @@ const tabDescriptions: Record<TenantTab, string> = {
   tickets: "แจ้งปัญหาและติดตามสถานะการดำเนินงาน",
   chat: "ติดต่อและพูดคุยกับผู้ดูแลหอพัก",
   account: "จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชี",
+  help: "คำถามที่พบบ่อยและวิธีใช้พื้นที่ผู้เช่า",
 };
 
 // แถบล่างบนมือถือใส่ได้แค่ 4 ช่อง จึงเลือกเฉพาะที่ใช้บ่อย ที่เหลือไปอยู่ในเมนูเพิ่มเติม
 const mobilePrimaryTabs = tabs.filter(({ id }) => ["home", "invoices", "parcels", "tickets"].includes(id));
 // แชทกับบัญชีไม่อยู่ในเมนูหลักของจอกว้าง เพราะมีปุ่มของตัวเองอยู่แล้ว
-const navigationTabs = tabs.filter(({ id }) => !["chat", "account"].includes(id));
+// ช่วยเหลืออยู่ในเมนูบัญชีท้ายแถบข้าง ไม่ต้องกินที่ในเมนูหลัก
+const navigationTabs = tabs.filter(({ id }) => !["chat", "account", "help"].includes(id));
 // หน้าที่ผู้พักร่วมเปิดไม่ได้ เพราะบิลและสัญญาเป็นเรื่องของผู้เช่าหลัก
 const primaryOnlyTabs = new Set<TenantTab>(["invoices", "lease"]);
-const mobileMoreTabs = tabs.filter(({ id }) => ["lease", "announcements", "account"].includes(id));
+const mobileMoreTabs = tabs.filter(({ id }) => ["lease", "announcements", "account", "help"].includes(id));
 
 // ห่อ readApiData ไว้ให้ข้อความผิดพลาดของทั้งไฟล์นี้เหมือนกันหมด
 async function apiData<T>(response: Response): Promise<T> {
@@ -614,6 +619,8 @@ export function TenantSectionPanel({
   const { account, active, isPrimary, isReadOnly, notificationResource, roomResource, setAccount, refreshAccount } = useTenantPortal();
   // หน้าบัญชีเปิดได้เสมอ แม้ยังไม่มีการเข้าพักที่อนุมัติ เพราะเป็นข้อมูลของตัวผู้ใช้เอง
   if (tab === "account") return <AccountPanel account={account} onUpdated={setAccount} refreshAccount={refreshAccount} />;
+  // คำถามที่พบบ่อยเปิดได้แม้ยังไม่มีห้องที่อนุมัติ คนที่เพิ่งสมัครมักมีคำถามมากที่สุด
+  if (tab === "help") return <TenantHelp canAskDorm={Boolean(active)} />;
   // ยังไม่มีห้องที่ใช้งานอยู่ ทุกแท็บที่เหลือจึงไม่มีข้อมูลให้แสดง
   if (!active) return <PendingState account={account} />;
   if (tab === "home") {
@@ -1250,6 +1257,7 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
       <div className="min-w-48 flex-1">
         <strong className="block text-[#78350f]">ส่งสลิปแล้ว รอหอตรวจสอบ</strong>
         <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบหรือต้องโอนเพิ่ม เปิด QR และส่งสลิปใหม่ได้</span>
+        <Link className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-[#92400e] underline" href={`${tenantPagePath("help")}#slip-review`}><CircleHelp aria-hidden="true" size={14} /> ปกติใช้เวลานานแค่ไหน</Link>
       </div>
       <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><QrCode aria-hidden="true" size={17} /> ดู QR และส่งสลิปใหม่</button>
     </div>;

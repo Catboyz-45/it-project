@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { ArrowLeft, Banknote, Building2, CalendarDays, CreditCard, FileText, Home, MailPlus, Package, UserRound } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ownerPagePath } from "@/lib/navigation-routes";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { DocumentTemplatePanel } from "@/components/dorm/DocumentTemplatePanel";
@@ -95,10 +96,13 @@ export function SettingsPage({
   rooms: Room[];
   subscription: OwnerDashboardAggregation["subscription"];
 }>) {
+  // ลิงก์จากคู่มือเปิดหมวดย่อยได้ตรง ๆ เช่น ?section=cycles ค่าที่ไม่รู้จักใช้หมวดตาม URL ของหน้าแทน
+  const requestedSection = useSearchParams().get("section");
+  const startSection = settingSections.find(({ key }) => key === requestedSection)?.key ?? initialSection;
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   // จอแคบวางสองคอลัมน์ไม่ไหว จึงสลับทีละอย่างแทนการวางเมนูกองทับเนื้อหา
   // เข้ามาแบบลิงก์ตรง เช่น /subscription ให้ไปที่เนื้อหาเลย ไม่ต้องผ่านรายการ
-  const [mobileView, setMobileView] = useState<"list" | "section">(initialSection === "general" ? "list" : "section");
+  const [mobileView, setMobileView] = useState<"list" | "section">(startSection === "general" ? "list" : "section");
   // เก็บทุกค่าเป็นสตริง เพราะมาจากช่องกรอก ค่อยแปลงเป็นตัวเลขตอนส่งขึ้นเซิร์ฟเวอร์
   const [settings, setSettings] = useState<SettingsForm>({
     bankAccountName: initialSettings.bankAccountName ?? "",
@@ -169,10 +173,10 @@ export function SettingsPage({
 
   // ตามการเปลี่ยน URL ด้วย เพราะหน้าตั้งค่าแต่ละหมวดมีที่อยู่ของตัวเอง
   useEffect(() => {
-    setActiveSection(initialSection);
+    setActiveSection(startSection);
     setSaveState(null);
-    setMobileView(initialSection === "general" ? "list" : "section");
-  }, [initialSection]);
+    setMobileView(startSection === "general" ? "list" : "section");
+  }, [startSection]);
 
   return (
     <section className={activeSection === "account" ? "account-page" : "settings-page"} data-mobile-view={mobileView}>

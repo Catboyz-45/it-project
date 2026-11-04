@@ -9,14 +9,12 @@ import {
   Ban,
   CheckCircle2,
   ChevronRight,
-  CircleHelp,
   Clock3,
   Megaphone,
   MessageSquare,
   MessageSquareWarning,
   Plus,
   Pencil,
-  Search,
   UsersRound,
 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
@@ -28,14 +26,12 @@ import { ticketsChangedEvent } from "@/lib/ticket-inbox";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
-import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { useConfirmation } from "@/components/ui/use-confirmation";
 import { useToast } from "@/components/ui/ToastProvider";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { ownerPagePath } from "@/lib/navigation-routes";
-import { platformProfile } from "@/lib/platform-profile";
 import type { Room } from "@/types/dorm";
 import { formatThaiDateTime } from "@/lib/thai-format";
 import { ticketStatusLabels } from "@/lib/ui-labels";
@@ -707,134 +703,6 @@ export function ComplaintsPage({
         <footer className="modal-actions"><Button onClick={() => setEditingComplaint(null)} variant="secondary">ยกเลิก</Button><Button disabled={!editForm.title.trim() || !editForm.detail.trim()} isLoading={isSaving} onClick={() => void saveComplaint()}>บันทึกการแก้ไข</Button></footer>
       </Dialog> : null}
       {confirmationDialog}
-    </section>
-  );
-}
-
-// เนื้อหาคู่มือทั้งหมดเก็บเป็นข้อมูลไว้ในไฟล์นี้ ไม่ได้ดึงจากเซิร์ฟเวอร์
-// แก้คู่มือแล้วต้อง deploy ใหม่ แลกกับการที่หน้านี้เปิดได้ทันทีและใช้ได้แม้ตอนเน็ตมีปัญหา
-const helpTopics = [
-  {
-    id: "getting-started",
-    title: "เริ่มต้นใช้งานระบบ",
-    summary: "เข้าสู่ระบบ เลือกหอพัก และทำความเข้าใจหน้าหลัก",
-    articles: [
-      { title: `เริ่มต้นใช้งาน ${platformProfile.name}`, body: ["เข้าสู่ระบบด้วยบัญชีที่แอดมินใหญ่มอบหมาย จากนั้นเลือกหอพักที่ต้องการจัดการจากมุมซ้ายบน", "หน้าหลักจะแสดงรายได้ ห้องว่าง ห้องที่มีผู้เช่า ยอดค้างชำระ และรายการสำคัญของรอบบิลปัจจุบัน"] },
-      { title: "การเลือกและสลับหอพัก", body: ["กดชื่อหอพักด้านบนของเมนูซ้ายเพื่อดูหอพักที่บัญชีของคุณมีสิทธิ์จัดการ", "ข้อมูลผู้เช่า ห้อง บิล และข้อความจะถูกแยกตามหอพักโดยอัตโนมัติ"] },
-    ],
-  },
-  {
-    id: "rooms-tenants",
-    title: "ห้องพักและผู้เช่า",
-    summary: "เพิ่มชั้น ห้อง เฟอร์นิเจอร์ และจัดการข้อมูลผู้เช่า",
-    articles: [
-      { title: "เพิ่มชั้นและห้องพัก", body: ["ไปที่ ตั้งค่า → ห้องพัก แล้วเพิ่มชั้นก่อนสร้างห้องใหม่", "กำหนดเลขห้อง ประเภท ค่าเช่า และเฟอร์นิเจอร์เริ่มต้นให้ครบก่อนเปิดรับผู้เช่า"] },
-      { title: "เพิ่มและแก้ไขผู้เช่า", body: ["ไปที่หน้าผู้เช่าแล้วกดเพิ่มผู้เช่า เลือกห้องว่างและกรอกข้อมูลสัญญา", "กดแถวผู้เช่าเพื่อดูรายละเอียดหรือแก้ไขข้อมูลภายหลัง"] },
-    ],
-  },
-  {
-    id: "meters-billing",
-    title: "มิเตอร์ บิล และการเงิน",
-    summary: "จดมิเตอร์ ตั้งค่าใช้จ่าย ออกบิล และติดตามการชำระ",
-    articles: [
-      { title: "บันทึกเลขมิเตอร์ประจำเดือน", body: ["เลือกค่าน้ำหรือค่าไฟจากเมนูซ้าย กรองชั้น แล้วกรอกเลขมิเตอร์ล่าสุดของแต่ละห้อง", "ระบบคำนวณหน่วยที่ใช้และยอดเงินตามอัตราที่กำหนดไว้ในหน้าตั้งค่า"] },
-      { title: "ตรวจสอบและติดตามบิล", body: ["หน้าบิลและการเงินแสดงบิลที่ชำระแล้ว รอชำระ และค้างชำระ", "ใช้ตัวกรองสถานะเพื่อค้นหารายการ และเปิดแท็บตรวจสอบการชำระเพื่ออนุมัติหลักฐานการโอน"] },
-    ],
-  },
-  {
-    id: "complaints",
-    title: "เรื่องร้องเรียนและประวัติงาน",
-    summary: "รับเรื่อง ติดตามสถานะ และดูประวัติที่ดำเนินการแล้ว",
-    articles: [
-      { title: "เพิ่มและติดตามเรื่องร้องเรียน", body: ["กดแจ้งเรื่องใหม่ กรอกหัวข้อ ผู้แจ้ง และห้องหรือพื้นที่ที่เกี่ยวข้อง", "รายการใหม่จะปรากฏในตารางเพื่อให้ผู้ดูแลติดตามและอัปเดตสถานะ"] },
-      { title: "ดูประวัติงานที่เสร็จแล้ว", body: ["เลือกแท็บประวัติที่เสร็จแล้ว และกรองตามชั้นหรือเลขห้องเพื่อค้นหางานย้อนหลัง"] },
-    ],
-  },
-  {
-    id: "communication",
-    title: "พัสดุ ประกาศ และแชท",
-    summary: "ลงทะเบียนพัสดุ ส่งประกาศ และสนทนากับผู้เช่า",
-    articles: [
-      { title: "รับพัสดุเข้าหอพัก", body: ["กดรับพัสดุใหม่ เลือกชั้นและห้อง เพิ่มหมายเหตุหรือรูปถ่าย แล้วบันทึก", "เมื่อส่งมอบให้ผู้เช่าแล้วให้กดรับแล้ว รายการจะย้ายไปยังประวัติ"] },
-      { title: "ประกาศและข้อความแบบเรียลไทม์", body: ["สร้างประกาศเพื่อส่งถึงทุกห้อง อาคาร หรือชั้นที่เลือก และตั้งเวลาเผยแพร่ได้", "ใช้ปุ่มแชทด้านล่างเพื่อส่งข้อความ รูปภาพ หรือไฟล์ถึงผู้เช่าแบบเรียลไทม์"] },
-    ],
-  },
-];
-
-// ศูนย์ช่วยเหลือ ค้นหาและอ่านคู่มือการใช้งาน
-// รวมทุกคำในหัวข้อช่วยเหลือเป็นสตริงเดียวสำหรับค้นหา
-function topicSearchText(topic: (typeof helpTopics)[number]) {
-  const articleText = topic.articles.map((article) => `${article.title} ${article.body.join(" ")}`).join(" ");
-  return `${topic.title} ${topic.summary} ${articleText}`;
-}
-
-export function HelpPage() {
-  const [query, setQuery] = useState("");
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
-  const [selectedArticleIndex, setSelectedArticleIndex] = useState(0);
-  const selectedTopic = helpTopics.find((topic) => topic.id === selectedTopicId);
-  const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
-  // ค้นทั้งหัวข้อ คำโปรย และเนื้อหาข้างในทุกบทความ ต่อเป็นสตริงเดียวแล้วค่อยหา
-  const filteredTopics = helpTopics.filter((topic) =>
-    topicSearchText(topic).toLocaleLowerCase("th-TH").includes(normalizedQuery),
-  );
-
-  // เปิดบทความแล้วเลื่อนหน้าไปหา เพราะบนมือถือเนื้อหาอยู่ใต้รายการหัวข้อ
-  const openTopic = (topicId: string, articleIndex = 0) => {
-    setSelectedTopicId(topicId);
-    setSelectedArticleIndex(articleIndex);
-    // รอให้บทความถูกวาดก่อนค่อยเลื่อนไปหา ไม่งั้นยังไม่มีองค์ประกอบให้เลื่อนไป
-    window.requestAnimationFrame(() => document.getElementById("help-article")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  };
-
-  return (
-    <section className="help-page">
-      <article className="help-center-hero">
-        <span><CircleHelp size={36} /></span>
-        <p>ศูนย์ช่วยเหลือ {platformProfile.name}</p>
-        <h2>ต้องการให้เราช่วยเรื่องอะไร?</h2>
-        <label><Search size={21} /><input aria-label="ค้นหาคู่มือ" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาห้อง ผู้เช่า มิเตอร์ บิล หรือการตั้งค่า..." value={query} /></label>
-        <small>ค้นหาคำตอบและขั้นตอนการใช้งานทุกส่วนของระบบบริหารหอพัก</small>
-      </article>
-
-      <section className="help-catalog">
-        <div className="help-section-heading"><p>คู่มือการใช้งานระบบ</p><h2>เลือกหัวข้อที่ต้องการ</h2></div>
-        <div className="help-topic-grid">
-          {filteredTopics.map((topic, index) => (
-            <button key={topic.id} onClick={() => openTopic(topic.id)} type="button">
-              <span>{index + 1}</span>
-              <div><strong>{topic.title}</strong><small>{topic.summary}</small><em>{topic.articles.length} บทความ</em></div>
-              <ChevronRight size={20} />
-            </button>
-          ))}
-        </div>
-        {filteredTopics.length === 0 ? <SearchEmptyState description="ลองใช้คำค้นอื่น เช่น บิล ห้องพัก หรือผู้เช่า" title="ไม่พบหัวข้อที่ค้นหา" /> : null}
-      </section>
-
-      {selectedTopic ? (
-        <section className="help-article-layout" id="help-article">
-          <aside>
-            <small>บทความในหมวดนี้</small>
-            <h3>{selectedTopic.title}</h3>
-            {selectedTopic.articles.map((article, index) => (
-              <button className={selectedArticleIndex === index ? "active" : ""} key={article.title} onClick={() => setSelectedArticleIndex(index)} type="button">{article.title}</button>
-            ))}
-          </aside>
-          <article>
-            <p>ศูนย์ช่วยเหลือ / {selectedTopic.title}</p>
-            <h2>{selectedTopic.articles[selectedArticleIndex].title}</h2>
-            <div className="help-article-body">
-              {selectedTopic.articles[selectedArticleIndex].body.map((paragraph, index) => (
-                <section key={paragraph}>
-                  <span>{index + 1}</span>
-                  <div><h3>ขั้นตอนที่ {index + 1}</h3><p>{paragraph}</p></div>
-                </section>
-              ))}
-            </div>
-            <div className="help-article-note"><CircleHelp size={20} /><p><strong>ยังต้องการความช่วยเหลือ?</strong><span>กดปุ่มแชทด้านล่างเพื่อสอบถามผู้ดูแลระบบได้ทันที</span></p></div>
-          </article>
-        </section>
-      ) : null}
     </section>
   );
 }

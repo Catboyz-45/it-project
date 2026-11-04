@@ -40,7 +40,7 @@ export function ownerPageFromSegments(segments: string[] | undefined): PageKey |
   return ownerPageByRoute.get(segments?.join("/") ?? "") ?? null;
 }
 
-// as const ทำให้ TypeScript รู้ว่ามีแค่แปดค่านี้ ไม่ใช่ string อะไรก็ได้
+// as const ทำให้ TypeScript รู้ว่ามีแค่ค่าเหล่านี้ ไม่ใช่ string อะไรก็ได้
 export const tenantTabs = [
   "home",
   "invoices",
@@ -50,6 +50,7 @@ export const tenantTabs = [
   "tickets",
   "chat",
   "account",
+  "help",
 ] as const;
 
 export type TenantTab = (typeof tenantTabs)[number];

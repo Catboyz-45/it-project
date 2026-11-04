@@ -1100,6 +1100,21 @@
   .tenant-lease-document.is-missing { @apply border-dashed text-[#62646c]; }
   .tenant-lease-notice { @apply flex flex-wrap items-center gap-3 rounded-xl border border-[#fcd34d] bg-[#fffbeb] p-4; }
 
+  /* หน้าช่วยเหลือของผู้เช่า ช่องค้นหา ปุ่มกรองหมวด และคำถามที่กดกางได้ */
+  /* กรอบอยู่ที่ label ตามกติกาช่องค้นหาแบบประกอบท้ายไฟล์ ไอคอนลอยทับ ช่องกรอกเว้นที่ไว้ให้แล้ว */
+  .tenant-help-search { @apply relative flex items-center; }
+  .tenant-help-search > svg { @apply pointer-events-none absolute left-4 text-[#62646c]; }
+  .tenant-help-search input { @apply w-full text-base text-[#292a30] placeholder:text-[#8b8d96]; }
+  .tenant-help-search:focus-within { outline: 3px solid #4651c7; outline-offset: 2px; }
+  .tenant-help-search:focus-within input { outline: none !important; box-shadow: none !important; }
+  .tenant-help-filter { @apply min-h-9 rounded-full border border-[#e4e4e7] bg-[#fff] px-3.5 text-sm font-medium text-[#555761] hover:bg-[#f4f4f5]; }
+  .tenant-help-filter[aria-pressed="true"] { @apply border-[#c7cbfb] bg-[#eef0ff] text-[#3f48b0]; }
+  .tenant-help-item > summary { @apply flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-[#fafafa]; }
+  .tenant-help-item > summary::-webkit-details-marker { display: none; }
+  .tenant-help-answer { @apply border-t border-dashed border-[#e4e4e7] bg-[#fcfcfe] px-4 py-3 text-sm leading-6 text-[#3f4048] sm:pl-16; }
+  .tenant-help-answer > ul > li { @apply relative pl-4; }
+  .tenant-help-answer > ul > li::before { @apply absolute left-0 top-2.5 size-1.5 rounded-full bg-[#a5abf5]; content: ""; }
+
   /* ตารางเทียบแพ็กเกจ: ทุกแพ็กเกจอยู่ในกรอบเดียวกันคั่นด้วยเส้น ไม่ใช่การ์ดแยกใบ
      เพื่อให้กวาดสายตาเทียบราคาและสิทธิ์ในแนวนอนได้ */
   /* จำนวนแพ็กเกจมาจากฐานข้อมูลจึงไม่ตรึงจำนวนคอลัมน์ ปล่อยให้เรียงเท่าที่กว้างพอ
@@ -1584,11 +1599,12 @@
   .help-article-layout > article { @apply min-w-0 p-10; }
   .help-article-layout > article > p { @apply text-sm font-semibold text-[#62646c]; }
   .help-article-layout > article > h2 { @apply mb-6 mt-3 text-2xl font-bold tracking-[-.02em] text-[#292a30]; }
-  .help-article-body { @apply grid gap-5; }
-  .help-article-body section { @apply grid grid-cols-[40px_minmax(0,1fr)] gap-4; }
-  .help-article-body section > span { @apply grid size-9 place-items-center rounded-full bg-brand text-sm font-bold text-[#fff]; }
-  .help-article-body h3 { @apply text-base text-[#111342]; }
-  .help-article-body p { @apply mt-1 leading-7 text-[#666986]; }
+  .help-article-layout > article > .help-article-intro { @apply -mt-2 mb-6 rounded-xl bg-[#fffbeb] px-4 py-3 text-sm font-normal leading-6 text-[#78350f]; }
+  .help-article-body { @apply grid gap-4; }
+  .help-article-body li { @apply grid grid-cols-[36px_minmax(0,1fr)] items-start gap-3; }
+  .help-article-body li > span { @apply grid size-8 place-items-center rounded-full bg-brand/[.12] text-sm font-bold text-[#3f48b0]; }
+  .help-article-body p { @apply pt-1 leading-7 text-[#3f4048]; }
+  .help-article-actions { @apply mt-8 flex flex-wrap gap-3; }
   .help-article-note { @apply mt-10 flex items-start gap-3 rounded-2xl bg-brand/[.08] p-5 text-brand; }
   .help-article-note p, .help-article-note strong, .help-article-note span { @apply block; }
   .help-article-note span { @apply mt-1 text-sm text-[#5f6169]; }
@@ -2464,7 +2480,7 @@ input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
 
 /* Composite search fields own the visible boundary. Their inner input stays
    borderless so the global contract does not create a nested double border. */
-:where(.history-search-field, .help-center-hero label) {
+:where(.history-search-field, .help-center-hero label, .tenant-help-search) {
   box-sizing: border-box !important;
   height: var(--ui-control-height) !important;
   min-height: var(--ui-control-height) !important;
@@ -2473,7 +2489,7 @@ input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
   background: var(--ui-control-background) !important;
 }
 
-:where(.history-search-field, .help-center-hero label) input {
+:where(.history-search-field, .help-center-hero label, .tenant-help-search) input {
   height: auto !important;
   min-height: 0 !important;
   border: 0 !important;

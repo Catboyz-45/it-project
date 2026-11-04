@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { CircleHelp, LogOut, ShieldCheck } from "lucide-react";
 import { AccountChip, type AccountRoleTone } from "@/components/ui/AccountChip";
 import { useEffect, useRef, useState } from "react";
 import { useLogout } from "@/lib/client/use-logout";
@@ -15,6 +15,8 @@ type SidebarAccountRole = "TENANT" | "SUPER_ADMIN";
 const roleConfig: Record<SidebarAccountRole, {
   accountHref: string;
   accountLabel: string;
+  // ผู้ดูแลระบบคือทีมช่วยเหลือเอง จึงไม่มีหน้าช่วยเหลือ
+  helpHref?: string;
   context: string;
   roleLabel: string;
   tone: AccountRoleTone;
@@ -22,6 +24,7 @@ const roleConfig: Record<SidebarAccountRole, {
   TENANT: {
     accountHref: "/tenant/account",
     accountLabel: "บัญชีและความปลอดภัย",
+    helpHref: "/tenant/help",
     context: "พื้นที่ผู้เช่า",
     roleLabel: "ผู้เช่า",
     tone: "tenant",
@@ -94,6 +97,10 @@ export function SidebarAccountMenu({
         <ShieldCheck aria-hidden="true" size={18} />
         {config.accountLabel}
       </Link>
+      {config.helpHref ? <Link href={config.helpHref} onClick={() => setIsOpen(false)} role="menuitem">
+        <CircleHelp aria-hidden="true" size={18} />
+        ช่วยเหลือ
+      </Link> : null}
       {/* เส้นคั่นที่วาดด้วย CSS กันเผลอกดออกจากระบบตอนตั้งใจจะกดเมนูข้างบน */}
       <span />
       <button className="danger" disabled={isLoggingOut} onClick={() => void logout()} role="menuitem" type="button">

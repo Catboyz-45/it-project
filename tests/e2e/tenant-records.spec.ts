@@ -140,3 +140,24 @@ test("the room card shows the current room and switches between rooms", async ({
     await pool.end();
   }
 });
+
+// หน้าช่วยเหลือของผู้เช่า เปิดจากเมนูบัญชี ค้นหาได้ และลิงก์จากบิลเปิดข้อที่เกี่ยวข้องให้เลย
+test("tenant help answers common questions and opens the one a page links to", async ({ page }) => {
+  await page.goto("/tenant/invoices");
+  await page.getByRole("button", { name: /เปิดเมนูบัญชี/ }).click();
+  await page.getByRole("menuitem", { name: "ช่วยเหลือ" }).click();
+  await expect(page).toHaveURL(/\/tenant\/help$/);
+  await expect(page.getByRole("heading", { name: "ช่วยเหลือ" })).toBeVisible();
+
+  await page.getByLabel("ค้นหาคำถาม").fill("พัสดุ");
+  const list = page.getByRole("list", { name: "คำถามที่พบบ่อย" });
+  await expect(list.getByText("พัสดุมาถึงแล้ว ไปรับที่ไหน")).toBeVisible();
+  await expect(list.getByText("จ่ายค่าเช่ายังไง")).toHaveCount(0);
+
+  // บิลที่ส่งสลิปแล้วมีลิงก์ถามว่าต้องรอนานไหม กดแล้วต้องเปิดข้อนั้นไว้ให้
+  await page.goto("/tenant/invoices");
+  await page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true }).getByRole("link", { name: "ปกติใช้เวลานานแค่ไหน" }).click();
+  await expect(page).toHaveURL(/\/tenant\/help#slip-review$/);
+  await expect(page.locator("#slip-review")).toHaveAttribute("open", "");
+  await expect(page.getByText("ขึ้นอยู่กับหอแต่ละที่", { exact: false })).toBeVisible();
+});

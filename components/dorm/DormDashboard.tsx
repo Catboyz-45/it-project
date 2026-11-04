@@ -10,9 +10,9 @@ import {
   AnnouncementsPage,
   ComplaintsPage,
   type Complaint,
-  HelpPage,
   PropertiesPage,
 } from "@/components/dorm/pages/AdditionalPages";
+import { HelpPage } from "@/components/dorm/pages/HelpPage";
 import { ChatWidget, type ChatOpenRequest } from "@/components/dorm/ChatWidget";
 import { InvoicesPage } from "@/components/dorm/pages/InvoicesPage";
 import { MetersPage } from "@/components/dorm/pages/MetersPage";
@@ -574,7 +574,7 @@ const sectionRenderers: Partial<Record<PageKey, (context: SectionContext) => Rea
     recipientRoomCount={workspace.rooms.filter((room) => room.status === "occupied").length}
     rooms={workspace.rooms}
   />,
-  help: () => <HelpPage />,
+  help: ({ workspace }) => <HelpPage propertyId={workspace.propertyId} />,
   properties: ({ workspace }) => <PropertiesPage activePropertyId={workspace.propertyId} properties={workspace.availableProperties} />,
   // หน้าบัญชีกับหน้าตั้งค่าใช้คอมโพเนนต์เดียวกัน ต่างกันที่เปิดมาที่หัวข้อไหนและแก้ได้แค่ไหน
   // บัญชีเป็นข้อมูลของตัวผู้ใช้เอง จึงแก้ได้แม้หอจะอยู่ในโหมดอ่านอย่างเดียว
