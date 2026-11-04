@@ -1423,7 +1423,7 @@
   .modal-md { @apply max-w-2xl; }
   /* หน้าต่างดูตัวอย่าง PDF กว้างพอให้อ่านหน้า A4 ได้ ไม่ต้องเปิดแท็บใหม่ */
   .pdf-preview-modal { @apply flex max-h-[92vh] w-full max-w-4xl flex-col; }
-  .pdf-preview-loading { @apply grid min-h-64 place-items-center gap-3 text-sm text-[#62646c]; }
+  .pdf-preview-loading { @apply flex min-h-64 flex-col items-center justify-center gap-3 text-sm text-[#62646c]; }
   .pdf-preview-frame { @apply h-[70vh] w-full rounded-xl border border-[#e4e4e7] bg-[#f4f4f5]; }
   .pdf-preview-actions { @apply mt-4 flex flex-wrap justify-end gap-2; }
   /* มือถือหลายรุ่นแสดง PDF ในกรอบไม่ได้ ซ่อนกรอบแล้วให้ปุ่มเปิดเต็มจอเป็นทางหลักแทน */
