@@ -18,17 +18,17 @@ ${INVOICE_ROW}      xpath://main//button[starts-with(@aria-label,"จัดก�
 TC-OWN-001 แดชบอร์ดของหอ
     [Documentation]    Section: แดชบอร์ด
     ...    Function: ภาพรวมหอ
-    ...    Desc: แดชบอร์ดต้องแสดงภาพรวมธุรกิจ งานที่ต้องทำ สถานะห้อง และบิลที่ต้องตาม
+    ...    Desc: หน้าหลักต้องแสดงงานที่ต้องทำวันนี้ รอบบิลล่าสุด ผังห้อง และบิลที่ต้องตาม
     ...    Type: P
     ...    Data: -
-    ...    Steps: 1. เปิดหน้าแดชบอร์ดของหอ
-    ...    Expected: เห็น "ภาพรวมธุรกิจ" "งานที่ต้องทำ" "สถานะห้อง" และ "บิลที่ต้องตาม"
+    ...    Steps: 1. เปิดหน้าหลักของหอ
+    ...    Expected: เห็น "ต้องทำวันนี้" "รอบบิล" "ผังห้อง" และ "บิลที่ต้องตาม"
     Go To Page    ${OWNER_HOME}
-    Wait Until Page Contains    ภาพรวมธุรกิจ
-    Page Should Contain    งานที่ต้องทำ
-    Page Should Contain    สถานะห้อง
+    Wait Until Page Contains    ต้องทำวันนี้
+    Page Should Contain    รอบบิล
+    Page Should Contain Element    xpath://h2[normalize-space(.)="ผังห้อง"]
     Page Should Contain    บิลที่ต้องตาม
-    Record Actual    แสดงภาพรวมธุรกิจ งานที่ต้องทำ สถานะห้อง และบิลที่ต้องตามครบ
+    Record Actual    แสดงต้องทำวันนี้ รอบบิล ผังห้อง และบิลที่ต้องตามครบ
 
 TC-OWN-002 ผังห้องกรองตามชั้น
     [Documentation]    Section: ผังห้องพัก
@@ -39,10 +39,10 @@ TC-OWN-002 ผังห้องกรองตามชั้น
     ...    Steps: 1. เปิด "ผังห้องพัก"\n2. กด "ชั้น 2"
     ...    Expected: เห็นห้อง 201 และไม่เห็นห้อง 101
     Go To Page    ${OWNER_HOME}/rooms
-    Wait Until Page Contains    ห้องทั้งหมด
+    Wait Until Page Contains Element    xpath://*[@role="tablist" and @aria-label="เลือกชั้น"]
     Click Button With Text    ชั้น 2
-    Wait Until Page Contains Element    xpath://button[starts-with(@aria-label,"เปิดหน้าจัดการห้อง 201")]
-    Page Should Not Contain Element    xpath://button[starts-with(@aria-label,"เปิดหน้าจัดการห้อง 101")]
+    Wait Until Page Contains Element    xpath://button[starts-with(@aria-label,"ดูรายละเอียดห้อง 201 ")]
+    Page Should Not Contain Element    xpath://button[starts-with(@aria-label,"ดูรายละเอียดห้อง 101 ")]
     Record Actual    แสดงเฉพาะห้องชั้น 2 (มี 201 ไม่มี 101)
 
 TC-OWN-003 สลับผังห้องเป็นตาราง
@@ -68,8 +68,8 @@ TC-OWN-004 เปิดรายละเอียดห้อง
     ...    Steps: 1. เปิด "ผังห้องพัก"\n2. กดห้อง 101
     ...    Expected: เปิดรายละเอียดห้อง 101 และเห็นชื่อผู้เช่า "สมชาย ใจดี"
     Go To Page    ${OWNER_HOME}/rooms
-    Click Element    xpath://button[starts-with(@aria-label,"เปิดหน้าจัดการห้อง 101")]
-    Wait Until Page Contains    ${TENANT_NAME}
+    Click Element    xpath://button[starts-with(@aria-label,"ดูรายละเอียดห้อง 101 ")]
+    Wait Until Element Contains    xpath://*[contains(@class,"room-detail")]    ${TENANT_NAME}
     Record Actual    เปิดรายละเอียดห้อง 101 แสดงผู้เช่า "${TENANT_NAME}"
 
 TC-OWN-005 รายชื่อผู้เช่าและการค้นหา

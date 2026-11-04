@@ -25,7 +25,7 @@ TC-SEC-001 ผู้เช่าเปิดหน้าผู้ดูแลร
     Login As Tenant
     Go To    ${BASE_URL}/super-admin
     Wait Until Location Does Not Contain    /super-admin
-    Page Should Not Contain Element    xpath://h2[normalize-space(.)="ภาพรวมแพลตฟอร์ม"]
+    Page Should Not Contain Element    xpath://h2[normalize-space(.)="การใช้งานจริง"]
     ${url}=    Get Location
     ${title}=    Get Text    css:h1
     Record Actual    ถูกพาไป ${url} แสดง "${title}" ไม่เห็นข้อมูลแพลตฟอร์ม

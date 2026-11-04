@@ -20,9 +20,9 @@ TC-ADM-001 แดชบอร์ดแพลตฟอร์ม
     ...    Type: P
     ...    Data: -
     ...    Steps: 1. เปิด /super-admin
-    ...    Expected: เห็น "ภาพรวมแพลตฟอร์ม" "งานที่ต้องทำ" "สมาชิก" "การใช้งานจริง" และ "รายได้ต่อเดือน (MRR)"
+    ...    Expected: เห็น "งานที่ต้องทำ" "สมาชิก" "การใช้งานจริง" และ "รายได้ต่อเดือน (MRR)"
     Go To Page    /super-admin
-    Wait Until Page Contains    ภาพรวมแพลตฟอร์ม
+    Wait Until Page Contains    การใช้งานจริง
     FOR    ${text}    IN    งานที่ต้องทำ    สมาชิก    การใช้งานจริง    รายได้ต่อเดือน (MRR)
         Page Should Contain    ${text}
     END

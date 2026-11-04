@@ -20,8 +20,8 @@ TC-PUB-001 ผู้ดูแลระบบเข้าสู่ระบบส
     ...    Expected: เข้าหน้า /super-admin และเห็นหัวข้อ "หน้าหลัก"
     Login As Super Admin
     Location Should Contain    /super-admin
-    Wait Until Page Contains    ภาพรวมแพลตฟอร์ม
-    Record Actual    เข้าหน้า /super-admin แสดง "ภาพรวมแพลตฟอร์ม"
+    Wait Until Page Contains    การใช้งานจริง
+    Record Actual    เข้าหน้า /super-admin แสดง "การใช้งานจริง"
 
 TC-PUB-002 เจ้าของหอเข้าสู่ระบบสำเร็จ
     [Documentation]    Section: หน้าเข้าสู่ระบบ
@@ -30,11 +30,11 @@ TC-PUB-002 เจ้าของหอเข้าสู่ระบบสำเ
     ...    Type: P
     ...    Data: email : robot.owner@nestly.test\npassword : รหัสผ่านทดสอบที่ถูกต้อง
     ...    Steps: 1. กรอกอีเมล\n2. กรอกรหัสผ่าน\n3. กด "เข้าสู่ระบบ"
-    ...    Expected: เข้าหน้า /admin/properties/<รหัสหอ> และเห็นส่วน "ภาพรวมธุรกิจ"
+    ...    Expected: เข้าหน้า /admin/properties/<รหัสหอ> และเห็นส่วน "ต้องทำวันนี้"
     Login As Owner
     Location Should Contain    ${OWNER_HOME}
-    Wait Until Page Contains    ภาพรวมธุรกิจ
-    Record Actual    เข้าหน้าแดชบอร์ดของหอทดลอง แสดง "ภาพรวมธุรกิจ"
+    Wait Until Page Contains    ต้องทำวันนี้
+    Record Actual    เข้าหน้าแดชบอร์ดของหอทดลอง แสดง "ต้องทำวันนี้"
 
 TC-PUB-003 ผู้เช่าเข้าสู่ระบบสำเร็จ
     [Documentation]    Section: หน้าเข้าสู่ระบบ

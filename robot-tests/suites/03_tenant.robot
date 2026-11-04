@@ -18,17 +18,17 @@ ${CHAT_INPUT}           css:input[placeholder="พิมพ์ข้อควา
 TC-TEN-001 หน้าหลักแสดงภาพรวมของผู้เช่า
     [Documentation]    Section: หน้าหลัก
     ...    Function: ภาพรวม
-    ...    Desc: หน้าหลักต้องแสดงหอ ห้อง ยอดที่ต้องชำระ และงานที่ต้องทำ
+    ...    Desc: หน้าหลักต้องแสดงยอดที่ต้องชำระ ทางลัดบริการของหอ และข้อมูลห้อง
     ...    Type: P
     ...    Data: -
     ...    Steps: 1. เปิด /tenant
-    ...    Expected: เห็น "ภาพรวมที่ต้องรู้" "งานที่ต้องทำ" "ข้อมูลห้อง" และยอดที่ต้องชำระ
+    ...    Expected: เห็น "ภาพรวมที่ต้องรู้" ยอดที่ต้องชำระ ทางลัด "เรื่องที่กำลังติดตาม" และ "ข้อมูลห้อง"
     Go To Page    /tenant
     Wait Until Page Contains    ภาพรวมที่ต้องรู้
-    Page Should Contain    งานที่ต้องทำ
-    Page Should Contain    ข้อมูลห้อง
     Page Should Contain    ยอดที่ต้องชำระ
-    Record Actual    แสดงภาพรวม งานที่ต้องทำ ข้อมูลห้อง และยอดที่ต้องชำระครบ
+    Page Should Contain    เรื่องที่กำลังติดตาม
+    Page Should Contain    ข้อมูลห้อง
+    Record Actual    แสดงยอดที่ต้องชำระ ทางลัดบริการของหอ และข้อมูลห้องครบ
 
 TC-TEN-002 ดูบิลรอบปัจจุบัน
     [Documentation]    Section: บิลและชำระเงิน
