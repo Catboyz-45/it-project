@@ -1,3 +1,4 @@
+import puppeteer from "puppeteer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { browserLaunchOptions, generatePdf } from "@/lib/documents/pdf";
 
@@ -6,8 +7,15 @@ const page = {
   setJavaScriptEnabled: vi.fn(async () => undefined),
   setContent: vi.fn(async () => undefined),
   pdf: vi.fn(async () => new Uint8Array([37, 80, 68, 70])),
+  close: vi.fn(async () => undefined),
 };
-const browser = { newPage: vi.fn(async () => page), close: vi.fn(async () => undefined) };
+// จำตัวฟังเหตุการณ์ disconnected ไว้ เทสต์จะได้จำลองว่าเบราว์เซอร์ตายไปแล้ว
+let onDisconnected: (() => void) | undefined;
+const browser = {
+  newPage: vi.fn(async () => page),
+  close: vi.fn(async () => undefined),
+  once: vi.fn((_event: string, listener: () => void) => { onDisconnected = listener; }),
+};
 vi.mock("puppeteer", () => ({ default: { launch: vi.fn(async () => browser) } }));
 vi.mock("@/lib/server/env", () => ({ getServerEnv: () => ({ PUPPETEER_EXECUTABLE_PATH: undefined }) }));
 
@@ -40,13 +48,29 @@ describe("PDF rendering", () => {
     expect(page.setJavaScriptEnabled.mock.invocationCallOrder[0]).toBeLessThan(page.setContent.mock.invocationCallOrder[0]);
     expect(page.pdf).toHaveBeenCalledWith(expect.objectContaining({ format: "A4", printBackground: true }));
     expect(bytes.toString()).toBe("%PDF");
-    expect(browser.close).toHaveBeenCalledTimes(1);
+    expect(page.close).toHaveBeenCalledTimes(1);
   });
 
-  // เบราว์เซอร์ต้องถูกปิดแม้การสร้างไฟล์จะพัง ไม่งั้น process ค้างสะสมจนเครื่องเต็ม
-  it("closes the browser when rendering fails", async () => {
+  // เปิดเบราว์เซอร์ใหม่ทุกครั้งช้าหลายวินาที คำขอถัดไปต้องใช้ตัวเดิม
+  it("reuses one browser across renders", async () => {
+    await generatePdf("<p>one</p>");
+    await generatePdf("<p>two</p>");
+    expect(puppeteer.launch).not.toHaveBeenCalled();
+    expect(browser.newPage).toHaveBeenCalledTimes(2);
+    expect(page.close).toHaveBeenCalledTimes(2);
+  });
+
+  // แท็บต้องถูกปิดแม้การสร้างไฟล์จะพัง ไม่งั้นค้างสะสมในเบราว์เซอร์ที่ใช้ร่วมกัน
+  it("closes the page when rendering fails", async () => {
     page.setContent.mockRejectedValueOnce(new Error("timeout"));
     await expect(generatePdf("<p>slow</p>")).rejects.toThrow("timeout");
-    expect(browser.close).toHaveBeenCalledTimes(1);
+    expect(page.close).toHaveBeenCalledTimes(1);
+  });
+
+  // เบราว์เซอร์ตายไปแล้ว คำขอถัดไปต้องเปิดตัวใหม่ ไม่ใช่ใช้ตัวที่พังต่อ
+  it("launches a new browser after the old one disconnects", async () => {
+    onDisconnected?.();
+    await generatePdf("<p>again</p>");
+    expect(puppeteer.launch).toHaveBeenCalledTimes(1);
   });
 });

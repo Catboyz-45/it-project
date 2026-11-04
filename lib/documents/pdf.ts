@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import puppeteer, { type Browser, type Page } from "puppeteer";
 import { getServerEnv } from "@/lib/server/env";
 
 // ตัวเลือกตอนเปิดเบราว์เซอร์ แยกออกมาเป็นฟังก์ชันบริสุทธิ์เพื่อให้ทดสอบได้
@@ -20,13 +20,50 @@ export function browserLaunchOptions(executablePath?: string) {
   };
 }
 
+// เปิด Chromium ใหม่ทุกครั้งกินเวลาหลายวินาทีบนเซิร์ฟเวอร์เล็ก ผู้ใช้กดดูตัวอย่างแล้วรอนาน
+// จึงเปิดไว้ตัวเดียวแล้วใช้ซ้ำ แต่ละคำขอได้แท็บของตัวเองที่ปิดทิ้งทันทีหลังใช้
+// ว่างครบ 5 นาทีค่อยปิดเบราว์เซอร์ คืนหน่วยความจำให้เครื่องตอนไม่มีใครใช้
+const idleCloseMs = 5 * 60 * 1000;
+let sharedBrowser: Promise<Browser> | null = null;
+let activeRenders = 0;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getBrowser() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+  if (!sharedBrowser) {
+    const launching = puppeteer.launch(browserLaunchOptions(getServerEnv().PUPPETEER_EXECUTABLE_PATH));
+    sharedBrowser = launching;
+    // เบราว์เซอร์ตายหรือเปิดไม่ขึ้น ลืมตัวเดิมไป คำขอถัดไปจะเปิดใหม่เอง ไม่ค้างใช้ตัวที่พังไปตลอด
+    launching.then(
+      (browser) => browser.once("disconnected", () => { if (sharedBrowser === launching) sharedBrowser = null; }),
+      () => { if (sharedBrowser === launching) sharedBrowser = null; },
+    );
+  }
+  return sharedBrowser;
+}
+
+function scheduleIdleClose() {
+  if (activeRenders > 0 || !sharedBrowser) return;
+  const browser = sharedBrowser;
+  idleTimer = setTimeout(() => {
+    idleTimer = null;
+    if (activeRenders > 0 || sharedBrowser !== browser) return;
+    sharedBrowser = null;
+    void browser.then((instance) => instance.close()).catch(() => undefined);
+  }, idleCloseMs);
+  // ตัวจับเวลานี้ไม่ควรกันไม่ให้ process ปิดตัวตอนเซิร์ฟเวอร์หยุด
+  idleTimer.unref?.();
+}
+
 // แปลง HTML เป็น PDF ด้วยเบราว์เซอร์จริง เพราะต้องได้ผลตรงกับที่เห็นในตัวแก้ไข
 export async function generatePdf(html: string) {
-  const env = getServerEnv();
-  const browser = await puppeteer.launch(browserLaunchOptions(env.PUPPETEER_EXECUTABLE_PATH));
-
+  activeRenders += 1;
+  let page: Page | null = null;
   try {
-    const page = await browser.newPage();
+    page = await (await getBrowser()).newPage();
     // ปิด JavaScript เพราะ HTML มาจากที่ผู้ใช้แก้ได้ ไม่ควรให้มีสคริปต์ทำงานในเบราว์เซอร์ของเซิร์ฟเวอร์
     await page.setJavaScriptEnabled(false);
     // ตั้ง timeout ไว้ทั้งสองขั้น กันเอกสารที่มีปัญหาทำให้เบราว์เซอร์ค้างกินหน่วยความจำไม่เลิก
@@ -35,7 +72,9 @@ export async function generatePdf(html: string) {
     const bytes = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true, timeout: 20_000 });
     return Buffer.from(bytes);
   } finally {
-    // ต้องปิดทุกกรณี ไม่งั้น process ของเบราว์เซอร์ค้างสะสมจนเครื่องเต็ม
-    await browser.close();
+    // ปิดแท็บทุกกรณี เอกสารก่อนหน้าจะได้ไม่ค้างอยู่ในเบราว์เซอร์ที่ใช้ร่วมกัน
+    await page?.close().catch(() => undefined);
+    activeRenders -= 1;
+    scheduleIdleClose();
   }
 }

@@ -7,8 +7,9 @@ const scriptSources = process.env.NODE_ENV === "development"
   : "script-src 'self' 'unsafe-inline'";
 
 // ทุกเส้นทางใช้นโยบายเดียวกัน ต่างกันแค่ใครเอาหน้าไปใส่ iframe ได้
+// frame-src ยอม blob: เพื่อแสดงตัวอย่าง PDF ที่หน้าเว็บสร้างเองในหน้าต่างดูตัวอย่าง blob: สร้างได้จากสคริปต์ของเราเท่านั้น
 const contentSecurityPolicy = (frameAncestors: string) =>
-  `default-src 'self'; ${scriptSources}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors ${frameAncestors}; form-action 'self'`;
+  `default-src 'self'; ${scriptSources}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors ${frameAncestors}; form-action 'self'`;
 
 const nextConfig: NextConfig = {
   // Docker ใช้ .next/standalone ตรง ๆ ได้ไฟล์ server.js พร้อม node_modules เท่าที่ใช้จริง image จึงเล็ก

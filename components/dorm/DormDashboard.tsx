@@ -13,6 +13,7 @@ import {
   PropertiesPage,
 } from "@/components/dorm/pages/AdditionalPages";
 import { HelpPage } from "@/components/dorm/pages/HelpPage";
+import { PdfPreviewHost } from "@/components/ui/PdfPreviewHost";
 import { ChatWidget, type ChatOpenRequest } from "@/components/dorm/ChatWidget";
 import { InvoicesPage } from "@/components/dorm/pages/InvoicesPage";
 import { MetersPage } from "@/components/dorm/pages/MetersPage";
@@ -434,6 +435,7 @@ export function DormDashboard({
         unreadCount={(unreadCounts?.tenantMessages ?? aggregation?.operations.unreadTenantMessages ?? 0) + (unreadCounts?.supportMessages ?? 0)}
         openRequest={openChatRequest}
       />
+      <PdfPreviewHost />
     </NavShell>
     </PageHeaderSlotProvider>
     </OwnerWorkspaceContext.Provider>
