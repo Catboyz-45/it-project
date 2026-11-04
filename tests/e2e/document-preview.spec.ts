@@ -11,6 +11,13 @@ test("invoice preview opens in a window on the same page", async ({ page }) => {
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
   await expectLeftLoginPage(page);
 
+  // เทสต์นี้ดูพฤติกรรมของหน้าต่าง ไม่ใช่การสร้าง PDF เครื่อง CI เปิด Chromium ฝั่งเซิร์ฟเวอร์ไม่ได้
+  // จึงตอบไฟล์ PDF เล็ก ๆ แทน การสร้างไฟล์จริงมีเทสต์ของตัวเองใน lib/documents/pdf.test.ts
+  await page.route("**/api/documents/preview**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/pdf",
+    body: Buffer.from("%PDF-1.4\n%%EOF\n"),
+  }));
   const openedTabs: unknown[] = [];
   page.context().on("page", (tab) => openedTabs.push(tab));
 
