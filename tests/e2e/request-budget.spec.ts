@@ -56,8 +56,7 @@ test.describe("งบคำขอของแต่ละหน้า", () => {
     await page.waitForLoadState("networkidle");
 
     const before = calls.length;
-    await page.getByRole("button", { name: /จัดการเรื่อง/ }).first().click();
-    await page.getByRole("menuitem", { name: /เปิดข้อความ/ }).click();
+    await page.getByRole("button", { name: /^คุยเรื่อง .* ในแชท$/ }).first().click();
     await page.waitForTimeout(5000);
     const opened = calls.length - before;
     expect(opened, `เปิดข้อความแล้วยิง ${opened} คำขอใน 5 วินาที`).toBeLessThanOrEqual(openTicketBudget);

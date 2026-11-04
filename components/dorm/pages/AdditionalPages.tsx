@@ -681,15 +681,16 @@ export function ComplaintsPage({
             <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><div className="ticket-row-actions"><IconButton className="ticket-chat-button" label={item.hasUnreadReply ? `คุยเรื่อง ${item.title} ในแชท มีข้อความใหม่` : `คุยเรื่อง ${item.title} ในแชท`} onClick={() => onOpenTicketChat(item.id)}>
               <MessageSquare aria-hidden="true" size={16} />
               {item.hasUnreadReply ? <span aria-hidden="true" className="ticket-chat-dot" /> : null}
-            </IconButton><ActionMenu
+            </IconButton>
+            {/* ปุ่มแชทด้านซ้ายเปิดข้อความอยู่แล้ว เมนูนี้จึงมีแค่งานจัดการ เรื่องที่ปิดแล้วไม่มีอะไรให้จัดการก็ไม่ต้องมีปุ่มเมนู */}
+            {!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? <ActionMenu
               items={[
-                { icon: <MessageSquare aria-hidden="true" size={16} />, id: "messages", label: "เปิดข้อความ", onSelect: () => onOpenTicketChat(item.id) },
-                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } }] : []),
-                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) }] : []),
-                ...(!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? [{ icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) }] : []),
+                { icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } },
+                { icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) },
+                { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) },
               ]}
               label={`จัดการเรื่อง ${item.title} ${ticketReference(item.id)}`}
-            /></div></td></tr>)}</tbody>
+            /> : null}</div></td></tr>)}</tbody>
           </table>
         </div>
         <TablePagination page={page} setPage={setPage} totalItems={complaints.length} totalPages={totalPages} />

@@ -202,15 +202,13 @@ TC-OWN-013 ตอบกลับเรื่องแจ้งซ่อมขอ
     ...    Desc: เจ้าของหอเปิดข้อความของเรื่องที่ผู้เช่าแจ้ง แล้วตอบกลับได้
     ...    Type: P
     ...    Data: เรื่อง : ไฟห้องน้ำกะพริบ\nข้อความ : รับเรื่องแล้วครับ จะเข้าไปดูพรุ่งนี้ (โรบอท <เลขรอบ>)
-    ...    Steps: 1. เปิด "แจ้งซ่อม/ร้องเรียน"\n2. กดเมนูจัดการของเรื่อง\n3. กด "เปิดข้อความ"\n4. พิมพ์ข้อความแล้วกดส่ง
+    ...    Steps: 1. เปิด "แจ้งซ่อม/ร้องเรียน"\n2. กดปุ่มแชทของเรื่อง\n3. พิมพ์ข้อความแล้วกดส่ง
     ...    Expected: ข้อความตอบกลับขึ้นในกล่องข้อความของเรื่องนั้น
     ${suffix}=    Unique Suffix
     ${reply}=    Set Variable    รับเรื่องแล้วครับ จะเข้าไปดูพรุ่งนี้ (โรบอท ${suffix})
     Go To Page    ${OWNER_HOME}/tickets
-    Wait Until Page Contains Element    xpath://button[starts-with(@aria-label,"จัดการเรื่อง ไฟห้องน้ำกะพริบ")]
-    Click Element    xpath://button[starts-with(@aria-label,"จัดการเรื่อง ไฟห้องน้ำกะพริบ")]
-    Wait Until Element Is Visible    xpath://*[@role="menuitem" and contains(normalize-space(.),"เปิดข้อความ")]
-    Click Element    xpath://*[@role="menuitem" and contains(normalize-space(.),"เปิดข้อความ")]
+    Wait Until Page Contains Element    xpath://button[starts-with(@aria-label,"คุยเรื่อง ไฟห้องน้ำกะพริบ")]
+    Click Element    xpath://button[starts-with(@aria-label,"คุยเรื่อง ไฟห้องน้ำกะพริบ")]
     Wait Until Element Is Visible    css:input[placeholder="พิมพ์ข้อความตอบกลับ..."]
     Input Text    css:input[placeholder="พิมพ์ข้อความตอบกลับ..."]    ${reply}
     Click Element    xpath://input[@placeholder="พิมพ์ข้อความตอบกลับ..."]/ancestor::form//button[@type="submit"]
