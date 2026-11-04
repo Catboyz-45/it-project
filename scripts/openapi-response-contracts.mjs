@@ -375,10 +375,11 @@ export const responseSchemas = {
       maintenance: { type: "integer" }, occupancyRate: { type: "number" },
     }),
     activeOccupancies: { type: "integer" },
-    finance: entity(["cycleMonth", "billed", "collected", "outstanding", "overdueInvoices", "overdueAmount", "pendingPayments"], {
+    finance: entity(["cycleMonth", "billed", "collected", "outstanding", "overdueInvoices", "overdueAmount", "pendingPayments", "paymentChannelReady"], {
       cycleMonth: { anyOf: [{ type: "string", pattern: "^\\d{4}-\\d{2}$" }, { type: "null" }] },
       billed: { type: "number" }, collected: { type: "number" }, outstanding: { type: "number" },
       overdueInvoices: { type: "integer" }, overdueAmount: { type: "number" }, pendingPayments: { type: "integer" },
+      paymentChannelReady: { type: "boolean" },
     }),
     operations: entity(["openTickets", "waitingParcels", "unreadTenantMessages"], {
       openTickets: { type: "integer" }, waitingParcels: { type: "integer" },
@@ -639,7 +640,7 @@ function sample(name) {
     property: { id: "prop_baan_sabai", name: "บ้านอยู่สบาย" },
     rooms: { total: 50, occupied: 42, available: 7, maintenance: 1, occupancyRate: 84 },
     activeOccupancies: 44,
-    finance: { cycleMonth: "2026-07", billed: 180000, collected: 150000, outstanding: 30000, overdueInvoices: 3, overdueAmount: 12000, pendingPayments: 2 },
+    finance: { cycleMonth: "2026-07", billed: 180000, collected: 150000, outstanding: 30000, overdueInvoices: 3, overdueAmount: 12000, pendingPayments: 2, paymentChannelReady: true },
     operations: { openTickets: 3, waitingParcels: 5, unreadTenantMessages: 4 },
     subscription: null,
     trends: [{ month: "2026-07", billed: 180000, collected: 150000, outstanding: 30000 }],

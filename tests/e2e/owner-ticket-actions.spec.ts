@@ -13,7 +13,7 @@ test("ticket rows open the chat from one button and keep the menu for management
   await page.goto(`/admin/properties/${e2e.propertyId}/tickets`);
   const row = page.getByRole("row").filter({ hasText: "เสียงดังตอนกลางคืน" });
   await row.getByRole("button", { name: /^จัดการเรื่อง เสียงดังตอนกลางคืน/ }).click();
-  await expect(page.getByRole("menuitem")).toHaveText(["แก้ไขเรื่อง", "อัปเดตเป็นสถานะถัดไป", "ยกเลิกเรื่อง"]);
+  await expect(page.getByRole("menuitem")).toHaveText(["แก้ไขเรื่อง", "เปลี่ยนเป็นกำลังตรวจสอบ", "ยกเลิกเรื่อง"]);
   await page.keyboard.press("Escape");
 
   await row.getByRole("button", { name: "คุยเรื่อง เสียงดังตอนกลางคืน ในแชท" }).click();

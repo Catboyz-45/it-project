@@ -82,7 +82,8 @@ type OwnerWorkspaceValue = {
   invoices: Invoice[];
   isReadOnly: boolean;
   isRefreshing: boolean;
-  navigateTo: (page: PageKey) => void;
+  // query ใช้เปิดแท็บย่อยของหน้า เช่น tab=payments ของหน้าบิล
+  navigateTo: (page: PageKey, query?: string) => void;
   onAccountNameChange: (name: string) => void;
   onOpenChat: () => void;
   onOpenTicketChat: (ticketId: string) => void;
@@ -188,8 +189,9 @@ export function DormDashboard({
   };
 
   // ทุกหน้ามี URL ของตัวเอง เปลี่ยนหน้าจึงเป็นการเปลี่ยนเส้นทางจริง ไม่ใช่แค่สลับ state
-  const navigateTo = useCallback((page: PageKey) => {
-    router.push(ownerPagePath(propertyId, page));
+  const navigateTo = useCallback((page: PageKey, query?: string) => {
+    const path = ownerPagePath(propertyId, page);
+    router.push(query ? `${path}?${query}` : path);
   }, [propertyId, router]);
 
   // จำไว้ว่าข้อมูลในมือเป็นของหอไหน layout ดึงมาให้ตั้งแต่ฝั่งเซิร์ฟเวอร์แล้ว จึงเริ่มที่หอปัจจุบันเลย
@@ -229,7 +231,7 @@ export function DormDashboard({
     revenue: aggregation.finance.collected,
     pending: aggregation.finance.outstanding,
   } : null;
-  const notificationCounts = buildNotificationCounts(aggregation, unreadCounts);
+  const notificationCounts = buildNotificationCounts(aggregation);
   const urgentPages = aggregation
     ? ownerUrgentPages({ overdueInvoices: aggregation.finance.overdueInvoices, subscriptionExpiresAt: aggregation.subscription?.expiresAt })
     : {};

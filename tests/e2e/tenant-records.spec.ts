@@ -57,7 +57,7 @@ test("a bill with a slip under review says so and can still take a new slip", as
   const details = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
   await expect(details.getByText("ส่งสลิปแล้ว รอหอตรวจสอบ")).toBeVisible();
   await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toHaveCount(0);
-  await details.getByRole("button", { name: "ดู QR และส่งสลิปใหม่" }).click();
+  await details.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
   await expect(details.getByAltText("PromptPay QR E2E-202607-E101")).toBeVisible();
   await expect(details.getByRole("button", { name: "ส่งหลักฐาน" })).toBeDisabled();
 });
@@ -91,7 +91,7 @@ test("a bill without PromptPay falls back to the bank account, then to asking th
   const openPayment = async () => {
     await page.goto("/tenant/invoices");
     const details = page.getByLabel("รายละเอียดบิล E2E-202607-E101", { exact: true });
-    await details.getByRole("button", { name: "ดู QR และส่งสลิปใหม่" }).click();
+    await details.getByRole("button", { name: "ส่งสลิปใหม่" }).click();
     return details;
   };
   try {

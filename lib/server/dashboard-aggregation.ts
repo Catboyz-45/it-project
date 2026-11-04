@@ -32,6 +32,8 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
       where: { id: propertyId },
       select: {
         id: true, name: true,
+        // ใช้บอกว่าตั้งช่องทางรับเงินแล้วหรือยัง ไม่ได้ส่งเลขบัญชีออกไปกับข้อมูลหน้าแรก
+        settings: { select: { promptPayId: true, bankAccountNumber: true } },
         subscription: {
           include: {
             plan: {
@@ -121,6 +123,8 @@ export async function getOwnerDashboardAggregation(propertyId: string) {
       overdueInvoices: pastDueTotal._count,
       overdueAmount: Number(pastDueTotal._sum.total ?? 0),
       pendingPayments,
+      // ไม่มีทั้งพร้อมเพย์และเลขบัญชี ผู้เช่าจะเห็นแค่ว่าหอยังไม่ได้ตั้งช่องทางรับเงิน หน้าแรกจึงต้องเตือนเจ้าของหอ
+      paymentChannelReady: Boolean(property.settings?.promptPayId || property.settings?.bankAccountNumber),
     },
     operations: { openTickets, waitingParcels, unreadTenantMessages, expiringLeases },
     subscription: subscription ? {

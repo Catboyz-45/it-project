@@ -202,6 +202,8 @@ export default async function PropertyDetailPage({
       </section>
       <section className="panel">
         <h2 className="mb-4 text-base font-semibold">บัญชีผู้ดูแล</h2>
+        {/* หอที่ยังไม่มีผู้ดูแลต้องบอกให้ชัด ไม่ใช่ปล่อยกล่องว่าง เพราะแปลว่ายังไม่มีใครเข้าไปจัดการหอนี้ได้ */}
+        {property.memberships.length === 0 ? <p className="text-sm text-[#62646c]">ยังไม่มีผู้ดูแลหอนี้ เพิ่มได้ที่เมนูบัญชีเจ้าของหอ</p> : null}
         {/* แสดงอีเมลผู้ดูแลได้เพราะหน้านี้เปิดให้เฉพาะซูเปอร์แอดมิน */}
         <div className="grid gap-3 md:grid-cols-2">
           {property.memberships.map(({ user }) => (

@@ -317,11 +317,16 @@ function ParcelRow({ actionFeedback, onCancel, onEdit, onMarkReceived, parcel, r
       {parcel.receivedAt ? <small>เมื่อ {parcel.receivedAt}</small> : null}
     </td>
     <td data-label="จัดการ">
-      {canManage ? <ActionMenu items={[
-        { disabled: actionFeedback.isPending, id: "received", label: actionFeedback.isPending ? "กำลังบันทึก..." : "บันทึกว่ารับแล้ว", icon: <CheckCircle2 size={16} />, onSelect: () => void onMarkReceived(parcel.id) },
-        { id: "edit", label: "แก้ไขหมายเหตุ", icon: <Pencil size={16} />, onSelect: () => onEdit(parcel) },
-        { id: "cancel", label: "ยกเลิกรายการ", icon: <Ban size={16} />, variant: "danger", onSelect: () => void onCancel(parcel) },
-      ]} label={`จัดการพัสดุห้อง ${parcel.roomId}`} /> : <span className="parcel-muted">—</span>}
+      {/* รับแล้วคืองานหลักของหน้านี้ จึงเป็นปุ่มให้เห็นเลย ส่วนแก้ไขและยกเลิกนาน ๆ ใช้ทีเก็บไว้ในเมนู */}
+      {canManage ? <div className="ticket-row-actions">
+        <button aria-label={`บันทึกว่าห้อง ${parcel.roomId} รับพัสดุแล้ว`} className="secondary-button min-h-11 px-3 text-sm lg:min-h-9" disabled={actionFeedback.isPending} onClick={() => void onMarkReceived(parcel.id)} type="button">
+          <CheckCircle2 aria-hidden="true" size={16} /> {actionFeedback.isPending ? "กำลังบันทึก..." : "รับแล้ว"}
+        </button>
+        <ActionMenu items={[
+          { id: "edit", label: "แก้ไขหมายเหตุ", icon: <Pencil size={16} />, onSelect: () => onEdit(parcel) },
+          { id: "cancel", label: "ยกเลิกรายการ", icon: <Ban size={16} />, variant: "danger", onSelect: () => void onCancel(parcel) },
+        ]} label={`จัดการพัสดุห้อง ${parcel.roomId}`} />
+      </div> : <span className="parcel-muted">—</span>}
     </td>
   </tr>;
 }

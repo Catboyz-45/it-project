@@ -632,6 +632,7 @@ export function ComplaintsPage({
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error || "อัปเดตสถานะไม่สำเร็จ");
       await loadComplaints();
       await onChanged();
+      notify({ message: `เปลี่ยน "${complaint.title}" เป็น${complaintStatusLabels[status] ?? "สถานะถัดไป"}แล้ว` });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "อัปเดตสถานะไม่สำเร็จ");
     }
@@ -666,7 +667,7 @@ export function ComplaintsPage({
       {readOnly ? <ReadOnlyNotice>เปิดดูสถานะและอ่านข้อความตอบกลับได้ แต่ไม่สามารถเปลี่ยนสถานะหรือส่งคำตอบใหม่</ReadOnlyNotice> : null}
       <div className="figma-summary-grid four">
         <Summary label="เรื่องทั้งหมด" value={`${complaints.length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="indigo" />
-        <Summary label="รายการใหม่" value={`${complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="red" />
+        <Summary label="รับเรื่องแล้ว" value={`${complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="red" />
         <Summary label="กำลังตรวจสอบ" value={`${complaints.filter((item) => item.status === "กำลังตรวจสอบ").length} รายการ`} icon={<Clock3 size={20} />} tone="orange" />
         <Summary label="เสร็จแล้ว" value={`${complaints.filter((item) => item.status === "เสร็จแล้ว").length} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
       </div>
@@ -678,7 +679,7 @@ export function ComplaintsPage({
         <div className="figma-table-wrap">
           <table className="figma-table status-scan-table">
             <thead><tr><th scope="col">เลขที่</th><th scope="col">เรื่อง</th><th scope="col">ผู้แจ้ง/พื้นที่</th><th scope="col">วันที่แจ้ง</th><th scope="col">สถานะ</th><th scope="col">จัดการ</th></tr></thead>
-            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.hasUnreadReply ? <small className="font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td>{item.owner}<small>{item.room}</small></td><td>{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : "badge-pending"}`}>{item.status}</span></td><td><div className="ticket-row-actions"><IconButton className="ticket-chat-button" label={item.hasUnreadReply ? `คุยเรื่อง ${item.title} ในแชท มีข้อความใหม่` : `คุยเรื่อง ${item.title} ในแชท`} onClick={() => onOpenTicketChat(item.id)}>
+            <tbody>{pageItems.map((item) => <tr data-status={item.hasUnreadReply ? "unread" : item.status} key={item.id}><td className="font-mono text-sm">{ticketReference(item.id)}</td><td><span className={`ticket-type-tag${item.type === "REPAIR" ? " is-repair" : ""}`}>{item.type === "REPAIR" ? "แจ้งซ่อม" : "ร้องเรียน"}</span><strong>{item.title}</strong>{item.priority === "URGENT" ? <span className="badge badge-overdue ml-2 align-middle">ด่วน</span> : null}{item.hasUnreadReply ? <small className="ml-2 font-bold text-red-600">มีข้อความใหม่</small> : null}</td><td><span className="block">{item.owner}</span><small className="block text-xs text-[#62646c]">{item.room === "-" ? "ไม่ระบุห้อง" : `ห้อง ${item.room}`}</small></td><td className="whitespace-nowrap">{item.date}</td><td><span className={`badge ${item.status === "เสร็จแล้ว" ? "badge-paid" : item.status === "กำลังตรวจสอบ" ? "badge-occupied" : "badge-pending"}`}>{item.status}</span></td><td><div className="ticket-row-actions"><IconButton className="ticket-chat-button" label={item.hasUnreadReply ? `คุยเรื่อง ${item.title} ในแชท มีข้อความใหม่` : `คุยเรื่อง ${item.title} ในแชท`} onClick={() => onOpenTicketChat(item.id)}>
               <MessageSquare aria-hidden="true" size={16} />
               {item.hasUnreadReply ? <span aria-hidden="true" className="ticket-chat-dot" /> : null}
             </IconButton>
@@ -686,7 +687,7 @@ export function ComplaintsPage({
             {!readOnly && !["เสร็จแล้ว", "ยกเลิกแล้ว"].includes(item.status) ? <ActionMenu
               items={[
                 { icon: <Pencil aria-hidden="true" size={16} />, id: "edit", label: "แก้ไขเรื่อง", onSelect: () => { setEditingComplaint(item); setEditForm({ title: item.title, detail: item.detail ?? "", priority: item.priority ?? "NORMAL" }); } },
-                { icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: "อัปเดตเป็นสถานะถัดไป", onSelect: () => void advanceStatus(item) },
+                { icon: <ChevronRight aria-hidden="true" size={16} />, id: "advance", label: `เปลี่ยนเป็น${complaintStatusLabels[nextComplaintStatus[item.status] ?? ""] ?? "สถานะถัดไป"}`, onSelect: () => void advanceStatus(item) },
                 { icon: <Ban aria-hidden="true" size={16} />, id: "cancel", label: "ยกเลิกเรื่อง", variant: "danger" as const, onSelect: () => void cancelComplaint(item) },
               ]}
               label={`จัดการเรื่อง ${item.title} ${ticketReference(item.id)}`}

@@ -95,6 +95,7 @@ function TenantRow({ onOpenDetail, tenant }: Readonly<{ onOpenDetail: (tenant: T
     ? leaseDisplayStatus(tenant.leaseStatus, tenant.contractEnd)
     : tenant.leaseStatus;
   const openDetail = () => onOpenDetail(tenant);
+  const isCoOccupant = tenant.role === "CO_OCCUPANT" && !tenant.leaseNumber;
 
   // กดตรงไหนของแถวก็เปิดรายละเอียดได้ ไม่ต้องเล็งปุ่มเล็ก ๆ ท้ายแถว
   // ส่วนคนที่ใช้คีย์บอร์ดกดที่ปุ่มท้ายแถว ซึ่งมีชื่อกำกับว่าเป็นของใคร
@@ -102,9 +103,10 @@ function TenantRow({ onOpenDetail, tenant }: Readonly<{ onOpenDetail: (tenant: T
     <td className="tenant-name-cell">{tenant.name}</td>
     <td>{tenant.roomId}</td>
     <td className="muted-cell">{formatThaiPhone(tenant.phone)}</td>
-    <td>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</td>
+    {/* ผู้พักร่วมไม่ได้จ่ายค่าเช่าแยก ค่าเช่าเป็นของห้องซึ่งแสดงที่แถวผู้เช่าหลักแล้ว */}
+    {isCoOccupant ? <td className="muted-cell">-</td> : <td>{tenant.monthlyRent === undefined ? "ไม่มีข้อมูล" : currency.format(tenant.monthlyRent)}</td>}
     <td className="muted-cell">{leasePeriodText(tenant)}</td>
-    <td><em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{displayStatus ? leaseStatusText[displayStatus] : "ไม่มีสัญญา"}</em></td>
+    <td><em className={`figma-status ${leaseStatusTone(displayStatus)}`}>{displayStatus ? leaseStatusText[displayStatus] : isCoOccupant ? "ผู้พักร่วม" : "ไม่มีสัญญา"}</em></td>
     <td><button aria-label={`ดูข้อมูล ${tenant.name} ${tenant.roomId}`} className="figma-row-action" onClick={openDetail} type="button">ดูข้อมูล</button></td>
   </tr>;
 }

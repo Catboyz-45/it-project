@@ -311,17 +311,15 @@ function useTenantPortal() {
 
 // เปลือกของทั้งพื้นที่ผู้เช่า อยู่ใน layout จึงไม่ถูกถอดตอนเปลี่ยนแท็บ
 // ข้อมูลร่วมอย่างห้องและยอดแจ้งเตือนจึงโหลดครั้งเดียว ไม่ใช่ทุกครั้งที่กดเมนู
-// ตัวเลขบนป้ายของแต่ละแท็บ หน้าหลักรวมทุกอย่าง ส่วนแท็บอื่นนับเฉพาะของตัวเอง
+// ตัวเลขบนป้ายของแต่ละแท็บ นับเฉพาะเรื่องที่ผู้เช่าต้องลงมือทำเอง ป้ายจะได้หายเมื่อทำเสร็จ
+// บิลที่ส่งสลิปแล้วกับเรื่องแจ้งที่รอหออยู่ไม่ต้องนับ เพราะผู้เช่าไม่มีอะไรให้ทำต่อ
+// หน้าหลักไม่มีป้าย ยอดรวมอยู่ที่กระดิ่งแล้ว ถ้ามีทั้งสองที่จะเห็นเลขเดียวกันซ้ำสองจุด
 function tabNotificationCount(tab: TenantTab, summary: TenantNotificationSummary | null) {
   if (!summary) return 0;
   if (tab === "invoices") return summary.unpaidInvoices;
   if (tab === "parcels") return summary.waitingParcels;
-  // มีคำตอบใหม่ให้โชว์จำนวนคำตอบก่อน เพราะเป็นเรื่องที่ต้องเข้าไปอ่าน ไม่ใช่แค่รออยู่
-  if (tab === "tickets") return summary.unreadTicketReplies || summary.openTickets;
+  if (tab === "tickets") return summary.unreadTicketReplies;
   if (tab === "chat") return summary.unreadMessages;
-  if (tab === "home") {
-    return summary.unpaidInvoices + summary.waitingParcels + summary.openTickets + summary.unreadMessages + summary.unreadTicketReplies;
-  }
   return 0;
 }
 
@@ -635,7 +633,7 @@ export function TenantSectionPanel({
   // บิลกับสัญญาเป็นเรื่องของผู้เช่าหลัก ผู้พักร่วมเห็นข้อความอธิบายแทน
   if (tab === "invoices") {
     return <PrimaryOnly isPrimary={isPrimary} message="เฉพาะผู้เช่าหลักเท่านั้นที่ดูและชำระบิลได้">
-      <InvoicesPanel initialViews={initialInvoices} readOnly={isReadOnly} />
+      <InvoicesPanel initialViews={initialInvoices} onSummaryChanged={notificationResource.reload} readOnly={isReadOnly} />
     </PrimaryOnly>;
   }
   // สัญญา ประกาศ และพัสดุมีหน้าของตัวเองที่ render บนเซิร์ฟเวอร์ ไม่ผ่านตัวนี้
@@ -937,9 +935,12 @@ function HomePanel({
           icon={<Package size={20} />}
           label="พัสดุรอรับ"
         />
+        {/* ตัวเลขตรงกับป้ายบนเมนูแจ้งเรื่อง คือคำตอบใหม่ที่ยังไม่ได้อ่าน ส่วนจำนวนเรื่องที่รอหออยู่บอกเป็นข้อความ */}
         <TenantServiceTile
-          count={summary?.openTickets ?? 0}
-          detail={openTicket ? openTicket.title : "แจ้งซ่อมหรือร้องเรียนได้ตลอด"}
+          count={summary?.unreadTicketReplies ?? 0}
+          detail={summary?.unreadTicketReplies
+            ? `มีคำตอบใหม่ ${summary.unreadTicketReplies} เรื่อง`
+            : openTicket ? `${summary?.openTickets ?? 1} เรื่อง · ${openTicket.title}` : "แจ้งซ่อมหรือร้องเรียนได้ตลอด"}
           href={tenantPagePath("tickets")}
           icon={<Wrench size={20} />}
           label="เรื่องที่กำลังติดตาม"
@@ -1004,7 +1005,7 @@ function TenantBillHero({ invoice, isLoading, isPrimary }: Readonly<{ invoice: I
     <Link className="primary-button tenant-bill-hero-action" href={tenantPagePath("invoices")}>
       {waitingReview ? "ดูสถานะบิล" : "จ่ายบิลนี้"} <ArrowRight aria-hidden="true" size={18} />
     </Link>
-    {waitingReview ? null : <p className="tenant-bill-hero-hint">สแกนพร้อมเพย์หรือโอนเข้าบัญชี แล้วแนบสลิปในหน้าเดียว</p>}
+    {waitingReview ? null : <p className="tenant-bill-hero-hint">ดูช่องทางโอนและแนบสลิปได้ในหน้าบิล</p>}
   </article>;
 }
 
@@ -1055,7 +1056,7 @@ function TenantHistoryTabs({
   </div>;
 }
 
-function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: TenantInitialViews<Invoice> | null; readOnly: boolean }>) {
+function InvoicesPanel({ initialViews, onSummaryChanged, readOnly }: Readonly<{ initialViews?: TenantInitialViews<Invoice> | null; onSummaryChanged: () => Promise<void>; readOnly: boolean }>) {
   const [view, setView] = useState<TenantRecordView>("current");
   const currentResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=current", 20, initialViews?.current ?? null);
   const historyResource = usePaginatedResource<Invoice>("/api/v1/tenant/invoices?view=history", 20, initialViews?.history ?? null, view === "history");
@@ -1075,9 +1076,10 @@ function InvoicesPanel({ initialViews, readOnly }: Readonly<{ initialViews?: Ten
   };
 
   // บิลใบเดียวอาจถูกแก้จากทั้งสองมุมมอง โหลดใหม่ทั้งคู่จะได้ไม่ค้างของเก่า
+  // ส่งสลิปแล้วป้ายบิลบนเมนูต้องหายด้วย จึงโหลดยอดแจ้งเตือนใหม่ไปพร้อมกัน
   const reloadInvoices = useCallback(async () => {
-    await Promise.all([reloadCurrentInvoices(), reloadInvoiceHistory()]);
-  }, [reloadCurrentInvoices, reloadInvoiceHistory]);
+    await Promise.all([reloadCurrentInvoices(), reloadInvoiceHistory(), onSummaryChanged()]);
+  }, [onSummaryChanged, reloadCurrentInvoices, reloadInvoiceHistory]);
 
   const toggleExpanded = (invoiceId: string) => {
     setChosenInvoiceId(expandedInvoiceId === invoiceId ? null : invoiceId);
@@ -1208,7 +1210,8 @@ function InvoiceDetails({ id, invoice, onChanged, readOnly }: Readonly<{ id: str
       payable={payable}
       readOnly={readOnly}
     />
-    <SubmissionHistory submissions={submissions.data} />
+    {/* บิลที่ปิดไปแล้วโดยไม่มีสลิป เช่นจ่ายเงินสดที่หอ ไม่ต้องขึ้นว่ายังไม่เคยส่งหลักฐาน เพราะไม่มีอะไรต้องส่งแล้ว */}
+    {payable || submissions.data?.length ? <SubmissionHistory submissions={submissions.data} /> : null}
   </section>;
 }
 
@@ -1256,10 +1259,10 @@ function InvoicePaymentBox({ invoice, onSubmitted, payable, readOnly }: Readonly
       <Clock3 aria-hidden="true" className="shrink-0 text-[#92400e]" size={20} />
       <div className="min-w-48 flex-1">
         <strong className="block text-[#78350f]">ส่งสลิปแล้ว รอหอตรวจสอบ</strong>
-        <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบหรือต้องโอนเพิ่ม เปิด QR และส่งสลิปใหม่ได้</span>
+        <span className="block text-sm text-[#92400e]">หอยืนยันยอดแล้วบิลจะย้ายไปอยู่ในประวัติ ถ้าแนบผิดใบหรือต้องโอนเพิ่ม ส่งสลิปใหม่ได้</span>
         <Link className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-[#92400e] underline" href={`${tenantPagePath("help")}#slip-review`}><CircleHelp aria-hidden="true" size={14} /> ปกติใช้เวลานานแค่ไหน</Link>
       </div>
-      <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><QrCode aria-hidden="true" size={17} /> ดู QR และส่งสลิปใหม่</button>
+      <button className="secondary-button shrink-0" onClick={() => setIsResubmitting(true)} type="button"><QrCode aria-hidden="true" size={17} /> ส่งสลิปใหม่</button>
     </div>;
   }
 
@@ -1407,9 +1410,10 @@ function TicketsPanel({ initialViews, onUnreadChanged, readOnly }: Readonly<{ in
   const [openReplyTicketId, setOpenReplyTicketId] = useState<string | null>(null);
 
   // เรื่องเดียวกันอาจย้ายมุมมองหลังเปลี่ยนสถานะ โหลดใหม่ทั้งคู่จะได้ไม่ค้างของเก่า
+  // ตัวเลขในกระดิ่งนับเรื่องที่ยังเปิดอยู่ด้วย จึงโหลดยอดแจ้งเตือนใหม่ไปพร้อมกัน
   const reloadTickets = useCallback(async () => {
-    await Promise.all([reloadCurrentTickets(), reloadTicketHistory()]);
-  }, [reloadCurrentTickets, reloadTicketHistory]);
+    await Promise.all([reloadCurrentTickets(), reloadTicketHistory(), onUnreadChanged()]);
+  }, [onUnreadChanged, reloadCurrentTickets, reloadTicketHistory]);
 
   const changeView = (nextView: TenantRecordView) => {
     setOpenReplyTicketId(null);

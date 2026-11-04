@@ -121,6 +121,8 @@ export type OwnerDashboardAggregation = {
     overdueInvoices: number;
     overdueAmount: number;
     pendingPayments: number;
+    // ตั้งพร้อมเพย์หรือเลขบัญชีไว้อย่างน้อยหนึ่งอย่าง ผู้เช่าจะได้รู้ว่าต้องโอนไปที่ไหน
+    paymentChannelReady: boolean;
   };
   operations: {
     openTickets: number;

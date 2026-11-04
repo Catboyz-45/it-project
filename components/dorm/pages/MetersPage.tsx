@@ -170,7 +170,7 @@ function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor
     />
     <label className="meter-search">
       <Search size={16} />
-      <input onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} />
+      <input aria-label="ค้นหาห้องหรือผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} />
     </label>
   </div>;
 }
@@ -445,10 +445,11 @@ export function MetersPage({
 
       <MeterProgress
         amount={rowFigures.reduce((total, figures) => total + figures.amount, 0)}
-        drafted={touchedRows.filter((row) => (currentDrafts[row.room.id] ?? "").trim() !== "").length}
+        // นับเฉพาะห้องที่มีผู้เช่า เพราะเป็นห้องที่ต้องออกบิล ห้องว่างจดหรือไม่จดก็ได้ ไม่ควรทำให้ดูเหมือนยังค้างอยู่
+        drafted={touchedRows.filter((row) => row.tenantName && (currentDrafts[row.room.id] ?? "").trim() !== "").length}
         mode={mode}
-        saved={rows.filter((row) => row.readingId).length}
-        total={rows.length}
+        saved={rows.filter((row) => row.tenantName && row.readingId).length}
+        total={rows.filter((row) => row.tenantName).length}
         warnings={rowFigures.filter((figures) => figures.abnormal || figures.overLimit).length}
       />
 
@@ -554,7 +555,7 @@ function MeterProgress({ amount, drafted, mode, saved, total, warnings }: Readon
   const share = total > 0 ? Math.round((done / total) * 100) : 0;
   return <section aria-label="ความคืบหน้าการจดมิเตอร์" className="meter-progress">
     <div className="meter-progress-main">
-      <p><strong>จดแล้ว {done} จาก {total} ห้อง</strong>{drafted > 0 ? <span> · ยังไม่บันทึก {drafted} ห้อง</span> : null}</p>
+      <p><strong>จดแล้ว {done} จาก {total} ห้องที่มีผู้เช่า</strong>{drafted > 0 ? <span> · ยังไม่บันทึก {drafted} ห้อง</span> : null}</p>
       <span aria-hidden="true" className="overview-progress"><span style={{ width: `${Math.max(2, share)}%` }} /></span>
     </div>
     <dl className="meter-progress-facts">

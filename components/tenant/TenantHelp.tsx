@@ -3,7 +3,7 @@
 // ลิงก์จากหน้าอื่นที่ลงท้ายด้วย #id จะเปิดข้อนั้นไว้ให้และเลื่อนไปหา
 
 import Link from "next/link";
-import { ArrowRight, CircleHelp, Lock, Package, ReceiptText, Search, Wrench } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleHelp, Lock, Package, ReceiptText, Search, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AskDormButton } from "@/components/tenant/AskDormButton";
 import { tenantFaqCategories, tenantFaqs, type TenantFaqCategory } from "@/lib/help/tenant-faq";
@@ -65,6 +65,7 @@ export function TenantHelp({ canAskDorm }: Readonly<{ canAskDorm: boolean }>) {
               <summary>
                 <span aria-hidden="true" className="tenant-icon-tile" data-size="sm" data-tone="brand"><Icon size={16} /></span>
                 <strong className="min-w-0 flex-1 text-[#292a30]">{faq.question}</strong>
+                <ChevronDown aria-hidden="true" className="tenant-help-chevron" size={18} />
               </summary>
               <div className="tenant-help-answer">
                 <ul className="grid gap-1.5">{faq.answer.map((line) => <li key={line}>{line}</li>)}</ul>

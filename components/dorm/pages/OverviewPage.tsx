@@ -25,7 +25,8 @@ function percent(value: number, max: number) {
 
 // urgent คือเรื่องที่เลยกำหนดแล้ว ป้ายเป็นสีแดง งานที่แค่รอทำเป็นสีเหลือง
 // page เป็น null คือเปิดหน้าต่างแชทแทนการเปลี่ยนหน้า
-type TodoItem = { key: string; label: string; title: string; detail: string; action: string; page: PageKey | null; urgent?: boolean };
+// query พาไปแท็บย่อยที่ตรงกับงานเลย เช่นสลิปรอตรวจไปแท็บตรวจสอบการชำระ ไม่ใช่รายการบิลทั้งหมด
+type TodoItem = { key: string; label: string; title: string; detail: string; action: string; page: PageKey | null; query?: string; urgent?: boolean };
 
 // แพ็กเกจยังไม่มีหรือหมดอายุแล้วเป็นเรื่องด่วน เตือนล่วงหน้า 30 วันเป็นงานรอทำ
 function subscriptionTodo(subscription: OwnerDashboardAggregation["subscription"]): TodoItem | null {
@@ -76,8 +77,12 @@ function buildTodos(aggregation: OwnerDashboardAggregation, unpaid: Invoice[], r
   }
   const subscription = subscriptionTodo(aggregation.subscription);
   if (subscription?.urgent) todos.push(subscription);
+  // มีผู้เช่าแล้วแต่ยังไม่บอกว่าให้โอนไปที่ไหน ผู้เช่าจ่ายบิลไม่ได้ จึงเป็นเรื่องที่ต้องทำก่อนงานรออื่น ๆ
+  if (!finance.paymentChannelReady && aggregation.activeOccupancies > 0 && !readOnly) {
+    todos.push({ key: "payment-channel", label: "ตั้งค่า", title: "ยังไม่ได้ตั้งช่องทางรับเงิน", detail: "ใส่พร้อมเพย์หรือเลขบัญชี ผู้เช่าจะได้สแกนหรือโอนจ่ายบิลได้", action: "ตั้งค่าเลย", page: "settings", query: "section=cycles", urgent: true });
+  }
   const waiting: Array<TodoItem & { count: number }> = [
-    { key: "slips", count: finance.pendingPayments, label: "รอตรวจ", title: `สลิปรอตรวจ ${finance.pendingPayments} รายการ`, detail: "ตรวจยอดและหลักฐานก่อนยืนยันรับเงิน", action: readOnly ? "ดูสลิป" : "ตรวจสลิป", page: "invoices" },
+    { key: "slips", count: finance.pendingPayments, label: "รอตรวจ", title: `สลิปรอตรวจ ${finance.pendingPayments} รายการ`, detail: "ตรวจยอดและหลักฐานก่อนยืนยันรับเงิน", action: readOnly ? "ดูสลิป" : "ตรวจสลิป", page: "invoices", query: "tab=payments" },
     { key: "occupancies", count: aggregation.pendingOccupancies, label: "รออนุมัติ", title: `ผู้เช่ารออนุมัติ ${aggregation.pendingOccupancies} คน`, detail: "สมัครด้วยรหัสเชิญแล้ว รอเจ้าของหอยืนยันเข้าพัก", action: readOnly ? "ดูคำขอ" : "อนุมัติ", page: "tenants" },
     { key: "tickets", count: operations.openTickets, label: "แจ้งซ่อม", title: `แจ้งซ่อมและร้องเรียน ${operations.openTickets} เรื่องยังไม่ปิด`, detail: "อัปเดตสถานะให้ผู้เช่ารู้ความคืบหน้า", action: "ดูงานซ่อม", page: "complaints" },
     { key: "parcels", count: operations.waitingParcels, label: "พัสดุ", title: `พัสดุรอรับ ${operations.waitingParcels} ชิ้น`, detail: "ผู้เช่าเห็นในแอปแล้ว กดรับเมื่อผู้เช่ามารับ", action: "ดูพัสดุ", page: "parcels" },
@@ -89,7 +94,7 @@ function buildTodos(aggregation: OwnerDashboardAggregation, unpaid: Invoice[], r
   return todos;
 }
 
-function TodoRow({ item, onOpenChat, onOpenPage }: Readonly<{ item: TodoItem; onOpenChat: () => void; onOpenPage: (page: PageKey) => void }>) {
+function TodoRow({ item, onOpenChat, onOpenPage }: Readonly<{ item: TodoItem; onOpenChat: () => void; onOpenPage: (page: PageKey, query?: string) => void }>) {
   const page = item.page;
   return <li className="today-row">
     <span className="today-label" data-tone={alertTone(item.urgent)}>{item.label}</span>
@@ -97,7 +102,7 @@ function TodoRow({ item, onOpenChat, onOpenPage }: Readonly<{ item: TodoItem; on
       <strong>{item.title}</strong>
       <span>{item.detail}</span>
     </div>
-    <button className="secondary-button" onClick={() => page ? onOpenPage(page) : onOpenChat()} type="button">{item.action}</button>
+    <button className="secondary-button" onClick={() => page ? onOpenPage(page, item.query) : onOpenChat()} type="button">{item.action}</button>
   </li>;
 }
 
@@ -248,7 +253,7 @@ export function OverviewPage({
   onOpenChat: () => void;
   readOnly?: boolean;
   rooms: Room[];
-  setActivePage: (page: PageKey) => void;
+  setActivePage: (page: PageKey, query?: string) => void;
   summary: DashboardSummary;
   tenants: Tenant[];
 }>) {

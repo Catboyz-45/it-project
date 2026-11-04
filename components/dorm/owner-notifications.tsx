@@ -35,29 +35,18 @@ export function isSubscriptionExpiringSoon(aggregation: OwnerDashboardAggregatio
 }
 
 // ตัวเลขบนป้ายของแต่ละเมนู ไม่มีข้อมูลสรุปก็ไม่ขึ้นป้ายเลย
-export function buildNotificationCounts(
-  aggregation: OwnerDashboardAggregation | null,
-  unread: OwnerUnreadCounts | null,
-): Partial<Record<PageKey, number>> {
+export function buildNotificationCounts(aggregation: OwnerDashboardAggregation | null): Partial<Record<PageKey, number>> {
   if (!aggregation) return {};
   const subscription = needsSubscriptionAttention(aggregation) ? 1 : 0;
-  const unreadTicketReplies = unread?.ticketReplies ?? 0;
   return {
     subscription,
-    // หน้าภาพรวมรวมทุกอย่างที่ค้างอยู่ เพราะเป็นหน้าแรกที่เจ้าของหอเปิด
-    overview: aggregation.pendingOccupancies
-      + aggregation.finance.pendingPayments
-      + aggregation.finance.overdueInvoices
-      + aggregation.operations.openTickets
-      + aggregation.operations.waitingParcels
-      + unreadTenantMessages(aggregation, unread)
-      + (unread?.supportMessages ?? 0)
-      + aggregation.operations.expiringLeases
-      + subscription,
+    // หน้าหลักไม่มีป้าย ยอดรวมทุกเรื่องอยู่ที่กระดิ่งแล้ว ถ้ามีทั้งสองที่จะเห็นเลขเดียวกันซ้ำ
     tenants: aggregation.pendingOccupancies,
     contracts: aggregation.operations.expiringLeases,
     invoices: aggregation.finance.pendingPayments + aggregation.finance.overdueInvoices,
-    complaints: unreadTicketReplies || aggregation.operations.openTickets,
+    // นับเรื่องที่ยังไม่ปิดเสมอ ให้ตรงกับรายการงานในหน้าหลัก ข้อความตอบกลับใหม่ดูได้จากจุดแดงในแถวและกระดิ่ง
+    // ถ้าสลับไปนับข้อความใหม่ก่อน อ่านเสร็จแล้วตัวเลขจะเด้งขึ้นแทนที่จะลดลง
+    complaints: aggregation.operations.openTickets,
     parcels: aggregation.operations.waitingParcels,
   };
 }

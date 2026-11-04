@@ -813,6 +813,13 @@
     @apply w-full bg-[#fff];
     padding-inline-start: 2.25rem !important;
   }
+  /* ช่องค้นหาของหน้ามิเตอร์ วางแนวล่างให้ตรงกับดรอปดาวน์ที่มีป้ายชื่ออยู่ข้างบน และให้ไอคอนอยู่ในช่อง */
+  .meter-search { @apply relative w-full self-end sm:w-64 sm:flex-none; }
+  .meter-search > svg { @apply pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[#62646c]; }
+  .meter-search > input {
+    @apply w-full bg-[#fff] text-left;
+    padding-inline-start: 2.25rem !important;
+  }
   .figma-table-toolbar > .contract-actions { @apply ml-auto items-center; }
   .figma-table-toolbar > .contract-actions > :is(button, a) { @apply min-h-11 lg:min-h-9; }
   /* กรอบเทาบาง ๆ รอบตัวตาราง แบบเดียวกับกล่องของ Cal ที่ใช้พื้นหลัง muted หนา 2px
@@ -1126,6 +1133,9 @@
   .tenant-help-filter[aria-pressed="true"] { @apply border-[#c7cbfb] bg-[#eef0ff] text-[#3f48b0]; }
   .tenant-help-item > summary { @apply flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-[#fafafa]; }
   .tenant-help-item > summary::-webkit-details-marker { display: none; }
+  /* ลูกศรบอกว่ากดกางได้ หมุนกลับหัวเมื่อเปิดอยู่ */
+  .tenant-help-chevron { @apply shrink-0 text-[#73757d] transition-transform; }
+  .tenant-help-item[open] .tenant-help-chevron { @apply rotate-180; }
   .tenant-help-answer { @apply border-t border-dashed border-[#e4e4e7] bg-[#fcfcfe] px-4 py-3 text-sm leading-6 text-[#3f4048] sm:pl-16; }
   .tenant-help-answer > ul > li { @apply relative pl-4; }
   .tenant-help-answer > ul > li::before { @apply absolute left-0 top-2.5 size-1.5 rounded-full bg-[#a5abf5]; content: ""; }
@@ -3002,6 +3012,8 @@ select:disabled {
     .tenant-service-tile { @apply flex-col items-start gap-2; }
     .tenant-service-tile .notification-badge { @apply absolute top-3 right-3; }
     .tenant-service-tile { @apply relative; }
+    /* เรียงเป็นแนวตั้งแล้วกล่องข้อความกว้างตามเนื้อหา ต้องบังคับให้เต็มการ์ด ข้อความยาวจะได้ตัดด้วย ... ไม่ล้นออกนอกการ์ด */
+    .tenant-service-copy { @apply w-full; }
     .tenant-bill-hero-amount { @apply text-[34px]; }
   }
 }

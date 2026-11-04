@@ -4,6 +4,11 @@ import { newPasswordSchema } from "@/lib/domain/password-policy";
 import { occupancyRoleSchema, occupancyStatusSchema } from "@/lib/domain/enums";
 import { recordIdSchema } from "@/lib/domain/record-id";
 
+// รหัสเชิญที่ระบบสร้างยาวอย่างน้อย 32 ตัว สั้นกว่านั้นมักคัดลอกมาไม่ครบ
+// ใช้ข้อความเดียวกับตอนรหัสไม่ตรงในฐานข้อมูล ผู้ใช้จะได้รู้ว่าผิดที่รหัส ไม่ใช่แค่ "ข้อมูลไม่ถูกต้อง"
+const invitationCodeMessage = "รหัสเชิญไม่ถูกต้องหรือหมดอายุ";
+const invitationCodeSchema = z.string().trim().min(32, invitationCodeMessage).max(256, invitationCodeMessage);
+
 // สร้างคำเชิญให้ผู้เช่า สิทธิ์และอายุรหัสถูกกำหนดตั้งแต่ตอนสร้าง ผู้รับเปลี่ยนเองไม่ได้
 export const createInvitationSchema = z.object({
   roomId: recordIdSchema,
@@ -17,7 +22,7 @@ export const createInvitationSchema = z.object({
 
 // สมัครเป็นผู้เช่า ต้องมีรหัสเชิญเสมอ ไม่เปิดให้สมัครเองลอย ๆ
 export const tenantRegistrationSchema = z.object({
-  invitationCode: z.string().trim().min(32).max(256),
+  invitationCode: invitationCodeSchema,
   // แปลงเป็นตัวพิมพ์เล็กก่อนเก็บ จะได้ไม่มีอีเมลเดียวกันสมัครซ้ำได้ด้วยตัวพิมพ์ต่างกัน
   // 254 คือความยาวสูงสุดของอีเมลตามมาตรฐาน
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
@@ -33,7 +38,7 @@ export const tenantRegistrationSchema = z.object({
 }).strict();
 
 export const acceptTenantInvitationSchema = z.object({
-  invitationCode: z.string().trim().min(32).max(256),
+  invitationCode: invitationCodeSchema,
 }).strict();
 
 export const selectTenantOccupancySchema = z.object({

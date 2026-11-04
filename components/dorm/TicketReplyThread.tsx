@@ -52,6 +52,13 @@ export function TicketReplyThread({
   // แจ้งว่าอ่านแล้วครั้งเดียวต่อหนึ่งเรื่อง ไม่ใช่ทุกครั้งที่โหลดข้อความ
   // เพราะหน้าแม่ตอบสนองด้วยการโหลดรายการใหม่ แจ้งซ้ำจึงกลายเป็นวนกันไปมา
   const reportedReadFor = useRef<string | null>(null);
+  // กล่องข้อความมีความสูงจำกัด ข้อความใหม่อยู่ล่างสุด เปิดมาหรือส่งเสร็จต้องเลื่อนลงไปให้เห็น
+  // ตอนโหลดข้อความเก่ามาต่อข้างบนไม่เลื่อน คนกำลังไล่อ่านย้อนขึ้นไปอยู่
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollRequest, setScrollRequest] = useState(0);
+  useEffect(() => {
+    if (scrollRequest && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [scrollRequest]);
 
   // prepend = โหลดข้อความเก่ากว่ามาต่อข้างบน ไม่ใช่โหลดใหม่ทั้งชุด
   const load = useCallback(async (targetPage = 1, prepend = false) => {
@@ -77,6 +84,7 @@ export function TicketReplyThread({
       }
       // ข้อความเก่าต่อข้างหน้า ส่วนการโหลดใหม่แทนที่ทั้งชุด
       setReplies((current) => prepend ? [...payload.data!, ...current] : payload.data!);
+      if (!prepend) setScrollRequest((count) => count + 1);
       setPage(payload.pageInfo.page);
       setHasNextPage(payload.pageInfo.hasNextPage);
       // บอกหน้าแม่ว่าอ่านแล้ว เพื่อให้ตัวเลขแจ้งเตือนลดลง
@@ -114,6 +122,7 @@ export function TicketReplyThread({
       if (!response.ok || !payload.data) throw new Error(payload.error || "ส่งข้อความตอบกลับไม่สำเร็จ");
       // ต่อข้อความที่เซิร์ฟเวอร์ตอบกลับมา ไม่ใช่ที่พิมพ์ไว้ จะได้ได้ id กับเวลาที่ถูกต้อง
       setReplies((current) => [...current, payload.data!]);
+      setScrollRequest((count) => count + 1);
       // ล้างช่องพิมพ์เมื่อส่งสำเร็จเท่านั้น ส่งไม่ผ่านข้อความจะได้ยังอยู่ให้กดส่งใหม่
       setBody("");
     } catch (sendError) {
@@ -133,7 +142,7 @@ export function TicketReplyThread({
     {isLoading ? <p className="flex items-center gap-2 py-4 text-sm"><LoaderCircle className="animate-spin" size={16} /> กำลังโหลดข้อความ...</p> : <>
       {hasNextPage ? <LoadMoreButton className="mb-3 border-t-0 p-0" isLoading={isLoadingOlder} label="โหลดข้อความก่อนหน้า" onClick={() => void load(page + 1, true)} /> : null}
       {/* aria-live ให้โปรแกรมอ่านหน้าจออ่านข้อความใหม่ที่เข้ามาเอง โดยไม่ต้องเลื่อนไปหา */}
-      <div className="grid max-h-80 gap-2 overflow-y-auto" aria-live="polite">
+      <div className="grid max-h-80 gap-2 overflow-y-auto" aria-live="polite" ref={listRef}>
         {replies.length === 0 ? <p className="py-4 text-center text-sm text-[#73757d]">ยังไม่มีข้อความตอบกลับ</p> : replies.map((reply) => {
           // ข้อความฝั่งตัวเองชิดขวาและเป็นสีแบรนด์ ฝั่งตรงข้ามชิดซ้ายพื้นขาว
           const isOwnSide = viewerRole === "TENANT"

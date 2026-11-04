@@ -1431,7 +1431,8 @@
                       "outstanding": 30000,
                       "overdueInvoices": 3,
                       "overdueAmount": 12000,
-                      "pendingPayments": 2
+                      "pendingPayments": 2,
+                      "paymentChannelReady": true
                     },
                     "operations": {
                       "openTickets": 3,
@@ -14307,7 +14308,8 @@
               "outstanding",
               "overdueInvoices",
               "overdueAmount",
-              "pendingPayments"
+              "pendingPayments",
+              "paymentChannelReady"
             ],
             "properties": {
               "cycleMonth": {
@@ -14338,6 +14340,9 @@
               },
               "pendingPayments": {
                 "type": "integer"
+              },
+              "paymentChannelReady": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false

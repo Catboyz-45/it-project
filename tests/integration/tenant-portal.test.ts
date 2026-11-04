@@ -125,6 +125,39 @@ describe("tenant portal read model", () => {
     });
   });
 
+  // ส่งสลิปแล้วผู้เช่าไม่มีอะไรต้องทำต่อ ป้ายบิลบนเมนูต้องหายไป ไม่ค้างอยู่จนหอตรวจเสร็จ
+  it("stops counting a bill once its slip is waiting for review", async () => {
+    const count = async () => (await getTenantNotificationSummary(tenantProfileId, tenantUserId, fixture!.room.id, "PRIMARY")).unpaidInvoices;
+    const before = await count();
+    const invoice = await getDatabase().invoice.create({
+      data: {
+        propertyId: fixture!.property.id,
+        roomId: fixture!.room.id,
+        invoiceNumber: `PORTAL-SLIP-${fixture!.suffix}`,
+        billingMonth: new Date("2026-03-01T00:00:00.000Z"),
+        status: "PENDING",
+        dueDate: new Date("2026-03-05T00:00:00.000Z"),
+        subtotal: 100,
+        total: 100,
+      },
+    });
+    expect(await count()).toBe(before + 1);
+
+    await getDatabase().paymentSubmission.create({
+      data: {
+        propertyId: fixture!.property.id,
+        invoiceId: invoice.id,
+        tenantProfileId,
+        amount: 100,
+        status: "PENDING_REVIEW",
+        slipStorageKey: `integration/${fixture!.suffix}/portal-slip.png`,
+        slipMime: "image/png",
+        slipSize: 128,
+      },
+    });
+    expect(await count()).toBe(before);
+  });
+
   // ผู้พักร่วมไม่เห็นบิล ตัวเลขจึงต้องเป็น 0 โดยไม่ต้องไปถามฐานข้อมูล
   it("reports no unpaid invoices for a co-occupant", async () => {
     const summary = await getTenantNotificationSummary(coTenantProfileId, coTenantUserId, fixture!.room.id, "CO_OCCUPANT");

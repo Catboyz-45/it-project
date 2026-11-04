@@ -114,11 +114,13 @@ export async function getTenantNotificationSummary(
   // รวมตัวเลขแจ้งเตือนทุกอย่างในคำขอเดียว หน้าจอจะได้ไม่ต้องยิงถามหลายรอบ
   const [unpaidInvoices, waitingParcels, openTickets, unreadMessages, unreadTicketReplies] = await Promise.all([
     // ผู้พักร่วมไม่เห็นบิล จึงตอบ 0 ไปเลยโดยไม่ต้องถามฐานข้อมูล
+    // บิลที่ส่งสลิปแล้วรอหอตรวจไม่นับ เพราะผู้เช่าทำส่วนของตัวเองเสร็จแล้ว ป้ายจะได้หายหลังส่งสลิป
     role === "PRIMARY"
       ? getDatabase().invoice.count({
           where: {
             roomId,
             status: { in: ["PENDING", "OVERDUE"] },
+            paymentSubmissions: { none: { status: "PENDING_REVIEW" } },
             room: {
               occupancies: {
                 some: { tenantProfileId, role: "PRIMARY", status: "ACTIVE" },
