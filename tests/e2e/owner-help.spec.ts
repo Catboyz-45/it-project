@@ -11,7 +11,14 @@ test("owner help guides to the payment channel settings", async ({ page }) => {
   await expectLeftLoginPage(page);
 
   await page.goto(`/admin/properties/${e2e.propertyId}/help`);
-  await page.getByLabel("ค้นหาคู่มือ").fill("PromptPay");
+  // วงโฟกัสอยู่ที่กรอบช่องค้นหาวงเดียว ตัวช่องพิมพ์ข้างในต้องไม่มีกรอบหรือวงของตัวเองซ้อนอีกชั้น
+  const search = page.getByLabel("ค้นหาคู่มือ");
+  await search.focus();
+  await page.keyboard.type("PromptPay");
+  expect(await search.evaluate((input) => {
+    const style = getComputedStyle(input);
+    return { border: style.borderTopWidth, outline: style.outlineStyle, shadow: style.boxShadow };
+  })).toEqual({ border: "0px", outline: "none", shadow: "none" });
   await page.getByRole("button", { name: /ช่องทางรับเงิน/ }).click();
   const article = page.getByRole("article", { name: "ตั้ง PromptPay และบัญชีธนาคาร" });
   await expect(article.getByRole("listitem")).toHaveCount(4);

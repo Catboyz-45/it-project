@@ -41,7 +41,7 @@ export function HelpPage({ propertyId }: Readonly<{ propertyId: string }>) {
         <span><CircleHelp size={36} /></span>
         <p>ศูนย์ช่วยเหลือ {platformProfile.name}</p>
         <h2>ต้องการให้เราช่วยเรื่องอะไร?</h2>
-        <label><Search size={21} /><input aria-label="ค้นหาคู่มือ" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหา เช่น สัญญา รหัสเชิญ PromptPay ย้ายออก..." value={query} /></label>
+        <label><Search size={21} /><input aria-label="ค้นหาคู่มือ" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหา เช่น สัญญา PromptPay ย้ายออก" value={query} /></label>
         <small>ค้นหาคำตอบและขั้นตอนการใช้งานทุกส่วนของระบบบริหารหอพัก</small>
       </article>
 
