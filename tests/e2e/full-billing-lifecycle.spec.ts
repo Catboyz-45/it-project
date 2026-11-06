@@ -325,10 +325,11 @@ test("completes the critical tenant billing workflow through the owner and tenan
   await page.getByRole("button", { name: "สร้างร่างรายห้อง", exact: true }).click();
   const invoiceDialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
   await invoiceDialog.getByRole("button", { name: "เดือนที่ออกบิล", exact: true }).click();
-  await invoiceDialog.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();
+  // รายการตัวเลือกลอยอยู่นอกหน้าต่าง ไม่ให้ขอบหน้าต่างตัด จึงหาจากทั้งหน้า
+  await page.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();
   // ช่องห้องเป็น dropdown ที่เขียนเอง ไม่ใช่ <select> ของเบราว์เซอร์ จึงต้องกดเปิดแล้วเลือก
   await invoiceDialog.getByLabel("ห้อง").click();
-  await page.getByRole("option", { name: `ห้อง ${room.data.number} · มีผู้เช่า`, exact: true }).click();
+  await page.getByRole("option", { name: `ห้อง ${room.data.number}`, exact: true }).click();
   // ขั้นตรวจก่อนสร้าง บอกล่วงหน้าว่าห้องไหนสร้างได้ ห้องไหนติดปัญหา
   await invoiceDialog.getByRole("button", { name: /ถัดไป/ }).click();
   await expect(invoiceDialog.getByText("พร้อมสร้าง")).toBeVisible();
