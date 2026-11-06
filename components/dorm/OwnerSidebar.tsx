@@ -3,8 +3,7 @@
 // สถานะเปิดปิดของแต่ละเมนูเป็นเรื่องภายในของเมนูนั้นเอง จึงเก็บไว้ตรงนี้ ไม่ต้องรบกวนเปลือก
 
 import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import {
   Building2,
@@ -28,10 +27,12 @@ import {
 } from "lucide-react";
 import type { PageKey } from "@/types/navigation";
 import { ownerPagePath } from "@/lib/navigation-routes";
-import { platformProfile } from "@/lib/platform-profile";
 import { MenuBadge } from "@/components/dorm/OwnerShellParts";
 import { appSidebarId, NavToggle } from "@/components/ui/NavShell";
 import { AccountChip } from "@/components/ui/AccountChip";
+import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
+import { firstInitial } from "@/lib/account-initials";
+import { propertyTone } from "@/lib/property-tone";
 
 export type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
 
@@ -136,6 +137,43 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
   propertyId: string;
 }>) {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  // เปิดแล้วโฟกัสหอที่ดูอยู่ คลิกนอกเมนูหรือกด Escape แล้วปิด เหมือนเมนูบัญชีข้างล่าง
+  useEffect(() => {
+    if (!isOpen) return;
+    menuRef.current?.querySelector<HTMLButtonElement>('[aria-current="true"], [role="menuitem"]')?.focus();
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  // ลูกศรขึ้นลงเลื่อนระหว่างหอ Home/End ไปหัวท้าย กด Tab ออกไปแล้วปิดเมนู ไม่ให้ค้างบังเมนูหลัก
+  const moveFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      setIsOpen(false);
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+    if (!items.length) return;
+    event.preventDefault();
+    items[rovingIndex(event.key, items.indexOf(document.activeElement as HTMLButtonElement), items.length)]?.focus();
+  };
 
   const openProperty = (id: string) => {
     setIsOpen(false);
@@ -151,26 +189,37 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
     window.location.assign(`/admin/properties/${id}${section ? `/${section}` : ""}`);
   };
 
-  return <div className="sidebar-property">
-    <button aria-expanded={isOpen} className="brand" onClick={() => setIsOpen((current) => !current)} type="button">
-      <span className="brand-platform-mark">
-        <Image alt="" aria-hidden="true" className="size-full object-contain" height={40} src={platformProfile.logoPath} width={40} />
-      </span>
+  // ปุ่มด้านบนบอกว่ากำลังดูหอไหน ด้วยตัวย่อและสีของหอนั้น แทนโลโก้ระบบที่เหมือนกันทุกหอ
+  return <div className="sidebar-property" ref={rootRef}>
+    <button aria-controls={isOpen ? menuId : undefined} aria-expanded={isOpen} aria-haspopup="menu" aria-label={`เปลี่ยนหอพัก ตอนนี้ดู ${activeProperty.name}`} className="brand" onClick={() => setIsOpen((current) => !current)} ref={triggerRef} type="button">
+      <PropertyMark property={activeProperty} />
       <span className="brand-copy">
         <strong>{activeProperty.shortName}</strong>
-        <small>ระบบบริหารหอพัก</small>
+        {/* ลูกศรขึ้นลงข้างท้ายบอกอยู่แล้วว่ากดเปลี่ยนหอได้ บรรทัดนี้จึงบอกแค่จำนวนห้อง แถบข้างแคบจะได้ไม่ตัดบรรทัด */}
+        {activeProperty.rooms !== undefined ? <small>{activeProperty.rooms} ห้อง</small> : null}
       </span>
-      <ChevronsUpDown className="brand-switch-icon" size={17} />
+      <ChevronsUpDown aria-hidden="true" className="brand-switch-icon" size={17} />
     </button>
-    {isOpen ? <div className="property-menu sidebar-property-menu" role="menu">
-      <p>เลือกหอพัก</p>
-      {availableProperties.map((property) => <button key={property.id} onClick={() => openProperty(property.id)} role="menuitem" type="button">
-        <span className="property-avatar">{property.shortName.slice(0, 1)}</span>
-        <span><strong>{property.shortName}</strong>{property.rooms !== undefined ? <small>{property.rooms} ห้อง</small> : null}</span>
-        {property.id === propertyId ? <Check size={16} /> : null}
-      </button>)}
+    {isOpen ? <div aria-labelledby={`${menuId}-label`} className="property-menu sidebar-property-menu" id={menuId} onKeyDown={moveFocus} ref={menuRef} role="menu">
+      <p id={`${menuId}-label`}>หอพักของคุณ</p>
+      {availableProperties.map((property) => {
+        const isCurrent = property.id === propertyId;
+        return <button aria-current={isCurrent ? "true" : undefined} className={isCurrent ? "is-current" : undefined} key={property.id} onClick={() => openProperty(property.id)} role="menuitem" type="button">
+          <PropertyMark property={property} />
+          <span>
+            <strong>{property.shortName}</strong>
+            {property.rooms !== undefined || isCurrent ? <small>{[property.rooms !== undefined ? `${property.rooms} ห้อง` : null, isCurrent ? "กำลังดูอยู่" : null].filter(Boolean).join(" · ")}</small> : null}
+          </span>
+          {isCurrent ? <Check aria-hidden="true" className="property-menu-check" size={16} /> : null}
+        </button>;
+      })}
     </div> : null}
   </div>;
+}
+
+// ตัวย่อของหอบนพื้นสีประจำหอ ภาษาไทยข้ามสระหน้าไปเอาพยัญชนะ "เรือนไทย" ได้ "ร" ไม่ใช่ "เ"
+function PropertyMark({ property }: Readonly<{ property: DashboardProperty }>) {
+  return <span aria-hidden="true" className="property-avatar" data-tone={propertyTone(property.id)}>{firstInitial(property.shortName)}</span>;
 }
 
 function MetersMenu({ activePage, propertyId }: Readonly<{ activePage: PageKey; propertyId: string }>) {

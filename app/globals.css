@@ -449,11 +449,10 @@
   }
   .sidebar-property { @apply relative mb-5; }
   .brand { @apply m-0 flex w-full items-center gap-2.5 rounded-md bg-transparent p-2 text-left transition-colors hover:bg-[#f4f4f5]; }
-  .brand-platform-mark { @apply grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl; }
   .brand-copy { @apply min-w-0 flex-1; }
   .brand strong { @apply block truncate text-[15px] font-semibold tracking-[-.01em]; }
   /* คำโปรยตัดขึ้นบรรทัดใหม่แทนการตัดเป็น "…" ข้อความสั้นอยู่แล้ว ตัดกลางคำภาษาไทยแล้วอ่านไม่รู้เรื่อง */
-  .brand small { @apply block text-xs leading-snug text-[#55575f]; }
+  .brand small { @apply block truncate text-xs leading-snug text-[#55575f]; }
   .brand-switch-icon { @apply shrink-0 text-[#73757d]; }
   .sidebar nav { @apply grid gap-1 overflow-y-auto; }
   .sidebar nav button, .sidebar nav a, .sidebar-footer > button, .sidebar-footer-links > a {
@@ -648,15 +647,25 @@
   .topnav-property { @apply relative; }
   .topnav-property > button { @apply flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-surface px-4 font-bold; }
   .property-menu {
-    @apply absolute right-0 top-14 z-50 w-72 rounded-2xl border border-[#e4e4e7] bg-[#fff] p-2 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
+    @apply absolute right-0 top-14 z-50 w-72 rounded-xl border border-[#e4e4e7] bg-[#fff] p-1.5 shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
   }
-  .property-menu p { @apply m-0 px-3 py-2 text-xs font-bold uppercase tracking-wider text-[#62646c]; }
-  .property-menu button { @apply flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-brand/[.08]; }
+  .property-menu p { @apply m-0 px-2.5 pt-1.5 pb-1 text-xs font-medium text-[#62646c]; }
+  .property-menu button { @apply flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-[#f4f4f5]; }
+  .property-menu button.is-current { @apply bg-brand/[.07]; }
   .property-menu button > span:nth-child(2) { @apply min-w-0 flex-1; }
-  .property-menu strong { @apply block truncate text-sm; }
-  .property-menu small { @apply text-xs text-[#62646c]; }
-  .property-avatar { @apply grid size-9 place-items-center rounded-xl bg-brand font-bold text-[#fff]; }
-  .sidebar-property-menu { @apply top-[calc(100%+8px)] right-auto left-0 w-full; }
+  .property-menu strong { @apply block truncate text-sm font-semibold text-[#18181b]; }
+  .property-menu small { @apply block text-xs text-[#62646c]; }
+  .property-menu-check { @apply shrink-0 text-brand; }
+  /* ตัวย่อหอบนพื้นสีอ่อนประจำหอ ตัวอักษรใช้สีเข้มของโทนเดียวกันให้อ่านชัด */
+  .property-avatar { @apply grid size-8 shrink-0 place-items-center rounded-[9px] bg-[#e0e3ff] text-sm font-semibold text-[#3c45a5]; }
+  .brand .property-avatar { @apply size-10 rounded-[10px] text-base; }
+  .property-avatar[data-tone="green"] { @apply bg-[#ddf4e8] text-[#14633f]; }
+  .property-avatar[data-tone="teal"] { @apply bg-[#d5f2f1] text-[#0f5f5c]; }
+  .property-avatar[data-tone="pink"] { @apply bg-[#fce4ef] text-[#9d2d5d]; }
+  .property-avatar[data-tone="orange"] { @apply bg-[#fde9d7] text-[#9a4a10]; }
+  .property-avatar[data-tone="sky"] { @apply bg-[#ddeefc] text-[#1d5a8c]; }
+  /* กว้างกว่าแถบข้างได้ ชื่อหอยาวจะได้ไม่โดนตัด แต่ไม่ล้นจอมือถือ */
+  .sidebar-property-menu { @apply top-[calc(100%+8px)] right-auto left-0 w-64 min-w-full max-w-[calc(100vw-24px)]; }
 
   .topbar { @apply mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-[#e4e4e7] px-6 pt-7 pb-5; }
   /* ช่องที่หน้าย่อยฝากปุ่มของตัวเองขึ้นมา ยุบหายไปเลยเมื่อหน้านั้นไม่มีปุ่ม */

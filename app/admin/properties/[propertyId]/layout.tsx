@@ -33,17 +33,19 @@ export default async function PropertyWorkspaceLayout({
   if (!property) notFound();
 
   // ยิงสามคำสั่งพร้อมกัน เพราะไม่มีตัวไหนต้องรอผลของอีกตัว
-  const [availableProperties, initialData, initialAggregation] = await Promise.all([
+  const [propertyRows, initialData, initialAggregation] = await Promise.all([
     getDatabase().property.findMany({
       where: { id: { in: auth.propertyIds }, isActive: true },
       orderBy: { name: "asc" },
       // เลือกเฉพาะฟิลด์ที่ตัวสลับหอพักใช้จริง ไม่ดึงข้อมูลหอมาทั้งก้อน
-      select: { id: true, name: true, shortName: true },
+      // จำนวนห้องนับในคำสั่งเดียวกัน ไม่ยิงแยกทีละหอ
+      select: { id: true, name: true, shortName: true, _count: { select: { rooms: true } } },
     }),
     getDashboardReadModel(propertyId),
     getOwnerDashboardAggregation(propertyId),
   ]);
   if (!initialAggregation) notFound();
+  const availableProperties = propertyRows.map(({ _count, ...property }) => ({ ...property, rooms: _count.rooms }));
 
   return (
     <DormDashboard
