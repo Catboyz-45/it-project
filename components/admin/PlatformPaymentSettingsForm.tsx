@@ -90,7 +90,7 @@ export function PlatformPaymentSettingsForm({ initialSettings }: Readonly<{ init
           <DropdownField
             label="ธนาคาร"
             onChange={(value) => { update("bankName")(value); touch("bankName"); }}
-            options={[{ label: "เลือกธนาคาร", value: "" }, ...bankOptions(draft.bankName).map((name) => ({ label: name, value: name }))]}
+            options={[{ label: "เลือกธนาคาร", placeholder: true, value: "" }, ...bankOptions(draft.bankName).map((name) => ({ label: name, value: name }))]}
             value={draft.bankName}
           />
           <FieldError message={visibleErrors.bankName} />

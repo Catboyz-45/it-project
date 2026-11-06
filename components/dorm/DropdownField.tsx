@@ -9,6 +9,9 @@ import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 export type DropdownOption = {
   disabled?: boolean;
   label: string;
+  // ข้อความชวนเลือก เช่น "เลือกห้อง" ช่องจะเป็นสีเทาแบบช่องว่างตอนตัวนี้ถูกเลือกอยู่
+  // ต้องบอกเอง เพราะค่าว่างบางที่เป็นตัวเลือกจริง เช่น "ทุกสถานะ" ในตัวกรอง
+  placeholder?: boolean;
   value: string;
 };
 
@@ -202,8 +205,8 @@ export function DropdownField({
         ref={triggerRef}
         type="button"
       >
-        <span className="dropdown-trigger-value">{selectedOption?.label ?? "เลือกข้อมูล"}</span>
-        <ChevronDown aria-hidden="true" className={isOpen ? "open" : ""} size={20} />
+        <span className={selectedOption?.placeholder ? "dropdown-trigger-value is-placeholder" : "dropdown-trigger-value"}>{selectedOption?.label ?? "เลือกข้อมูล"}</span>
+        <ChevronDown aria-hidden="true" className={isOpen ? "open" : ""} size={18} />
       </button>
       {isOpen ? (
         <div className="dropdown-popover">

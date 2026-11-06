@@ -114,7 +114,7 @@ function SubscriptionOverrideForm({ initialProperty, onCancel }: Readonly<{ init
     if (current?.billingInterval) changeBillingInterval(current.billingInterval);
   }
   const propertyOptions = useMemo(() => [
-    { disabled: true, label: "เลือกหอพัก", value: "" },
+    { disabled: true, label: "เลือกหอพัก", placeholder: true, value: "" },
     ...properties.items.map((property) => ({ label: property.name, value: property.id })),
   ], [properties.items]);
 

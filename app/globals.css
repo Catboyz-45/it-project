@@ -310,6 +310,8 @@
   }
   .dropdown-trigger.open { @apply border-brand; }
   .dropdown-trigger-value { @apply min-w-0 truncate; }
+  /* ยังไม่ได้เลือกให้เป็นสีเดียวกับ placeholder ของช่องพิมพ์ ไม่ดูเหมือนมีค่าแล้ว */
+  :is(.dropdown-trigger, .schedule-date-trigger) .is-placeholder { color: var(--ui-control-placeholder); }
   .dropdown-trigger > svg { @apply shrink-0 transition-transform duration-200; }
   .dropdown-trigger > svg.open { @apply rotate-180; }
   .dropdown-popover {
@@ -388,21 +390,26 @@
   }
   .schedule-date-trigger.active { @apply border-brand bg-[#fff]; }
   .schedule-date-trigger svg { @apply shrink-0 text-[#60616b]; }
+  /* จอใหญ่ใช้เมาส์ ปฏิทินกะทัดรัด 260px ช่องวันสูง 30px จอสัมผัสยังกว้างและช่องสูง 44px ให้นิ้วกดง่าย */
   .schedule-calendar {
-    @apply absolute top-full left-0 z-[90] mt-2 w-[min(336px,calc(100vw-48px))] rounded-xl border border-[#e4e4e7] bg-[#fff] p-3 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)];
+    @apply absolute top-full left-0 z-[90] mt-2 w-[min(336px,calc(100vw-48px))] rounded-xl border border-[#e4e4e7] bg-[#fff] p-3 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)] lg:mt-1.5 lg:w-[260px] lg:rounded-[10px] lg:p-2;
   }
-  .schedule-calendar-head { @apply mb-2 grid grid-cols-[44px_1fr_44px] items-center lg:grid-cols-[36px_1fr_36px]; }
-  .schedule-calendar-head > button:not(.schedule-calendar-title) { @apply grid size-11 place-items-center rounded-xl text-[#55575f] hover:bg-[#f4f4f5] lg:size-9; }
+  /* ข้างล่างที่ไม่พอก็เปิดขึ้นข้างบน ไม่ล้นขอบจอ */
+  .schedule-calendar[data-placement="above"] { @apply top-auto bottom-full mt-0 mb-2 lg:mt-0 lg:mb-1.5; }
+  /* เปิดขึ้นข้างบนแล้วกันที่ไว้หกสัปดาห์เสมอ หัวปฏิทินกับลูกศรจะได้ไม่ขยับขึ้นลงตอนกดเปลี่ยนเดือน */
+  .schedule-calendar[data-placement="above"] .schedule-calendar-grid { @apply min-h-[190px] content-start; }
+  .schedule-calendar-head { @apply mb-2 grid grid-cols-[44px_1fr_44px] items-center lg:mb-1 lg:grid-cols-[32px_1fr_32px]; }
+  .schedule-calendar-head > button:not(.schedule-calendar-title) { @apply grid size-11 place-items-center rounded-xl text-[#55575f] hover:bg-[#f4f4f5] lg:size-8 lg:rounded-md; }
   /* ชื่อเดือนหนา ปีบางกว่า แบบหัวปฏิทินของ Cal ที่แยกน้ำหนักสองระดับ */
-  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-medium hover:bg-[#f4f4f5] lg:min-h-9; }
+  .schedule-calendar-title { @apply min-h-11 rounded-md text-center text-sm font-medium hover:bg-[#f4f4f5] lg:min-h-8; }
   .schedule-calendar-title strong { @apply font-semibold; }
   .schedule-calendar-title span { @apply text-[#62646c]; }
   .schedule-calendar-weekdays, .schedule-calendar-grid { @apply grid grid-cols-7; }
   /* เว้นช่องระหว่างวันเหมือนของ Cal ที่ใช้ gap-1 ไม่ให้ช่องติดกันจนดูแน่น */
-  .schedule-calendar-grid { @apply gap-1; }
-  .schedule-calendar-weekdays span { @apply grid h-7 place-items-center text-xs font-medium tracking-widest text-[#62646c]; }
+  .schedule-calendar-grid { @apply gap-1 lg:gap-0.5; }
+  .schedule-calendar-weekdays span { @apply grid h-7 place-items-center text-xs font-medium text-[#62646c] lg:h-6 lg:text-[11px]; }
   .schedule-calendar-grid button {
-    @apply relative grid aspect-square min-h-0 w-full place-items-center rounded-md text-sm font-medium text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5];
+    @apply relative grid h-11 min-h-0 w-full place-items-center rounded-md text-sm font-medium text-[#292a30] transition-colors duration-150 hover:bg-[#f4f4f5] lg:h-[30px] lg:text-[13px];
   }
   .schedule-calendar-grid button.muted { @apply text-[#62646c]; }
   .schedule-calendar-grid button:disabled { @apply bg-transparent text-[#71717a] hover:bg-transparent; }
@@ -410,13 +417,13 @@
   /* วันนี้ใช้จุดเล็ก ๆ ใต้ตัวเลขแบบ Cal ไม่ใช่กรอบ จะได้ไม่ชนกับพื้นหลังของวันที่เลือกไว้ */
   .schedule-calendar-grid button.today::after {
     content: "";
-    @apply absolute bottom-1.5 left-1/2 size-[5px] -translate-x-1/2 rounded-full bg-brand;
+    @apply absolute bottom-1.5 left-1/2 size-[5px] -translate-x-1/2 rounded-full bg-brand lg:bottom-0.5 lg:size-1;
   }
   .schedule-calendar-grid button.today.selected::after { @apply bg-[#fff]; }
   .schedule-calendar-grid button.today:disabled::after { @apply bg-[#a1a1aa]; }
   .schedule-calendar-picker-grid { @apply grid grid-cols-3 gap-2; }
   .schedule-calendar-picker-grid.year { @apply grid-cols-3; }
-  .schedule-calendar-picker-grid button { @apply min-h-11 rounded-md text-sm font-medium transition-colors hover:bg-[#f4f4f5]; }
+  .schedule-calendar-picker-grid button { @apply min-h-11 rounded-md text-sm font-medium transition-colors hover:bg-[#f4f4f5] lg:min-h-9; }
   .schedule-calendar-picker-grid button.selected { @apply bg-brand text-[#fff]; }
   .schedule-calendar-picker-grid button:disabled { @apply bg-[#e4e4e7] text-[#62646c]; }
   .danger { @apply text-red-300 hover:bg-red-500/15!; }

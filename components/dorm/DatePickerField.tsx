@@ -50,6 +50,19 @@ function yearEndsBeforeMinimum(year: number, minimumDate: Date) {
   return new Date(year, 11, 31) < minimumDate;
 }
 
+// ความสูงของปฏิทินบนจอใหญ่ตอนเต็มหกสัปดาห์ ใช้ตัดสินใจว่าจะเปิดลงข้างล่างหรือขึ้นข้างบน
+const calendarHeightDesktop = 280;
+
+// เปิดลงข้างล่างเป็นค่าตั้งต้น จอใหญ่ที่ข้างล่างไม่พอแต่ข้างบนมีที่มากกว่าค่อยเปิดขึ้น ปฏิทินจะไม่ล้นขอบจอ
+// จอสัมผัสเปิดลงเสมอ เพราะหน้าต่างบนมือถือเลื่อนได้และเลื่อนให้เห็นปฏิทินเองอยู่แล้ว
+// เปิดขึ้นในแผ่นที่เลื่อนได้จะไปบังหัวแผ่นหรือโดนตัดขอบบน
+function calendarPlacementFor(trigger: HTMLElement) {
+  if (!window.matchMedia("(min-width: 1024px)").matches) return "below";
+  const rect = trigger.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  return spaceBelow < calendarHeightDesktop && rect.top > spaceBelow ? "above" : "below";
+}
+
 // เขียนเองเพราะต้องการแบบย่อที่พอดีกับช่องสี่เหลี่ยม ไม่ใช่ชื่อเต็มที่ Intl ให้มา
 const monthShortLabels = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
@@ -85,6 +98,7 @@ export function DatePickerField({
   const maximumDate = useMemo(() => maxDate ? startOfDay(maxDate) : null, [maxDate]);
   const [isOpen, setIsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"day" | "month" | "year">("day");
+  const [placement, setPlacement] = useState<"above" | "below">("below");
   // ยังไม่ได้เลือกวันก็เปิดมาที่เดือนปัจจุบัน ซึ่งเป็นจุดที่ผู้ใช้มองหาเสมอ
   // เว้นแต่วันต่ำสุดอยู่ในอนาคต ถึงจะเปิดที่เดือนของวันต่ำสุดแทน
   // ถ้าใช้วันต่ำสุดเป็นหลักเสมอ ช่องที่ยอมให้ย้อนหลังได้ไกล ๆ จะเปิดมาที่ปีเก่าจนผู้ใช้ต้องกดเลื่อนเอง
@@ -167,8 +181,10 @@ export function DatePickerField({
     const start = new Date(firstDay);
     // ถอยไปวันอาทิตย์ก่อนหน้า เพื่อให้แถวแรกเริ่มตรงคอลัมน์วันอาทิตย์เสมอ
     start.setDate(firstDay.getDate() - firstDay.getDay());
-    // 42 ช่องคือ 6 สัปดาห์ ครอบคลุมทุกเดือนได้ และทำให้ความสูงปฏิทินคงที่ไม่กระตุกตอนเปลี่ยนเดือน
-    return Array.from({ length: 42 }, (_, index) => {
+    // แสดงแค่สัปดาห์ที่มีวันของเดือนนี้ ไม่เติมสัปดาห์ที่หกที่เป็นของเดือนหน้าทั้งแถว ปฏิทินจะได้เตี้ยลง
+    const daysInMonth = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0).getDate();
+    const weeks = Math.ceil((firstDay.getDay() + daysInMonth) / 7);
+    return Array.from({ length: weeks * 7 }, (_, index) => {
       const day = new Date(start);
       day.setDate(start.getDate() + index);
       return day;
@@ -216,6 +232,7 @@ export function DatePickerField({
       setViewMode(selectedDate ? "day" : initialView);
       setFocusedDate(openingDate);
       setVisibleMonth(new Date(openingDate.getFullYear(), openingDate.getMonth(), 1));
+      if (triggerRef.current) setPlacement(calendarPlacementFor(triggerRef.current));
     }
     setIsOpen((current) => !current);
   };
@@ -302,8 +319,9 @@ export function DatePickerField({
       <div className="schedule-date-picker">
         {/* ตัดดอกจันของช่องบังคับกรอกออกจาก label ไม่งั้นโปรแกรมอ่านหน้าจอจะอ่านว่า "ดาว" */}
         <button aria-controls={`${pickerId}-calendar`} aria-expanded={isOpen} aria-haspopup="dialog" aria-label={plainLabel} className={isOpen ? "schedule-date-trigger active" : "schedule-date-trigger"} onClick={toggleOpen} ref={triggerRef} type="button">
-          <span>{value ? formatDisplayDate(value) : placeholder}</span>
-          <CalendarDays aria-hidden="true" size={22} />
+          {/* ยังไม่ได้เลือกให้เป็นสีเทาแบบช่องว่าง ไม่ดูเหมือนเลือกไปแล้ว */}
+          <span className={value ? undefined : "is-placeholder"}>{value ? formatDisplayDate(value) : placeholder}</span>
+          <CalendarDays aria-hidden="true" size={18} />
         </button>
         {isOpen ? (
           <dialog
@@ -312,12 +330,13 @@ export function DatePickerField({
             aria-label={`เลือก${plainLabel}`}
             aria-modal="true"
             className="schedule-calendar"
+            data-placement={placement}
             id={`${pickerId}-calendar`}
             // Esc ถูกจัดการที่ document แบบ capture ใน useEffect ด้านบนแล้ว จึงไม่ต้องดักซ้ำที่นี่
             ref={calendarRef}
           >
             <div className="schedule-calendar-head">
-              <IconButton label="ช่วงก่อนหน้า" disabled={!canMoveBackward} onClick={() => moveVisiblePeriod(-1)}><ChevronLeft size={20} /></IconButton>
+              <IconButton label="ช่วงก่อนหน้า" disabled={!canMoveBackward} onClick={() => moveVisiblePeriod(-1)}><ChevronLeft size={18} /></IconButton>
               <button
                 className="schedule-calendar-title"
                 disabled={viewMode === "year"}
@@ -332,7 +351,7 @@ export function DatePickerField({
                   yearRangeStart={yearRangeStart}
                 />
               </button>
-              <IconButton label="ช่วงถัดไป" onClick={() => moveVisiblePeriod(1)}><ChevronRight size={20} /></IconButton>
+              <IconButton label="ช่วงถัดไป" onClick={() => moveVisiblePeriod(1)}><ChevronRight size={18} /></IconButton>
             </div>
             {viewMode === "day" ? (
               <>

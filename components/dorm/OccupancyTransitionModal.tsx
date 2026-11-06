@@ -185,7 +185,7 @@ function TransitionScopeFields({ destinationRoomId, destinationRooms, effectiveD
 }>) {
   // ห้องที่ยังไม่มี databaseId คือข้อมูลที่ยังไม่ถูกบันทึกลงฐาน เลือกไปก็ย้ายไม่ได้
   const roomOptions = [
-    { label: "เลือกห้องว่าง", value: "" },
+    { label: "เลือกห้องว่าง", placeholder: true, value: "" },
     ...destinationRooms.flatMap((room) => room.databaseId ? [{ label: `${room.id} · ${currency.format(room.rent)}/เดือน`, value: room.databaseId }] : []),
   ];
 

@@ -818,8 +818,8 @@ function LeaseFormDialog({ earliestLeaseDate, editingLease, error, form, formFor
   const roomSelectOptions = existingLease
     ? [{ label: `ห้อง ${existingLease.room.number} · ${primaryTenantName(existingLease) ?? "-"}`, value: form.roomId }]
     : roomOptions === null
-      ? [{ label: "กำลังโหลดรายการห้อง...", value: "" }]
-      : [{ label: "เลือกห้อง", value: "" }, ...roomOptions.map((option) => ({ disabled: Boolean(option.liveLease), label: roomOptionLabel(option), value: option.roomId }))];
+      ? [{ label: "กำลังโหลดรายการห้อง...", placeholder: true, value: "" }]
+      : [{ label: "เลือกห้อง", placeholder: true, value: "" }, ...roomOptions.map((option) => ({ disabled: Boolean(option.liveLease), label: roomOptionLabel(option), value: option.roomId }))];
   const selectedOption = roomOptions?.find((option) => option.roomId === form.roomId);
   const noRoomAvailable = isCreating && roomOptions !== null && roomOptions.length > 0 && roomOptions.every((option) => option.liveLease);
 

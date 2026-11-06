@@ -262,7 +262,7 @@ function ScopeStep({ billingMonth, eligibleRooms, mode, onInvalidate, roomId, se
 // ห้องที่ยังไม่มี databaseId คือข้อมูลที่ยังไม่ถูกบันทึกลงฐาน เลือกไปก็ออกบิลไม่ได้ flatMap จึงคัดทิ้ง
 function roomOptions(eligibleRooms: Room[]) {
   return [
-    { label: "เลือกห้อง", value: "" },
+    { label: "เลือกห้อง", placeholder: true, value: "" },
     ...eligibleRooms.flatMap((room) => room.databaseId
       ? [{ label: `ห้อง ${room.id} · ${room.tenantId ? "มีผู้เช่า" : "ตรวจสอบผู้เช่า"}`, value: room.databaseId }]
       : []),
