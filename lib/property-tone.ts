@@ -1,7 +1,8 @@
 // สีประจำหอในเมนูเลือกหอ แต่ละหอได้สีอ่อนของตัวเอง จะได้แยกด้วยตาได้เร็วกว่าอ่านชื่อ
 // คิดจาก id ของหอ หอชุดเดิมจึงได้สีเดิมทุกครั้งทุกเครื่อง ไม่เปลี่ยนตามลำดับในรายการ
 
-export const propertyTones = ["blurple", "green", "teal", "pink", "orange", "sky"] as const;
+// ห้าสีที่ต่างกันชัดด้วยตา เคยมีเขียวน้ำทะเลกับฟ้าด้วย แต่วางคู่กับเขียวและม่วงแล้วแยกไม่ออก
+export const propertyTones = ["blurple", "green", "orange", "pink", "yellow"] as const;
 export type PropertyTone = (typeof propertyTones)[number];
 
 function toneIndex(propertyId: string) {
@@ -12,7 +13,7 @@ function toneIndex(propertyId: string) {
 
 // แจกสีให้ทั้งรายการทีเดียว สองหอที่สีจาก id ชนกันจะได้ไม่ดูเหมือนกัน หอหลังเลื่อนไปสีถัดไปที่ยังว่าง
 // เรียงตาม id ก่อนแจก ผลจึงไม่ขึ้นกับลำดับที่แสดง หอชุดเดิมได้สีชุดเดิมเสมอ
-// เกินหกหอค่อยยอมให้สีซ้ำ
+// เกินห้าหอค่อยยอมให้สีซ้ำ
 export function assignPropertyTones(propertyIds: readonly string[]) {
   const tones = new Map<string, PropertyTone>();
   const used = new Set<number>();

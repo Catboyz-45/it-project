@@ -660,10 +660,9 @@
   .property-avatar { @apply grid size-8 shrink-0 place-items-center rounded-[9px] bg-[#e0e3ff] text-sm font-semibold text-[#3c45a5]; }
   .brand .property-avatar { @apply size-10 rounded-[10px] text-base; }
   .property-avatar[data-tone="green"] { @apply bg-[#ddf4e8] text-[#14633f]; }
-  .property-avatar[data-tone="teal"] { @apply bg-[#d5f2f1] text-[#0f5f5c]; }
   .property-avatar[data-tone="pink"] { @apply bg-[#fce4ef] text-[#9d2d5d]; }
-  .property-avatar[data-tone="orange"] { @apply bg-[#fde9d7] text-[#9a4a10]; }
-  .property-avatar[data-tone="sky"] { @apply bg-[#ddeefc] text-[#1d5a8c]; }
+  .property-avatar[data-tone="orange"] { @apply bg-[#fde3cf] text-[#9a4a10]; }
+  .property-avatar[data-tone="yellow"] { @apply bg-[#fbefc0] text-[#735400]; }
   /* กว้างกว่าแถบข้างได้ ชื่อหอยาวจะได้ไม่โดนตัด แต่ไม่ล้นจอมือถือ */
   .sidebar-property-menu { @apply top-[calc(100%+8px)] right-auto left-0 w-64 min-w-full max-w-[calc(100vw-24px)]; }
 
