@@ -1,7 +1,7 @@
 "use client";
 // เก็บค่าที่กรอกในฟอร์มและตามการเลื่อนหน้าจากเบราว์เซอร์
 
-import { SyntheticEvent, useCallback, useMemo, useState, type ReactNode } from "react";
+import { SyntheticEvent, useCallback, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { DatePickerField, formatDisplayDate } from "@/components/dorm/DatePickerField";
 import { DropdownField } from "@/components/dorm/DropdownField";
@@ -15,15 +15,24 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Tenant } from "@/types/dorm";
 import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
+import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
 
-// สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
+// สี่หมวดข้อมูลของผู้เช่า แต่ละหมวดเป็นแท็บของตัวเอง
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
 
 // วันเกิดเลือกได้ตั้งแต่ปี ค.ศ. 1900 จนถึงวันนี้ ตรงกับที่เซิร์ฟเวอร์ยอมรับ
 const earliestBirthDate = new Date(1900, 0, 1);
 
-// รวมการตั้งชื่อ id ไว้ที่เดียว ทั้งตอนวางลงหน้าและตอนหาเพื่อเลื่อนไป
-const tenantSectionId = (tab: TenantTab) => `tenant-section-${tab}`;
+// ชื่อแท็บสั้น ๆ ให้แถบพอดีแผ่นบนมือถือ
+const tenantTabs: Array<{ key: TenantTab; label: string }> = [
+  { key: "personal", label: "ส่วนตัว" },
+  { key: "contact", label: "ติดต่อ" },
+  { key: "contract", label: "สัญญา" },
+  { key: "vehicle", label: "รถ" },
+];
+const tenantTabKeys = tenantTabs.map(({ key }) => key);
+const tenantTabId = (tab: TenantTab) => `tenant-tab-${tab}`;
+const tenantPanelId = "tenant-tab-panel";
 
 // กล่องดูและแก้ไขข้อมูลผู้เช่าแบบเต็ม พร้อมปุ่มย้ายออกหรือย้ายห้อง
 export function TenantDetailModal({
@@ -61,10 +70,11 @@ export function TenantDetailModal({
   // เตือนอีกชั้นตอนผู้ใช้กดปิดแท็บหรือกดย้อนกลับของเบราว์เซอร์
   useUnsavedChanges(isDirty);
 
-  // แผงเรียงทุกหมวดลงมาต่อกัน ช่องที่กรอกผิดจึงอาจอยู่นอกจอ ต้องเลื่อนไปให้เห็นเอง
-  const scrollToSection = (tab: TenantTab) => {
-    document.getElementById(tenantSectionId(tab))?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const [activeTab, setActiveTab] = useState<TenantTab>("personal");
+  const handleTabKeyDown = useTablistKeyboard(tenantTabKeys, setActiveTab);
+  const hasVehicle = Boolean(draft.vehicleType) && draft.vehicleType !== "ไม่มีรถ";
+  // ช่องที่กรอกผิดอาจอยู่คนละแท็บกับที่เปิดอยู่ สลับไปแท็บนั้นให้เห็นเอง
+  const showTab = (tab: TenantTab) => setActiveTab(tab);
 
   // ตัวช่วยแก้ทีละฟิลด์ ใช้ generic เพื่อให้ค่าที่ส่งเข้ามาต้องตรงชนิดกับฟิลด์นั้น
   const update = <Key extends keyof Tenant>(key: Key, value: Tenant[Key]) => {
@@ -80,19 +90,19 @@ export function TenantDetailModal({
     if (readOnly) return;
     // เลื่อนไปหมวดที่มีปัญหาด้วย ไม่ใช่แค่ขึ้นข้อความ เพราะช่องที่ผิดอาจอยู่นอกจอ
     if (!draft.name.trim() || !draft.phone.trim()) {
-      scrollToSection("personal");
+      showTab("personal");
       setError("กรุณากรอกชื่อและเบอร์โทรของผู้เช่า");
       return;
     }
     // ตรวจรูปแบบก่อนส่ง ผู้ใช้จะได้รู้ทันทีว่าพิมพ์ผิด ส่วนเซิร์ฟเวอร์ตรวจซ้ำอีกรอบ
     if (draft.nationalId?.trim() && !isValidIdentityDocumentNumber(draft.nationalId)) {
-      scrollToSection("personal");
+      showTab("personal");
       setError("เลขบัตรประชาชนหรือหนังสือเดินทางไม่ถูกต้อง");
       return;
     }
     // เลือกว่ามีรถแล้วต้องมีทะเบียน ไม่งั้นข้อมูลที่บันทึกไว้ใช้ทำอะไรต่อไม่ได้
     if (draft.vehicleType !== "ไม่มีรถ" && !draft.vehiclePlate.trim()) {
-      scrollToSection("vehicle");
+      showTab("vehicle");
       setError("กรุณากรอกเลขทะเบียนรถ หรือเลือกไม่มีรถ");
       return;
     }
@@ -114,8 +124,8 @@ export function TenantDetailModal({
     <><Dialog ariaDescribedBy="tenant-detail-description" ariaLabelledBy="tenant-detail-title" className="tenant-config-modal" onClose={requestClose}>
         <header className="modal-header">
           <div>
-            <p className="eyebrow" id="tenant-detail-description">รายละเอียดผู้เช่า</p>
             <h2 id="tenant-detail-title">ห้อง {tenant.roomId} · {tenant.name}</h2>
+            <p id="tenant-detail-description">{tenant.role === "CO_OCCUPANT" ? "ผู้พักร่วม" : "ผู้เช่าหลัก"}{tenant.startDate ? ` · เข้าพักตั้งแต่ ${formatDisplayDate(tenant.startDate)}` : ""}</p>
           </div>
           {/* บอกกล่องว่าเปิดมาให้โฟกัสปุ่มนี้ก่อน ดีกว่าไปโฟกัสช่องกรอกช่องแรก */}
           <IconButton data-dialog-initial-focus label="ปิดหน้าต่าง" onClick={requestClose}>
@@ -124,95 +134,94 @@ export function TenantDetailModal({
         </header>
 
         <form className="tenant-config-form" onSubmit={submit}>
-          {readOnly ? <ReadOnlyNotice className="mx-5 mt-5">ตรวจสอบข้อมูลผู้เช่าได้ แต่ไม่สามารถแก้ไข บันทึก หรือเปลี่ยนการเข้าพักได้</ReadOnlyNotice> : null}
+          {readOnly ? <ReadOnlyNotice className="mt-4">ตรวจสอบข้อมูลผู้เช่าได้ แต่ไม่สามารถแก้ไข บันทึก หรือเปลี่ยนการเข้าพักได้</ReadOnlyNotice> : null}
+          {/* แบ่งเป็นแท็บ เดิมเรียง 28 ช่องลงมาคอลัมน์เดียวยาวหกเท่าของจอ ต้องเลื่อนผ่านทุกช่องกว่าจะถึงเรื่องที่จะแก้
+              ปุ่มบันทึกยังบันทึกทุกแท็บพร้อมกัน เพราะค่าทั้งหมดอยู่ใน draft ก้อนเดียว */}
+          <div aria-label="หมวดข้อมูลผู้เช่า" className="figma-inline-tabs tenant-config-tabs" onKeyDown={handleTabKeyDown} role="tablist">
+            {tenantTabs.map((tab) => <button aria-controls={tenantPanelId} aria-selected={activeTab === tab.key} className={activeTab === tab.key ? "active" : ""} id={tenantTabId(tab.key)} key={tab.key} onClick={() => setActiveTab(tab.key)} role="tab" tabIndex={activeTab === tab.key ? 0 : -1} type="button">{tab.label}</button>)}
+          </div>
           <div className="room-editor-layout tenant-config-layout">
 
           {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
-          <fieldset className="tenant-config-scroll room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>
+          <fieldset aria-labelledby={tenantTabId(activeTab)} className="tenant-config-scroll room-editor-content min-w-0 border-0" disabled={readOnly} id={tenantPanelId} role="tabpanel">
             {error ? <p className="tenant-config-error" role="alert">{error}</p> : null}
 
-              <ConfigSection id={tenantSectionId("personal")} title="ข้อมูลส่วนตัว" description="ข้อมูลที่ใช้ระบุตัวตนและติดต่อผู้เช่า">
-                <div className="tenant-config-grid">
-                  <Field label="คำนำหน้า">
-                    <DropdownField
-                      onChange={(value) => update("prefix", value)}
-                      options={[{ value: "", label: "ไม่ระบุ" }, { value: "นาย", label: "นาย" }, { value: "นางสาว", label: "นางสาว" }, { value: "นาง", label: "นาง" }, { value: "อื่น ๆ", label: "อื่น ๆ" }]}
-                      value={draft.prefix ?? ""}
-                    />
-                  </Field>
-                  <TextField label="ชื่อ-นามสกุล" required value={draft.name} onChange={(value) => update("name", value)} />
-                  <TextField label="ชื่อเล่น" value={draft.nickname ?? ""} onChange={(value) => update("nickname", value)} />
-                  <TextField label="สัญชาติ" placeholder="เช่น ไทย" value={draft.nationality ?? ""} onChange={(value) => update("nationality", value)} />
-                  <TextField label="เลขบัตรประชาชน/หนังสือเดินทาง" maxLength={24} value={draft.nationalId ?? ""} onChange={(value) => update("nationalId", value)} />
-                  <DatePickerField initialView="year" label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
-                  <TextField label="เบอร์โทร" inputMode="tel" required value={draft.phone} onChange={(value) => update("phone", value)} />
-                  {/* อีเมลคือชื่อที่ผู้เช่าใช้เข้าสู่ระบบ เจ้าของหอเปลี่ยนแทนไม่ได้ จึงแสดงอย่างเดียว */}
-                  <ReadOnlyField label="อีเมลที่ใช้เข้าสู่ระบบ">{draft.email || "-"}</ReadOnlyField>
-                  <TextField label="LINE ID" value={draft.lineId ?? ""} onChange={(value) => update("lineId", value)} />
-                  <p className="tenant-config-helper full-width">เก็บเลขประจำตัวเฉพาะเมื่อจำเป็นต่อสัญญา และจำกัดสิทธิ์การเข้าถึงข้อมูลส่วนบุคคล</p>
-                </div>
-              </ConfigSection>
+            {activeTab === "personal" ? <div className="tenant-config-grid">
+              <DropdownField
+                label="คำนำหน้า"
+                onChange={(value) => update("prefix", value)}
+                options={[{ value: "", label: "ไม่ระบุ" }, { value: "นาย", label: "นาย" }, { value: "นางสาว", label: "นางสาว" }, { value: "นาง", label: "นาง" }, { value: "อื่น ๆ", label: "อื่น ๆ" }]}
+                value={draft.prefix ?? ""}
+              />
+              <TextField label="ชื่อเล่น" value={draft.nickname ?? ""} onChange={(value) => update("nickname", value)} />
+              <TextField className="full-width" label="ชื่อ-นามสกุล" required value={draft.name} onChange={(value) => update("name", value)} />
+              <TextField label="เบอร์โทร" inputMode="tel" required value={draft.phone} onChange={(value) => update("phone", value)} />
+              <TextField label="LINE ID" value={draft.lineId ?? ""} onChange={(value) => update("lineId", value)} />
+              <TextField label="เลขบัตรประชาชน/หนังสือเดินทาง" maxLength={24} value={draft.nationalId ?? ""} onChange={(value) => update("nationalId", value)} />
+              <DatePickerField initialView="year" label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
+              <TextField label="สัญชาติ" placeholder="เช่น ไทย" value={draft.nationality ?? ""} onChange={(value) => update("nationality", value)} />
+              {/* อีเมลคือชื่อที่ผู้เช่าใช้เข้าสู่ระบบ เจ้าของหอเปลี่ยนแทนไม่ได้ จึงแสดงอย่างเดียว */}
+              <ReadOnlyField label="อีเมลที่ใช้เข้าสู่ระบบ">{draft.email || "-"}</ReadOnlyField>
+              <p className="tenant-config-helper full-width">เก็บเลขประจำตัวเฉพาะเมื่อจำเป็นต่อสัญญา และจำกัดสิทธิ์การเข้าถึงข้อมูลส่วนบุคคล</p>
+            </div> : null}
 
-              <ConfigSection id={tenantSectionId("contact")} title="ที่อยู่และผู้ติดต่อ" description="ที่อยู่ อาชีพ และบุคคลที่ติดต่อได้ในกรณีฉุกเฉิน">
-                <div className="tenant-config-grid">
-                  <TextAreaField className="full-width" label="ที่อยู่ (ไม่บังคับ)" value={draft.address} onChange={(value) => update("address", value)} />
-                  <TextField label="อาชีพ/สถานะ (ไม่บังคับ)" value={draft.occupation ?? ""} onChange={(value) => update("occupation", value)} placeholder="เช่น นักศึกษา พนักงานบริษัท" />
-                  <TextField label="สถานศึกษา/สถานที่ทำงาน (ไม่บังคับ)" value={draft.organization ?? ""} onChange={(value) => update("organization", value)} />
-                  <TextField label="รหัสนักศึกษา/รหัสพนักงาน (ไม่บังคับ)" value={draft.studentOrEmployeeId ?? ""} onChange={(value) => update("studentOrEmployeeId", value)} />
-                  <TextField label="ชื่อผู้ติดต่อฉุกเฉิน (ไม่บังคับ)" value={draft.guardianName} onChange={(value) => update("guardianName", value)} />
-                  <Field label="ความสัมพันธ์">
-                    <DropdownField
-                      onChange={(value) => update("guardianRelation", value)}
-                      options={[{ value: "", label: "ไม่ระบุ" }, ...["บิดา", "มารดา", "ผู้ปกครอง", "คู่สมรส", "ญาติ", "เพื่อน", "อื่น ๆ"].map((value) => ({ value, label: value }))]}
-                      value={draft.guardianRelation ?? ""}
-                    />
-                  </Field>
-                  <TextField label="เบอร์ผู้ติดต่อฉุกเฉิน (ไม่บังคับ)" inputMode="tel" value={draft.guardianPhone} onChange={(value) => update("guardianPhone", value)} />
-                </div>
-              </ConfigSection>
+            {activeTab === "contact" ? <div className="tenant-config-grid">
+              <TextAreaField className="full-width" label="ที่อยู่ (ไม่บังคับ)" value={draft.address} onChange={(value) => update("address", value)} />
+              <TextField label="อาชีพ/สถานะ (ไม่บังคับ)" value={draft.occupation ?? ""} onChange={(value) => update("occupation", value)} placeholder="เช่น นักศึกษา พนักงานบริษัท" />
+              <TextField label="สถานศึกษา/สถานที่ทำงาน (ไม่บังคับ)" value={draft.organization ?? ""} onChange={(value) => update("organization", value)} />
+              <TextField className="full-width" label="รหัสนักศึกษา/รหัสพนักงาน (ไม่บังคับ)" value={draft.studentOrEmployeeId ?? ""} onChange={(value) => update("studentOrEmployeeId", value)} />
+              <h3 className="tenant-config-subheading full-width">ผู้ติดต่อฉุกเฉิน</h3>
+              <TextField label="ชื่อผู้ติดต่อฉุกเฉิน (ไม่บังคับ)" value={draft.guardianName} onChange={(value) => update("guardianName", value)} />
+              <DropdownField
+                label="ความสัมพันธ์"
+                onChange={(value) => update("guardianRelation", value)}
+                options={[{ value: "", label: "ไม่ระบุ" }, ...["บิดา", "มารดา", "ผู้ปกครอง", "คู่สมรส", "ญาติ", "เพื่อน", "อื่น ๆ"].map((value) => ({ value, label: value }))]}
+                value={draft.guardianRelation ?? ""}
+              />
+              <TextField label="เบอร์ผู้ติดต่อฉุกเฉิน (ไม่บังคับ)" inputMode="tel" value={draft.guardianPhone} onChange={(value) => update("guardianPhone", value)} />
+            </div> : null}
 
-              <ConfigSection id={tenantSectionId("contract")} title="สัญญาและผู้พัก" description="ข้อมูลเข้าพัก เงินประกัน และผู้พักร่วมจากข้อมูลการเข้าพักจริง">
-                <div className="tenant-config-grid">
-                  <ReadOnlyField label="ห้องพัก">ห้อง {draft.roomId}</ReadOnlyField>
-                  <ReadOnlyField label="เงินประกันปัจจุบัน">{currency.format(draft.deposit)}</ReadOnlyField>
-                  {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงอย่างเดียว แก้ได้ที่หน้าสัญญาเช่า */}
-                  <ReadOnlyField label="วันเริ่มสัญญา">{draft.startDate ? formatDisplayDate(draft.startDate) : "-"}</ReadOnlyField>
-                  <ReadOnlyField label="วันสิ้นสุดสัญญา">{draft.contractEnd ? formatDisplayDate(draft.contractEnd) : "ยังไม่ระบุ"}</ReadOnlyField>
-                  <p className="tenant-config-helper full-width">แก้ไขวันสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
-                  <ReadOnlyField label="จำนวนผู้พักที่ใช้งาน">{draft.occupantCount ?? 1} คน</ReadOnlyField>
-                  <div className="full-width">
-                    <span className="mb-2 block text-sm font-semibold">ผู้พักร่วมในระบบ</span>
-                    {draft.coOccupants?.length ? (
-                      <ul className="grid gap-2">
-                        {draft.coOccupants.map((occupant) => (
-                          <li className="rounded-xl border border-[#d9dae0] px-4 py-3" key={occupant.id}>
-                            <strong>{occupant.name}</strong>
-                            <small className="ml-2 text-[#62646c]">{occupant.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</small>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : <p className="tenant-config-helper">ยังไม่มีผู้พักร่วมที่ได้รับอนุมัติ ใช้หน้าคำเชิญผู้เช่าเพื่อเพิ่มผู้พักร่วม</p>}
-                  </div>
-                  <TextAreaField className="full-width" label="หมายเหตุสำหรับเจ้าของหอ" placeholder="บันทึกเฉพาะข้อมูลที่จำเป็นต่อการดูแลการเข้าพัก" value={draft.note ?? ""} onChange={(value) => update("note", value)} />
-                </div>
-              </ConfigSection>
+            {activeTab === "contract" ? <div className="grid gap-5">
+              {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงเป็นรายการสรุป แก้ได้ที่หน้าสัญญาเช่า */}
+              <dl className="tenant-contract-summary">
+                <div><dt>ห้องพัก</dt><dd>ห้อง {draft.roomId}</dd></div>
+                <div><dt>ช่วงสัญญา</dt><dd>{draft.startDate ? formatDisplayDate(draft.startDate) : "-"} – {draft.contractEnd ? formatDisplayDate(draft.contractEnd) : "ยังไม่ระบุ"}</dd></div>
+                <div><dt>เงินประกัน</dt><dd>{currency.format(draft.deposit)}</dd></div>
+                <div><dt>ผู้พัก</dt><dd>{draft.occupantCount ?? 1} คน</dd></div>
+              </dl>
+              <div>
+                <span className="mb-2 block text-sm font-medium text-[#292a30]">ผู้พักร่วมในระบบ</span>
+                {draft.coOccupants?.length ? (
+                  <ul className="grid gap-2">
+                    {draft.coOccupants.map((occupant) => (
+                      <li className="rounded-lg border border-[#e4e4e7] px-3 py-2 text-sm" key={occupant.id}>
+                        <span className="font-medium">{occupant.name}</span>
+                        <small className="ml-2 text-[#62646c]">{occupant.role === "PRIMARY" ? "ผู้เช่าหลัก" : "ผู้พักร่วม"}</small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="tenant-config-helper">ยังไม่มีผู้พักร่วมที่ได้รับอนุมัติ ใช้หน้าคำเชิญผู้เช่าเพื่อเพิ่มผู้พักร่วม</p>}
+              </div>
+              <p className="tenant-config-helper">แก้ไขวันสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
+              <TextAreaField label="หมายเหตุสำหรับเจ้าของหอ" placeholder="บันทึกเฉพาะข้อมูลที่จำเป็นต่อการดูแลการเข้าพัก" value={draft.note ?? ""} onChange={(value) => update("note", value)} />
+            </div> : null}
 
-              <ConfigSection id={tenantSectionId("vehicle")} title="ข้อมูลรถ (ไม่บังคับ)" description="กรอกเฉพาะเมื่อผู้เช่าต้องใช้พื้นที่จอดรถ">
-                <div className="tenant-config-grid">
-                  <Field label="ประเภทรถ">
-                    <DropdownField
-                      onChange={(value) => update("vehicleType", value)}
-                      options={["ไม่มีรถ", "รถจักรยานยนต์", "รถยนต์", "รถจักรยาน", "อื่น ๆ"].map((value) => ({ value, label: value }))}
-                      value={draft.vehicleType || "ไม่มีรถ"}
-                    />
-                  </Field>
-                  <TextField disabled={draft.vehicleType === "ไม่มีรถ"} label="เลขทะเบียนรถ" value={draft.vehiclePlate} onChange={(value) => update("vehiclePlate", value)} />
-                  <TextField disabled={draft.vehicleType === "ไม่มีรถ"} label="จังหวัดทะเบียน" value={draft.vehicleProvince ?? ""} onChange={(value) => update("vehicleProvince", value)} />
-                  <TextField disabled={draft.vehicleType === "ไม่มีรถ"} label="ยี่ห้อ/รุ่น" value={draft.vehicleBrand ?? ""} onChange={(value) => update("vehicleBrand", value)} />
-                  <TextField disabled={draft.vehicleType === "ไม่มีรถ"} label="สีรถ" value={draft.vehicleColor ?? ""} onChange={(value) => update("vehicleColor", value)} />
-                  <TextAreaField className="full-width" disabled={draft.vehicleType === "ไม่มีรถ"} label="รายละเอียดรถเพิ่มเติม" value={draft.vehicleDetail} onChange={(value) => update("vehicleDetail", value)} />
-                </div>
-              </ConfigSection>
+            {activeTab === "vehicle" ? <div className="tenant-config-grid">
+              <DropdownField
+                label="ประเภทรถ"
+                onChange={(value) => update("vehicleType", value)}
+                options={["ไม่มีรถ", "รถจักรยานยนต์", "รถยนต์", "รถจักรยาน", "อื่น ๆ"].map((value) => ({ value, label: value }))}
+                value={draft.vehicleType || "ไม่มีรถ"}
+              />
+              {/* ไม่มีรถก็ไม่ต้องเห็นช่องรถที่ปิดไว้ทั้งชุด เลือกประเภทรถแล้วช่องค่อยขึ้นมา */}
+              {hasVehicle ? <>
+                <TextField label="เลขทะเบียนรถ" value={draft.vehiclePlate} onChange={(value) => update("vehiclePlate", value)} />
+                <TextField label="จังหวัดทะเบียน" value={draft.vehicleProvince ?? ""} onChange={(value) => update("vehicleProvince", value)} />
+                <TextField label="ยี่ห้อ/รุ่น" value={draft.vehicleBrand ?? ""} onChange={(value) => update("vehicleBrand", value)} />
+                <TextField label="สีรถ" value={draft.vehicleColor ?? ""} onChange={(value) => update("vehicleColor", value)} />
+                <TextAreaField className="full-width" label="รายละเอียดรถเพิ่มเติม" value={draft.vehicleDetail} onChange={(value) => update("vehicleDetail", value)} />
+              </> : <p className="tenant-config-helper full-width">เลือกประเภทรถแล้วค่อยกรอกทะเบียน จังหวัด ยี่ห้อ และสี กรอกเฉพาะผู้เช่าที่ใช้ที่จอดรถ</p>}
+            </div> : null}
           </fieldset>
           </div>
 
@@ -226,21 +235,6 @@ export function TenantDetailModal({
       {isTransitionOpen ? <OccupancyTransitionModal onClose={() => setIsTransitionOpen(false)} onCompleted={onTransitionCompleted} propertyId={propertyId} rooms={rooms} tenant={tenant} /> : null}
     </Dialog>{confirmationDialog}</>
   );
-}
-
-// กรอบหนึ่งหมวดพร้อมหัวเรื่อง ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ConfigSection({ children, description, id, title }: Readonly<{ children: ReactNode; description: string; id: string; title: string }>) {
-  return (
-    <section className="tenant-config-section room-editor-section" id={id}>
-      <header><div><h3>{title}</h3><p>{description}</p></div></header>
-      <div className="tenant-config-section-body room-editor-section-body">{children}</div>
-    </section>
-  );
-}
-
-// ห่อป้ายกับตัวควบคุมที่ไม่ใช่ input ปกติ เช่น DropdownField ที่มี label ของตัวเองไม่ได้
-function Field({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
-  return <div className="tenant-config-field"><span>{label}</span>{children}</div>;
 }
 
 // ช่องกรอกข้อความ ห่อ label กับ input ไว้ด้วยกัน กดที่ป้ายแล้วโฟกัสเข้าช่องได้เลย

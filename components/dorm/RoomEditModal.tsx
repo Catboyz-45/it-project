@@ -200,7 +200,7 @@ export function RoomEditModal({
           {readOnly ? <ReadOnlyNotice>ตรวจสอบข้อมูลห้อง ค่าเช่า มิเตอร์ เฟอร์นิเจอร์ และผู้เช่าได้ แต่ไม่สามารถแก้ไขหรือบันทึกได้</ReadOnlyNotice> : null}
           <div className="room-editor-layout">
             {/* fieldset disabled ปิดทุกช่องข้างในทีเดียว ดีกว่าไปใส่ disabled ทีละช่อง */}
-            <fieldset className="room-editor-content min-w-0 border-0 p-0" disabled={readOnly}>
+            <fieldset className="room-editor-content min-w-0 border-0" disabled={readOnly}>
           <section className="room-editor-section" id="room-section-general">
             <header><div><h3>ข้อมูลห้อง</h3><p>สถานะ ประเภท และตำแหน่งของห้อง</p></div></header>
             <div className="room-editor-section-body modal-grid">

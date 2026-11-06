@@ -1468,8 +1468,16 @@
   .modal-grid, .settings-form-grid, .tenant-config-grid, .repair-schedule-grid { @apply grid grid-cols-2 gap-5; }
   /* แผงแคบกว่ากล่องเดิม ฟอร์มสองคอลัมน์จะบีบจนอ่านยาก เรียงลงมาทีละช่องแบบ Sheet ของ Cal */
   .room-edit-modal .modal-grid,
-  .tenant-config-modal .modal-grid,
-  .tenant-config-modal .tenant-config-grid { @apply grid-cols-1; }
+  .tenant-config-modal .modal-grid { @apply grid-cols-1; }
+  /* แผ่นผู้เช่ากว้าง 40rem พอวางช่องสั้นคู่กันสองคอลัมน์ ช่องยาวใช้ full-width เต็มแถว จอแคบกลับเป็นคอลัมน์เดียว */
+  .tenant-config-modal .tenant-config-grid { @apply grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2; }
+  .tenant-config-tabs { @apply mt-1 mb-5 shrink-0; }
+  .tenant-config-subheading { @apply m-0 border-t border-[#e4e4e7] pt-5 text-sm font-semibold text-[#292a30]; }
+  /* ข้อมูลสัญญาแก้ตรงนี้ไม่ได้ จึงเป็นรายการสรุปแถวละเรื่อง แทนกล่องเทาหลายกล่องเรียงกัน */
+  .tenant-contract-summary { @apply m-0 overflow-hidden rounded-lg border border-[#e4e4e7] text-sm; }
+  .tenant-contract-summary > div { @apply flex items-center justify-between gap-4 border-b border-[#e4e4e7] px-3.5 py-2.5 last:border-b-0; }
+  .tenant-contract-summary dt { @apply text-[#62646c]; }
+  .tenant-contract-summary dd { @apply m-0 text-right font-medium text-[#292a30]; }
   .full-width { @apply col-span-full; }
   /* แถบปุ่มติดขอบล่างของกล่องตอนเนื้อหายาวจนต้องเลื่อน ระยะติดลบล่างเท่ากับระยะขอบของกล่องพอดี จึงไม่ล้นจนเกิดแถบเลื่อน
      bottom ต้องติดลบเท่าระยะขอบด้วย เพราะ Chrome นับขอบเขตของ sticky ถึงแค่ขอบใน ถ้าเป็น 0 แถบปุ่มจะถูกดันขึ้นไปทับข้อความ */
@@ -1519,6 +1527,7 @@
     @apply fixed inset-y-4 right-2 left-auto m-0 flex h-auto max-h-none w-[95vw] max-w-lg flex-col overflow-hidden rounded-xl p-6 sm:p-6;
     animation: sheet-slide-in 300ms ease-in-out both;
   }
+  .tenant-config-modal { @apply max-w-[40rem]; }
   .room-edit-modal > .modal-header,
   .tenant-config-modal > .modal-header { @apply shrink-0; }
   .room-edit-modal .room-editor-form,
@@ -1526,10 +1535,11 @@
   .room-editor-layout { @apply grid grid-cols-1 items-start gap-8; }
   .room-edit-modal .room-editor-layout,
   .tenant-config-modal .room-editor-layout { @apply min-h-0 flex-1 items-stretch overflow-hidden; }
-  .room-editor-content { @apply min-w-0; }
+  .room-editor-content { @apply m-0 min-w-0 p-0; }
+  /* เว้นขอบใน 4px ให้วงโฟกัสของช่องกรอก ไม่งั้นส่วนที่เลื่อนได้ตัดวงด้านซ้ายขวาทิ้ง เหลือแค่เส้นหนาบนล่าง */
   .room-edit-modal .room-editor-content,
   .tenant-config-modal .room-editor-content {
-    @apply h-full min-h-0 overflow-y-auto overscroll-contain pr-2 pb-6;
+    @apply -mx-1 h-full min-h-0 overflow-y-auto overscroll-contain px-1 pt-0 pr-3 pb-3;
     scrollbar-gutter: stable;
   }
   .room-editor-section { @apply scroll-mt-6 border-0 border-b border-[#e4e4e7] py-7 first:pt-0 last:border-b-0; }
