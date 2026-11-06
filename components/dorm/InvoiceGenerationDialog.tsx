@@ -295,7 +295,7 @@ function ReadinessStep({ billingMonth, preflight, propertyId }: Readonly<{ billi
       <strong>สร้างไม่ได้ {preflight.blocked.length} ห้อง</strong>
       {preflight.blocked.map((item) => <span className="font-normal" key={item.roomId}>{blockedReason(item)}</span>)}
       {/* ส่วนใหญ่ติดเพราะยังไม่ได้จดมิเตอร์ พาไปหน้าจดได้เลย ไม่ต้องปิดหน้าต่างแล้วหาเมนูเอง */}
-      {meterPage ? <Link className="mt-1 w-fit font-semibold underline underline-offset-2" href={ownerPagePath(propertyId, meterPage.page)}>{meterPage.label}</Link> : null}
+      {meterPage ? <Link className="mt-1 w-fit font-semibold text-[#991b1b] underline underline-offset-2 hover:text-[#7f1d1d]" href={ownerPagePath(propertyId, meterPage.page)}>{meterPage.label}</Link> : null}
     </div> : null}
   </section>;
 }
