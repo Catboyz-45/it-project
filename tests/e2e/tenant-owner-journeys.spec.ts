@@ -201,7 +201,8 @@ test.describe("tenant journey", () => {
     await login(page, e2e.tenantEmail);
     await expect(page).toHaveURL(/\/tenant/);
 
-    await page.getByLabel("เมนูผู้เช่า").getByRole("link", { name: "แจ้งเรื่อง", exact: true }).click();
+    // เมนูมีตัวเลขต่อท้ายเมื่อหอตอบเรื่องเก่าที่ยังไม่ได้อ่าน จึงจับแค่คำขึ้นต้น
+    await page.getByLabel("เมนูผู้เช่า").getByRole("link", { name: /^แจ้งเรื่อง(?:\s|$)/ }).click();
     // ยังไม่มีเรื่องค้าง หน้าว่างต้องชวนแจ้งเรื่องแรก ไม่ใช่แค่บอกว่าไม่มี
     await expect(page.getByRole("button", { name: "แจ้งเรื่องใหม่" })).toBeVisible();
     await page.locator("section").getByRole("button", { name: "แจ้งเรื่อง", exact: true }).click();

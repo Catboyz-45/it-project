@@ -178,11 +178,21 @@ export function SettingsPage({
 
 
   // ตามการเปลี่ยน URL ด้วย เพราะหน้าตั้งค่าแต่ละหมวดมีที่อยู่ของตัวเอง
-  useEffect(() => {
-    setActiveSection(startSection);
+  // ฟังสองทางแยกกัน หน้าที่เปลี่ยน เช่น /settings ไป /subscription ใช้หมวดของหน้านั้น
+  // ส่วน ?section= ตามเฉพาะตอนมีค่า ถ้า URL ถูกเขียนกลับเป็นแบบไม่มี ?section ระหว่างที่ router รีเฟรช
+  // หมวดที่ผู้ใช้เพิ่งเลือกต้องไม่เด้งกลับไปหมวดแรก
+  const linkedSection = settingSections.find(({ key }) => key === requestedSection)?.key ?? null;
+  const showSection = (section: SettingsSection) => {
+    setActiveSection(section);
     setSaveState(null);
-    setMobileView(startSection === "general" ? "list" : "section");
-  }, [startSection]);
+    setMobileView(section === "general" ? "list" : "section");
+  };
+  useEffect(() => {
+    showSection(initialSection);
+  }, [initialSection]);
+  useEffect(() => {
+    if (linkedSection) showSection(linkedSection);
+  }, [linkedSection]);
 
   return (
     <section className={activeSection === "account" ? "account-page" : "settings-page"} data-mobile-view={mobileView}>

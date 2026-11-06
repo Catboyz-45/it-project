@@ -133,8 +133,12 @@ test("ticket conversations open in the chat window for owner and tenant", async 
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
   await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
   await expectLeftLoginPage(page);
-  await page.getByRole("button", { name: /เปิดแชทกับหอพัก/ }).click();
   const tenantChat = page.getByRole("dialog", { name: "แชทกับหอพัก" });
+  // เครื่อง CI ช้า คลิกแรกอาจมาถึงก่อนหน้าเว็บพร้อมรับคลิก กดซ้ำจนแผงแชทเปิด ปุ่มจะหายไปเองเมื่อแผงเปิดแล้ว
+  await expect(async () => {
+    await page.getByRole("button", { name: /เปิดแชทกับหอพัก/ }).click({ timeout: 2_000 });
+    await expect(tenantChat).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   const ticketRow = tenantChat.getByRole("button", { name: new RegExp(`${title}.*มีข้อความใหม่`) });
   await expect(ticketRow).toContainText(`หอ: ${reply}`);
   await ticketRow.click();
