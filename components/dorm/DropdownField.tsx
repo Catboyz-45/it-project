@@ -1,7 +1,8 @@
 "use client";
 // เก็บสถานะเปิดปิด และจัดการโฟกัสกับคีย์บอร์ดเอง
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 
@@ -28,6 +29,27 @@ function findByTypeahead(options: DropdownOption[], enabledIndexes: number[], ac
   const startPosition = Math.max(0, enabledIndexes.indexOf(activeIndex));
   const searchOrder = [...enabledIndexes.slice(startPosition + 1), ...enabledIndexes.slice(0, startPosition + 1)];
   return searchOrder.find((index) => options[index].label.trim().toLocaleLowerCase("th-TH").startsWith(query));
+}
+
+// ตำแหน่งรายการตัวเลือก วางลอยติดใต้ปุ่มด้วย position fixed นอกกล่องที่ครอบอยู่
+// เดิมวางไว้ในกล่อง หน้าต่างที่เลื่อนได้จะตัดรายการทิ้งครึ่งหนึ่งและมีแถบเลื่อนโผล่ขึ้นมา
+// ข้างล่างแคบเกินค่อยเปิดขึ้นข้างบน ไม่พอทั้งสองทางก็เปิดฝั่งที่กว้างกว่าแล้วให้เลื่อนในรายการแทน
+function popoverPosition(trigger: HTMLElement, menuHeight: number): CSSProperties {
+  const rect = trigger.getBoundingClientRect();
+  const gap = 8;
+  const viewportPadding = 12;
+  const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPadding;
+  const spaceAbove = rect.top - gap - viewportPadding;
+  // รายการยาวเลื่อนในกล่องได้อยู่แล้ว ข้างล่างพอให้เห็นราวห้าตัวเลือกก็เปิดลงตามปกติ ไม่พลิกขึ้นไปบังหัวหน้าต่าง
+  const openUp = spaceBelow < Math.min(menuHeight, 200) && spaceAbove > spaceBelow;
+  const maxHeight = Math.max(120, Math.min(288, openUp ? spaceAbove : spaceBelow));
+  const height = Math.min(menuHeight, maxHeight);
+  return {
+    left: rect.left,
+    maxHeight,
+    top: openUp ? rect.top - gap - height : rect.bottom + gap,
+    width: rect.width,
+  };
 }
 
 // จุดที่เมนูควรเปิดมาโฟกัส ขึ้นกับปุ่มที่กดเปิด
@@ -65,6 +87,7 @@ export function DropdownField({
 }>) {
   const id = useId();
   const menuRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   // เก็บตัวอักษรที่พิมพ์ไล่หา เช่นพิมพ์ "กท" เร็ว ๆ เพื่อกระโดดไปตัวเลือกที่ขึ้นต้นแบบนั้น
@@ -74,6 +97,9 @@ export function DropdownField({
   const [isOpen, setIsOpen] = useState(false);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
+  // รายการถูกวาดหลังวางตำแหน่งเสร็จ ตัววัดความยาวรายการต้องรอจังหวะนี้ ไม่งั้นจะวัดตอนยังไม่มีรายการ
+  const isPlaced = popoverStyle !== null;
   // หาไม่เจอก็ใช้ตัวแรกแทน กันปุ่มว่างเปล่าตอนค่าที่ส่งมาไม่ตรงกับตัวเลือกไหนเลย
   const selectedOption = options.find((option) => option.value === value) ?? options[0];
   // เก็บเฉพาะลำดับของตัวเลือกที่เลือกได้ ใช้ตอนเลื่อนด้วยลูกศรจะได้ข้ามตัวที่ปิดไว้
@@ -108,8 +134,10 @@ export function DropdownField({
     if (!isOpen) return;
 
     // คลิกที่ไหนก็ได้นอกกล่องแล้วปิด แต่ไม่คืนโฟกัส เพราะผู้ใช้กำลังจะไปกดที่อื่นอยู่แล้ว
+    // รายการตัวเลือกลอยอยู่นอกกล่อง จึงต้องนับว่าคลิกในรายการไม่ใช่คลิกข้างนอก
     const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !popoverRef.current?.contains(target)) {
         setIsOpen(false);
       }
     };
@@ -117,6 +145,31 @@ export function DropdownField({
     document.addEventListener("mousedown", closeOnOutsideClick);
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [isOpen]);
+
+  // วางรายการตามตำแหน่งปุ่ม และตามไปเมื่อหน้าหรือกล่องที่ครอบอยู่เลื่อน รอบแรกเดาความสูงจากจำนวนตัวเลือก
+  // ใช้ layout effect เพื่อวางให้เสร็จก่อนวาดลงจอ รายการจะได้ไม่แวบไปโผล่ที่มุมจอก่อน
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPopoverStyle(null);
+      return;
+    }
+    const place = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const measured = menuRef.current?.scrollHeight;
+      setPopoverStyle(popoverPosition(trigger, measured ?? options.length * 40 + 40));
+    };
+    place();
+    const frame = window.requestAnimationFrame(place);
+    window.addEventListener("resize", place);
+    // true = จับ scroll ของกล่องข้างในด้วย ไม่ใช่แค่ของหน้าต่าง รายการจะได้ตามปุ่มทัน
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [isOpen, options.length]);
 
   // ล้าง timer ของ typeahead ตอนถูกถอดออกจากหน้า กันมันไปทำงานทีหลัง
   useEffect(() => () => {
@@ -149,7 +202,7 @@ export function DropdownField({
       menu?.removeEventListener("scroll", updateOverflow);
       window.removeEventListener("resize", updateOverflow);
     };
-  }, [isOpen, options.length]);
+  }, [isOpen, isPlaced, options.length]);
 
   // แป้นพิมพ์ในเมนู ปิดเมนู เลื่อนตัวเลือก และพิมพ์เพื่อค้นหา
   const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -158,9 +211,11 @@ export function DropdownField({
       closeAndRestoreFocus();
       return;
     }
-    // Tab ปิดเมนูแต่ไม่คืนโฟกัส ปล่อยให้ Tab พาไปช่องถัดไปตามปกติ
+    // Tab ปิดเมนูแล้วพาไปช่องถัดไปตามปกติ รายการลอยอยู่นอกกล่อง จึงคืนโฟกัสให้ปุ่มก่อน
+    // แล้วปล่อยให้ Tab ทำงานต่อจากปุ่ม ไม่งั้นโฟกัสจะหลุดไปท้ายหน้าเลยกล่องโต้ตอบ
     if (event.key === "Tab") {
       setIsOpen(false);
+      triggerRef.current?.focus();
       return;
     }
     if (!enabledIndexes.length) return;
@@ -208,14 +263,15 @@ export function DropdownField({
         <span className={selectedOption?.placeholder ? "dropdown-trigger-value is-placeholder" : "dropdown-trigger-value"}>{selectedOption?.label ?? "เลือกข้อมูล"}</span>
         <ChevronDown aria-hidden="true" className={isOpen ? "open" : ""} size={18} />
       </button>
-      {isOpen ? (
-        <div className="dropdown-popover">
+      {isOpen && popoverStyle && typeof document !== "undefined" ? createPortal(
+        <div className="dropdown-popover" ref={popoverRef} style={popoverStyle}>
           <div
             className={hasOverflow && canScrollMore ? "dropdown-menu has-scroll-indicator" : "dropdown-menu"}
             id={`${id}-listbox`}
             onKeyDown={handleMenuKeyDown}
             ref={menuRef}
             role="listbox"
+            style={{ maxHeight: popoverStyle.maxHeight }}
             tabIndex={-1}
           >
             {/* หัวข้อคั่นบนสุดของรายการ ทำให้เมนูดูมีขอบเขตชัดกว่ากล่องลอย ๆ */}
@@ -250,7 +306,8 @@ export function DropdownField({
               <ChevronDown size={18} />
             </div>
           ) : null}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

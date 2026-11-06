@@ -8,7 +8,9 @@ import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiData } from "@/lib/client/api-error";
-import { currentThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+import Link from "next/link";
+import { currentThaiMonth, formatThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+import { ownerPagePath } from "@/lib/navigation-routes";
 import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
 
 // เดือนถัดไปของ "YYYY-MM" ใช้เป็นตัวเลือกบนสุดของเดือนที่ออกบิล เดือนใน Date.UTC นับจาก 0 จึงส่งเลขเดือนเดิมไปได้เลย
@@ -174,7 +176,7 @@ export function InvoiceGenerationDialog({
       <form className="modal-form" onSubmit={submit}>
         {step === 1 ? <ScopeStep billingMonth={billingMonth} eligibleRooms={eligibleRooms} mode={mode} onInvalidate={invalidatePreflight} roomId={roomId} setBillingMonth={setBillingMonth} setMode={setMode} setRoomId={setRoomId} /> : null}
 
-        {step === 2 ? <ReadinessStep billingMonth={billingMonth} preflight={preflight} /> : null}
+        {step === 2 ? <ReadinessStep billingMonth={billingMonth} preflight={preflight} propertyId={propertyId} /> : null}
 
         {step === 3 ? <ConfirmStep billingMonth={billingMonth} mode={mode} selectedRoom={selectedRoom} targetCount={targetCount} /> : null}
 
@@ -265,17 +267,19 @@ function roomOptions(eligibleRooms: Room[]) {
   return [
     { label: "เลือกห้อง", placeholder: true, value: "" },
     ...eligibleRooms.flatMap((room) => room.databaseId
-      ? [{ label: `ห้อง ${room.id} · ${room.tenantId ? "มีผู้เช่า" : "ตรวจสอบผู้เช่า"}`, value: room.databaseId }]
+      // ทุกห้องในรายการมีผู้เช่าอยู่แล้ว บอกเพิ่มเฉพาะห้องที่ข้อมูลผู้เช่ายังไม่ครบ
+      ? [{ label: room.tenantId ? `ห้อง ${room.id}` : `ห้อง ${room.id} · ตรวจสอบผู้เช่า`, value: room.databaseId }]
       : []),
   ];
 }
 
 // ขั้น 2 แสดงผลตรวจจากเซิร์ฟเวอร์ ห้องไหนพร้อม ห้องไหนติดปัญหาอะไร
-function ReadinessStep({ billingMonth, preflight }: Readonly<{ billingMonth: string; preflight: PreflightResult | null }>) {
+function ReadinessStep({ billingMonth, preflight, propertyId }: Readonly<{ billingMonth: string; preflight: PreflightResult | null; propertyId: string }>) {
+  const meterPage = blockedMeterPage(preflight?.blocked ?? []);
   return <section aria-labelledby="invoice-step-readiness" className="grid gap-4">
     <StepIntro id="invoice-step-readiness" title="ตรวจความพร้อมของข้อมูล">ระบบจะคำนวณค่าเช่า ค่าน้ำ และค่าไฟเมื่อบันทึกร่าง</StepIntro>
     <div className="grid gap-3 rounded-2xl border border-[#d7d8df] p-4">
-      <CheckRow label="เดือนรอบบิล" value={billingMonth} />
+      <CheckRow label="เดือนรอบบิล" value={formatThaiMonth(billingMonth)} />
       <CheckRow label="พร้อมสร้าง" value={`${preflight?.summary.readyCount ?? 0} จาก ${preflight?.summary.targetCount ?? 0} ห้อง`} />
       <CheckRow label="ยอดรวมโดยประมาณ" value={`฿${formatBaht(preflight?.summary.total)}`} />
       <CheckRow label="สถานะเริ่มต้น" value="ฉบับร่าง · ผู้เช่ายังมองไม่เห็น" />
@@ -287,16 +291,32 @@ function ReadinessStep({ billingMonth, preflight }: Readonly<{ billingMonth: str
       </div>)}
     </div> : null}
     {/* บอกให้ครบว่าห้องไหนสร้างไม่ได้เพราะอะไร จะได้ไปแก้ถูกจุด */}
-    {preflight?.blocked.length ? <div className="form-alert error">
+    {preflight?.blocked.length ? <div className="form-alert error grid gap-1">
       <strong>สร้างไม่ได้ {preflight.blocked.length} ห้อง</strong>
-      {preflight.blocked.map((item) => <span className="block" key={item.roomId}>ห้อง {item.roomNumber}: {item.reason}</span>)}
+      {preflight.blocked.map((item) => <span className="font-normal" key={item.roomId}>{blockedReason(item)}</span>)}
+      {/* ส่วนใหญ่ติดเพราะยังไม่ได้จดมิเตอร์ พาไปหน้าจดได้เลย ไม่ต้องปิดหน้าต่างแล้วหาเมนูเอง */}
+      {meterPage ? <Link className="mt-1 w-fit font-semibold underline underline-offset-2" href={ownerPagePath(propertyId, meterPage.page)}>{meterPage.label}</Link> : null}
     </div> : null}
   </section>;
 }
 
 // ยอดเงินจาก API มาเป็นสตริงทศนิยม แปลงและใส่คั่นหลักแบบไทยที่เดียวให้ทุกจุดแสดงเหมือนกัน
+// ไม่บังคับทศนิยมสองหลัก ให้ตรงกับยอดในตารางบิลที่แสดงเป็น ฿5,366 ไม่ใช่ ฿5,366.00
 function formatBaht(amount: string | undefined) {
-  return Number(amount ?? 0).toLocaleString("th-TH", { minimumFractionDigits: 2 });
+  return Number(amount ?? 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+}
+
+// เหตุผลจากเซิร์ฟเวอร์มักขึ้นต้นด้วยเลขห้องอยู่แล้ว เช่น "ห้อง 101 ยังไม่มีเลขมิเตอร์ไฟ"
+// เติมเลขห้องเฉพาะตอนที่ยังไม่มี ไม่งั้นจะอ่านว่า "ห้อง 101: ห้อง 101 ..."
+function blockedReason(item: { reason: string; roomNumber: string }) {
+  return item.reason.startsWith(`ห้อง ${item.roomNumber}`) ? item.reason : `ห้อง ${item.roomNumber}: ${item.reason}`;
+}
+
+// ห้องที่ติดเพราะยังไม่มีเลขมิเตอร์ พาไปหน้าจดมิเตอร์ชนิดนั้น ติดทั้งสองชนิดก็ไปมิเตอร์ไฟก่อน
+function blockedMeterPage(blocked: Array<{ reason: string }>) {
+  if (blocked.some((item) => item.reason.includes("มิเตอร์ไฟ"))) return { label: "ไปจดมิเตอร์ไฟ", page: "electricMeter" as const };
+  if (blocked.some((item) => item.reason.includes("มิเตอร์น้ำ"))) return { label: "ไปจดมิเตอร์น้ำ", page: "waterMeter" as const };
+  return null;
 }
 
 // ขั้น 3 สรุปสิ่งที่กำลังจะถูกบันทึกก่อนกดยืนยัน
@@ -311,7 +331,7 @@ function ConfirmStep({ billingMonth, mode, selectedRoom, targetCount }: Readonly
     <div className="rounded-2xl bg-brand/[.06] p-5">
       <span className="text-sm text-[#73757d]">กำลังสร้าง</span>
       <strong className="mt-1 block text-2xl">ร่างบิล {targetCount} รายการ</strong>
-      <p className="mt-2">รอบเดือน {billingMonth} · {mode === "single" ? `ห้อง ${selectedRoom?.id ?? "-"}` : "ทุกห้องที่พร้อม"}</p>
+      <p className="mt-2">รอบเดือน {formatThaiMonth(billingMonth)} · {mode === "single" ? `ห้อง ${selectedRoom?.id ?? "-"}` : "ทุกห้องที่พร้อม"}</p>
     </div>
     <p className="text-sm text-[#73757d]">หลังบันทึก คุณสามารถตรวจยอดและรายละเอียดของแต่ละร่างก่อนออกบิลให้ผู้เช่า</p>
   </section>;
@@ -349,7 +369,7 @@ function ResultSummary({ result }: Readonly<{ result: BulkResult }>) {
     <h3 className="text-xl font-black">บันทึกร่างเรียบร้อย</h3>
     <p><strong className="text-emerald-700">สำเร็จ {result.created.length} ห้อง</strong> · <strong className="text-amber-700">ข้าม {result.skipped.length} ห้อง</strong></p>
     {result.skipped.length ? <div className="max-h-52 overflow-y-auto">
-      {result.skipped.map((item) => <div className="mb-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900" key={item.roomId}><strong>ห้อง {item.roomNumber}</strong><span className="block">{item.reason}</span></div>)}
+      {result.skipped.map((item) => <div className="mb-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900" key={item.roomId}>{blockedReason(item)}</div>)}
     </div> : null}
   </section>;
 }

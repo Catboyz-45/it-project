@@ -314,8 +314,9 @@
   :is(.dropdown-trigger, .schedule-date-trigger) .is-placeholder { color: var(--ui-control-placeholder); }
   .dropdown-trigger > svg { @apply shrink-0 transition-transform duration-200; }
   .dropdown-trigger > svg.open { @apply rotate-180; }
+  /* ลอยอยู่นอกกล่องที่ครอบด้วย position fixed ตำแหน่งและความกว้างมาจาก DropdownField ตามปุ่ม */
   .dropdown-popover {
-    @apply absolute top-full right-0 left-0 z-[80] mt-2;
+    @apply fixed z-[100];
     transform-origin: top center;
   }
   .dropdown-menu {
@@ -1340,7 +1341,6 @@
   .admin-table-filter { flex: 0 1 14rem; min-width: 11rem; }
   .admin-table-filter .dropdown-field,
   .admin-table-filter .dropdown-trigger { width: 100%; }
-  .admin-table-filter .dropdown-popover { z-index: 40; }
   .admin-table-export { @apply shrink-0 justify-center; }
   .admin-table-actions { @apply ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2; }
   .admin-table-actions :is(a, button) { @apply whitespace-nowrap; }
@@ -1477,12 +1477,15 @@
     @apply sticky -bottom-6 z-[1] mt-6 -mb-6 flex flex-wrap items-center justify-end gap-2 border-0 border-t border-solid border-[#ececec] bg-[#fff] pt-4 pb-6;
   }
   /* ปุ่มในกล่องเป็นทรงแคปซูล ปุ่มรองเป็นพื้นเทาอ่อนไม่มีกรอบ ปุ่มหลักเป็นสีทึบ เหมือนกล่องของ YouTube */
-  .modal-actions :is(button, .app-button) { @apply min-h-11 rounded-full px-5 text-sm font-semibold lg:min-h-10; }
+  /* inline-flex ให้ไอคอนอยู่บรรทัดเดียวกับตัวหนังสือ เดิมปุ่ม "ย้อนกลับ" ไอคอนไปซ้อนอยู่บนคำ */
+  .modal-actions :is(button, .app-button) { @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold lg:min-h-10; }
   .modal-actions button:not(.app-button) { @apply border border-transparent bg-[#f2f2f2] text-[#0f0f0f] shadow-none transition-colors duration-150 hover:bg-[#e5e5e5]; }
   .modal-actions button:not(.app-button):last-child, .modal-actions .primary-button { @apply border-transparent bg-brand text-[#fff] hover:bg-[#4651c7]; }
   .modal-actions .app-button--secondary,
   .modal-actions .app-button--tertiary { @apply border-transparent bg-[#f2f2f2] text-[#0f0f0f] shadow-none hover:bg-[#e5e5e5]; }
   .modal-actions :is(.app-button--primary, .app-button--danger) { @apply border-transparent shadow-none; }
+  /* ปุ่มที่กดไม่ได้ต้องดูออกว่ากดไม่ได้ กฎสีของปุ่มในกล่องข้างบนเคยทับสีเทาของปุ่มปิดไว้ ปุ่มเลยยังเป็นสีม่วงเหมือนกดได้ */
+  .modal-actions button:not(.app-button):disabled, .modal-actions :is(.primary-button, .app-button):disabled { @apply cursor-not-allowed border-transparent bg-[#e4e4e7] text-[#62646c] shadow-none hover:bg-[#e4e4e7]; }
   /* ค่าที่แสดงอย่างเดียว กล่องสูงเท่าช่องกรอก พื้นและขอบเทาแบบช่องอีเมลที่แก้ไม่ได้ในหน้าบัญชี */
   .readonly-field { @apply content-start; }
   /* แถบขั้นตอนของหน้าต่างสร้างร่างบิล วงกลมตัวเลขต่อกันด้วยเส้น กว้างเต็มแนวเดียวกับเนื้อหา */
