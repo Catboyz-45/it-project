@@ -1,7 +1,7 @@
 "use client";
 // เก็บสถานะของตัวช่วยทีละขั้นและยิงคำขอจากเบราว์เซอร์
 
-import { SyntheticEvent, useMemo, useState } from "react";
+import { SyntheticEvent, useMemo, useState, type ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, FilePlus2, Files, Save, X } from "lucide-react";
 import type { Room } from "@/types/dorm";
 import { Dialog } from "@/components/ui/Dialog";
@@ -9,6 +9,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { DropdownField } from "@/components/dorm/DropdownField";
 import { formatClientError, readApiData } from "@/lib/client/api-error";
 import { currentThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
+import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
 
 // เดือนถัดไปของ "YYYY-MM" ใช้เป็นตัวเลือกบนสุดของเดือนที่ออกบิล เดือนใน Date.UTC นับจาก 0 จึงส่งเลขเดือนเดิมไปได้เลย
 function nextMonth(month: string) {
@@ -164,7 +165,7 @@ export function InvoiceGenerationDialog({
 
   return <Dialog ariaDescribedBy="invoice-generation-description" ariaLabelledBy="invoice-generation-title" className="max-h-[90vh] overflow-y-auto" onClose={onClose}>
       <header className="modal-header">
-        <div><p className="eyebrow">Draft-first billing</p><h2 id="invoice-generation-title">สร้างร่างบิล</h2><p id="invoice-generation-description">ตรวจข้อมูลเป็นขั้นตอนก่อนบันทึก ร่างบิลยังไม่แสดงให้ผู้เช่าเห็น</p></div>
+        <div><h2 id="invoice-generation-title">สร้างร่างบิล</h2><p id="invoice-generation-description">ตรวจข้อมูลเป็นขั้นตอนก่อนบันทึก ร่างบิลยังไม่แสดงให้ผู้เช่าเห็น</p></div>
         <IconButton disabled={isSaving} label="ปิด" onClick={onClose} tooltip="ปิดหน้าต่างสร้างบิล"><X /></IconButton>
       </header>
 
@@ -239,7 +240,7 @@ function ScopeStep({ billingMonth, eligibleRooms, mode, onInvalidate, roomId, se
   };
 
   return <section aria-labelledby="invoice-step-scope" className="grid gap-5">
-    <div><h3 className="text-xl font-black" id="invoice-step-scope">1. เลือกขอบเขตการสร้าง</h3><p className="text-sm text-[#73757d]">เลือกสร้างให้ห้องเดียวหรือทุกห้องที่มีผู้เช่าหลัก</p></div>
+    <StepIntro id="invoice-step-scope" title="เลือกขอบเขตการสร้าง">สร้างให้ห้องเดียวหรือทุกห้องที่มีผู้เช่าหลัก</StepIntro>
     <div className="figma-inline-tabs invoice-tabs">
       <button className={mode === "single" ? "active" : ""} onClick={() => changeMode("single")} type="button"><FilePlus2 size={17} /> ห้องเดียว</button>
       <button className={mode === "bulk" ? "active" : ""} onClick={() => changeMode("bulk")} type="button"><Files size={17} /> ทั้งหอ</button>
@@ -254,7 +255,7 @@ function ScopeStep({ billingMonth, eligibleRooms, mode, onInvalidate, roomId, se
       />
       {mode === "single"
         ? <DropdownField label="ห้อง" onChange={(value) => { setRoomId(value); onInvalidate(); }} options={roomOptions(eligibleRooms)} value={roomId} />
-        : <div className="modal-summary"><span>ขอบเขต</span><strong>{eligibleRooms.length} ห้องที่มีผู้เช่า</strong></div>}
+        : <ReadOnlyField label="ขอบเขต">{eligibleRooms.length} ห้องที่มีผู้เช่า</ReadOnlyField>}
     </div>
   </section>;
 }
@@ -272,7 +273,7 @@ function roomOptions(eligibleRooms: Room[]) {
 // ขั้น 2 แสดงผลตรวจจากเซิร์ฟเวอร์ ห้องไหนพร้อม ห้องไหนติดปัญหาอะไร
 function ReadinessStep({ billingMonth, preflight }: Readonly<{ billingMonth: string; preflight: PreflightResult | null }>) {
   return <section aria-labelledby="invoice-step-readiness" className="grid gap-4">
-    <div><h3 className="text-xl font-black" id="invoice-step-readiness">2. ตรวจความพร้อมของข้อมูล</h3><p className="text-sm text-[#73757d]">ระบบจะคำนวณค่าเช่า ค่าน้ำ และค่าไฟเมื่อบันทึกร่าง</p></div>
+    <StepIntro id="invoice-step-readiness" title="ตรวจความพร้อมของข้อมูล">ระบบจะคำนวณค่าเช่า ค่าน้ำ และค่าไฟเมื่อบันทึกร่าง</StepIntro>
     <div className="grid gap-3 rounded-2xl border border-[#d7d8df] p-4">
       <CheckRow label="เดือนรอบบิล" value={billingMonth} />
       <CheckRow label="พร้อมสร้าง" value={`${preflight?.summary.readyCount ?? 0} จาก ${preflight?.summary.targetCount ?? 0} ห้อง`} />
@@ -306,7 +307,7 @@ function ConfirmStep({ billingMonth, mode, selectedRoom, targetCount }: Readonly
   targetCount: number;
 }>) {
   return <section aria-labelledby="invoice-step-confirm" className="grid gap-4">
-    <div><h3 className="text-xl font-black" id="invoice-step-confirm">3. ยืนยันการบันทึกร่าง</h3><p className="text-sm text-[#73757d]">ยังไม่มีการส่งบิลหรือแจ้งผู้เช่าในขั้นตอนนี้</p></div>
+    <StepIntro id="invoice-step-confirm" title="ยืนยันการบันทึกร่าง">ยังไม่มีการส่งบิลหรือแจ้งผู้เช่าในขั้นตอนนี้</StepIntro>
     <div className="rounded-2xl bg-brand/[.06] p-5">
       <span className="text-sm text-[#73757d]">กำลังสร้าง</span>
       <strong className="mt-1 block text-2xl">ร่างบิล {targetCount} รายการ</strong>
@@ -316,21 +317,29 @@ function ConfirmStep({ billingMonth, mode, selectedRoom, targetCount }: Readonly
   </section>;
 }
 
+// คำอธิบายสั้น ๆ ของแต่ละขั้น หัวข้อซ่อนไว้ให้โปรแกรมอ่านหน้าจอ เพราะแถบขั้นตอนข้างบนบอกชื่อขั้นอยู่แล้ว
+// เดิมแสดงหัวข้อตัวหนาใหญ่ซ้ำกับแถบ หนักกว่าชื่อหน้าต่างเสียอีก
+function StepIntro({ children, id, title }: Readonly<{ children: ReactNode; id: string; title: string }>) {
+  return <div><h3 className="sr-only" id={id}>{title}</h3><p className="text-sm text-[#62646c]">{children}</p></div>;
+}
+
 // แถบบอกว่าอยู่ขั้นไหนแล้ว ใช้ ol เพราะเป็นลำดับขั้นจริง ๆ ไม่ใช่แค่กล่องสามกล่องเรียงกัน
+// วงกลมตัวเลขต่อกันด้วยเส้น กว้างเต็มแนวเดียวกับเนื้อหา ขั้นที่ผ่านแล้วเป็นเครื่องหมายถูก
 function StepBar({ step }: Readonly<{ step: Step }>) {
-  return <ol aria-label="ขั้นตอนสร้างร่างบิล" className="mx-5 mt-5 grid grid-cols-3 gap-2">
+  return <ol aria-label="ขั้นตอนสร้างร่างบิล" className="invoice-steps">
     {/* aria-current="step" บอกโปรแกรมอ่านหน้าจอว่าอยู่ขั้นไหน ไม่ใช่แค่ทำให้สีต่าง */}
-    {steps.map((item) => <li aria-current={step === item.id ? "step" : undefined} className={`rounded-xl border px-3 py-3 text-sm font-bold ${stepTone(item.id, step)}`} key={item.id}>
-      <span className="mr-2 inline-grid size-6 place-items-center rounded-full bg-current/10">{item.id < step ? <Check size={14} /> : item.id}</span>{item.label}
+    {steps.map((item) => <li aria-current={step === item.id ? "step" : undefined} className={stepState(item.id, step)} key={item.id}>
+      <span aria-hidden="true" className="invoice-step-number">{item.id < step ? <Check size={13} strokeWidth={3} /> : item.id}</span>
+      <span>{item.label}</span>
     </li>)}
   </ol>;
 }
 
-// สีของแต่ละขั้น กำลังทำอยู่ ทำผ่านแล้ว หรือยังไม่ถึง
-function stepTone(id: Step, step: Step) {
-  if (id === step) return "border-brand bg-brand/[.08] text-brand";
-  if (id < step) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return "border-[#d7d8df] text-[#73757d]";
+// สถานะของแต่ละขั้น กำลังทำอยู่ ทำผ่านแล้ว หรือยังไม่ถึง สีอยู่ใน CSS ของ invoice-steps
+function stepState(id: Step, step: Step) {
+  if (id === step) return "is-current";
+  if (id < step) return "is-done";
+  return "is-upcoming";
 }
 
 // สรุปผลของการสร้างทั้งหอ ห้องไหนสำเร็จ ห้องไหนถูกข้ามเพราะอะไร

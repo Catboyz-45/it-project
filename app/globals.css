@@ -780,8 +780,9 @@
   fieldset.figma-inline-tabs { @apply m-0 min-w-0 border-0; }
   .workspace-section-tabs { @apply px-6 pt-5; }
   .figma-inline-tabs::-webkit-scrollbar, .meter-mode-tabs::-webkit-scrollbar, .repair-filters::-webkit-scrollbar, .repair-section-tabs::-webkit-scrollbar { display: none; }
+  /* gap-1.5 เว้นไอคอนกับตัวหนังสือ ปุ่มที่มีไอคอนจะได้ไม่ติดกันเป็นก้อน */
   .figma-inline-tabs button, .meter-mode-tabs button, .repair-filters button, .repair-section-tabs button, .repair-section-tabs a {
-    @apply inline-flex min-h-11 shrink-0 items-center justify-center rounded-md px-3.5 py-2 text-center text-sm leading-none font-medium whitespace-nowrap text-[#62646c] no-underline transition-colors duration-150 hover:text-[#292a30] hover:no-underline lg:min-h-8;
+    @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-md px-3.5 py-2 text-center text-sm leading-none font-medium whitespace-nowrap text-[#62646c] no-underline transition-colors duration-150 hover:text-[#292a30] hover:no-underline lg:min-h-8;
   }
   .figma-inline-tabs button.active, .meter-mode-tabs button.active, .repair-filters button.active, .repair-section-tabs button.active, .repair-section-tabs a.active {
     @apply bg-[#fff] font-semibold text-[#292a30] shadow-[0_1px_2px_rgba(0,0,0,.08)] ring-0;
@@ -1482,11 +1483,25 @@
   .modal-actions .app-button--secondary,
   .modal-actions .app-button--tertiary { @apply border-transparent bg-[#f2f2f2] text-[#0f0f0f] shadow-none hover:bg-[#e5e5e5]; }
   .modal-actions :is(.app-button--primary, .app-button--danger) { @apply border-transparent shadow-none; }
-  .modal-summary { @apply self-end rounded-md border border-[#e4e4e7] bg-[#fafafa] px-3 py-2; }
-  .modal-summary span { @apply block text-sm text-[#62646c]; }
-  .modal-summary strong { @apply mt-0.5 block text-lg; }
-  .modal-summary.full-width { @apply self-auto p-4; }
-  .room-status-locked small { @apply mt-1 block text-xs text-[#62646c]; }
+  /* ค่าที่แสดงอย่างเดียว กล่องสูงเท่าช่องกรอก พื้นและขอบเทาแบบช่องอีเมลที่แก้ไม่ได้ในหน้าบัญชี */
+  .readonly-field { @apply content-start; }
+  /* แถบขั้นตอนของหน้าต่างสร้างร่างบิล วงกลมตัวเลขต่อกันด้วยเส้น กว้างเต็มแนวเดียวกับเนื้อหา */
+  .invoice-steps { @apply m-0 mt-5 mb-6 flex list-none items-center gap-2 p-0 text-sm; }
+  .invoice-steps li { @apply flex min-w-0 items-center gap-2 font-medium whitespace-nowrap text-[#62646c]; }
+  .invoice-steps li + li::before { content: ""; @apply mr-0 h-px min-w-4 flex-1 bg-[#e4e4e7]; }
+  .invoice-steps li + li { @apply flex-1; }
+  .invoice-step-number { @apply grid size-6 shrink-0 place-items-center rounded-full border border-[#d4d4d8] text-xs font-semibold; }
+  .invoice-steps li.is-current { @apply text-[#3c45a5]; }
+  .invoice-steps li.is-current .invoice-step-number { @apply border-brand bg-brand text-[#fff]; }
+  .invoice-steps li.is-done { @apply text-[#292a30]; }
+  .invoice-steps li.is-done .invoice-step-number { @apply border-[#047857] bg-[#047857] text-[#fff]; }
+  /* จอมือถือเหลือชื่อเฉพาะขั้นที่ทำอยู่ ขั้นอื่นเหลือแค่วงกลม สามชื่อเรียงกันจะล้นจอแคบ */
+  .invoice-steps li:not(.is-current) > span:last-child { @apply max-sm:sr-only; }
+  .readonly-field-value {
+    @apply flex min-w-0 items-center rounded-[var(--ui-control-radius)] border border-[#e4e4e7] bg-[#f4f5f7] px-4 text-[0.9375rem] font-normal text-[#555761];
+    min-height: var(--ui-control-height);
+  }
+  .readonly-field-hint { @apply text-xs font-normal text-[#62646c]; }
   .room-editor-hint { @apply col-span-full m-0 text-sm text-[#62646c]; }
   /* กล่องยืนยัน: แคบ ข้อความสั้น ไม่มีปุ่ม X (กด Esc หรือยกเลิกได้) แบบกล่องยืนยันของ YouTube */
   .confirmation-modal { @apply max-w-[25rem]; }
@@ -1533,9 +1548,6 @@
     @apply min-h-11 w-auto whitespace-nowrap rounded-xl px-4 text-base;
   }
   .tenant-config-error { @apply mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700; }
-  .tenant-config-summary { @apply rounded-2xl bg-brand/[.07] p-4; }
-  .tenant-config-summary span { @apply block text-sm text-[#6b6d76]; }
-  .tenant-config-summary strong { @apply mt-1 block text-lg text-[#292a30]; }
   .tenant-config-helper { @apply text-sm font-normal text-[#6b6d76]; }
   .furniture-grid { @apply grid grid-cols-2 gap-3; }
   .furniture-option {

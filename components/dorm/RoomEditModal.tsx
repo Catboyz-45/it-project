@@ -15,6 +15,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { Room, RoomStatus, Tenant } from "@/types/dorm";
 import { UnitInput } from "@/components/ui/UnitInput";
 import { roomTypeLabel } from "@/lib/ui-labels";
+import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
 
 // ห้องที่ไม่มีคนอยู่สลับได้แค่ว่างกับซ่อมบำรุง ส่วน "มีผู้เช่า" เกิดจากการอนุมัติเข้าพักเท่านั้น
 // และห้องที่มีคนอยู่จะว่างได้ก็ต่อเมื่อย้ายออก เซิร์ฟเวอร์ปฏิเสธการเปลี่ยนแบบอื่นอยู่แล้ว
@@ -205,11 +206,7 @@ export function RoomEditModal({
             <div className="room-editor-section-body modal-grid">
               <div className="modal-field">
                 {isOccupied ? (
-                  <div className="modal-summary room-status-locked">
-                    <span>สถานะห้อง</span>
-                    <strong>มีผู้เช่า</strong>
-                    <small>เปลี่ยนได้ผ่านการย้ายออกหรือย้ายห้องในรายละเอียดผู้เช่า</small>
-                  </div>
+                  <ReadOnlyField hint="เปลี่ยนได้ผ่านการย้ายออกหรือย้ายห้องในรายละเอียดผู้เช่า" label="สถานะห้อง">มีผู้เช่า</ReadOnlyField>
                 ) : <DropdownField label="สถานะห้อง" value={status} onChange={(value) => setStatus(value as RoomStatus)} options={roomStatusOptions} />}
               </div>
               <div className="modal-field">
@@ -237,10 +234,10 @@ export function RoomEditModal({
             <header><div><h3>ค่าเช่าและมิเตอร์</h3><p>ข้อมูลที่ใช้คำนวณบิลประจำเดือน</p></div></header>
             <div className="room-editor-section-body modal-grid">
               <label><span>ค่าเช่าต่อเดือน</span><UnitInput min={0} required type="number" unit="บาท/เดือน" value={rent} onChange={(event) => setRent(event.target.value)} /></label>
-              <div className="modal-summary"><span>ค่าเช่าปัจจุบัน</span><strong>{currency.format(Number(rent) || 0)}</strong></div>
+              <ReadOnlyField label="ค่าเช่าปัจจุบัน">{currency.format(Number(rent) || 0)}</ReadOnlyField>
               {/* เลขมิเตอร์มาจากการจดประจำเดือน แก้ตรงนี้ไม่ได้ เพราะบิลที่ออกไปแล้วอ้างอิงเลขเหล่านี้ */}
-              <div className="modal-summary"><span>มิเตอร์น้ำล่าสุด</span><strong>{room.waterMeter.toLocaleString("th-TH")} หน่วย</strong></div>
-              <div className="modal-summary"><span>มิเตอร์ไฟล่าสุด</span><strong>{room.electricMeter.toLocaleString("th-TH")} หน่วย</strong></div>
+              <ReadOnlyField label="มิเตอร์น้ำล่าสุด">{room.waterMeter.toLocaleString("th-TH")} หน่วย</ReadOnlyField>
+              <ReadOnlyField label="มิเตอร์ไฟล่าสุด">{room.electricMeter.toLocaleString("th-TH")} หน่วย</ReadOnlyField>
               <p className="room-editor-hint">จดเลขมิเตอร์ประจำเดือนได้ที่หน้าค่าน้ำและค่าไฟ</p>
             </div>
           </section>
@@ -272,8 +269,8 @@ export function RoomEditModal({
                 {/* รับทั้งบัตรประชาชนและหนังสือเดินทาง จึงไม่ตัดตัวอักษรทิ้ง ขีดกับเว้นวรรคเซิร์ฟเวอร์ตัดให้เอง */}
                 <label><span>เลขบัตรประชาชน/หนังสือเดินทาง</span><input autoComplete="off" maxLength={24} value={nationalId} onChange={(event) => setNationalId(event.target.value)} /></label>
                 {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงอย่างเดียว แก้ได้ที่หน้าสัญญาเช่า */}
-                <div className="modal-summary"><span>ช่วงสัญญา</span><strong>{describeLeasePeriod(tenant)}</strong></div>
-                <div className="modal-summary"><span>เงินประกัน</span><strong>{currency.format(tenant?.deposit ?? 0)}</strong></div>
+                <ReadOnlyField label="ช่วงสัญญา">{describeLeasePeriod(tenant)}</ReadOnlyField>
+                <ReadOnlyField label="เงินประกัน">{currency.format(tenant?.deposit ?? 0)}</ReadOnlyField>
                 <p className="room-editor-hint">แก้ไขช่วงสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
                 <label className="full-width"><span>ที่อยู่ตามทะเบียนบ้าน</span><textarea value={address} onChange={(event) => setAddress(event.target.value)} /></label>
                 <label><span>ชื่อผู้ติดต่อฉุกเฉิน/ผู้ปกครอง</span><input value={guardianName} onChange={(event) => setGuardianName(event.target.value)} /></label>

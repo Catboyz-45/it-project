@@ -12,6 +12,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Room, Tenant } from "@/types/dorm";
 import { UnitInput } from "@/components/ui/UnitInput";
+import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
 
 // ห่อไว้เป็น object เผื่อวันหลังต้องส่งอย่างอื่นกลับไปด้วย จะได้ไม่ต้องแก้ทุกที่ที่เรียก
 export interface TenantEditPayload {
@@ -166,10 +167,7 @@ export function TenantEditModal({
               <UnitInput min={0} required step="0.01" type="number" unit="บาท" value={deposit} onChange={(event) => setDeposit(event.target.value)} />
             </label>
 
-            <div className="modal-summary">
-              <span>เงินประกันปัจจุบัน</span>
-              <strong>{deposit === "" ? "ยังไม่ระบุ" : currency.format(Number(deposit))}</strong>
-            </div>
+            <ReadOnlyField label="เงินประกันปัจจุบัน">{deposit === "" ? "ยังไม่ระบุ" : currency.format(Number(deposit))}</ReadOnlyField>
           </div>
 
           <footer className="modal-actions">
@@ -197,10 +195,8 @@ function RoomPickerFields({ availableRooms, changeFloor, changeRoom, floors, roo
   selectedRoomId: string;
 }>) {
   if (availableRooms.length === 0) {
-    return <div className="modal-summary full-width">
-      <span>ไม่มีห้องว่างสำหรับเพิ่มผู้เช่าใหม่</span>
-      <strong>กรุณาปรับสถานะห้องเป็นว่างก่อน</strong>
-    </div>;
+    // เป็นคำเตือนที่ต้องไปแก้ก่อน ไม่ใช่ค่าของช่อง จึงใช้กล่องเตือนแทนช่องอ่านอย่างเดียว
+    return <p className="form-alert warning full-width" role="status">ไม่มีห้องว่างสำหรับเพิ่มผู้เช่าใหม่ ปรับสถานะห้องเป็นว่างก่อน</p>;
   }
   return <>
     <div className="modal-field">

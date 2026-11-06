@@ -14,6 +14,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { IconButton } from "@/components/ui/IconButton";
 import { Dialog } from "@/components/ui/Dialog";
 import type { Tenant } from "@/types/dorm";
+import { ReadOnlyField } from "@/components/ui/ReadOnlyField";
 
 // สี่หมวดข้อมูลของผู้เช่า แสดงเรียงกันในหน้าเดียว ไม่ได้สลับแท็บจริง ๆ
 type TenantTab = "personal" | "contact" | "contract" | "vehicle";
@@ -146,7 +147,7 @@ export function TenantDetailModal({
                   <DatePickerField initialView="year" label="วันเกิด (ไม่บังคับ)" maxDate={new Date()} minDate={earliestBirthDate} value={draft.birthDate ?? ""} onChange={(value) => update("birthDate", value)} />
                   <TextField label="เบอร์โทร" inputMode="tel" required value={draft.phone} onChange={(value) => update("phone", value)} />
                   {/* อีเมลคือชื่อที่ผู้เช่าใช้เข้าสู่ระบบ เจ้าของหอเปลี่ยนแทนไม่ได้ จึงแสดงอย่างเดียว */}
-                  <div className="tenant-config-summary"><span>อีเมลที่ใช้เข้าสู่ระบบ</span><strong>{draft.email || "-"}</strong></div>
+                  <ReadOnlyField label="อีเมลที่ใช้เข้าสู่ระบบ">{draft.email || "-"}</ReadOnlyField>
                   <TextField label="LINE ID" value={draft.lineId ?? ""} onChange={(value) => update("lineId", value)} />
                   <p className="tenant-config-helper full-width">เก็บเลขประจำตัวเฉพาะเมื่อจำเป็นต่อสัญญา และจำกัดสิทธิ์การเข้าถึงข้อมูลส่วนบุคคล</p>
                 </div>
@@ -172,13 +173,13 @@ export function TenantDetailModal({
 
               <ConfigSection id={tenantSectionId("contract")} title="สัญญาและผู้พัก" description="ข้อมูลเข้าพัก เงินประกัน และผู้พักร่วมจากข้อมูลการเข้าพักจริง">
                 <div className="tenant-config-grid">
-                  <div className="tenant-config-summary"><span>ห้องพัก</span><strong>ห้อง {draft.roomId}</strong></div>
-                  <div className="tenant-config-summary"><span>เงินประกันปัจจุบัน</span><strong>{currency.format(draft.deposit)}</strong></div>
+                  <ReadOnlyField label="ห้องพัก">ห้อง {draft.roomId}</ReadOnlyField>
+                  <ReadOnlyField label="เงินประกันปัจจุบัน">{currency.format(draft.deposit)}</ReadOnlyField>
                   {/* สัญญามีประวัติฉบับแก้ไขของตัวเอง จึงแสดงอย่างเดียว แก้ได้ที่หน้าสัญญาเช่า */}
-                  <div className="tenant-config-summary"><span>วันเริ่มสัญญา</span><strong>{draft.startDate ? formatDisplayDate(draft.startDate) : "-"}</strong></div>
-                  <div className="tenant-config-summary"><span>วันสิ้นสุดสัญญา</span><strong>{draft.contractEnd ? formatDisplayDate(draft.contractEnd) : "ยังไม่ระบุ"}</strong></div>
+                  <ReadOnlyField label="วันเริ่มสัญญา">{draft.startDate ? formatDisplayDate(draft.startDate) : "-"}</ReadOnlyField>
+                  <ReadOnlyField label="วันสิ้นสุดสัญญา">{draft.contractEnd ? formatDisplayDate(draft.contractEnd) : "ยังไม่ระบุ"}</ReadOnlyField>
                   <p className="tenant-config-helper full-width">แก้ไขวันสัญญาและเงินประกันได้ที่หน้าสัญญาเช่า</p>
-                  <div className="tenant-config-summary"><span>จำนวนผู้พักที่ใช้งาน</span><strong>{draft.occupantCount ?? 1} คน</strong></div>
+                  <ReadOnlyField label="จำนวนผู้พักที่ใช้งาน">{draft.occupantCount ?? 1} คน</ReadOnlyField>
                   <div className="full-width">
                     <span className="mb-2 block text-sm font-semibold">ผู้พักร่วมในระบบ</span>
                     {draft.coOccupants?.length ? (
