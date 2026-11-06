@@ -23,7 +23,7 @@ const roleConfig: Record<SidebarAccountRole, {
 }> = {
   TENANT: {
     accountHref: "/tenant/account",
-    accountLabel: "บัญชีและความปลอดภัย",
+    accountLabel: "บัญชีของฉัน",
     helpHref: "/tenant/help",
     context: "พื้นที่ผู้เช่า",
     roleLabel: "ผู้เช่า",
@@ -31,7 +31,7 @@ const roleConfig: Record<SidebarAccountRole, {
   },
   SUPER_ADMIN: {
     accountHref: "/super-admin/account",
-    accountLabel: "บัญชีและความปลอดภัย",
+    accountLabel: "บัญชีของฉัน",
     context: "ผู้ดูแลแพลตฟอร์ม",
     roleLabel: "ผู้ดูแลระบบ",
     tone: "admin",

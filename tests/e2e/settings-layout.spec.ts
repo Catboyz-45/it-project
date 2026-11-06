@@ -25,3 +25,23 @@ test("settings keep side gutters and per-section descriptions on narrow screens"
     expect(box.titleLeft, `หัวข้อตรงกับการ์ดที่ ${width}px`).toBe(box.cardLeft);
   }
 });
+
+// รีเฟรชหน้าตั้งค่าแล้วต้องกลับมาหมวดเดิม ไม่เด้งไปหมวดแรกจนต้องหาใหม่
+test("settings reopen the same section after a reload", async ({ page }) => {
+  await openLoginForm(page);
+  await page.getByLabel("อีเมล").fill(e2e.ownerEmail);
+  await page.getByLabel("รหัสผ่าน", { exact: true }).fill(e2e.password);
+  await page.getByRole("button", { name: /เข้าสู่ระบบ/ }).click();
+  await expectLeftLoginPage(page);
+
+  await page.goto(`/admin/properties/${e2e.propertyId}/settings`);
+  await page.getByRole("tab", { name: "รอบบิล" }).click();
+  await expect(page).toHaveURL(/\?section=cycles$/);
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "รอบบิล" })).toHaveAttribute("aria-selected", "true");
+
+  // หมวดแรกคือหมวดตั้งต้นของหน้า ไม่ต้องมีอะไรต่อท้าย URL
+  await page.getByRole("tab", { name: "ข้อมูลหอ" }).click();
+  await expect(page).toHaveURL(new RegExp(`/settings$`));
+  await expect(page.getByRole("tab", { name: "ข้อมูลหอ" })).toHaveAttribute("aria-selected", "true");
+});

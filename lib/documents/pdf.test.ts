@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { browserLaunchOptions, generatePdf } from "@/lib/documents/pdf";
+import { browserLaunchOptions, generatePdf, warmPdfBrowser } from "@/lib/documents/pdf";
 
 // เปิด Chromium จริงไม่ได้ในชุดเทสต์เร็ว จึงแทนด้วยเบราว์เซอร์ปลอมที่จดว่าถูกเรียกอย่างไร
 const page = {
@@ -71,6 +71,16 @@ describe("PDF rendering", () => {
   it("launches a new browser after the old one disconnects", async () => {
     onDisconnected?.();
     await generatePdf("<p>again</p>");
+    expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+  });
+
+  // เข้าหน้าบิลแล้วเปิดเบราว์เซอร์รอไว้ ตอนกดดูตัวอย่างจริงต้องใช้ตัวที่เปิดไว้ ไม่เปิดซ้ำ
+  it("warms the browser ahead of the first preview", async () => {
+    onDisconnected?.();
+    warmPdfBrowser();
+    expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+    expect(browser.newPage).not.toHaveBeenCalled();
+    await generatePdf("<p>warm</p>");
     expect(puppeteer.launch).toHaveBeenCalledTimes(1);
   });
 });

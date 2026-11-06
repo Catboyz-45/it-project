@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 import { Fragment, type ReactNode, SyntheticEvent, useEffect, useRef } from "react";
-import { Expand, FileText, LoaderCircle, MessageSquare, MoreHorizontal, Paperclip, Send, Shrink, X } from "lucide-react";
+import { Expand, FileText, LoaderCircle, MessageSquare, Paperclip, Send, Shrink, X } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import type { ChatThreadMessage } from "@/components/chat/use-chat-thread";
@@ -27,21 +27,12 @@ export function ChatLauncher({ label, onClick, unreadCount }: Readonly<{ label: 
   </IconButton>;
 }
 
-// เมนูย่อขยายหน้าต่าง อยู่มุมขวาบนของหัวหน้าต่าง
-export function WindowOptionsMenu({ isExpanded, isMenuOpen, onToggleExpanded, onToggleMenu }: Readonly<{
-  isExpanded: boolean;
-  isMenuOpen: boolean;
-  onToggleExpanded: () => void;
-  onToggleMenu: () => void;
-}>) {
-  return <div className="chat-options">
-    <IconButton aria-expanded={isMenuOpen} label="ตัวเลือกหน้าต่างแชท" onClick={onToggleMenu}><MoreHorizontal aria-hidden="true" size={22} /></IconButton>
-    {isMenuOpen ? <div className="chat-options-menu">
-      <button onClick={onToggleExpanded} type="button">
-        {isExpanded ? <Shrink aria-hidden="true" size={18} /> : <Expand aria-hidden="true" size={18} />}{isExpanded ? "ย่อหน้าต่าง" : "ขยายหน้าต่าง"}
-      </button>
-    </div> : null}
-  </div>;
+// ปุ่มย่อขยายหน้าต่าง อยู่มุมขวาบนของหัวหน้าต่าง เดิมเป็นเมนู ••• ที่มีข้อเดียว ต้องกดสองครั้งโดยไม่จำเป็น
+// มือถือหน้าต่างเต็มจออยู่แล้ว CSS จึงซ่อนปุ่มนี้
+export function WindowSizeButton({ isExpanded, onToggle }: Readonly<{ isExpanded: boolean; onToggle: () => void }>) {
+  return <IconButton aria-pressed={isExpanded} className="chat-size-toggle" label={isExpanded ? "ย่อหน้าต่าง" : "ขยายหน้าต่าง"} onClick={onToggle}>
+    {isExpanded ? <Shrink aria-hidden="true" size={19} /> : <Expand aria-hidden="true" size={19} />}
+  </IconButton>;
 }
 
 // ไฟล์แนบในข้อความ รูปแสดงเป็นภาพตัวอย่าง ไฟล์อื่นแสดงเป็นลิงก์พร้อมขนาด

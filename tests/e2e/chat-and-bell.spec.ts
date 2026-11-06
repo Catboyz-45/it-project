@@ -142,3 +142,23 @@ test("ticket conversations open in the chat window for owner and tenant", async 
   // ผู้เช่าไม่มีปุ่มเลื่อนสถานะ
   await expect(tenantChat.getByRole("button", { name: "ทำเครื่องหมายว่าเสร็จ" })).toHaveCount(0);
 });
+
+// ขยายหน้าต่างแชทกดครั้งเดียวจบ เดิมต้องเปิดเมนู ••• ที่มีอยู่ข้อเดียวก่อน
+// มือถือหน้าต่างเต็มจออยู่แล้ว จึงไม่มีปุ่มนี้ให้กดแล้วไม่เกิดอะไร
+test("chat window resizes from one button and hides it on phones", async ({ page }) => {
+  await loginAsOwner(page);
+  await page.goto(`/admin/properties/${e2e.propertyId}/parcels`);
+  await page.locator(".chat-launcher").click();
+  const chat = page.getByRole("complementary", { name: "ข้อความผู้เช่า" });
+  await chat.getByRole("button", { name: "ห้อง E101 · E2E Tenant" }).click();
+
+  await expect(chat.getByRole("button", { name: "ตัวเลือกหน้าต่างแชท" })).toHaveCount(0);
+  await chat.getByRole("button", { name: "ขยายหน้าต่าง" }).click();
+  await expect(chat).toHaveClass(/\bexpanded\b/);
+  await expect(chat.getByRole("button", { name: "ย่อหน้าต่าง" })).toHaveAttribute("aria-pressed", "true");
+  await chat.getByRole("button", { name: "ย่อหน้าต่าง" }).click();
+  await expect(chat).not.toHaveClass(/\bexpanded\b/);
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  await expect(chat.getByRole("button", { name: "ขยายหน้าต่าง" })).toBeHidden();
+});

@@ -48,6 +48,8 @@ function getBrowser() {
 
 function scheduleIdleClose() {
   if (activeRenders > 0 || !sharedBrowser) return;
+  // นับเวลาว่างใหม่จากครั้งล่าสุด ตัวจับเวลาเก่าที่ค้างอยู่จะได้ไม่ปิดเบราว์เซอร์ก่อนกำหนด
+  if (idleTimer) clearTimeout(idleTimer);
   const browser = sharedBrowser;
   idleTimer = setTimeout(() => {
     idleTimer = null;
@@ -57,6 +59,13 @@ function scheduleIdleClose() {
   }, idleCloseMs);
   // ตัวจับเวลานี้ไม่ควรกันไม่ให้ process ปิดตัวตอนเซิร์ฟเวอร์หยุด
   idleTimer.unref?.();
+}
+
+// เปิดเบราว์เซอร์รอไว้ตอนเจ้าของหอเข้าหน้าที่มีปุ่มดูตัวอย่าง ระหว่างที่ยังดูรายการอยู่ Chromium ก็พร้อมแล้ว
+// ไม่งั้นคนแรกที่กดหลังเครื่องว่างต้องรอเปิดเบราว์เซอร์ราว 10 วินาที ไม่รอผลและไม่โยน error
+// ถ้าเปิดไม่ขึ้น คำขอสร้าง PDF จริงจะลองใหม่และบอกผู้ใช้เอง
+export function warmPdfBrowser() {
+  void getBrowser().then(() => scheduleIdleClose(), () => undefined);
 }
 
 // แปลง HTML เป็น PDF ด้วยเบราว์เซอร์จริง เพราะต้องได้ผลตรงกับที่เห็นในตัวแก้ไข

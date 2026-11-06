@@ -247,7 +247,7 @@ function AccountMenu({ accountAvatarUrl, accountEmail, accountName, activePage, 
         <span>{accountName}</span>
         {accountEmail ? <small>{accountEmail}</small> : null}
       </p>
-      <button onClick={() => go("account")} type="button"><ShieldCheck size={18} /> บัญชีและความปลอดภัย</button>
+      <button onClick={() => go("account")} type="button"><ShieldCheck size={18} /> บัญชีของฉัน</button>
       <span />
       <button onClick={() => go("help")} type="button"><HelpCircle size={18} /> ช่วยเหลือ</button>
       <span />

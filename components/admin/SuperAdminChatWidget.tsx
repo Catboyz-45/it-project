@@ -6,7 +6,7 @@ import { Building2, ChevronDown, ChevronLeft, X } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadMoreButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowSizeButton } from "@/components/chat/ChatParts";
 import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
 import { chatListTime } from "@/lib/chat-time";
 
@@ -43,7 +43,6 @@ type SupportMessage = {
 export function SuperAdminChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [selected, setSelected] = useState<SupportConversation | null>(null);
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [page, setPage] = useState(1);
@@ -135,12 +134,7 @@ export function SuperAdminChatWidget() {
           <strong>{selected?.propertyName ?? "ข้อความจากหอพัก"}</strong>
         </div>
         <div className="chat-header-actions">
-          <WindowOptionsMenu
-            isExpanded={isExpanded}
-            isMenuOpen={isOptionsOpen}
-            onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
-            onToggleMenu={() => setIsOptionsOpen((current) => !current)}
-          />
+          <WindowSizeButton isExpanded={isExpanded} onToggle={() => setIsExpanded((current) => !current)} />
           <IconButton label="ปิดหน้าต่างข้อความ" onClick={() => setIsOpen(false)}><X aria-hidden="true" size={22} /></IconButton>
         </div>
       </header>
@@ -154,7 +148,7 @@ export function SuperAdminChatWidget() {
           isLoading={isLoadingList}
           isLoadingMore={isLoadingMore}
           onLoadMore={() => void loadConversations(page + 1, true)}
-          onOpen={(conversation) => { setSelected(conversation); setIsOptionsOpen(false); }}
+          onOpen={(conversation) => setSelected(conversation)}
         /> : (
           <ChatMessageList
             emptyState={<ChatEmptyState description="ข้อความจะส่งถึงเจ้าของหอนี้" title="ยังไม่มีข้อความ" />}

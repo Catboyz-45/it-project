@@ -7,7 +7,7 @@ import { ChevronDown, ChevronLeft, Headset, Search, X } from "lucide-react";
 import type { Tenant } from "@/types/dorm";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatLauncher, ChatMessageList, UnreadBadge, WindowSizeButton } from "@/components/chat/ChatParts";
 import { IconButton } from "@/components/ui/IconButton";
 import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
 import { chatListTime, chatRoomBadge } from "@/lib/chat-time";
@@ -100,7 +100,6 @@ export function ChatWidget({
 }>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [view, setView] = useState<ChatView>("tenants");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -148,7 +147,6 @@ export function ChatWidget({
   useEffect(() => {
     if (!openRequest || openRequest.nonce <= 0) return;
     setIsOpen(true);
-    setIsOptionsOpen(false);
     if (openRequest.ticketId) {
       const ticketId = openRequest.ticketId;
       void refreshTickets(ticketId).then(() => {
@@ -197,15 +195,13 @@ export function ChatWidget({
   const openTenantChat = (tenantId: string) => {
     setSelectedTenantId(tenantId);
     setView("chat");
-    setIsOptionsOpen(false);
   };
   const openTicket = (ticketId: string) => {
     setSelectedTicketId(ticketId);
     setView("ticket");
-    setIsOptionsOpen(false);
   };
-  const backToList = () => { setIsOptionsOpen(false); setView("tenants"); };
-  const close = () => { setIsOptionsOpen(false); setIsOpen(false); };
+  const backToList = () => setView("tenants");
+  const close = () => setIsOpen(false);
 
   // เลื่อนสถานะเรื่องจากในแชท ใช้ API เดียวกับหน้าแจ้งซ่อม ส่งเวลาที่แก้ล่าสุดไปกันการบันทึกทับกัน
   const changeTicketStatus = async (ticket: TicketInboxItem, status: "ACKNOWLEDGED" | "RESOLVED") => {
@@ -243,11 +239,9 @@ export function ChatWidget({
         <ChatWidgetHeader
           contact={view === "chat" ? selectedContact : undefined}
           isExpanded={isExpanded}
-          isMenuOpen={isOptionsOpen}
           onBackToList={backToList}
           onClose={close}
-          onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
-          onToggleMenu={() => setIsOptionsOpen((current) => !current)}
+          onToggleExpanded={() => setIsExpanded((current) => !current)}
         />
 
         <div className="chat-widget-body">
@@ -347,14 +341,12 @@ function ContactAvatar({ contact, size = "md" }: Readonly<{ contact: ChatContact
 }
 
 // หัวหน้าต่างคนละแบบ ในห้องสนทนามีปุ่มย้อนกลับกับชื่อคู่สนทนา
-function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClose, onToggleExpanded, onToggleMenu }: Readonly<{
+function ChatWidgetHeader({ contact, isExpanded, onBackToList, onClose, onToggleExpanded }: Readonly<{
   contact: ChatContact | undefined;
   isExpanded: boolean;
-  isMenuOpen: boolean;
   onBackToList: () => void;
   onClose: () => void;
   onToggleExpanded: () => void;
-  onToggleMenu: () => void;
 }>) {
   if (!contact) {
     // หน้ารายชื่อเป็นหน้าแรกของหน้าต่าง ไม่มีที่ให้ย้อนกลับ ปุ่มย้อนกลับที่ทำงานเหมือนปุ่มปิดทำให้สับสน
@@ -373,7 +365,7 @@ function ChatWidgetHeader({ contact, isExpanded, isMenuOpen, onBackToList, onClo
       </span>
     </div>
     <div className="chat-header-actions">
-      <WindowOptionsMenu isExpanded={isExpanded} isMenuOpen={isMenuOpen} onToggleExpanded={onToggleExpanded} onToggleMenu={onToggleMenu} />
+      <WindowSizeButton isExpanded={isExpanded} onToggle={onToggleExpanded} />
       <IconButton label="ปิดหน้าต่างข้อความ" onClick={onClose}><X size={20} /></IconButton>
     </div>
   </header>;

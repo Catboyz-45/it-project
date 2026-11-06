@@ -44,7 +44,7 @@ const settingSections: Array<{ key: SettingsSection; label: string; icon: Compon
   { key: "documents", label: "เอกสาร", icon: FileText },
   { key: "invitations", label: "คำเชิญผู้เช่า", icon: MailPlus },
   { key: "subscription", label: "แพ็กเกจและการต่ออายุ", icon: CreditCard },
-  { key: "account", label: "บัญชีและความปลอดภัย", icon: UserRound },
+  { key: "account", label: "บัญชีของฉัน", icon: UserRound },
 ];
 // แยก account ออก เพราะเป็นเรื่องของบัญชีผู้ใช้ ไม่ใช่การตั้งค่าหอ และมีหน้าตาคนละแบบ
 // คำอธิบายใต้หัวข้อของแต่ละหมวด บอกว่าหมวดนี้ตั้งค่าอะไร ไม่ใช้ประโยคเดียวกันทุกหมวด
@@ -125,9 +125,15 @@ export function SettingsPage({
   const [saveState, setSaveState] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   // ข้อความบันทึกแล้วเป็นของแท็บที่กดบันทึก เปลี่ยนแท็บแล้วต้องหาย ไม่งั้นดูเหมือนแท็บใหม่ถูกบันทึกไปด้วย
+  // จดหมวดไว้ใน URL ด้วย รีเฟรชหรือส่งลิงก์ต่อแล้วจะกลับมาหมวดเดิม ไม่เด้งไปหมวดแรก
+  // ใช้ replaceState เพราะสลับหมวดไม่ควรเพิ่มประวัติให้ต้องกดย้อนกลับทีละหมวด
   const changeSection = (section: SettingsSection) => {
     setActiveSection(section);
     setSaveState(null);
+    const url = new URL(window.location.href);
+    if (section === initialSection) url.searchParams.delete("section");
+    else url.searchParams.set("section", section);
+    window.history.replaceState(null, "", url);
   };
   const handleSettingsKeyDown = useTablistKeyboard(systemSettingSectionKeys, changeSection);
   const notify = useToast();

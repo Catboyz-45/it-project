@@ -43,7 +43,7 @@ import { DropdownField } from "@/components/dorm/DropdownField";
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { RetryButton } from "@/components/ui/DataNavigation";
 import { useChatThread } from "@/components/chat/use-chat-thread";
-import { ChatComposer, ChatEmptyState, ChatMessageList, WindowOptionsMenu } from "@/components/chat/ChatParts";
+import { ChatComposer, ChatEmptyState, ChatMessageList, WindowSizeButton } from "@/components/chat/ChatParts";
 import { TicketChatThread, TicketIcon, TicketInboxRow, ticketStatusTone, ticketTypeLabel } from "@/components/chat/TicketChatThread";
 import { closedTicketNotice, ticketAcceptsReplies, type TicketInboxItem, type TicketInboxStatus } from "@/lib/ticket-inbox";
 import { Dialog } from "@/components/ui/Dialog";
@@ -1605,7 +1605,7 @@ function TicketDialog({ onClose, onCreated }: Readonly<{ onClose: () => void; on
     {form.type === "COMPLAINT" ? <label className="flex items-center gap-2"><input checked={form.isAnonymous} className="size-5 min-h-0" onChange={(event) => setForm({ ...form, isAnonymous: event.target.checked })} type="checkbox" /> ไม่แสดงชื่อกับผู้ดูแลหอ</label> : null}
     {/* ช่องแนบหน้าตาเดียวกับช่องแนบสลิป แทนปุ่มเลือกไฟล์ของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษ "Choose File" */}
     <div className="grid gap-1.5">
-      <span className="text-sm font-semibold">แนบไฟล์ (ไม่บังคับ)</span>
+      <span className="text-sm font-medium text-[#292a30]">แนบไฟล์ (ไม่บังคับ)</span>
       <label className="slip-picker">
         <input accept="image/png,image/jpeg,application/pdf,.pdf" className="sr-only" onChange={(event) => { const next = event.target.files?.[0] ?? null; if (next && next.size > 5 * 1024 * 1024) { setError("ไฟล์ต้องมีขนาดไม่เกิน 5 MB"); event.target.value = ""; setFile(null); return; } setError(""); setFile(next); }} type="file" />
         <span className="slip-picker-icon">{file ? <FileText aria-hidden="true" size={24} /> : <ImagePlus aria-hidden="true" size={24} />}</span>
@@ -1731,7 +1731,6 @@ function TenantChat({
 }>) {
   const composerInputRef = useRef<HTMLInputElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const {
     attachment, endRef, error, fileInputRef, hasOlderMessages, isLoading, isLoadingOlder,
     isReady, isSending, loadOlderMessages, message, messages, scrollRef, sendMessage,
@@ -1793,12 +1792,7 @@ function TenantChat({
           </span>
         </div>
         <div className="chat-header-actions">
-          <WindowOptionsMenu
-            isExpanded={isExpanded}
-            isMenuOpen={isOptionsOpen}
-            onToggleExpanded={() => { setIsExpanded((current) => !current); setIsOptionsOpen(false); }}
-            onToggleMenu={() => setIsOptionsOpen((current) => !current)}
-          />
+          <WindowSizeButton isExpanded={isExpanded} onToggle={() => setIsExpanded((current) => !current)} />
           <IconButton label="ปิดช่องแชท" onClick={onClose}><X aria-hidden="true" size={20} /></IconButton>
         </div>
       </header>

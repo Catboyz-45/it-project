@@ -4,7 +4,7 @@ import { ticketStatusLabels } from "@/lib/ui-labels";
 import { OwnerSectionPanel } from "@/components/dorm/DormDashboard";
 import type { PageKey } from "@/types/navigation";
 import { ownerPageFromSegments } from "@/lib/navigation-routes";
-import { requirePageAuth } from "@/lib/server/auth";
+import { getPageAuth, requirePageAuth } from "@/lib/server/auth";
 import { listLeases } from "@/lib/server/leases";
 import { listSaasPlans } from "@/lib/server/saas";
 import { listPropertySubscriptionOrders } from "@/lib/server/subscription-orders";
@@ -13,6 +13,7 @@ import { listInvitationRoomOptions, listInvitations, listPendingOccupancies } fr
 import { listAdminTickets, listParcels } from "@/lib/server/property-operations";
 import { listPaymentSubmissions } from "@/lib/server/payments";
 import { toClientData } from "@/lib/server/client-data";
+import { warmPdfBrowser } from "@/lib/documents/pdf";
 import { formatThaiDateTime } from "@/lib/thai-format";
 
 // [...section] รับได้ทุกเส้นทางย่อยของหอ ทำให้ทุกหน้าใช้ไฟล์เดียวกัน
@@ -39,6 +40,13 @@ export default async function PropertyWorkspaceSectionPage({
   if (!activePage || activePage === "overview") notFound();
   // หน้าบิลรับ ?tab=payments เพื่อเปิดมาที่แท็บตรวจการชำระเลย ใช้กับลิงก์จากการแจ้งเตือน
   const invoiceView = activePage === "invoices" && tab === "payments" ? "payments" : "invoices";
+  // สองหน้านี้มีปุ่มดูตัวอย่าง PDF เปิดเบราว์เซอร์รอไว้ระหว่างที่เจ้าของหอยังดูรายการอยู่ ไม่ต้องรอผล
+  // page กับ layout ทำงานพร้อมกัน จึงตรวจสิทธิ์เองก่อน คนที่ไม่ได้เข้าสู่ระบบจะได้สั่งเปิดเบราว์เซอร์ไม่ได้
+  if (activePage === "invoices" || activePage === "contracts") {
+    void getPageAuth().then((viewer) => {
+      if (viewer && viewer.role !== "SUPER_ADMIN" && viewer.propertyIds.includes(propertyId)) warmPdfBrowser();
+    }, () => undefined);
+  }
   // layout ตรวจสิทธิ์ในหอนี้ไปแล้ว ตรงนี้จึงดึงข้อมูลของหน้าได้เลย
   // ดึงเฉพาะหน้าที่ต้องใช้ หน้าอื่นได้ข้อมูลจาก read model ใน layout อยู่แล้ว
   // ประวัติซ่อมต้องรู้ว่าใครเปิดดู เพราะจำนวนที่ยังไม่อ่านนับแยกตามคน
