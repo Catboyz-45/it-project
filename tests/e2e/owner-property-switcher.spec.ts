@@ -20,6 +20,9 @@ test("property switcher shows room counts and closes like a menu", async ({ page
   const items = menu.getByRole("menuitem");
   await expect(items).toHaveCount(2);
   for (const item of await items.all()) await expect(item).toContainText(/\d+ ห้อง/);
+  // สองหอในเมนูเดียวกันต้องได้สีไม่ซ้ำกัน แยกด้วยตาได้
+  const tones = await menu.locator(".property-avatar").evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-tone")));
+  expect(new Set(tones).size).toBe(tones.length);
 
   // เปิดแล้วโฟกัสอยู่ที่หอที่ดูอยู่ ลูกศรเลื่อนไปหออื่นได้
   const current = menu.locator('[aria-current="true"]');

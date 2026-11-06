@@ -32,7 +32,7 @@ import { appSidebarId, NavToggle } from "@/components/ui/NavShell";
 import { AccountChip } from "@/components/ui/AccountChip";
 import { rovingIndex } from "@/components/ui/use-tablist-keyboard";
 import { firstInitial } from "@/lib/account-initials";
-import { propertyTone } from "@/lib/property-tone";
+import { assignPropertyTones, type PropertyTone } from "@/lib/property-tone";
 
 export type DashboardProperty = { id: string; name: string; shortName: string; rooms?: number };
 
@@ -141,6 +141,7 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const tones = assignPropertyTones(availableProperties.map(({ id }) => id));
 
   // เปิดแล้วโฟกัสหอที่ดูอยู่ คลิกนอกเมนูหรือกด Escape แล้วปิด เหมือนเมนูบัญชีข้างล่าง
   useEffect(() => {
@@ -192,7 +193,7 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
   // ปุ่มด้านบนบอกว่ากำลังดูหอไหน ด้วยตัวย่อและสีของหอนั้น แทนโลโก้ระบบที่เหมือนกันทุกหอ
   return <div className="sidebar-property" ref={rootRef}>
     <button aria-controls={isOpen ? menuId : undefined} aria-expanded={isOpen} aria-haspopup="menu" aria-label={`เปลี่ยนหอพัก ตอนนี้ดู ${activeProperty.name}`} className="brand" onClick={() => setIsOpen((current) => !current)} ref={triggerRef} type="button">
-      <PropertyMark property={activeProperty} />
+      <PropertyMark property={activeProperty} tone={tones.get(activeProperty.id)} />
       <span className="brand-copy">
         <strong>{activeProperty.shortName}</strong>
         {/* ลูกศรขึ้นลงข้างท้ายบอกอยู่แล้วว่ากดเปลี่ยนหอได้ บรรทัดนี้จึงบอกแค่จำนวนห้อง แถบข้างแคบจะได้ไม่ตัดบรรทัด */}
@@ -205,7 +206,7 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
       {availableProperties.map((property) => {
         const isCurrent = property.id === propertyId;
         return <button aria-current={isCurrent ? "true" : undefined} className={isCurrent ? "is-current" : undefined} key={property.id} onClick={() => openProperty(property.id)} role="menuitem" type="button">
-          <PropertyMark property={property} />
+          <PropertyMark property={property} tone={tones.get(property.id)} />
           <span>
             <strong>{property.shortName}</strong>
             {property.rooms !== undefined || isCurrent ? <small>{[property.rooms !== undefined ? `${property.rooms} ห้อง` : null, isCurrent ? "กำลังดูอยู่" : null].filter(Boolean).join(" · ")}</small> : null}
@@ -218,8 +219,8 @@ function PropertySwitcher({ activeProperty, availableProperties, propertyId }: R
 }
 
 // ตัวย่อของหอบนพื้นสีประจำหอ ภาษาไทยข้ามสระหน้าไปเอาพยัญชนะ "เรือนไทย" ได้ "ร" ไม่ใช่ "เ"
-function PropertyMark({ property }: Readonly<{ property: DashboardProperty }>) {
-  return <span aria-hidden="true" className="property-avatar" data-tone={propertyTone(property.id)}>{firstInitial(property.shortName)}</span>;
+function PropertyMark({ property, tone }: Readonly<{ property: DashboardProperty; tone?: PropertyTone }>) {
+  return <span aria-hidden="true" className="property-avatar" data-tone={tone}>{firstInitial(property.shortName)}</span>;
 }
 
 function MetersMenu({ activePage, propertyId }: Readonly<{ activePage: PageKey; propertyId: string }>) {
