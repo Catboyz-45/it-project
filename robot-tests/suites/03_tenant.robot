@@ -75,15 +75,16 @@ TC-TEN-004 ส่งหลักฐานโดยไม่แนบสลิป
 TC-TEN-005 ดูสัญญาเช่า
     [Documentation]    Section: สัญญา
     ...    Function: สัญญาปัจจุบัน
-    ...    Desc: หน้าสัญญาต้องแสดงเลขสัญญาและลิงก์เปิดเอกสารที่ลงนามแล้ว
+    ...    Desc: หน้าสัญญาต้องแสดงเลขสัญญา และบอกว่ายังไม่มีไฟล์ลงนามแทนการโชว์ปุ่มที่กดแล้วไม่เจอไฟล์
     ...    Type: P
-    ...    Data: สัญญา CTR-DEMO-101
+    ...    Data: สัญญา CTR-DEMO-101 (ข้อมูลเดโมไม่มีไฟล์สัญญาที่ลงนามแล้ว)
     ...    Steps: 1. เปิดเมนู "สัญญา"
-    ...    Expected: เห็น "CTR-DEMO-101" และลิงก์ "เปิดเอกสารลงนาม"
+    ...    Expected: เห็น "CTR-DEMO-101" และข้อความว่าเจ้าของหอยังไม่ได้อัปโหลดไฟล์ ไม่มีลิงก์ "เปิดเอกสารลงนาม"
     Go To Page    /tenant/lease
     Wait Until Page Contains    CTR-DEMO-101
-    Page Should Contain Link    เปิดเอกสารลงนาม
-    Record Actual    แสดงสัญญา CTR-DEMO-101 พร้อมลิงก์เปิดเอกสารลงนาม
+    Page Should Contain    เจ้าของหอยังไม่ได้อัปโหลดไฟล์สัญญาที่ลงนามแล้ว
+    Page Should Not Contain Link    เปิดเอกสารลงนาม
+    Record Actual    แสดงสัญญา CTR-DEMO-101 และแจ้งว่ายังไม่มีไฟล์ลงนาม
 
 TC-TEN-006 ดูประกาศจากหอพัก
     [Documentation]    Section: ประกาศ
