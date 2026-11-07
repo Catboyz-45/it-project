@@ -261,7 +261,7 @@ export function DropdownField({
         type="button"
       >
         <span className={selectedOption?.placeholder ? "dropdown-trigger-value is-placeholder" : "dropdown-trigger-value"}>{selectedOption?.label ?? "เลือกข้อมูล"}</span>
-        <ChevronDown aria-hidden="true" className={isOpen ? "open" : ""} size={18} />
+        <ChevronDown aria-hidden="true" className={isOpen ? "open" : ""} size={16} strokeWidth={1.75} />
       </button>
       {isOpen && popoverStyle && typeof document !== "undefined" ? createPortal(
         <div className="dropdown-popover" ref={popoverRef} style={popoverStyle}>

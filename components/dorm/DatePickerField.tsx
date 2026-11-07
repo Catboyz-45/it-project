@@ -321,7 +321,7 @@ export function DatePickerField({
         <button aria-controls={`${pickerId}-calendar`} aria-expanded={isOpen} aria-haspopup="dialog" aria-label={plainLabel} className={isOpen ? "schedule-date-trigger active" : "schedule-date-trigger"} onClick={toggleOpen} ref={triggerRef} type="button">
           {/* ยังไม่ได้เลือกให้เป็นสีเทาแบบช่องว่าง ไม่ดูเหมือนเลือกไปแล้ว */}
           <span className={value ? undefined : "is-placeholder"}>{value ? formatDisplayDate(value) : placeholder}</span>
-          <CalendarDays aria-hidden="true" size={18} />
+          <CalendarDays aria-hidden="true" size={16} strokeWidth={1.75} />
         </button>
         {isOpen ? (
           <dialog

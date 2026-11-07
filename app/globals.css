@@ -315,8 +315,12 @@
   .dropdown-trigger-value { @apply min-w-0 truncate; }
   /* ยังไม่ได้เลือกให้เป็นสีเดียวกับ placeholder ของช่องพิมพ์ ไม่ดูเหมือนมีค่าแล้ว */
   :is(.dropdown-trigger, .schedule-date-trigger) .is-placeholder { color: var(--ui-control-placeholder); }
-  .dropdown-trigger > svg { @apply shrink-0 transition-transform duration-200; }
-  .dropdown-trigger > svg.open { @apply rotate-180; }
+  /* ลูกศรกับไอคอนปฏิทินเป็นสัญลักษณ์บอกว่ากดได้ ไม่ใช่ข้อมูล จึงเป็นเทาบางให้ค่าที่เลือกเด่นกว่า
+     เข้มขึ้นตอนชี้ และเป็นม่วงตอนเปิด ให้เข้ากับกรอบช่องที่เป็นม่วงอยู่แล้ว */
+  .dropdown-trigger > svg { @apply shrink-0 text-[#6b6d75] transition-[transform,color] duration-200; }
+  .dropdown-trigger:hover:not(:disabled) > svg { @apply text-[#3f4148]; }
+  .dropdown-trigger.open > svg.open { @apply rotate-180 text-brand; }
+  :is(.dropdown-trigger, .schedule-date-trigger):disabled svg { @apply text-[#a1a1aa]; }
   /* ลอยอยู่นอกกล่องที่ครอบด้วย position fixed ตำแหน่งและความกว้างมาจาก DropdownField ตามปุ่ม */
   .dropdown-popover {
     @apply fixed z-[100];
@@ -393,7 +397,9 @@
     @apply flex min-h-12 w-full items-center justify-between rounded-md border border-[#8b8d96] bg-[#fff] px-3 text-left text-sm font-medium text-[#292a30] transition-colors hover:bg-[#fafafa] focus-visible:ring-brand;
   }
   .schedule-date-trigger.active { @apply border-brand bg-[#fff]; }
-  .schedule-date-trigger svg { @apply shrink-0 text-[#60616b]; }
+  .schedule-date-trigger svg { @apply shrink-0 text-[#6b6d75] transition-colors duration-200; }
+  .schedule-date-trigger:hover:not(:disabled) svg { @apply text-[#3f4148]; }
+  .schedule-date-trigger.active[aria-expanded="true"] svg { @apply text-brand; }
   /* จอใหญ่ใช้เมาส์ ปฏิทินกะทัดรัด 260px ช่องวันสูง 30px จอสัมผัสยังกว้างและช่องสูง 44px ให้นิ้วกดง่าย */
   .schedule-calendar {
     @apply absolute top-full left-0 z-[90] mt-2 w-[min(336px,calc(100vw-48px))] rounded-xl border border-[#e4e4e7] bg-[#fff] p-3 text-[#292a30] shadow-[0_10px_28px_rgba(0,0,0,.10),0_2px_6px_rgba(0,0,0,.05)] lg:mt-1.5 lg:w-[260px] lg:rounded-[10px] lg:p-2;
