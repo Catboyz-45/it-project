@@ -277,30 +277,31 @@ test.describe("Owner accessibility controls", () => {
   test("dropdown supports complete keyboard navigation and type-ahead", async ({ page }) => {
     await login(page, e2e.ownerEmail);
     await page.goto(`/admin/properties/${e2e.propertyId}/invoices`);
+    // หน้ารายการบิลกรองสถานะจากการ์ดสรุปแล้ว กล่องตัวเลือกที่เหลืออยู่ในแท็บตรวจสอบการชำระ
+    await page.getByRole("button", { name: "ตรวจสอบการชำระ", exact: true }).click();
 
-    const trigger = page.getByRole("button", { name: "กรองสถานะ" });
+    const trigger = page.getByRole("button", { name: "กรองสถานะหลักฐานการชำระ" });
     await trigger.focus();
     await page.keyboard.press("ArrowDown");
-    await expect(page.getByRole("option", { name: "ทุกสถานะ" })).toBeFocused();
+    await expect(page.getByRole("option", { name: "รอตรวจสอบ" })).toBeFocused();
 
     await page.keyboard.press("ArrowDown");
-    await expect(page.getByRole("option", { name: "ฉบับร่าง" })).toBeFocused();
+    await expect(page.getByRole("option", { name: "อนุมัติแล้ว" })).toBeFocused();
     await page.keyboard.press("End");
-    await expect(page.getByRole("option", { name: "ยกเลิก" })).toBeFocused();
-    await page.keyboard.press("Home");
     await expect(page.getByRole("option", { name: "ทุกสถานะ" })).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(page.getByRole("option", { name: "รอตรวจสอบ" })).toBeFocused();
 
     // พิมพ์ทีละตัวอักษรเพื่อทดสอบการหาตัวเลือกจากสิ่งที่พิมพ์ ต้องกระโดดไปที่ตรงกันได้
-    for (const key of Array.from("ค้าง")) {
+    for (const key of Array.from("ปฏิ")) {
       await page.locator(":focus").dispatchEvent("keydown", { key });
     }
-    await expect(page.getByRole("option", { name: "ค้างชำระ" })).toBeFocused();
+    await expect(page.getByRole("option", { name: "ปฏิเสธ" })).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(trigger).toContainText("ค้างชำระ");
-
+    await expect(trigger).toContainText("ปฏิเสธ");
     await trigger.focus();
     await page.keyboard.press("Space");
-    await expect(page.getByRole("option", { name: "ค้างชำระ" })).toBeFocused();
+    await expect(page.getByRole("option", { name: "ปฏิเสธ" })).toBeFocused();
     // Escape ต้องปิดแล้วส่งโฟกัสกลับปุ่มที่กดเปิด ไม่ใช่ปล่อยโฟกัสหายไป
     await page.keyboard.press("Escape");
     await expect(trigger).toBeFocused();

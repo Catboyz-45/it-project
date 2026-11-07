@@ -8,14 +8,16 @@ import { TablePagination, useTablePagination } from "@/components/dorm/TablePagi
 import { ReadOnlyNotice } from "@/components/dorm/ReadOnlyNotice";
 import { useTablistKeyboard } from "@/components/ui/use-tablist-keyboard";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { roomTypeLabel } from "@/lib/ui-labels";
 import { formatThaiDate, formatThaiMonth, formatThaiPhone } from "@/lib/thai-format";
 
 type StatusFilter = "all" | Room["status"];
 
+// การ์ดสรุปจำนวนห้องด้านบนใช้กรองสถานะไปด้วย ห้องทั้งหมดใช้ล้างตัวกรอง
 const statusFilters: Array<{ key: StatusFilter; label: string }> = [
-  { key: "all", label: "ทั้งหมด" },
+  { key: "all", label: "ห้องทั้งหมด" },
   { key: "occupied", label: "มีผู้เช่า" },
   { key: "available", label: "ว่าง" },
   { key: "maintenance", label: "ปิดซ่อม" },
@@ -86,18 +88,17 @@ export function RoomsPage({
   return (
     <section className="figma-rooms-page rooms-page-content">
       {readOnly ? <ReadOnlyNotice>เลือกห้องเพื่อดูรายละเอียดได้ และยังกรองชั้นหรือเปลี่ยนรูปแบบการแสดงผลได้ แต่ไม่สามารถแก้ไขข้อมูลห้อง</ReadOnlyNotice> : null}
-      <div aria-label="กรองตามสถานะห้อง" className="filter-chips" role="group">
-        {statusFilters.map((filter) => <button
-          aria-pressed={statusFilter === filter.key}
+      <SummaryCards label="กรองตามสถานะห้อง">
+        {statusFilters.map((filter) => <SummaryCard
+          dot={filter.key === "all" ? undefined : filter.key}
           key={filter.key}
-          onClick={() => setStatusFilter(filter.key)}
-          type="button"
-        >
-          {filter.key === "all" ? null : <span className="status-dot" data-status={filter.key} />}
-          {filter.label}
-          <span className="filter-chip-count">{statusCounts[filter.key]}</span>
-        </button>)}
-      </div>
+          label={filter.label}
+          onSelect={() => setStatusFilter(filter.key)}
+          pressed={statusFilter === filter.key}
+          unit="ห้อง"
+          value={statusCounts[filter.key]}
+        />)}
+      </SummaryCards>
       <div className="rooms-view-toolbar">
         <div className="figma-inline-tabs floor-tabs" aria-label="เลือกชั้น" onKeyDown={handleFloorKeyDown} role="tablist" tabIndex={-1}>
           <button aria-controls="rooms-results-panel" aria-selected={selectedFloor === "all"} className={selectedFloor === "all" ? "active" : ""} id="rooms-floor-tab-all" onClick={() => setSelectedFloor("all")} role="tab" tabIndex={selectedFloor === "all" ? 0 : -1} type="button">ทุกชั้น</button>

@@ -21,6 +21,7 @@ import { useConfirmation } from "@/components/ui/use-confirmation";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // สองมุมมองของหน้านี้ รอรับกับประวัติที่รับไปแล้ว หน้าแม่เป็นคนบอกว่าอยู่มุมมองไหน
 export type ParcelView = "waiting" | "history";
@@ -179,12 +180,12 @@ export function ParcelsPage({
       {requestError && !isRegisterOpen ? <p className="form-alert error" role="alert">{requestError}</p> : null}
       {readOnly ? <ReadOnlyNotice>ดูรูป รายการรอรับ ประวัติ และโหลดรายการเพิ่มเติมได้ แต่ไม่สามารถลงทะเบียนหรือบันทึกการรับพัสดุ</ReadOnlyNotice> : null}
       {isLoading ? <LoadingSkeleton count={4} label="กำลังโหลดพัสดุ" variant="cards" /> : null}
-      <div className="figma-summary-grid four parcel-summary-grid">
-        <article className="figma-summary-card tone-indigo"><div><small>พัสดุเข้าวันนี้</small><strong>{summary.today} ชิ้น</strong></div><span><PackageCheck size={20} /></span></article>
-        <article className="figma-summary-card tone-orange"><div><small>รอผู้เช่ารับ</small><strong>{summary.waiting} ชิ้น</strong></div><span><PackageCheck size={20} /></span></article>
-        <article className="figma-summary-card tone-green"><div><small>รับแล้ว</small><strong>{summary.received} ชิ้น</strong></div><span><CheckCircle2 size={20} /></span></article>
-        <article className="figma-summary-card tone-red"><div><small>ค้างเกิน 3 วัน</small><strong>{summary.olderThanThreeDays} ชิ้น</strong></div><span><PackageCheck size={20} /></span></article>
-      </div>
+      <SummaryCards label="สรุปพัสดุ">
+        <SummaryCard label="พัสดุเข้าวันนี้" unit="ชิ้น" value={summary.today} />
+        <SummaryCard dot="pending" label="รอผู้เช่ารับ" unit="ชิ้น" value={summary.waiting} />
+        <SummaryCard dot="done" label="รับแล้ว" unit="ชิ้น" value={summary.received} />
+        <SummaryCard dot="urgent" label="ค้างเกิน 3 วัน" unit="ชิ้น" urgent={summary.olderThanThreeDays > 0} value={summary.olderThanThreeDays} />
+      </SummaryCards>
       <article className="repair-board">
         <div className="repair-board-head">
           <div>

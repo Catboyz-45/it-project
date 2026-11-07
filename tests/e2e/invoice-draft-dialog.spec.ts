@@ -11,7 +11,7 @@ test("invoice draft dialog lines read-only values up with its fields", async ({ 
   await expectLeftLoginPage(page);
 
   await page.goto(`/admin/properties/${e2e.propertyId}/invoices`);
-  await page.getByRole("button", { name: "สร้างร่างทั้งหอ" }).click();
+  await page.getByRole("button", { name: "สร้างร่างบิล" }).click();
   const dialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
   await expect(dialog).toBeVisible();
   await expect(dialog).not.toContainText("Draft-first");
@@ -40,7 +40,7 @@ test("invoice draft dropdowns float above the dialog and step two reads cleanly"
   await expectLeftLoginPage(page);
 
   await page.goto(`/admin/properties/${e2e.propertyId}/invoices`);
-  await page.getByRole("button", { name: "สร้างร่างทั้งหอ" }).click();
+  await page.getByRole("button", { name: "สร้างร่างบิล" }).click();
   const dialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
   await dialog.getByRole("button", { name: "เดือนที่ออกบิล" }).click();
   const listbox = page.getByRole("listbox");

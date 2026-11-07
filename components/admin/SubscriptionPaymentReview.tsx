@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
-import { BadgeCheck, Check, Clock3, ExternalLink, FileText, Inbox, Wallet, X } from "lucide-react";
+import { Check, ExternalLink, FileText, Inbox, X } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useSuperAdminNotifications } from "@/components/admin/SuperAdminNotifications";
 import { createApiError, formatClientError } from "@/lib/client/api-error";
@@ -14,6 +14,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { SearchSuggestField, type SearchSuggestion } from "@/components/ui/SearchSuggestField";
 import { subscriptionPaymentPageSize } from "@/lib/domain/saas";
 import { formatThaiDateTime } from "@/lib/thai-format";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 type PaymentStatus = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 // ข้อความตอนไม่มีรายการ แท็บ "ทั้งหมด" ไม่ใช่สถานะใดสถานะหนึ่ง จึงต้องพูดต่างจากแท็บอื่น
@@ -194,11 +195,11 @@ export function SubscriptionPaymentReview({
   }
 
   return <>
-    <div className="figma-summary-grid three subscription-review-summary">
-      <SummaryCard icon={<Clock3 size={20} />} label="รอตรวจ" tone="orange" value={`${summary.pending.toLocaleString("th-TH")} รายการ`} />
-      <SummaryCard icon={<BadgeCheck size={20} />} label="อนุมัติเดือนนี้" tone="green" value={`${summary.approvedThisMonth.toLocaleString("th-TH")} รายการ`} />
-      <SummaryCard icon={<Wallet size={20} />} label="รับเงินเดือนนี้" tone="indigo" value={formatAmount(summary.approvedAmountThisMonth)} />
-    </div>
+    <SummaryCards label="สรุปค่าสมาชิก">
+      <SummaryCard dot="pending" label="รอตรวจ" unit="รายการ" value={summary.pending.toLocaleString("th-TH")} />
+      <SummaryCard dot="done" label="อนุมัติเดือนนี้" unit="รายการ" value={summary.approvedThisMonth.toLocaleString("th-TH")} />
+      <SummaryCard label="รับเงินเดือนนี้" value={formatAmount(summary.approvedAmountThisMonth)} />
+    </SummaryCards>
 
     <section aria-label="ตรวจค่าสมาชิก" className="subscription-review">
       <div className="subscription-review-toolbar">
@@ -247,9 +248,6 @@ export function SubscriptionPaymentReview({
   </>;
 }
 
-function SummaryCard({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: string }>) {
-  return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
-}
 
 // ตารางรายการ กดแถวไหนแผงขวาก็แสดงสลิปของแถวนั้น
 // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีรายการในสถานะนี้ ต้องบอกคนละแบบ

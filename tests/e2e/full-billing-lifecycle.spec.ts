@@ -322,8 +322,10 @@ test("completes the critical tenant billing workflow through the owner and tenan
   }
 
   await openInvoicesPage(page, property.id);
-  await page.getByRole("button", { name: "สร้างร่างรายห้อง", exact: true }).click();
+  await page.getByRole("button", { name: "สร้างร่างบิล", exact: true }).click();
   const invoiceDialog = page.getByRole("dialog", { name: "สร้างร่างบิล" });
+  // ปุ่มเดียวเปิดที่ทั้งหอก่อน สลับเป็นห้องเดียวในขั้นแรกของหน้าต่าง
+  await invoiceDialog.getByRole("button", { name: "ห้องเดียว", exact: true }).click();
   await invoiceDialog.getByRole("button", { name: "เดือนที่ออกบิล", exact: true }).click();
   // รายการตัวเลือกลอยอยู่นอกหน้าต่าง ไม่ให้ขอบหน้าต่างตัด จึงหาจากทั้งหน้า
   await page.getByRole("option", { name: formatThaiMonth(billingMonth) }).click();

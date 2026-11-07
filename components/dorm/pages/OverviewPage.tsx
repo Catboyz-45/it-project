@@ -11,6 +11,7 @@ import { LEASE_EXPIRY_NOTICE_DAYS } from "@/lib/domain/lease-expiry";
 import { formatThaiDate, formatThaiMonth } from "@/lib/thai-format";
 import { alertTone } from "@/lib/domain/alert-urgency";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // เหลืออีกกี่วันถึงวันนั้น ติดลบคือเลยมาแล้ว
 // 86_400_000 คือจำนวนมิลลิวินาทีในหนึ่งวัน ส่วน ceil ทำให้เศษของวันนับเป็นหนึ่งวันเต็ม
@@ -271,34 +272,34 @@ export function OverviewPage({
   const collectedShare = percent(finance.collected, finance.billed);
 
   return <div className="overview">
-    <section aria-label="ตัวเลขสำคัญ" className="overview-kpis">
-      <article className="overview-kpi">
-        <p>{finance.cycleMonth ? `ยอดบิลรอบ${formatThaiMonth(finance.cycleMonth)}` : "ยอดบิลรอบล่าสุด"}</p>
-        <strong>{currency.format(finance.billed)}</strong>
-        <small>{finance.cycleMonth ? `${cycleInvoices.length} บิล` : "ยังไม่มีรอบบิล"}</small>
-      </article>
-      <article className="overview-kpi">
-        <p>เก็บได้แล้ว</p>
-        <strong>{currency.format(finance.collected)}</strong>
+    <SummaryCards label="ตัวเลขสำคัญ">
+      <SummaryCard
+        detail={finance.cycleMonth ? `${cycleInvoices.length} บิล` : "ยังไม่มีรอบบิล"}
+        label={finance.cycleMonth ? `ยอดบิลรอบ${formatThaiMonth(finance.cycleMonth)}` : "ยอดบิลรอบล่าสุด"}
+        value={currency.format(finance.billed)}
+      />
+      <SummaryCard
+        detail={`${collectedShare}% ของรอบนี้${finance.pendingPayments > 0 ? ` · สลิปรอตรวจ ${finance.pendingPayments}` : ""}`}
+        label="เก็บได้แล้ว"
+        value={currency.format(finance.collected)}
+      >
         <span aria-hidden="true" className="overview-progress" data-tone="done"><span style={{ width: `${Math.max(2, collectedShare)}%` }} /></span>
-        <small>{collectedShare}% ของรอบนี้{finance.pendingPayments > 0 ? ` · สลิปรอตรวจ ${finance.pendingPayments}` : ""}</small>
-      </article>
-      <article className="overview-kpi" data-tone={finance.overdueInvoices > 0 ? "urgent" : undefined}>
-        <p>เลยกำหนดชำระ</p>
-        <strong>{currency.format(finance.overdueAmount)}</strong>
-        <small>{finance.overdueInvoices > 0 ? `${finance.overdueInvoices} บิล` : "ไม่มีบิลเลยกำหนด"}</small>
-      </article>
-      <article className="overview-kpi">
-        <p>ห้องที่มีผู้เช่า</p>
-        <strong>{summary.occupied}<span> / {rooms.length} ห้อง</span></strong>
+      </SummaryCard>
+      <SummaryCard
+        badge={finance.overdueInvoices > 0 ? "ต้องตาม" : undefined}
+        detail={finance.overdueInvoices > 0 ? `${finance.overdueInvoices} บิล` : "ไม่มีบิลเลยกำหนด"}
+        label="เลยกำหนดชำระ"
+        urgent={finance.overdueInvoices > 0}
+        value={currency.format(finance.overdueAmount)}
+      />
+      <SummaryCard detail={`ว่าง ${availableRooms} · ปิดซ่อม ${maintenanceRooms}`} label="ห้องที่มีผู้เช่า" unit={`/ ${rooms.length} ห้อง`} value={summary.occupied}>
         <span aria-hidden="true" className="overview-share">
           {summary.occupied > 0 ? <span data-status="occupied" style={{ flexGrow: summary.occupied }} /> : null}
           {availableRooms > 0 ? <span data-status="available" style={{ flexGrow: availableRooms }} /> : null}
           {maintenanceRooms > 0 ? <span data-status="maintenance" style={{ flexGrow: maintenanceRooms }} /> : null}
         </span>
-        <small>ว่าง {availableRooms} · ปิดซ่อม {maintenanceRooms}</small>
-      </article>
-    </section>
+      </SummaryCard>
+    </SummaryCards>
 
     <div className="overview-row">
       <section aria-labelledby="today-title" className="overview-card today-card">

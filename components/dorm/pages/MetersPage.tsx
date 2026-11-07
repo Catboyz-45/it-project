@@ -14,6 +14,7 @@ import { useUnsavedChanges } from "@/lib/client/use-unsaved-changes";
 import { currentThaiMonth, formatThaiMonth, thaiMonthOptions } from "@/lib/thai-format";
 import { isMeterUsageWithinLimit, MAX_MONTHLY_METER_USAGE } from "@/lib/domain/billing";
 import { type MeterDraftField, meterDraftProblem } from "@/lib/domain/meter-draft";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // ห้องต่อหน้าของตาราง ใช้คำนวณว่าห้องที่ต้องตรวจอยู่หน้าไหน
 const meterPageSize = 10;
@@ -553,16 +554,18 @@ function MeterRowStatus({ abnormal, overLimit, saved }: Readonly<{ abnormal: boo
 function MeterProgress({ amount, drafted, mode, saved, total, warnings }: Readonly<{ amount: number; drafted: number; mode: "water" | "electric"; saved: number; total: number; warnings: number }>) {
   const done = Math.min(total, saved + drafted);
   const share = total > 0 ? Math.round((done / total) * 100) : 0;
-  return <section aria-label="ความคืบหน้าการจดมิเตอร์" className="meter-progress">
-    <div className="meter-progress-main">
-      <p><strong>จดแล้ว {done} จาก {total} ห้องที่มีผู้เช่า</strong>{drafted > 0 ? <span> · ยังไม่บันทึก {drafted} ห้อง</span> : null}</p>
-      <span aria-hidden="true" className="overview-progress"><span style={{ width: `${Math.max(2, share)}%` }} /></span>
-    </div>
-    <dl className="meter-progress-facts">
-      <div><dt>ค่า{mode === "water" ? "น้ำ" : "ไฟ"}รวมรอบนี้</dt><dd>฿{amount.toLocaleString("th-TH")}</dd></div>
-      <div><dt>ต้องตรวจอีกครั้ง</dt><dd data-tone={warnings > 0 ? "pending" : undefined}>{warnings} ห้อง</dd></div>
-    </dl>
-  </section>;
+  return <SummaryCards label="ความคืบหน้าการจดมิเตอร์">
+    <SummaryCard
+      detail={drafted > 0 ? `ยังไม่บันทึก ${drafted} ห้อง` : "นับเฉพาะห้องที่มีผู้เช่า"}
+      label="จดแล้ว"
+      unit={`/ ${total} ห้อง`}
+      value={done}
+    >
+      <span aria-hidden="true" className="overview-progress" data-tone="done"><span style={{ width: `${Math.max(2, share)}%` }} /></span>
+    </SummaryCard>
+    <SummaryCard label={`ค่า${mode === "water" ? "น้ำ" : "ไฟ"}รวมรอบนี้`} value={`฿${amount.toLocaleString("th-TH")}`} />
+    <SummaryCard dot={warnings > 0 ? "pending" : undefined} label="ต้องตรวจอีกครั้ง" unit="ห้อง" value={warnings} />
+  </SummaryCards>;
 }
 
 type MeterTableProps = Readonly<{

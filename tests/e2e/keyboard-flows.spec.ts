@@ -119,16 +119,14 @@ test.describe.serial("keyboard coverage for critical flows", () => {
     await keyboardLogin(page, e2e.ownerEmail);
 
     await page.goto(`/admin/properties/${e2e.propertyId}/invoices`);
-    const invoiceFilter = page.getByRole("button", { name: "กรองสถานะ" });
-    await invoiceFilter.focus();
-    // dropdown ต้องเปิดได้ทั้ง Space และ Enter แล้วโฟกัสลงตัวเลือกแรก
-    await page.keyboard.press("Space");
-    await expect(page.getByRole("option", { name: "ทุกสถานะ" })).toBeFocused();
-    await page.keyboard.press("ArrowDown");
+    // การ์ดสรุปเป็นปุ่มกรองสถานะ กด Enter แล้วต้องกรองและบอกสถานะว่ากดอยู่
+    const overdueCard = page.getByRole("group", { name: "สรุปบิลและกรองตามสถานะ" }).getByRole("button", { name: /ค้างชำระ/ });
+    await overdueCard.focus();
     await page.keyboard.press("Enter");
-    await expect(invoiceFilter).toBeFocused();
+    await expect(overdueCard).toHaveAttribute("aria-pressed", "true");
+    await expect(overdueCard).toBeFocused();
 
-    await page.goto(`/admin/properties/${e2e.propertyId}/water-meter`);
+    await page.goto(`/admin/properties/${e2e.propertyId}/meters/water`);
     const readings = page.locator('input[aria-label^="เลขมิเตอร์ล่าสุดห้อง"]');
     // กด Enter ในช่องจดมิเตอร์แล้วกระโดดไปห้องถัดไป คนจดจะได้พิมพ์รวดเดียวไม่ต้องละมือ
     // เช็คเฉพาะตอนที่มีห้องให้จด เดือนที่จดครบแล้วช่องจะถูกล็อก

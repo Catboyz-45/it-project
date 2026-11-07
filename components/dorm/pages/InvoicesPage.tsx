@@ -2,8 +2,7 @@
 // เก็บตัวกรอง โหลดข้อมูลทีละหน้า และเปิดกล่องโต้ตอบจากเบราว์เซอร์
 
 import { useCallback, useEffect, useState } from "react";
-import { Ban, CheckCircle2, Download, Eye, FileCheck2, FilePlus2, Files, ReceiptText, Search, X } from "lucide-react";
-import { DropdownField } from "@/components/dorm/DropdownField";
+import { Ban, CheckCircle2, Download, Eye, FileCheck2, FilePlus2, ReceiptText, Search, X } from "lucide-react";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import { generateDocumentPdf, previewDocumentPdf } from "@/lib/client/documents";
 import type { InvoiceDocumentData } from "@/lib/documents/placeholders";
@@ -17,20 +16,19 @@ import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Dialog } from "@/components/ui/Dialog";
 import { IconButton } from "@/components/ui/IconButton";
 import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { PageHeaderActions } from "@/components/ui/PageHeaderSlot";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 
 // หน้าบิล มีสองแท็บ รายการบิลของห้อง กับการตรวจหลักฐานการชำระ
-// แถบค้นหาและกรองของหน้าบิล รวมลิงก์ส่งออก CSV ที่ใช้เงื่อนไขเดียวกับที่กรองอยู่
-function InvoiceToolbar({ onGenerateSingle, onQueryChange, onStatusChange, propertyId, query, readOnly, statusFilter }: Readonly<{
-  onGenerateSingle: () => void;
+// แถบค้นหาของหน้าบิล รวมลิงก์ส่งออก CSV ที่ใช้เงื่อนไขเดียวกับที่กรองอยู่
+// สถานะกรองจากการ์ดสรุปด้านบน ไม่มีกล่องกรองซ้ำในแถบนี้
+function InvoiceToolbar({ onQueryChange, propertyId, query, statusFilter }: Readonly<{
   onQueryChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
   propertyId: string;
   query: string;
-  readOnly: boolean;
   statusFilter: string;
 }>) {
   const exportQuery = new URLSearchParams({ query: query.trim() });
@@ -39,50 +37,26 @@ function InvoiceToolbar({ onGenerateSingle, onQueryChange, onStatusChange, prope
   return <div className="figma-table-toolbar">
     <div><Search size={16} /><input aria-label="ค้นหาบิล" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาเลขที่บิล ห้อง หรือผู้เช่า..." value={query} /></div>
     <div className="contract-actions">
-      {/* ไม่มีป้ายชื่อเหนือกล่อง กล่องจะได้อยู่แนวเดียวกับปุ่มข้าง ๆ ตัวเลือกบอกอยู่แล้วว่ากรองอะไร */}
-      <DropdownField
-        ariaLabel="กรองสถานะ"
-        onChange={onStatusChange}
-        options={[
-          { value: "all", label: "ทุกสถานะ" },
-          { value: "draft", label: "ฉบับร่าง" },
-          { value: "paid", label: "ชำระแล้ว" },
-          { value: "pending", label: "รอชำระ" },
-          { value: "overdue", label: "ค้างชำระ" },
-          { value: "cancelled", label: "ยกเลิก" },
-        ]}
-        value={statusFilter}
-      />
       <a className="secondary-button" download href={`/api/v1/admin/properties/${propertyId}/exports/invoices?${exportQuery}`}><Download size={16} /> ส่งออก CSV</a>
-      {!readOnly ? <button className="secondary-button" onClick={onGenerateSingle} type="button"><FilePlus2 size={16} /> สร้างร่างรายห้อง</button> : null}
     </div>
   </div>;
 }
 
-type InvoiceSummaryCounts = { draft: number; paid: number; pending: number; overdue: number; total: string };
+type InvoiceSummaryCounts = { cancelled: number; draft: number; paid: number; pending: number; overdue: number; total: string };
 
-// แถบตัวเลขสรุปด้านบน กดแต่ละช่องเพื่อกรองบิลตามสถานะนั้นได้ทันที ใช้ค่าเดียวกับกล่องกรองสถานะ
-// ช่องค้างชำระเป็นตัวแดงเมื่อมีบิลค้าง ที่เหลือใช้สีข้อความปกติแบบ Cal
-function InvoiceSummaryStrip({ onFilter, statusFilter, summary }: Readonly<{ onFilter: (status: string) => void; statusFilter: string; summary: InvoiceSummaryCounts }>) {
-  const cells = [
-    { status: "all", label: "ยอดรวมทุกบิล", value: currency.format(Number(summary.total)) },
-    { status: "pending", label: "รอชำระ", value: `${summary.pending} บิล` },
-    { status: "overdue", label: "ค้างชำระ", value: `${summary.overdue} บิล`, urgent: summary.overdue > 0 },
-    { status: "paid", label: "ชำระแล้ว", value: `${summary.paid} บิล` },
-    { status: "draft", label: "ฉบับร่าง", value: `${summary.draft} บิล` },
-  ];
-  return <div aria-label="สรุปบิลและกรองตามสถานะ" className="money-strip" role="group">
-    {cells.map((cell) => <button
-      aria-pressed={statusFilter === cell.status}
-      data-tone={cell.urgent ? "urgent" : undefined}
-      key={cell.status}
-      onClick={() => onFilter(cell.status)}
-      type="button"
-    >
-      <span>{cell.label}</span>
-      <strong>{cell.value}</strong>
-    </button>)}
-  </div>;
+// การ์ดสรุปด้านบน กดแต่ละใบเพื่อกรองบิลตามสถานะนั้น การ์ด "ทั้งหมด" ใช้ล้างตัวกรอง
+// ยอดเงินไม่นับบิลที่ยกเลิก จำนวนบิลใต้ยอดจึงไม่นับด้วย ให้สองตัวเลขตรงกัน
+function InvoiceSummaryCards({ onFilter, statusFilter, summary }: Readonly<{ onFilter: (status: string) => void; statusFilter: string | null; summary: InvoiceSummaryCounts }>) {
+  const billed = summary.draft + summary.pending + summary.overdue + summary.paid;
+  const card = (status: string) => ({ onSelect: () => onFilter(status), pressed: statusFilter === status });
+  return <SummaryCards label="สรุปบิลและกรองตามสถานะ">
+    <SummaryCard {...card("all")} detail={`${billed} บิล${summary.cancelled ? " ไม่รวมที่ยกเลิก" : ""}`} label="ทั้งหมด" value={currency.format(Number(summary.total))} />
+    <SummaryCard {...card("pending")} dot="pending" label="รอชำระ" unit="บิล" value={summary.pending} />
+    <SummaryCard {...card("overdue")} dot="urgent" label="ค้างชำระ" unit="บิล" urgent={summary.overdue > 0} value={summary.overdue} />
+    <SummaryCard {...card("paid")} dot="done" label="ชำระแล้ว" unit="บิล" value={summary.paid} />
+    <SummaryCard {...card("draft")} dot="draft" label="ฉบับร่าง" unit="บิล" value={summary.draft} />
+    <SummaryCard {...card("cancelled")} dot="cancelled" label="ยกเลิก" unit="บิล" value={summary.cancelled} />
+  </SummaryCards>;
 }
 
 // ยกเลิกบิล ไม่ได้ลบทิ้ง เพราะต้องเก็บไว้ในประวัติพร้อมเหตุผลเพื่อตรวจสอบย้อนหลังได้
@@ -154,20 +128,18 @@ function canCancelInvoice(invoice: Invoice | null, reason: string) {
 }
 
 // มุมมองรายการบิล แยกจากแท็บตรวจหลักฐานการชำระที่อยู่ในคอมโพเนนต์ของตัวเอง
-function InvoiceListView({ actionFeedback, invoices, isLoading, loadError, onCancel, onGenerateBulk, onGenerateSingle, onIssue, onPageChange, onQueryChange, onRequestPdf, onReviewPayments, onStatusChange, pageInfo, propertyId, query, readOnly, statusFilter }: Readonly<{
+function InvoiceListView({ actionFeedback, invoices, isLoading, loadError, onCancel, onGenerate, onIssue, onPageChange, onQueryChange, onRequestPdf, onReviewPayments, pageInfo, propertyId, query, readOnly, statusFilter }: Readonly<{
   actionFeedback: ReturnType<typeof useActionFeedback>;
   invoices: Invoice[];
   isLoading: boolean;
   loadError: string;
   onCancel: (invoice: Invoice) => void;
-  onGenerateBulk: () => void;
-  onGenerateSingle: () => void;
+  onGenerate: () => void;
   onIssue: (invoice: Invoice) => Promise<void>;
   onPageChange: (page: number) => void;
   onQueryChange: (value: string) => void;
   onRequestPdf: (invoice: Invoice, action: "preview" | "generate") => Promise<void>;
   onReviewPayments: () => void;
-  onStatusChange: (value: string) => void;
   pageInfo: ServerPageInfo;
   propertyId: string;
   query: string;
@@ -178,20 +150,13 @@ function InvoiceListView({ actionFeedback, invoices, isLoading, loadError, onCan
   const hasCriteria = Boolean(query.trim()) || statusFilter !== "all";
 
   return <article className="figma-table-card">
-    {/* ส่งปุ่มสร้างร่างขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า */}
+    {/* ส่งปุ่มสร้างร่างขึ้นไปแสดงบนแถบหัวเรื่องของ shell แทนที่จะอยู่ในหน้า
+        ปุ่มเดียวพอ หน้าต่างสร้างร่างให้เลือกห้องเดียวหรือทั้งหอในขั้นแรกอยู่แล้ว */}
     <PageHeaderActions>
-      {readOnly ? <ReadOnlyNotice compact /> : <button className="primary-button" onClick={onGenerateBulk} type="button"><Files size={16} /> สร้างร่างทั้งหอ</button>}
+      {readOnly ? <ReadOnlyNotice compact /> : <button className="primary-button" onClick={onGenerate} type="button"><FilePlus2 size={16} /> สร้างร่างบิล</button>}
     </PageHeaderActions>
     {loadError ? <p className="form-alert error" role="alert">{loadError}</p> : null}
-    <InvoiceToolbar
-      onGenerateSingle={onGenerateSingle}
-      onQueryChange={onQueryChange}
-      onStatusChange={onStatusChange}
-      propertyId={propertyId}
-      query={query}
-      readOnly={readOnly}
-      statusFilter={statusFilter}
-    />
+    <InvoiceToolbar onQueryChange={onQueryChange} propertyId={propertyId} query={query} statusFilter={statusFilter} />
     <InvoiceTable
       actionFeedback={actionFeedback}
       invoices={invoices}
@@ -203,7 +168,7 @@ function InvoiceListView({ actionFeedback, invoices, isLoading, loadError, onCan
       readOnly={readOnly}
     />
     {/* ว่างเพราะกรองจนไม่เหลือ กับว่างเพราะยังไม่มีบิลเลย ต้องบอกคนละแบบ */}
-    {showEmptyState && hasCriteria ? <SearchEmptyState description="ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ" title="ไม่พบบิลตามเงื่อนไข" /> : null}
+    {showEmptyState && hasCriteria ? <SearchEmptyState description="ลองเปลี่ยนคำค้นหา หรือกดการ์ดทั้งหมดด้านบนเพื่อดูทุกสถานะ" title="ไม่พบบิลตามเงื่อนไข" /> : null}
     {showEmptyState && !hasCriteria ? <p className="settings-empty-list">ยังไม่มีบิล</p> : null}
     <ServerTablePagination currentItemCount={invoices.length} disabled={isLoading} onPageChange={onPageChange} pageInfo={pageInfo} />
   </article>;
@@ -232,12 +197,12 @@ export function InvoicesPage({
   const [view, setView] = useState<"invoices" | "payments">(initialView);
   // ข้อมูลจากเซิร์ฟเวอร์ใช้ได้แค่ตอนเปิดหน้าครั้งแรก ออกจากแท็บแล้วกลับมาให้โหลดใหม่ กันข้อมูลค้าง
   const [paymentSeed, setPaymentSeed] = useState(initialView === "payments" ? initialPayments : null);
-  const [generationMode, setGenerationMode] = useState<"single" | "bulk" | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loadedInvoices, setLoadedInvoices] = useState(invoices);
   const [pageInfo, setPageInfo] = useState<ServerPageInfo>({ page: 1, pageSize: 20, hasNextPage: false });
-  const [summary, setSummary] = useState({ draft: 0, paid: 0, pending: 0, overdue: 0, total: "0" });
+  const [summary, setSummary] = useState<InvoiceSummaryCounts>({ cancelled: 0, draft: 0, paid: 0, pending: 0, overdue: 0, total: "0" });
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
@@ -333,7 +298,8 @@ export function InvoicesPage({
   return (
     <section className="figma-list-page invoices-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
-      <InvoiceSummaryStrip onFilter={(status) => { setStatusFilter(status); changeView("invoices"); }} statusFilter={statusFilter} summary={summary} />
+      {/* แท็บตรวจสอบการชำระไม่ได้กรองตามการ์ดพวกนี้ จึงไม่แสดงว่าการ์ดไหนถูกเลือก กดแล้วพากลับไปรายการบิลที่กรองแล้ว */}
+      <InvoiceSummaryCards onFilter={(status) => { setStatusFilter(status); changeView("invoices"); }} statusFilter={view === "invoices" ? statusFilter : null} summary={summary} />
       <div className="figma-inline-tabs invoice-tabs">
         <button className={view === "invoices" ? "active" : ""} onClick={() => changeView("invoices")} type="button">บิลห้องพัก</button>
         <button className={view === "payments" ? "active" : ""} onClick={() => changeView("payments")} type="button">ตรวจสอบการชำระ</button>
@@ -344,24 +310,23 @@ export function InvoicesPage({
         isLoading={isLoading}
         loadError={loadError}
         onCancel={(invoice) => { setCancellationReason(""); setInvoiceToCancel(invoice); }}
-        onGenerateBulk={() => setGenerationMode("bulk")}
-        onGenerateSingle={() => setGenerationMode("single")}
+        onGenerate={() => setIsGenerating(true)}
         onIssue={issueDraft}
         onPageChange={(nextPage) => void loadInvoices(nextPage)}
         onQueryChange={setQuery}
         onRequestPdf={requestInvoicePdf}
         onReviewPayments={() => changeView("payments")}
-        onStatusChange={setStatusFilter}
         pageInfo={pageInfo}
         propertyId={propertyId}
         query={query}
         readOnly={readOnly}
         statusFilter={statusFilter}
       />}
-      {generationMode ? <InvoiceGenerationDialog
-        initialMode={generationMode}
+      {/* เปิดที่ทั้งหอก่อน เพราะออกบิลประจำเดือนทำให้ทุกห้องพร้อมกันบ่อยที่สุด */}
+      {isGenerating ? <InvoiceGenerationDialog
+        initialMode="bulk"
         onChanged={async () => { await onChanged(); await loadInvoices(); }}
-        onClose={() => setGenerationMode(null)}
+        onClose={() => setIsGenerating(false)}
         propertyId={propertyId}
         rooms={rooms}
       /> : null}
@@ -424,7 +389,7 @@ async function requestInvoices({ page, propertyId, query, signal, statusFilter }
     error?: string;
     requestId?: string;
     pageInfo?: ServerPageInfo;
-    summary?: { draft: number; paid: number; pending: number; overdue: number; total: string };
+    summary?: InvoiceSummaryCounts;
   }>(response, "โหลดบิลไม่สำเร็จ");
   // ตอบ 200 แต่ข้อมูลไม่ครบก็แสดงผลต่อไม่ได้ ต้องดักไว้ก่อน
   if (!payload.data || !payload.pageInfo || !payload.summary) throw new Error("ข้อมูลบิลที่ได้รับไม่ครบถ้วน");

@@ -712,44 +712,6 @@
   .app-section-head p { @apply mt-1 text-sm text-[#55575f]; }
   .app-section-head > small { @apply shrink-0 text-sm text-[#62646c]; }
 
-  .stats, .figma-summary-grid, .parcel-summary-grid {
-    @apply grid grid-cols-4 gap-4 px-6 py-6;
-  }
-  .figma-summary-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .figma-summary-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  /* ห้าหรือหกการ์ดบนจอโน้ตบุ๊กแคบเกินจนชื่อการ์ดถูกตัดหลายบรรทัดและยอดเงินล้นการ์ด
-     ให้การ์ดกว้างอย่างน้อย 150px แล้วขึ้นแถวใหม่เองเมื่อพื้นที่ไม่พอ */
-  .figma-summary-grid.five, .figma-summary-grid.six { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .metric, .figma-summary-card {
-    --summary-accent: #4655e8;
-    --summary-tint: #f4f4f5;
-    @apply relative isolate flex min-h-24 items-start justify-between gap-3 overflow-hidden rounded-xl border border-[#e4e4e7] p-4 shadow-[0_1px_2px_rgba(0,0,0,.04)];
-    background-color: #ffffff;
-  }
-  /* กล่องไอคอนเป็นกรอบบาง ๆ พื้นขาว แบบ Section.Icon ของ Cal ไม่ใช่บล็อกสีพาสเทล
-     สีของโทนเหลือไว้ที่ตัวไอคอนอย่างเดียว ยังบอกความหมายได้โดยไม่แย่งสายตาจากตัวเลข */
-  .metric > span, .figma-summary-card > span {
-    @apply grid size-9 shrink-0 place-items-center rounded-[10px] border border-[#e4e4e7] bg-[#fff];
-    color: var(--summary-accent);
-  }
-  .metric > span > svg, .figma-summary-card > span > svg { @apply size-4; }
-  /* แบบ Cal ตัวเลขเป็นพระเอก ไอคอนตกแต่งข้างตัวเลขทำให้แถวการ์ดดูเป็นสีรุ้ง จึงซ่อนไว้
-     ยอดค้างชำระที่เลยกำหนดเป็นตัวแดงแทน บอกความด่วนได้โดยไม่ต้องพึ่งไอคอน */
-  .metric > span, .figma-summary-card > span { @apply hidden; }
-  /* ตัวเลขใช้สีข้อความปกติเหมือนของ Cal ที่เน้นด้วยน้ำหนักตัวอักษร ไม่ใช่ด้วยสี */
-  .metric strong, .figma-summary-card strong {
-    @apply mt-1.5 block text-xl font-semibold text-[#292a30];
-  }
-  .metric.tone-red strong { @apply text-[#b91c1c]; }
-  /* โทนสีของไอคอนมีความหมายเดียวกับป้ายสถานะ ม่วง = ข้อมูลทั่วไป เขียว = เสร็จแล้ว เหลือง = รอทำ แดง = มีปัญหา
-     ฟ้าเดิมไม่มีความหมายต่างจากม่วงแต่ทำให้หน้ามีสีมากเกินไป จึงรวมเป็นม่วงสีหลัก */
-  .metric.tone-blue, .figma-summary-card.tone-blue { --summary-accent: #4655e8; --summary-tint: #f4f4f5; }
-  .metric.tone-green, .figma-summary-card.tone-green { --summary-accent: #047857; --summary-tint: #f0fdf4; }
-  .metric.tone-indigo, .figma-summary-card.tone-indigo { --summary-accent: #4655e8; --summary-tint: #f4f4f5; }
-  .metric.tone-orange, .figma-summary-card.tone-orange { --summary-accent: #d97706; --summary-tint: #fff7e0; }
-  .metric.tone-red, .figma-summary-card.tone-red { --summary-accent: #dc2626; --summary-tint: #fef2f2; }
-  /* ตัวหนังสือในการ์ดตัวเลขขยายจาก 12px และเข้มขึ้น ผู้ใช้ที่อายุเยอะอ่านคำบรรยายใต้ตัวเลขได้สบายตา */
-  .metric small, .figma-summary-card small { @apply text-[13px] leading-5 text-[#4b4d55]; }
 
   .workspace > .grid { @apply grid grid-cols-12 gap-4 px-6; }
   .workspace > .grid > .panel { @apply col-span-6; }
@@ -769,11 +731,6 @@
     @apply space-y-5 px-6 pt-0 pb-6;
   }
   .settings-page { @apply space-y-5 px-6 py-6; }
-  /* หน้าพวกนี้เว้นขอบให้แล้ว แถวการ์ดสรุปข้างในไม่ต้องเว้นซ้ำ
-     ไม่งั้นด้านบนห่างเกินและการ์ดเยื้องเข้าไปไม่ตรงแนวกับตารางด้านล่าง */
-  :is(.figma-list-page, .figma-rooms-page, .meter-figma-page, .repair-page, .additional-page, .settings-page, .contracts-page, .invoices-page) > :is(.stats, .figma-summary-grid, .parcel-summary-grid) {
-    @apply p-0;
-  }
   .additional-page { @apply relative; }
   .additional-page-actions { @apply absolute right-6 -top-[42px] flex justify-end; }
   .figma-inline-tabs, .meter-mode-tabs, .repair-filters, .repair-section-tabs {
@@ -1223,7 +1180,7 @@
   .payment-slip-preview { @apply h-[560px] overflow-hidden rounded-2xl border border-white/10 bg-[#2b2d35]; }
   /* หน้าตรวจค่าสมาชิกของแอดมินใหญ่ แบบ Google Admin console: การ์ดสรุป ชิปกรอง ตาราง และแผงสลิปด้านขวา
      จอแคบกว่า 1280px แผงสลิปลงไปอยู่ใต้ตาราง */
-  .subscription-review-summary { @apply mb-5 p-0; }
+  .summary-cards + .subscription-review { @apply mt-5; }
   .subscription-review { @apply overflow-visible rounded-xl border border-[#e4e4e7] bg-[#fff]; }
   .subscription-review-toolbar { @apply flex flex-wrap items-center gap-3 border-b border-[#e4e4e7] p-4; }
   .subscription-review-toolbar > .search-suggest { @apply min-w-60 flex-1; }
@@ -2149,13 +2106,6 @@
     .login-story { @apply hidden; }
     .login-form-panel { @apply min-h-0 place-items-center px-6 py-8; }
     .login-form-container { @apply max-w-md; }
-    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-2; }
-    .figma-summary-grid.three,
-    .figma-summary-grid.four,
-    .figma-summary-grid.five,
-    .figma-summary-grid.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    /* สองใบต่อแถว ถ้ามีการ์ดเป็นเลขคี่ใบสุดท้ายจะเหลือช่องว่างข้าง ๆ ให้กินเต็มแถวแทน */
-    :is(.figma-summary-grid.three, .figma-summary-grid.five) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
     /* มือถือกับแท็บเล็ตยังไม่มีพื้นที่ข้างรายการ ซ่อนช่องรายละเอียดสลิปจนกว่าจะเลือกรายการ */
     .subscription-review-detail:has(> .subscription-review-placeholder) { @apply hidden; }
     .additional-page-actions { @apply static mb-4 justify-stretch; }
@@ -2196,8 +2146,6 @@
     /* ปุ่มของหน้า เช่น "แจ้งเรื่อง" ลงไปอยู่แถวถัดไปเต็มความกว้าง ไม่เบียดตัวเลือกห้องจนชื่อหอโดนตัด */
     .tenant-header-actions > .page-header-slot:not(:empty) { @apply order-last basis-full; }
     .tenant-header-actions > .page-header-slot :is(button, a) { @apply w-full justify-center; }
-    /* การ์ดสรุปในแต่ละส่วนไม่ต้องเว้นขอบซ้อนกับขอบของส่วน จอแคบจะได้เหลือที่ให้เนื้อหา */
-    .tenant-content .app-section :is(.figma-summary-grid, .stats) { @apply p-0; }
     .tenant-home { @apply rounded-xl; }
     /* มือถือจอแคบ ไม่ต้องเว้นขอบซ้อนหลายชั้น การ์ดแต่ละใบเว้นขอบของตัวเองอยู่แล้ว */
     .tenant-home-surface { @apply gap-4 p-0; }
@@ -2251,16 +2199,6 @@
     .workspace-section-tabs { @apply px-4; }
     .additional-page-actions { @apply static mb-4 justify-stretch; }
     .additional-page-actions > .primary-button { @apply w-full; }
-    /* มือถือวางการ์ดตัวเลขสองใบต่อแถว เรียงทีละใบแล้วต้องเลื่อนนานกว่าจะถึงงานที่ต้องทำ
-       ซ่อนไอคอนประกอบ ให้ที่ว่างกับตัวเลขซึ่งเป็นข้อมูลจริง */
-    .stats, .figma-summary-grid, .parcel-summary-grid { @apply grid-cols-2 gap-2.5 px-4; }
-    .figma-summary-grid.three,
-    .figma-summary-grid.four,
-    .figma-summary-grid.five,
-    .figma-summary-grid.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) { @apply min-h-0 p-3; }
-    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) > span { @apply hidden; }
-    :is(.stats, .figma-summary-grid, .parcel-summary-grid) > :is(.metric, .figma-summary-card) strong { @apply text-lg; }
     .workspace > .grid { @apply grid-cols-1 px-4; }
     .workspace > .grid > .panel, .workspace > .grid > .panel.wide, .workspace > .grid > .panel.wide + .panel, .workspace > .grid > .panel.four, .workspace > .grid > .panel.five, .workspace > .grid > .panel.six, .workspace > .grid > .panel.full { @apply col-span-1; }
     .workspace > .view-transition > .app-section { @apply mx-4; }
@@ -2880,14 +2818,6 @@ select:disabled {
    ป้ายบอกความด่วนใช้ชุดเดียวกับเมนู เหลืองอ่อนคือรอทำ แดงทึบคือเลยกำหนด เขียวคือเสร็จแล้ว */
 @layer components {
   .overview { @apply mx-6 mb-8 grid gap-4; }
-  .overview-kpis { @apply grid gap-3; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-  .overview-kpi { @apply grid content-start gap-1 rounded-2xl border border-[#e4e4e7] bg-[#fff] px-5 py-4; }
-  .overview-kpi > p { @apply m-0 text-sm text-[#5c5e66]; }
-  .overview-kpi > strong { @apply text-2xl font-bold text-[#1e1f22] tabular-nums; }
-  .overview-kpi > strong > span { @apply text-base font-medium text-[#5c5e66]; }
-  .overview-kpi > small { @apply text-xs text-[#5c5e66]; }
-  .overview-kpi[data-tone="urgent"] > strong { @apply text-[#b42318]; }
-  .overview-kpi[data-tone="urgent"] > small { @apply font-semibold text-[#b42318]; }
   .overview-progress { @apply my-1 block h-1.5 overflow-hidden rounded-full bg-[#ececf0]; }
   .overview-progress > span { @apply block h-full rounded-full bg-brand; }
   .overview-progress[data-tone="done"] > span { background: #23a55a; }
@@ -2976,19 +2906,11 @@ select:disabled {
 
   @media (max-width: 767px) {
     .overview { @apply mx-4; }
-    .overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .overview-kpi { @apply px-4 py-3; }
-    .overview-kpi > strong { @apply text-xl; }
   }
 }
 
 /* ===== หน้าผังห้องแบบใหม่ ===== ตัวกรองสถานะ ผังห้องด้านซ้าย แผงรายละเอียดด้านขวา */
 @layer components {
-  .filter-chips { @apply flex flex-wrap gap-2; }
-  .filter-chips > button { @apply inline-flex min-h-9 items-center gap-2 rounded-full border border-[#d9dae0] bg-[#fff] py-0 pr-2 pl-3.5 text-[13px] font-semibold text-[#1e1f22] transition-colors hover:border-[#b5b7bf]; }
-  .filter-chips > button[aria-pressed="true"] { @apply border-[#1e1f22] bg-[#1e1f22] text-white; }
-  .filter-chip-count { @apply inline-grid h-5 min-w-5 place-items-center rounded-full bg-[#f1f1f4] px-1.5 text-[11px] font-bold text-[#3f4147]; }
-  .filter-chips > button[aria-pressed="true"] .filter-chip-count { @apply bg-white/20 text-white; }
 
   .rooms-layout { @apply flex flex-wrap items-start gap-5; }
   .rooms-results { flex: 3 1 520px; @apply min-w-0; }
@@ -3013,33 +2935,14 @@ select:disabled {
   .room-detail-actions > button { @apply flex-1 justify-center; }
 }
 
-/* ===== หน้าบิลแบบใหม่ ===== แถบตัวเลขที่กดกรองได้ ชื่อผู้เช่ามีวงกลมตัวอักษร ป้ายค้างชำระเป็นแดงทึบ */
+/* ===== หน้าบิลแบบใหม่ ===== ชื่อผู้เช่ามีวงกลมตัวอักษร ป้ายค้างชำระเป็นแดงทึบ */
 @layer components {
-  .money-strip { @apply grid overflow-hidden rounded-2xl border border-[#e3e3e8] bg-[#fff]; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .money-strip > button { @apply grid min-h-20 content-center gap-1 border-0 border-r border-[#ececf0] bg-transparent px-5 py-3.5 text-left transition-colors last:border-r-0 hover:bg-[#fafafb]; }
-  .money-strip > button > span { @apply text-[13px] text-[#5c5e66]; }
-  .money-strip > button > strong { @apply text-xl font-bold text-[#1e1f22] tabular-nums; }
-  .money-strip > button[data-tone="urgent"] > strong { @apply text-[#b42318]; }
-  .money-strip > button[aria-pressed="true"] { @apply bg-[#eef0fe]; box-shadow: inset 0 -2px 0 var(--color-brand); }
   .invoice-tenant { @apply inline-flex items-center gap-2; }
   .invoice-table .figma-status.badge-overdue { @apply border-red-500 bg-red-500 text-white; }
-  @media (max-width: 767px) {
-    .money-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .money-strip > button { @apply border-b; }
-  }
 }
 
-/* ===== หน้าจดมิเตอร์แบบใหม่ ===== แถบความคืบหน้าเหนือตาราง และป้ายสถานะสีเดียวกับทั้งระบบ */
+/* ===== หน้าจดมิเตอร์แบบใหม่ ===== ป้ายสถานะสีเดียวกับทั้งระบบ */
 @layer components {
-  .meter-progress { @apply flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-[#e3e3e8] bg-[#fff] px-5 py-4; }
-  .meter-progress-main { @apply min-w-0; flex: 1 1 280px; }
-  .meter-progress-main p { @apply m-0 mb-2 text-sm text-[#5c5e66]; }
-  .meter-progress-main strong { @apply text-[15px] font-semibold text-[#1e1f22]; }
-  .meter-progress-main .overview-progress { @apply h-2; }
-  .meter-progress-facts { @apply m-0 flex flex-wrap gap-8; }
-  .meter-progress-facts dt { @apply text-[13px] text-[#5c5e66]; }
-  .meter-progress-facts dd { @apply m-0 mt-0.5 text-lg font-bold text-[#1e1f22] tabular-nums; }
-  .meter-progress-facts dd[data-tone="pending"] { @apply text-amber-800; }
   .meter-status { @apply gap-1; }
 }
 
@@ -3094,6 +2997,44 @@ select:disabled {
    ข้อความยาวที่ไม่มีช่องว่างจึงดันการ์ดให้กว้างเกินจอมือถือ ให้ตัดตรงไหนก็ได้เมื่อจำเป็น
    และล็อกคอลัมน์ของกริดหน้าใหม่ไว้ที่ minmax(0, 1fr) เนื้อหาข้างในจะได้ดันหน้าให้กว้างขึ้นไม่ได้ */
 @layer components {
-  :is(.overview, .tenant-overview, .rooms-layout, .room-detail, .money-strip, .meter-progress, .pay-steps) { overflow-wrap: anywhere; }
+  :is(.overview, .tenant-overview, .rooms-layout, .room-detail, .pay-steps) { overflow-wrap: anywhere; }
   .overview, .tenant-overview, .pay-steps { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ===== การ์ดตัวเลขสรุป ===== แบบเดียวกันทุกหน้าทุกโรล การ์ดขาวขอบบาง ตัวเลขเด่น หน่วยและบรรทัดรองเป็นสีเทา
+   จุดสีหน้าชื่อใช้สีเดียวกับป้ายสถานะ สีแดงใช้เฉพาะเรื่องที่ต้องตาม การ์ดที่กรองได้เป็นปุ่ม ช่องที่เลือกอยู่มีกรอบม่วง */
+@layer components {
+  .summary-cards { @apply grid gap-3; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .summary-card {
+    @apply grid min-w-0 content-start gap-1.5 rounded-[14px] border border-[#e7e7ec] bg-[#fff] px-4 py-3.5 text-left font-[inherit] text-[#1e1f22];
+    overflow-wrap: anywhere;
+  }
+  button.summary-card { @apply cursor-pointer transition-[border-color,box-shadow,background-color] duration-150 hover:border-[#c9cad3]; }
+  button.summary-card[aria-pressed="true"] { @apply border-brand bg-[#fff]; box-shadow: 0 0 0 3px #e6e8fd; }
+  button.summary-card[aria-pressed="true"] .summary-card-label { @apply font-medium text-[#3c45a5]; }
+  .summary-card-label { @apply flex min-w-0 items-center gap-[7px] text-[13px] leading-5 text-[#5c5e66]; }
+  .summary-card-dot { @apply size-2 shrink-0 rounded-full bg-[#a1a1aa]; }
+  .summary-card-dot[data-dot="pending"] { background: #d97706; }
+  .summary-card-dot[data-dot="urgent"] { background: #dc2626; }
+  .summary-card-dot[data-dot="done"] { background: #16a34a; }
+  .summary-card-dot[data-dot="draft"] { background: #a1a1aa; }
+  .summary-card-dot[data-dot="cancelled"] { background: #d4d4d8; }
+  .summary-card-dot[data-dot="occupied"] { background: var(--chart-occupied); }
+  .summary-card-dot[data-dot="available"] { @apply bg-[#fff]; box-shadow: inset 0 0 0 2px #b5b7bf; }
+  .summary-card-dot[data-dot="maintenance"] { background: var(--chart-maintenance); }
+  .summary-card-badge { @apply ml-auto shrink-0 rounded-full bg-[#fdecea] px-2 text-[11px] leading-[18px] font-medium text-[#b42318]; }
+  .summary-card-value { @apply block text-2xl leading-tight font-semibold tracking-[-.01em] text-[#1e1f22] tabular-nums; }
+  .summary-card-value > span { @apply ml-1 text-[13px] font-normal tracking-normal text-[#6b6d75]; }
+  .summary-card[data-urgent] .summary-card-value { @apply text-[#b42318]; }
+  .summary-card-detail { @apply text-xs leading-5 text-[#6b6d75]; }
+  .summary-card > :is(.overview-progress, .overview-share) { @apply my-0.5; }
+  @media (max-width: 767px) {
+    .summary-cards { @apply gap-2.5; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* สองใบต่อแถว การ์ดเลขคี่ใบสุดท้ายกินเต็มแถว ไม่เหลือช่องว่างข้าง ๆ */
+    .summary-cards > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .summary-card { @apply px-3.5 py-3; }
+    .summary-card-value { @apply text-xl; }
+    /* การ์ดแคบ ป้ายดันชื่อการ์ดจนขึ้นสองบรรทัด ตัวเลขสีแดงบอกความด่วนอยู่แล้ว */
+    .summary-card-badge { @apply hidden; }
+  }
 }

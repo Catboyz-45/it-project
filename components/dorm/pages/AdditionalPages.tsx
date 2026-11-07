@@ -3,19 +3,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import {
   Building2,
   Ban,
-  CheckCircle2,
   ChevronRight,
-  Clock3,
-  Megaphone,
   MessageSquare,
-  MessageSquareWarning,
   Plus,
   Pencil,
-  UsersRound,
 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/dorm/ConfirmationDialog";
 import { DatePickerField } from "@/components/dorm/DatePickerField";
@@ -35,6 +29,7 @@ import { ownerPagePath } from "@/lib/navigation-routes";
 import type { Room } from "@/types/dorm";
 import { formatThaiDateTime } from "@/lib/thai-format";
 import { ticketStatusLabels } from "@/lib/ui-labels";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // ขอบเขตผู้รับประกาศ ไล่จากกว้างไปแคบ ทั้งหอ อาคาร ชั้น หรือระบุห้อง
 type AnnouncementAudience = "ALL_TENANTS" | "BUILDING" | "FLOOR" | "ROOM";
@@ -236,12 +231,12 @@ export function AnnouncementsPage({ initialAnnouncements, initialLoaded = false,
   return (
     <section className="additional-page">
       {readOnly ? <ReadOnlyNotice>ดูประกาศ สถานะ กลุ่มผู้รับ และโหลดรายการเพิ่มเติมได้ แต่ไม่สามารถสร้าง แก้ไข หรือลบประกาศ</ReadOnlyNotice> : null}
-      <div className="figma-summary-grid four">
-        <Summary label="ประกาศทั้งหมด" value={`${summary.total} รายการ`} icon={<Megaphone size={20} />} tone="indigo" />
-        <Summary label="เผยแพร่แล้ว" value={`${summary.published} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
-        <Summary label="ตั้งเวลา" value={`${summary.scheduled} รายการ`} icon={<Clock3 size={20} />} tone="orange" />
-        <Summary label="ผู้รับทั้งหมด" value={`${recipientRoomCount} ห้อง`} icon={<UsersRound size={20} />} tone="blue" />
-      </div>
+      <SummaryCards label="สรุปประกาศ">
+        <SummaryCard label="ประกาศทั้งหมด" unit="รายการ" value={summary.total} />
+        <SummaryCard dot="done" label="เผยแพร่แล้ว" unit="รายการ" value={summary.published} />
+        <SummaryCard dot="pending" label="ตั้งเวลา" unit="รายการ" value={summary.scheduled} />
+        <SummaryCard label="ผู้รับทั้งหมด" unit="ห้อง" value={recipientRoomCount} />
+      </SummaryCards>
       <article className="figma-table-card">
         <PageHeaderActions>
           {!readOnly ? (
@@ -665,12 +660,12 @@ export function ComplaintsPage({
     <section className="additional-page">
       {formError ? <p className="form-alert error" role="alert">{formError}</p> : null}
       {readOnly ? <ReadOnlyNotice>เปิดดูสถานะและอ่านข้อความตอบกลับได้ แต่ไม่สามารถเปลี่ยนสถานะหรือส่งคำตอบใหม่</ReadOnlyNotice> : null}
-      <div className="figma-summary-grid four">
-        <Summary label="เรื่องทั้งหมด" value={`${complaints.length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="indigo" />
-        <Summary label="รับเรื่องแล้ว" value={`${complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} รายการ`} icon={<MessageSquareWarning size={20} />} tone="red" />
-        <Summary label="กำลังตรวจสอบ" value={`${complaints.filter((item) => item.status === "กำลังตรวจสอบ").length} รายการ`} icon={<Clock3 size={20} />} tone="orange" />
-        <Summary label="เสร็จแล้ว" value={`${complaints.filter((item) => item.status === "เสร็จแล้ว").length} รายการ`} icon={<CheckCircle2 size={20} />} tone="green" />
-      </div>
+      <SummaryCards label="สรุปเรื่องร้องเรียน">
+        <SummaryCard label="เรื่องทั้งหมด" unit="รายการ" value={complaints.length} />
+        <SummaryCard dot="pending" label="รับเรื่องแล้ว" unit="รายการ" value={complaints.filter((item) => item.status === "รับเรื่องแล้ว").length} />
+        <SummaryCard dot="occupied" label="กำลังตรวจสอบ" unit="รายการ" value={complaints.filter((item) => item.status === "กำลังตรวจสอบ").length} />
+        <SummaryCard dot="done" label="เสร็จแล้ว" unit="รายการ" value={complaints.filter((item) => item.status === "เสร็จแล้ว").length} />
+      </SummaryCards>
       <nav aria-label="เลือกมุมมองแจ้งซ่อมและร้องเรียน" className="repair-section-tabs">
         <Link className="active" href={ownerPagePath(propertyId, "complaints")}>ทั้งหมด</Link>
         <Link href={ownerPagePath(propertyId, "repairHistory")}>ประวัติที่เสร็จแล้ว</Link>
@@ -729,7 +724,3 @@ export function PropertiesPage({
   );
 }
 
-// การ์ดตัวเลขสรุปที่ใช้ร่วมกันในไฟล์นี้ จึงไม่ต้อง export
-function Summary({ icon, label, tone, value }: Readonly<{ icon: ReactNode; label: string; tone: string; value: string }>) {
-  return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
-}

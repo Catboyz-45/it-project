@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Building2, CalendarClock, Download, FileText, Search, UsersRound } from "lucide-react";
+import { Download, Search } from "lucide-react";
 import { currency } from "@/lib/dorm-utils";
 import type { Tenant } from "@/types/dorm";
 import { ServerTablePagination, TablePagination, type ServerPageInfo, useTablePagination } from "@/components/dorm/TablePagination";
@@ -13,6 +13,7 @@ import { SearchEmptyState } from "@/components/ui/SearchEmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { LEASE_EXPIRY_NOTICE_DAYS, daysUntilLeaseExpiry, leaseDisplayStatus } from "@/lib/domain/lease-expiry";
 import { formatThaiDate, formatThaiPhone } from "@/lib/thai-format";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // หน้าผู้เช่า มีสามแท็บ ผู้เช่าปัจจุบัน คำขอเข้าพัก และประวัติการย้าย
 type TenantView = "active" | "pending" | "transitions";
@@ -208,12 +209,12 @@ export function TenantsPage({
 
   return (
     <section className="figma-list-page tenants-page-content">
-      <div className="figma-summary-grid four">
-        <Summary icon={<UsersRound />} label="ผู้เช่าในหน้านี้" value={`${tenants.length} คน`} tone="indigo" />
-        <Summary icon={<Building2 />} label="ห้องในรายการ" value={`${new Set(tenants.map((tenant) => tenant.roomId)).size} ห้อง`} tone="blue" />
-        <Summary icon={<FileText />} label="มีสัญญาในระบบ" value={`${withLease} คน`} tone="green" />
-        <Summary icon={<CalendarClock />} label="สัญญาใกล้หมดอายุ" value={`${expiring} คน`} tone="orange" />
-      </div>
+      <SummaryCards label="สรุปผู้เช่า">
+        <SummaryCard label="ผู้เช่าในหน้านี้" unit="คน" value={tenants.length} />
+        <SummaryCard label="ห้องในรายการ" unit="ห้อง" value={new Set(tenants.map((tenant) => tenant.roomId)).size} />
+        <SummaryCard dot="done" label="มีสัญญาในระบบ" unit="คน" value={withLease} />
+        <SummaryCard dot="pending" label="สัญญาใกล้หมดอายุ" unit="คน" value={expiring} />
+      </SummaryCards>
       <div className="figma-inline-tabs invoice-tabs">
         <button className={view === "active" ? "active" : ""} onClick={() => selectView("active")} type="button">ผู้เช่าปัจจุบัน</button>
         <button className={view === "pending" ? "active" : ""} onClick={() => selectView("pending")} type="button">คำขอเข้าพัก</button>
@@ -293,10 +294,6 @@ const leaseStatusText: Record<NonNullable<Tenant["leaseStatus"]>, string> = {
   CANCELLED: "ยกเลิก",
 };
 
-// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function Summary({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: string }>) {
-  return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
-}
 
 // ประวัติการย้ายออกและย้ายห้อง ยังไม่มีรายการก็บอกไปตรง ๆ
 function TransitionRows({ rows }: Readonly<{ rows: TransitionRow[] }>) {

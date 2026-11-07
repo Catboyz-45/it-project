@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SuperAdminPageHeader } from "@/components/admin/SuperAdminPageHeader";
 import { getSuperAdminDashboardAggregation } from "@/lib/server/dashboard-aggregation";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // แดชบอร์ดรวมของแพลตฟอร์ม เป็น Server Component จึงอ่านฐานข้อมูลตรงนี้ได้เลยไม่ต้องยิง API
 // ใช้โครงเดียวกับหน้าแรกของเจ้าของหอ ตัวเลขสำคัญหนึ่งแถว แล้วตามด้วยงานที่ต้องทำและการใช้งานจริง
@@ -35,29 +36,19 @@ export default async function SuperAdminPage() {
     <SuperAdminPageHeader description="ติดตามสุขภาพของแพลตฟอร์ม สมาชิก รายได้ และงานที่ต้องดำเนินการ" title="หน้าหลัก" />
 
     <div className="overview">
-      <section aria-label="ตัวเลขแพลตฟอร์ม" className="overview-kpis">
-        <article className="overview-kpi">
-          <p>หอที่เปิดใช้งาน</p>
-          <strong>{aggregation.properties.active.toLocaleString("th-TH")}</strong>
-          <small>แอดมินประจำหอ {(aggregation.users.PROPERTY_ADMIN ?? 0).toLocaleString("th-TH")} คน</small>
-        </article>
-        <article className="overview-kpi">
-          <p>รายได้ต่อเดือน (MRR)</p>
-          {/* toLocaleString("th-TH") ใส่จุลภาคให้เอง อ่านเลขหลักล้านง่ายขึ้น */}
-          <strong>฿{aggregation.revenue.mrr.toLocaleString("th-TH")}</strong>
-          <small>จากสมาชิกที่ใช้งาน {subscriptions.active.toLocaleString("th-TH")} หอ</small>
-        </article>
-        <article className="overview-kpi">
-          <p>การชำระรอตรวจ</p>
-          <strong>{operations.pendingPayments.toLocaleString("th-TH")}</strong>
-          <small>{operations.pendingPayments > 0 ? "ตรวจได้ที่หน้าการชำระสมาชิก" : "ไม่มีรายการค้าง"}</small>
-        </article>
-        <article className="overview-kpi">
-          <p>หมดอายุใน 30 วัน</p>
-          <strong>{subscriptions.expiringWithin30Days.toLocaleString("th-TH")}</strong>
-          <small>ทดลองใช้อยู่ {subscriptions.trial.toLocaleString("th-TH")} หอ</small>
-        </article>
-      </section>
+      <SummaryCards label="ตัวเลขแพลตฟอร์ม">
+        <SummaryCard detail={`แอดมินประจำหอ ${(aggregation.users.PROPERTY_ADMIN ?? 0).toLocaleString("th-TH")} คน`} label="หอที่เปิดใช้งาน" unit="หอ" value={aggregation.properties.active.toLocaleString("th-TH")} />
+        {/* toLocaleString("th-TH") ใส่จุลภาคให้เอง อ่านเลขหลักล้านง่ายขึ้น */}
+        <SummaryCard detail={`จากสมาชิกที่ใช้งาน ${subscriptions.active.toLocaleString("th-TH")} หอ`} label="รายได้ต่อเดือน (MRR)" value={`฿${aggregation.revenue.mrr.toLocaleString("th-TH")}`} />
+        <SummaryCard
+          detail={operations.pendingPayments > 0 ? "ตรวจได้ที่หน้าการชำระสมาชิก" : "ไม่มีรายการค้าง"}
+          dot={operations.pendingPayments > 0 ? "pending" : undefined}
+          label="การชำระรอตรวจ"
+          unit="รายการ"
+          value={operations.pendingPayments.toLocaleString("th-TH")}
+        />
+        <SummaryCard detail={`ทดลองใช้อยู่ ${subscriptions.trial.toLocaleString("th-TH")} หอ`} label="หมดอายุใน 30 วัน" unit="หอ" value={subscriptions.expiringWithin30Days.toLocaleString("th-TH")} />
+      </SummaryCards>
 
       <div className="overview-row">
         <section aria-labelledby="admin-today-title" className="overview-card today-card">

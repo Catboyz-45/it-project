@@ -16,6 +16,7 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 import { formatThaiDateTime } from "@/lib/thai-format";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // หลักฐานการโอนที่ผู้เช่าส่งมาหนึ่งรายการ
 type PaymentSubmission = {
@@ -206,11 +207,11 @@ export function PaymentReviewPanel({
 
   return <>
     <LiveAnnouncement message={actionFeedback.announcement} />
-    <div className="figma-summary-grid three">
-      <PaymentSummary label="รายการในมุมมอง" value={`${payments.length}`} />
-      <PaymentSummary label="ยอดรวมในมุมมอง" value={currency.format(payments.reduce((sum, payment) => sum + Number(payment.amount), 0))} />
-      <PaymentSummary label="รอตรวจสอบ" value={`${payments.filter((payment) => payment.status === "PENDING_REVIEW").length}`} />
-    </div>
+    <SummaryCards label="สรุปหลักฐานการชำระ">
+      <SummaryCard label="รายการในมุมมอง" unit="รายการ" value={payments.length} />
+      <SummaryCard label="ยอดรวมในมุมมอง" value={currency.format(payments.reduce((sum, payment) => sum + Number(payment.amount), 0))} />
+      <SummaryCard dot="pending" label="รอตรวจสอบ" unit="รายการ" value={payments.filter((payment) => payment.status === "PENDING_REVIEW").length} />
+    </SummaryCards>
 
     {error ? <div className="form-alert error" role="alert">{error}</div> : null}
 
@@ -417,7 +418,3 @@ function PaymentInspectionPane({ onApprove, onReject, payment, propertyId, readO
   </section>;
 }
 
-// การ์ดตัวเลขสรุปเล็ก ๆ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function PaymentSummary({ label, value }: Readonly<{ label: string; value: string }>) {
-  return <article className="figma-summary-card compact"><div><small>{label}</small><strong>{value}</strong></div></article>;
-}

@@ -218,7 +218,7 @@ export async function listInvoices(
         ],
       } : {}),
   };
-  const [rows, total, draft, paid, pending, overdue, amount] = await getDatabase().$transaction([
+  const [rows, total, draft, paid, pending, overdue, cancelled, amount] = await getDatabase().$transaction([
     getDatabase().invoice.findMany({
       where,
       orderBy: [{ billingMonth: "desc" }, { room: { number: "asc" } }],
@@ -229,7 +229,9 @@ export async function listInvoices(
     getDatabase().invoice.count({ where: { propertyId, status: "PAID" } }),
     getDatabase().invoice.count({ where: { propertyId, status: "PENDING" } }),
     getDatabase().invoice.count({ where: { propertyId, status: "OVERDUE" } }),
-    getDatabase().invoice.aggregate({ where: { propertyId }, _sum: { total: true } }),
+    getDatabase().invoice.count({ where: { propertyId, status: "CANCELLED" } }),
+    // บิลที่ยกเลิกไม่มีใครต้องจ่าย จึงไม่นับรวมในยอดเงิน
+    getDatabase().invoice.aggregate({ where: { propertyId, status: { not: "CANCELLED" } }, _sum: { total: true } }),
   ]);
   const result = toPaginatedResult(rows.map(serialize), pagination, total);
   return {
@@ -239,6 +241,7 @@ export async function listInvoices(
       paid,
       pending,
       overdue,
+      cancelled,
       total: amount._sum.total?.toString() ?? "0",
     },
   };

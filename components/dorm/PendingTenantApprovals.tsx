@@ -13,6 +13,7 @@ import { LiveAnnouncement } from "@/components/ui/LiveAnnouncement";
 import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { formatClientError, readApiData, readApiPayload } from "@/lib/client/api-error";
 import { formatThaiDateTime, formatThaiPhone } from "@/lib/thai-format";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // คำขอเข้าพักหนึ่งรายการที่ยังรอเจ้าของหอตรวจ
 type PendingOccupancy = {
@@ -154,11 +155,11 @@ export function PendingTenantApprovals({
   return <>
     <LiveAnnouncement message={actionFeedback.announcement} />
     {/* นับจากข้อมูลที่โหลดมาแล้ว ไม่ได้ถามเซิร์ฟเวอร์เพิ่ม */}
-    <div className="figma-summary-grid three">
-      <ApprovalSummary label="คำขอที่รอตรวจสอบ" value={`${requests.length}`} />
-      <ApprovalSummary label="ผู้เช่าหลัก" value={`${requests.filter((request) => request.role === "PRIMARY").length}`} />
-      <ApprovalSummary label="ผู้พักร่วม" value={`${requests.filter((request) => request.role === "CO_OCCUPANT").length}`} />
-    </div>
+    <SummaryCards label="สรุปคำขอเข้าพัก">
+      <SummaryCard dot={requests.length > 0 ? "pending" : undefined} label="คำขอที่รอตรวจสอบ" unit="คำขอ" value={requests.length} />
+      <SummaryCard label="ผู้เช่าหลัก" unit="คน" value={requests.filter((request) => request.role === "PRIMARY").length} />
+      <SummaryCard label="ผู้พักร่วม" unit="คน" value={requests.filter((request) => request.role === "CO_OCCUPANT").length} />
+    </SummaryCards>
 
     {error ? <div className="form-alert error" role="alert">{error}</div> : null}
     {readOnly ? <ReadOnlyNotice>ค้นหาและตรวจสอบคำขอเข้าพักได้ แต่ไม่สามารถอนุมัติหรือปฏิเสธคำขอได้</ReadOnlyNotice> : null}
@@ -184,10 +185,6 @@ export function PendingTenantApprovals({
   </>;
 }
 
-// การ์ดตัวเลขสรุปเล็ก ๆ ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ApprovalSummary({ label, value }: Readonly<{ label: string; value: string }>) {
-  return <article className="figma-summary-card compact"><div><small>{label}</small><strong>{value}</strong></div></article>;
-}
 
 // ว่างเพราะค้นไม่เจอ กับว่างเพราะไม่มีคำขอเลย ต้องบอกคนละแบบ
 function PendingEmptyState({ hasQuery }: Readonly<{ hasQuery: boolean }>) {

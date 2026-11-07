@@ -5,7 +5,6 @@ import Link from "next/link";
 import { SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  AlertCircle,
   CheckCircle2,
   Download,
   Eye,
@@ -43,6 +42,7 @@ import { useActionFeedback } from "@/lib/client/use-action-feedback";
 import { UnitInput } from "@/components/ui/UnitInput";
 import { formatThaiDate } from "@/lib/thai-format";
 import { ownerPagePath } from "@/lib/navigation-routes";
+import { SummaryCard, SummaryCards } from "@/components/ui/SummaryCards";
 
 // สัญญาหนึ่งฉบับ
 type Lease = {
@@ -488,11 +488,11 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
   return (
     <section className="figma-list-page contracts-page">
       <LiveAnnouncement message={actionFeedback.announcement} />
-      <div className="figma-summary-grid three">
-        <ContractSummary icon={<FileText />} label="สัญญาทั้งหมด" value={`${(pageInfo.total ?? leases.length).toLocaleString("th-TH")} ฉบับ`} tone="indigo" />
-        <ContractSummary icon={<CheckCircle2 />} label="ใช้งานอยู่" value={`${counts.active} ฉบับ`} tone="green" />
-        <ContractSummary icon={<AlertCircle />} label={`รอดำเนินการ / ใกล้หมดใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`} value={`${counts.pending + counts.expiring} ฉบับ`} tone="orange" />
-      </div>
+      <SummaryCards label="สรุปสัญญา">
+        <SummaryCard label="สัญญาทั้งหมด" unit="ฉบับ" value={(pageInfo.total ?? leases.length).toLocaleString("th-TH")} />
+        <SummaryCard dot="done" label="ใช้งานอยู่" unit="ฉบับ" value={counts.active} />
+        <SummaryCard dot="pending" label={`รอดำเนินการ / ใกล้หมดใน ${LEASE_EXPIRY_NOTICE_DAYS} วัน`} unit="ฉบับ" value={counts.pending + counts.expiring} />
+      </SummaryCards>
 
       {error ? <div className="form-alert error" role="alert">{error}</div> : null}
 
@@ -553,10 +553,6 @@ export function ContractsPage({ initialLeases = null, initialPageInfo = null, pr
   );
 }
 
-// การ์ดตัวเลขสรุปด้านบน ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
-function ContractSummary({ icon, label, tone, value }: Readonly<{ icon: React.ReactNode; label: string; tone: string; value: string }>) {
-  return <article className={`figma-summary-card tone-${tone}`}><div><small>{label}</small><strong>{value}</strong></div><span>{icon}</span></article>;
-}
 
 type LeaseTenant = { displayName: string };
 type LeaseRowActions = Readonly<{

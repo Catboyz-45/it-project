@@ -1,27 +1,11 @@
 
 // ชิ้นส่วนเล็ก ๆ ที่หลายหน้าในฝั่งเจ้าของหอใช้ร่วมกัน แยกไว้กันเขียนซ้ำ
-import type { ReactNode } from "react";
 import { Plus, QrCode } from "lucide-react";
 import { currency, getStatusClass, statusText, totalInvoice } from "@/lib/dorm-utils";
 import type { Invoice, Room, Tenant } from "@/types/dorm";
 import { roomTypeLabel } from "@/lib/ui-labels";
 import { formatThaiMonth, formatThaiPhone } from "@/lib/thai-format";
 
-// การ์ดตัวเลขสรุปบนหน้าภาพรวม tone คุมแค่สี ไม่มีผลกับข้อมูล
-export function Metric({ icon, label, value, detail, tone = "indigo" }: Readonly<{ icon: ReactNode; label: string; value: ReactNode; detail: string; tone?: "blue" | "green" | "indigo" | "orange" | "red" }>) {
-  return (
-    /* ข้อความก่อน ไอคอนทีหลัง ให้อ่านเรียงเหมือนการ์ดตัวเลขของอีกสองโรล */
-    <article className={`metric tone-${tone}`}>
-      <div className="min-w-0">
-        <small>{label}</small>
-        <strong>{value}</strong>
-        {/* ภาษาไทยไม่มีตัวเอียงจริง เบราว์เซอร์จะเอียงเองจนดูไม่สวย จึงใช้ตัวปกติ */}
-        <small className="mt-1 block">{detail}</small>
-      </div>
-      <span>{icon}</span>
-    </article>
-  );
-}
 
 // หัวเรื่องของแผง พร้อมข้อความประกอบด้านขวา ใช้ให้หัวข้อทุกแผงหน้าตาเหมือนกัน
 export function PanelTitle({ title, action }: Readonly<{ title: string; action: string }>) {
