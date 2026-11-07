@@ -2410,8 +2410,14 @@
   transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
-:where(select, .dropdown-trigger, .schedule-date-trigger) {
+/* กล่องเลือกของเบราว์เซอร์วาดลูกศรเป็นพื้นหลัง จึงต้องเว้นที่ขวาไว้ให้ลูกศร
+   ช่องเลือกกับช่องวันที่ของเราวาดไอคอนเป็นชิ้นในปุ่มเอง เว้นขวาเท่านี้ไอคอนก็ชิดขวาพอดีกับระยะของตัวหนังสือฝั่งซ้าย */
+:where(select) {
   padding-inline-end: 2.5rem !important;
+}
+
+:where(.dropdown-trigger, .schedule-date-trigger) {
+  padding-inline-end: 0.75rem !important;
 }
 
 :where(
