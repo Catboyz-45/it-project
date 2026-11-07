@@ -259,9 +259,8 @@ test.describe.serial("subscription access UX", () => {
     await page.goto(`/admin/properties/${e2e.propertyId}/parcels`);
     await expectMinimumTouchTarget(page, ".parcel-table button, .table-pagination button, .figma-icon-action, .icon-btn");
 
-    const search = page.getByPlaceholder("ค้นหาผู้เช่า ห้อง บิล สัญญา");
-    await search.fill("E101");
-    await expectMinimumTouchTarget(page, 'button[aria-label="ล้างคำค้น"]');
+    // ค้นหาทั้งหอบนหัวหน้าเป็นปุ่มไอคอนบนมือถือ ต้องกดง่ายพอ
+    await expectMinimumTouchTarget(page, ".global-search-button");
 
     await page.getByRole("button", { name: /ศูนย์การแจ้งเตือน/ }).click();
     await expectMinimumTouchTarget(page, '[role="dialog"][aria-label="ศูนย์การแจ้งเตือน"] button');

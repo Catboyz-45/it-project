@@ -316,9 +316,10 @@ TC-OWN-019 ค้นหาทั้งหอจากแถบด้านบน
     ...    Desc: พิมพ์ชื่อผู้เช่าในช่องค้นหาทั้งหอ แล้วต้องเห็นผลลัพธ์ที่ตรง
     ...    Type: P
     ...    Data: คำค้น : สมชาย
-    ...    Steps: 1. พิมพ์ "สมชาย" ในช่อง "ค้นหาผู้เช่า ห้อง บิล สัญญา"
+    ...    Steps: 1. กดปุ่ม "ค้นหา" บนแถบด้านบน\n2. พิมพ์ "สมชาย" ในกล่องค้นหา
     ...    Expected: มีรายการผลค้นหาที่มีชื่อ "สมชาย ใจดี"
     Go To Page    ${OWNER_HOME}
+    Click Element    css:button[aria-label="ค้นหาทั้งหอ"]
     Input Text    css:input[placeholder="ค้นหาผู้เช่า ห้อง บิล สัญญา"]    สมชาย
     Wait Until Element Is Visible    xpath://a[.//strong[contains(normalize-space(.),"สมชาย ใจดี")]]
     Record Actual    ผลค้นหามี "สมชาย ใจดี"

@@ -133,46 +133,49 @@ function toMeterReading({ billingMonth, currentDrafts, mode, previousDrafts, row
   };
 }
 
-// แถบตัวกรองด้านบน เปลี่ยนอะไรก็กลับไปหน้าแรกของตารางเสมอ
-function MeterFilterBar({ billingMonth, building, buildings, currentMonth, floor, floors, onBillingMonthChange, onBuildingChange, onFloorChange, onQueryChange, query }: Readonly<{
+// รอบมิเตอร์อยู่บนสุดของหน้า เพราะเปลี่ยนทั้งการ์ดสรุปและตาราง ส่วนตัวกรองอื่นกรองแค่ตาราง จึงไปอยู่หัวตาราง
+// ดรอปดาวน์ชื่อเดือนภาษาไทย แทนช่องเดือนของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษและปี ค.ศ.
+// เดือนล่าสุดคือเดือนปัจจุบัน เพราะยังจดมิเตอร์ของเดือนที่ยังไม่ถึงไม่ได้ ย้อนหลังได้สองปี
+function MeterPeriodBar({ billingMonth, currentMonth, onBillingMonthChange }: Readonly<{
   billingMonth: string;
+  currentMonth: string;
+  onBillingMonthChange: (value: string) => void;
+}>) {
+  return <div className="meter-period-bar">
+    <span aria-hidden="true">รอบมิเตอร์</span>
+    <DropdownField ariaLabel="รอบมิเตอร์" onChange={onBillingMonthChange} options={thaiMonthOptions(currentMonth, 24, billingMonth)} value={billingMonth} />
+  </div>;
+}
+
+// แถบค้นหาและกรองบนหัวตาราง กรองเฉพาะแถวในตาราง ไม่เปลี่ยนตัวเลขบนการ์ดสรุป
+// เปลี่ยนอะไรก็กลับไปหน้าแรกของตารางเสมอ
+function MeterTableToolbar({ building, buildings, floor, floors, onBuildingChange, onFloorChange, onQueryChange, query }: Readonly<{
   building: string;
   buildings: Array<[string, string]>;
-  currentMonth: string;
   floor: string;
   floors: number[];
-  onBillingMonthChange: (value: string) => void;
   onBuildingChange: (value: string) => void;
   onFloorChange: (value: string) => void;
   onQueryChange: (value: string) => void;
   query: string;
 }>) {
-  return <div className="meter-filter-bar">
-    <DropdownField
-      label="อาคาร"
-      // เปลี่ยนอาคารแล้วรีเซ็ตชั้นด้วย ไม่งั้นจะค้างชั้นของอาคารเดิมแล้วผลลัพธ์ว่าง
-      onChange={onBuildingChange}
-      options={[{ value: "all", label: "ทุกอาคาร" }, ...buildings.map(([value, label]) => ({ value, label }))]}
-      value={building}
-    />
-    <DropdownField
-      label="ชั้น"
-      onChange={onFloorChange}
-      options={[{ value: "all", label: "ทุกชั้น" }, ...floors.map((item) => ({ value: String(item), label: `ชั้น ${item}` }))]}
-      value={floor}
-    />
-    {/* ดรอปดาวน์ชื่อเดือนภาษาไทย แทนช่องเดือนของเบราว์เซอร์ที่ขึ้นภาษาอังกฤษและปี ค.ศ.
-        เดือนล่าสุดคือเดือนปัจจุบัน เพราะยังจดมิเตอร์ของเดือนที่ยังไม่ถึงไม่ได้ ย้อนหลังได้สองปี */}
-    <DropdownField
-      label="รอบมิเตอร์"
-      onChange={onBillingMonthChange}
-      options={thaiMonthOptions(currentMonth, 24, billingMonth)}
-      value={billingMonth}
-    />
-    <label className="meter-search">
-      <Search size={16} />
-      <input aria-label="ค้นหาห้องหรือผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} />
-    </label>
+  return <div className="figma-table-toolbar">
+    <div><Search size={16} /><input aria-label="ค้นหาห้องหรือผู้เช่า" onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาห้องหรือผู้เช่า..." value={query} /></div>
+    <div className="contract-actions">
+      <DropdownField
+        ariaLabel="กรองอาคาร"
+        // เปลี่ยนอาคารแล้วรีเซ็ตชั้นด้วย ไม่งั้นจะค้างชั้นของอาคารเดิมแล้วผลลัพธ์ว่าง
+        onChange={onBuildingChange}
+        options={[{ value: "all", label: "ทุกอาคาร" }, ...buildings.map(([value, label]) => ({ value, label }))]}
+        value={building}
+      />
+      <DropdownField
+        ariaLabel="กรองชั้น"
+        onChange={onFloorChange}
+        options={[{ value: "all", label: "ทุกชั้น" }, ...floors.map((item) => ({ value: String(item), label: `ชั้น ${item}` }))]}
+        value={floor}
+      />
+    </div>
   </div>;
 }
 
@@ -430,19 +433,7 @@ export function MetersPage({
 
   return (
     <section className="meter-figma-page">
-      <MeterFilterBar
-        billingMonth={billingMonth}
-        building={building}
-        buildings={buildings}
-        currentMonth={currentMonth}
-        floor={floor}
-        floors={floors}
-        onBillingMonthChange={(value) => { setBillingMonth(value); setPage(1); }}
-        onBuildingChange={(value) => { setBuilding(value); setFloor("all"); setPage(1); }}
-        onFloorChange={(value) => { setFloor(value); setPage(1); }}
-        onQueryChange={(value) => { setQuery(value); setPage(1); }}
-        query={query}
-      />
+      <MeterPeriodBar billingMonth={billingMonth} currentMonth={currentMonth} onBillingMonthChange={(value) => { setBillingMonth(value); setPage(1); }} />
 
       <MeterProgress
         amount={rowFigures.reduce((total, figures) => total + figures.amount, 0)}
@@ -458,6 +449,16 @@ export function MetersPage({
         <div className="additional-card-head">
           <div><h2>{mode === "water" ? "รายการมิเตอร์น้ำ" : "รายการมิเตอร์ไฟ"}</h2><p>กด Enter เพื่อไปห้องถัดไป · ระบบเก็บฉบับร่างในเครื่องให้อัตโนมัติ</p></div>
         </div>
+        <MeterTableToolbar
+          building={building}
+          buildings={buildings}
+          floor={floor}
+          floors={floors}
+          onBuildingChange={(value) => { setBuilding(value); setFloor("all"); setPage(1); }}
+          onFloorChange={(value) => { setFloor(value); setPage(1); }}
+          onQueryChange={(value) => { setQuery(value); setPage(1); }}
+          query={query}
+        />
         {readOnly ? <ReadOnlyNotice className="m-4">ดู ค้นหา และกรองข้อมูลมิเตอร์ได้ แต่ไม่สามารถกรอกหรือบันทึกเลขมิเตอร์ใหม่ได้</ReadOnlyNotice> : null}
         {loadError ? <p className="form-alert error mx-6 my-3" role="alert">{loadError}</p> : null}
         <MeterWorksheetTable

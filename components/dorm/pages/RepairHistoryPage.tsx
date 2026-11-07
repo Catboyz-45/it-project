@@ -134,20 +134,12 @@ export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets:
           </div>
           <span className="badge badge-paid">{completedTickets.length} งานเสร็จแล้ว</span>
         </div>
-        <div className="history-page-toolbar">
-          <label className="history-search-field">
-            <Search aria-hidden="true" size={18} />
-            <span className="sr-only">ค้นหาประวัติการซ่อม</span>
-            <input
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="ค้นหาห้อง งานซ่อม หรือรายละเอียด..."
-              type="search"
-              value={query}
-            />
-          </label>
-          <div className="history-filter-grid">
+        {/* แถบค้นหาและกรองหน้าตาเดียวกับหัวตารางของหน้าอื่น ช่องค้นหาซ้าย ตัวกรองขวา ไม่มีป้ายชื่อเหนือช่อง */}
+        <div className="figma-table-toolbar">
+          <div><Search size={16} /><input aria-label="ค้นหาประวัติการซ่อม" onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาห้อง งานซ่อม หรือรายละเอียด..." type="search" value={query} /></div>
+          <div className="contract-actions">
             <DropdownField
-              label="ชั้น"
+              ariaLabel="กรองชั้น"
               value={selectedFloor}
               onChange={handleFloorChange}
               options={[
@@ -156,7 +148,7 @@ export function RepairHistoryPage({ initialPageInfo = null, propertyId, tickets:
               ]}
             />
             <DropdownField
-              label="ห้อง"
+              ariaLabel="กรองห้อง"
               value={selectedRoom}
               onChange={setSelectedRoom}
               options={[

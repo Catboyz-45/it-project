@@ -168,6 +168,20 @@
     outline: none !important;
   }
 
+  /* ช่องพิมพ์ในกล่องค้นหาทั้งหอเป็นหัวของกล่อง แบบเดียวกับช่องค้นหาในช่องเลือกห้องข้างบน
+     ไม่มีกรอบหรือวงโฟกัสของตัวเอง ความสูงกับระยะขอบก็ต้องตั้งที่นี่ เพราะกฎกลางของช่องกรอกใส่ไว้แบบ !important */
+  .search-dialog-field > input,
+  .search-dialog-field > input:is(:focus, :focus-visible) {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding-inline: 0 !important;
+  }
+
   /* ช่องค้นหาของศูนย์ช่วยเหลือ กรอบและวงโฟกัสอยู่ที่ label ตัวช่องพิมพ์ข้างในต้องไม่มีของตัวเอง
      ไม่งั้นจะเห็นวงโฟกัสซ้อนสองชั้นกับกรอบสี่เหลี่ยมอีกอันอยู่ข้างใน ใช้วิธีเดียวกับช่องพิมพ์แชทด้านล่าง */
   .help-page .help-center-hero label > input,
@@ -777,7 +791,7 @@
   .figma-table-card, .meter-table-card, .figma-floor-card, .settings-card {
     @apply overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.04)];
   }
-  .figma-table-toolbar, .meter-filter-bar, .figma-table-head, .settings-card-head, .additional-card-head {
+  .figma-table-toolbar, .figma-table-head, .settings-card-head, .additional-card-head {
     @apply flex flex-wrap items-center justify-between gap-3 border-b border-[#e4e4e7] bg-[#fff] p-4;
   }
   .additional-card-head { @apply px-6 py-4; }
@@ -796,13 +810,10 @@
     @apply w-full bg-[#fff];
     padding-inline-start: 2.25rem !important;
   }
-  /* ช่องค้นหาของหน้ามิเตอร์ วางแนวล่างให้ตรงกับดรอปดาวน์ที่มีป้ายชื่ออยู่ข้างบน และให้ไอคอนอยู่ในช่อง */
-  .meter-search { @apply relative w-full self-end sm:w-64 sm:flex-none; }
-  .meter-search > svg { @apply pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-[#62646c]; }
-  .meter-search > input {
-    @apply w-full bg-[#fff] text-left;
-    padding-inline-start: 2.25rem !important;
-  }
+  /* รอบมิเตอร์บนสุดของหน้า ป้ายชื่ออยู่หน้าช่องในแถวเดียว ไม่ใช่การ์ดตัวกรองเต็มความกว้าง */
+  .meter-period-bar { @apply flex items-center gap-3; }
+  .meter-period-bar > span { @apply text-sm font-medium text-[#3f4148]; }
+  .meter-period-bar > .dropdown-field { @apply w-52; }
   .figma-table-toolbar > .contract-actions { @apply ml-auto items-center; }
   .figma-table-toolbar > .contract-actions > :is(button, a) { @apply min-h-11 lg:min-h-9; }
   /* กรอบเทาบาง ๆ รอบตัวตาราง แบบเดียวกับกล่องของ Cal ที่ใช้พื้นหลัง muted หนา 2px
@@ -993,10 +1004,6 @@
   .repair-board-head { @apply flex items-start justify-between gap-4 border-b border-[#e4e4e7] bg-[#fff] px-6 py-4; }
   .repair-board-head h2 { @apply text-base font-semibold text-[#292a30]; }
   .repair-board-head p { @apply mt-1 text-sm text-[#62646c]; }
-  .history-page-toolbar { @apply grid grid-cols-[minmax(260px,1fr)_minmax(360px,2fr)] items-end gap-4 border-b border-[#e5e6eb] bg-[#fafafa] px-6 py-5; }
-  .history-search-field { @apply flex min-h-12 items-center gap-3 rounded-xl border border-[#b7bac4] bg-[#fff] px-4 text-[#62646c] transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20; }
-  .history-search-field input { @apply min-w-0 flex-1 bg-transparent text-base text-[#292a30] outline-none placeholder:text-[#73757d]; }
-  .history-filter-grid { @apply grid max-w-2xl grid-cols-2 gap-4; }
   .repair-history-list { @apply divide-y divide-[#e8e9ed] bg-[#fff]; }
   .repair-history-row { @apply grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 gap-y-2 px-6 py-5 transition hover:bg-brand/[.025]; }
   .repair-history-main { @apply min-w-0; }
@@ -2507,7 +2514,7 @@ input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
 
 /* Composite search fields own the visible boundary. Their inner input stays
    borderless so the global contract does not create a nested double border. */
-:where(.history-search-field, .help-center-hero label, .tenant-help-search) {
+:where(.help-center-hero label, .tenant-help-search) {
   box-sizing: border-box !important;
   height: var(--ui-control-height) !important;
   min-height: var(--ui-control-height) !important;
@@ -2516,7 +2523,7 @@ input[type="file"]:not(.sr-only):not(.chat-file-input)::file-selector-button {
   background: var(--ui-control-background) !important;
 }
 
-:where(.history-search-field, .help-center-hero label, .tenant-help-search) input {
+:where(.help-center-hero label, .tenant-help-search) input {
   height: auto !important;
   min-height: 0 !important;
   border: 0 !important;
@@ -2645,8 +2652,6 @@ select:disabled {
 /* หน้าจอมือถือ: เปลี่ยนตารางและแถบเครื่องมือเป็นแนวตั้งเพื่อไม่ให้ข้อมูลล้นจอ */
 @media (max-width: 767px) {
   .repair-board-head { @apply flex-col px-4 py-4; }
-  .history-page-toolbar { @apply grid-cols-1 px-4 py-4; }
-  .history-filter-grid { @apply grid-cols-1; }
   .repair-history-row { @apply grid-cols-1 gap-3 px-4 py-4; }
   .repair-history-meta { @apply justify-start; }
   .repair-history-row > small { @apply col-start-auto; }
@@ -3048,5 +3053,43 @@ select:disabled {
     .summary-card-value { @apply text-xl; }
     /* การ์ดแคบ ป้ายดันชื่อการ์ดจนขึ้นสองบรรทัด ตัวเลขสีแดงบอกความด่วนอยู่แล้ว */
     .summary-card-badge { @apply hidden; }
+  }
+}
+
+/* ===== ค้นหาทั้งหอ ===== ปุ่มเล็กบนหัวหน้า กดแล้วเปิดกล่องค้นหาด้านบนจอ
+   ไม่เป็นช่องพิมพ์ยาวบนหัวหน้าแล้ว จะได้ไม่ซ้ำกับช่องกรองตารางของแต่ละหน้า */
+@layer components {
+  .global-search-button {
+    @apply inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-[#dcdde3] bg-[#fff] px-3.5 text-sm font-medium text-[#3f4148] shadow-[0_1px_2px_rgba(38,43,95,.04)] transition-colors hover:border-[#c9cad3] hover:bg-[#fafafa] lg:min-h-9;
+  }
+  .global-search-button > svg { @apply text-[#6b6d75]; }
+  .modal-backdrop.search-backdrop { @apply pt-[12vh]; place-items: start center; }
+  .modal.search-dialog { @apply grid max-h-[70vh] max-w-xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0; }
+  .search-dialog-field { @apply flex items-center gap-3 border-b border-[#ececf0] px-4 text-[#6b6d75]; }
+  /* กรอบและวงโฟกัสของช่องพิมพ์ล้างไว้ใน layer base แล้ว ตรงนี้วางขนาดและตัวหนังสืออย่างเดียว */
+  .search-dialog-field > input { @apply min-w-0 flex-1 text-base text-[#1e1f22]; }
+  .search-dialog-field > input::-webkit-search-cancel-button { display: none; }
+  .search-dialog-field kbd { @apply shrink-0 rounded-md border border-[#e4e4e7] bg-[#fafafa] px-1.5 font-sans text-[11px] text-[#6b6d75]; }
+  .search-dialog-results { @apply grid content-start gap-0.5 overflow-y-auto overscroll-contain p-2; }
+  .search-dialog-hint { @apply m-0 px-3 py-6 text-center text-sm text-[#6b6d75]; }
+  .search-dialog-result { @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-[#1e1f22] no-underline transition-colors hover:bg-[#f4f4f6] focus-visible:bg-[#eef0fe]; }
+  .search-dialog-result strong { @apply block truncate text-sm font-medium; }
+  .search-dialog-result small { @apply block truncate text-xs text-[#6b6d75]; }
+  .search-dialog-type { @apply w-14 shrink-0 rounded-md bg-[#f1f1f3] py-0.5 text-center text-[11px] font-medium text-[#5c5e66]; }
+  .search-dialog-type[data-type="tenant"] { @apply bg-[#eef0fe] text-[#3c45a5]; }
+  .search-dialog-type[data-type="invoice"] { @apply bg-[#e9f7ee] text-[#166534]; }
+  .search-dialog-type[data-type="lease"] { @apply bg-[#fff4e0] text-[#92400e]; }
+  @media (max-width: 767px) {
+    /* มือถือแป้นพิมพ์ขึ้นจากด้านล่าง กล่องค้นหาจึงอยู่บนจอ ไม่เป็นแผ่นเลื่อนขึ้นจากขอบล่างแบบฟอร์มอื่น */
+    .modal-backdrop.search-backdrop { @apply p-3 pt-3; place-items: start stretch; }
+    .modal.search-dialog { @apply static max-h-[75dvh] rounded-2xl p-0; animation: modal-alert-enter 200ms cubic-bezier(.2,.8,.2,1) both; }
+    .modal.search-dialog::before { content: none; }
+    .global-search-button > span { @apply sr-only; }
+    .global-search-button { @apply w-11 justify-center px-0; }
+    /* มือถือไม่มีปุ่ม Esc ปิดด้วยการแตะพื้นหลังแทน */
+    .search-dialog-field kbd { @apply hidden; }
+    /* ตัวกรองบนหัวตารางแบ่งความกว้างกันเต็มแถว ไม่ไปกองชิดขวาเหลือช่องว่างด้านซ้าย */
+    .figma-table-toolbar > .contract-actions:has(> .dropdown-field) { @apply w-full flex-nowrap; }
+    .figma-table-toolbar > .contract-actions > .dropdown-field { @apply min-w-0 flex-1; }
   }
 }
