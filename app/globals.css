@@ -135,8 +135,10 @@
 
   /* A two-tone indicator stays visible on both light and dark surfaces. Keep
      this rule centralized so native controls, links, card buttons and tabs do
-     not depend on a color-only state change. */
-  :is(button, a, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+     not depend on a color-only state change.
+     [tabindex] อยู่ใน :where() ให้กฎนี้มีน้ำหนักแค่ระดับแท็ก ไม่งั้น :is() ดึงน้ำหนักของ [tabindex]:not(...) มาทั้งก้อน
+     แล้วชนะกฎวงโฟกัสด้านในของช่องกรอกข้างล่าง วงเลยยื่นออกนอกช่องจนโดนกรอบแผ่นตัด */
+  :is(button, a, input, select, textarea, summary, :where([tabindex]:not([tabindex="-1"]))):focus-visible {
     outline: 3px solid #4651c7 !important;
     outline-offset: 3px !important;
     box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(70, 81, 199, 0.42) !important;
@@ -204,10 +206,11 @@
 
   /* ช่องกรอกและเมนูข้างมักอยู่ในกล่องที่เลื่อนได้ (หน้าต่าง modal, แถบเมนู) ซึ่งตัดทุกอย่างที่ล้นขอบ
      วงโฟกัสด้านบนยื่นออกนอกตัวเองราว 6px จึงโดนตัดจนดูเหมือนชนขอบ
-     ย้ายวงเข้ามาอยู่ด้านในขอบแทน ยังหนา 3px สีเดิมและเห็นชัดเหมือนเดิม */
+     ย้ายวงเข้ามาอยู่ด้านในขอบแทน ยังหนา 3px สีเดิมและเห็นชัดเหมือนเดิม
+     ปุ่มในหน้าต่างไม่ใช้วงด้านใน เพราะวงสีม่วงด้านในปุ่มหลักสีม่วงแทบมองไม่เห็น */
   :is(input, select, textarea, .dropdown-trigger, .schedule-date-trigger):focus-visible,
   .sidebar :is(nav a, nav button, .sidebar-footer > button, .sidebar-footer-links > a):focus-visible,
-  :is(.modal-form, .modal-body, .chat-widget, .notification-list, .account-menu, .property-menu) :is(button, a):focus-visible {
+  :is(.notification-list, .account-menu, .property-menu) :is(button, a):focus-visible {
     outline-offset: -3px !important;
     box-shadow: inset 0 0 0 5px rgba(70, 81, 199, 0.18) !important;
   }

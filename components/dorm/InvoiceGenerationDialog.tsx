@@ -221,7 +221,7 @@ function blockingReason({ eligibleCount, mode, roomId, step, targetCount }: {
 
 // แถวชื่อคู่ค่าในหน้าตรวจข้อมูล ใช้แค่ในไฟล์นี้ จึงไม่ต้อง export
 function CheckRow({ label, value }: Readonly<{ label: string; value: string }>) {
-  return <div className="flex items-center justify-between gap-4 border-b border-[#e7e8eb] pb-3 last:border-0 last:pb-0"><span className="text-sm text-[#73757d]">{label}</span><strong className="text-right">{value}</strong></div>;
+  return <div className="flex items-center justify-between gap-4 border-b border-[#e7e8eb] pb-3 last:border-0 last:pb-0"><span className="text-sm text-[#62646c]">{label}</span><span className="text-right font-medium text-[#292a30]">{value}</span></div>;
 }
 
 // ขั้น 1 เลือกว่าจะออกบิลให้ห้องเดียวหรือทั้งหอ และเลือกเดือนรอบบิล
@@ -286,8 +286,8 @@ function ReadinessStep({ billingMonth, preflight, propertyId }: Readonly<{ billi
     </div>
     {preflight?.ready.length ? <div className="max-h-64 overflow-y-auto rounded-2xl border border-[#d7d8df]">
       {preflight.ready.map((item) => <div className="border-b border-[#e7e8eb] p-3 last:border-0" key={item.roomId}>
-        <div className="flex justify-between gap-3"><strong>ห้อง {item.roomNumber} · {item.tenantName}</strong><strong>฿{formatBaht(item.subtotal)}</strong></div>
-        <small>{item.items.map((line) => `${line.description} ฿${Number(line.amount).toLocaleString("th-TH")}`).join(" · ")}</small>
+        <div className="flex justify-between gap-3 font-medium text-[#292a30]"><span>ห้อง {item.roomNumber} · {item.tenantName}</span><span>฿{formatBaht(item.subtotal)}</span></div>
+        <small className="mt-0.5 block text-[#62646c]">{item.items.map((line) => `${line.description} ฿${Number(line.amount).toLocaleString("th-TH")}`).join(" · ")}</small>
       </div>)}
     </div> : null}
     {/* บอกให้ครบว่าห้องไหนสร้างไม่ได้เพราะอะไร จะได้ไปแก้ถูกจุด */}
@@ -329,9 +329,9 @@ function ConfirmStep({ billingMonth, mode, selectedRoom, targetCount }: Readonly
   return <section aria-labelledby="invoice-step-confirm" className="grid gap-4">
     <StepIntro id="invoice-step-confirm" title="ยืนยันการบันทึกร่าง">ยังไม่มีการส่งบิลหรือแจ้งผู้เช่าในขั้นตอนนี้</StepIntro>
     <div className="rounded-2xl bg-brand/[.06] p-5">
-      <span className="text-sm text-[#73757d]">กำลังสร้าง</span>
-      <strong className="mt-1 block text-2xl">ร่างบิล {targetCount} รายการ</strong>
-      <p className="mt-2">รอบเดือน {formatThaiMonth(billingMonth)} · {mode === "single" ? `ห้อง ${selectedRoom?.id ?? "-"}` : "ทุกห้องที่พร้อม"}</p>
+      <span className="text-sm text-[#62646c]">กำลังสร้าง</span>
+      <strong className="mt-1 block text-xl font-semibold text-[#292a30]">ร่างบิล {targetCount} รายการ</strong>
+      <p className="mt-1 text-sm text-[#3f4148]">รอบเดือน {formatThaiMonth(billingMonth)} · {mode === "single" ? `ห้อง ${selectedRoom?.id ?? "-"}` : "ทุกห้องที่พร้อม"}</p>
     </div>
     <p className="text-sm text-[#73757d]">หลังบันทึก คุณสามารถตรวจยอดและรายละเอียดของแต่ละร่างก่อนออกบิลให้ผู้เช่า</p>
   </section>;

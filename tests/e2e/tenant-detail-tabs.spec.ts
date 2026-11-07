@@ -26,6 +26,10 @@ test("tenant detail sheet splits its fields into tabs", async ({ page }) => {
   expect(sizes[0], `scroll ${sizes.join("/")}`).toBeLessThanOrEqual(sizes[1] + 1);
   await expect(panel.getByLabel("เลขทะเบียนรถ")).toHaveCount(0);
 
+  // วงโฟกัสของช่องกรอกต้องอยู่ด้านในช่อง ไม่งั้นกรอบของแผ่นที่เลื่อนได้ตัดวงด้านซ้ายทิ้งจนดูเหมือนชนขอบ
+  await panel.getByLabel("ชื่อ-นามสกุล").click();
+  await expect.poll(() => panel.getByLabel("ชื่อ-นามสกุล").evaluate((element) => getComputedStyle(element).outlineOffset)).toBe("-3px");
+
   // ลูกศรเลื่อนแท็บได้ตามมาตรฐานแท็บ
   await tabs.getByRole("tab", { name: "ส่วนตัว" }).focus();
   await page.keyboard.press("ArrowRight");
